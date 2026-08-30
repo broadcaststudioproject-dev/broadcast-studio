@@ -1,0 +1,3 @@
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/build/CMakeFiles/test_host.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/build/CMakeFiles/edit_cache.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/build/CMakeFiles/rebuild_cache.dir

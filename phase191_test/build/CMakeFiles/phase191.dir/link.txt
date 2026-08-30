@@ -1,0 +1,1 @@
+/data/data/com.termux/files/usr/bin/clang -O2 -g -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/ld-wrapper -Xlinker --dependency-file=CMakeFiles/phase191.dir/link.d CMakeFiles/phase191.dir/main.c.o -o phase191

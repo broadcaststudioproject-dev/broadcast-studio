@@ -1,0 +1,3 @@
+/data/data/com.termux/files/home/pocket_pcr_studio/phase194_test/build/CMakeFiles/phase194.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/phase194_test/build/CMakeFiles/edit_cache.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/phase194_test/build/CMakeFiles/rebuild_cache.dir

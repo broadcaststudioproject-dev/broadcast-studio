@@ -1,0 +1,70 @@
+==================================================
+ PHASE 195: REUSABLE CMAKE TOOLCHAIN TEST
+==================================================
+
+--- 1. CREATE TOOLCHAIN ---
+TOOLCHAIN=CREATED
+WRAPPER=CREATED
+
+--- 2. CREATE TEST PROJECT ---
+PROJECT=CREATED
+
+--- 3. CONFIGURE USING TOOLCHAIN ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (2.8s)
+-- Generating done (0.0s)
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build
+CONFIGURE_RC=0
+
+--- 4. BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/cmake -E env VERBOSE=1 /data/data/com.termux/files/usr/bin/make -f Makefile
+/data/data/com.termux/files/usr/bin/cmake -S/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/src -B/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build --check-build-system CMakeFiles/Makefile.cmake 0
+/data/data/com.termux/files/usr/bin/cmake -E cmake_progress_start /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build/CMakeFiles /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build//CMakeFiles/progress.marks
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase195.dir/build.make CMakeFiles/phase195.dir/depend
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+cd /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build && /data/data/com.termux/files/usr/bin/cmake -E cmake_depends "Unix Makefiles" /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build/CMakeFiles/phase195.dir/DependInfo.cmake "--color=" phase195
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase195.dir/build.make CMakeFiles/phase195.dir/build
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+[ 50%] Building C object CMakeFiles/phase195.dir/main.c.o
+/data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O3 -DNDEBUG -MD -MT CMakeFiles/phase195.dir/main.c.o -MF CMakeFiles/phase195.dir/main.c.o.d -o CMakeFiles/phase195.dir/main.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/src/main.c
+[100%] Linking C executable phase195
+/data/data/com.termux/files/usr/bin/cmake -E cmake_link_script CMakeFiles/phase195.dir/link.txt --verbose=1
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+/data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O3 -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/ld-wrapper -lunwind CMakeFiles/phase195.dir/main.c.o -o phase195
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+[100%] Built target phase195
+make[1]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build'
+/data/data/com.termux/files/usr/bin/cmake -E cmake_progress_start /data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build/CMakeFiles 0
+
+BUILD_RC=0
+
+--- 5. CHECK TOOLCHAIN CACHE ---
+CMAKE_EXE_LINKER_FLAGS:STRING=
+
+--- 6. EXECUTABLE ---
+EXECUTABLE=CREATED
+/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/build/phase195: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 7. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=0
+BUILD_RC=0
+TOOLCHAIN_STATUS=SUCCESS
+CMAKE_EXECUTABLE=SUCCESS
+
+==================================================
+ PHASE 195 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase195_result.txt
+==================================================

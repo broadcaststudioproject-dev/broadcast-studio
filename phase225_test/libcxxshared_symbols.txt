@@ -1,0 +1,4 @@
+   999: 00000000000b8628  1436 FUNC    GLOBAL DEFAULT    16 __gxx_personality_v0
+    64: 000000000013d448     8 OBJECT  LOCAL  HIDDEN     26 DW.ref.__gxx_personality_v0
+  7044: 0000000000124cfc   132 FUNC    LOCAL  HIDDEN     16 _Unwind_Resume
+  7194: 00000000000b8628  1436 FUNC    GLOBAL DEFAULT    16 __gxx_personality_v0

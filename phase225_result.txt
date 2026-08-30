@@ -1,0 +1,289 @@
+==================================================
+PHASE 225: LIBC++ABI + STATIC UNWIND SYMBOL TEST
+==================================================
+
+--- 1. ENVIRONMENT ---
+CLANGXX=/data/data/com.termux/files/usr/bin/clang++
+TARGET=aarch64-linux-android21
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 2. C++ RUNTIME FILES ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a
+
+--- 3. SELECTED FILES ---
+LIBCXXABI=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a
+LIBCXXSTATIC=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a
+LIBCXXSHARED=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
+
+--- 4. LIBC++ABI _Unwind_Resume ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_default_handlers.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_default_handlers.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_default_handlers.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_guard.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_guard.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_guard.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_handlers.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_handlers.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_vector.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_vector.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_vector.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:fallback_malloc.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:fallback_malloc.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:fallback_malloc.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_demangle.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_demangle.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_demangle.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:stdlib_new_delete.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:stdlib_new_delete.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_exception.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_exception.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_personality.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_personality.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_personality.cpp.o: 0000000000000000 T __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_thread_atexit.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_thread_atexit.cpp.o:                  U __gxx_personality_v0
+
+--- 5. LIBC++ STATIC _Unwind_Resume ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:call_once.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:call_once.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:call_once.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:charconv.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:charconv.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:chrono.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:chrono.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:exception.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:exception.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:exception.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_clock.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_clock.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_error.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_error.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_error.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:path.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:path.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:path.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:hash.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:hash.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:hash.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory_resource.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory_resource.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory_resource.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random_shuffle.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random_shuffle.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:stdexcept.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:stdexcept.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:stdexcept.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:string.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:string.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:string.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:system_error.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:system_error.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:system_error.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:valarray.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:valarray.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:valarray.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:vector.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:vector.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:vector.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:barrier.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:barrier.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:barrier.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable_destructor.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable_destructor.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:future.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:future.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:future.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex_destructor.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex_destructor.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:thread.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:thread.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:thread.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.instantiations.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.instantiations.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.instantiations.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:iostream.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:iostream.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:iostream.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:locale.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:locale.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:locale.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:strstream.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:strstream.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_entry.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_entry.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_entry.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_iterator.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_iterator.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_iterator.cpp.o:                  U __gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:operations.cpp.o: 0000000000000000 V DW.ref.__gxx_personality_v0
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:operations.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:operations.cpp.o:                  U __gxx_personality_v0
+
+--- 6. SHARED LIB SYMBOL ---
+   999: 00000000000b8628  1436 FUNC    GLOBAL DEFAULT    16 __gxx_personality_v0
+    64: 000000000013d448     8 OBJECT  LOCAL  HIDDEN     26 DW.ref.__gxx_personality_v0
+  7044: 0000000000124cfc   132 FUNC    LOCAL  HIDDEN     16 _Unwind_Resume
+  7194: 00000000000b8628  1436 FUNC    GLOBAL DEFAULT    16 __gxx_personality_v0
+
+--- 7. TEST SOURCE ---
+SOURCE=YES
+
+--- 8. SYMBOL BINDING CLASSIFICATION ---
+FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_default_handlers.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_guard.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_vector.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:fallback_malloc.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_demangle.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_personality.cpp.o:                  U _Unwind_Resume
+
+FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:call_once.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:exception.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_error.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:path.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:hash.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory_resource.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:stdexcept.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:string.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:system_error.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:valarray.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:vector.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:barrier.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:future.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:thread.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.instantiations.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:iostream.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:locale.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_entry.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_iterator.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:operations.cpp.o:                  U _Unwind_Resume
+
+FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxshared_symbols.txt
+  7044: 0000000000124cfc   132 FUNC    LOCAL  HIDDEN     16 _Unwind_Resume
+
+--- 9. CMAKE CONFIGURE ---
+-- The CXX compiler identification is Clang 21.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - failed
+-- Check for working CXX compiler: /data/data/com.termux/files/usr/bin/clang++
+-- Check for working CXX compiler: /data/data/com.termux/files/usr/bin/clang++ - broken
+CMake Error at /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCXXCompiler.cmake:71 (message):
+  The C++ compiler
+
+    "/data/data/com.termux/files/usr/bin/clang++"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeScratch/TryCompile-StzYDB'
+    
+    Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_8e4e0
+    [1/2] /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -stdlib=libc++  -O2 -g -DNDEBUG -MD -MT CMakeFiles/cmTC_8e4e0.dir/testCXXCompiler.cxx.o -MF CMakeFiles/cmTC_8e4e0.dir/testCXXCompiler.cxx.o.d -o CMakeFiles/cmTC_8e4e0.dir/testCXXCompiler.cxx.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeScratch/TryCompile-StzYDB/testCXXCompiler.cxx
+    [2/2] : && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++  -O2 -g -DNDEBUG  CMakeFiles/cmTC_8e4e0.dir/testCXXCompiler.cxx.o -o cmTC_8e4e0   && :
+    FAILED: [code=1] cmTC_8e4e0 
+    : && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++  -O2 -g -DNDEBUG  CMakeFiles/cmTC_8e4e0.dir/testCXXCompiler.cxx.o -o cmTC_8e4e0   && :
+    ld.lld: error: unable to find library -l:libunwind.a
+    ld.lld: error: unable to find library -l:libunwind.a
+    clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+    ninja: build stopped: subcommand failed.
+    
+    
+
+
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:3 (project)
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 10. DRIVER LINK TRACE ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+ "/data/data/com.termux/files/usr/bin/clang-21" "-cc1" "-triple" "aarch64-unknown-linux-android21" "-emit-obj" "-dumpdir" "/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/driver_test-" "-disable-free" "-clear-ast-before-backend" "-disable-llvm-verifier" "-discard-value-names" "-main-file-name" "main.cpp" "-mrelocation-model" "pic" "-pic-level" "2" "-pic-is-pie" "-mframe-pointer=non-leaf" "-ffp-contract=on" "-fno-rounding-math" "-mconstructor-aliases" "-funwind-tables=2" "-enable-tlsdesc" "-target-cpu" "generic" "-target-feature" "+v8a" "-target-feature" "+fp-armv8" "-target-feature" "+neon" "-target-feature" "+fix-cortex-a53-835769" "-target-abi" "aapcs" "-debugger-tuning=gdb" "-fdebug-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio" "-fcoverage-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio" "-resource-dir" "/data/data/com.termux/files/usr/lib/clang/21" "-isysroot" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot" "-internal-isystem" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1" "-internal-isystem" "/data/data/com.termux/files/usr/lib/clang/21/include" "-internal-isystem" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/local/include" "-internal-externc-isystem" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android" "-internal-externc-isystem" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/include" "-internal-externc-isystem" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include" "-fdeprecated-macro" "-ferror-limit" "19" "-femulated-tls" "-fno-signed-char" "-fgnuc-version=4.2.1" "-fskip-odr-check-in-gmf" "-fcxx-exceptions" "-fexceptions" "-target-feature" "+outline-atomics" "-target-feature" "-fmv" "-D__GCC_HAVE_DWARF2_CFI_ASM=1" "-o" "/data/data/com.termux/files/usr/tmp/main-853f29.o" "-x" "c++" "/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/src/main.cpp"
+ "/data/data/com.termux/files/usr/bin/ld.lld" "--sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot" "-EL" "--fix-cortex-a53-843419" "-z" "now" "-z" "relro" "-z" "max-page-size=16384" "--no-rosegment" "--hash-style=both" "-rpath=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib" "--eh-frame-hdr" "-m" "aarch64linux" "-pie" "-dynamic-linker" "/system/bin/linker64" "-o" "/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/driver_test" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o" "-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21" "-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" "-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib" "-L/system/lib64" "/data/data/com.termux/files/usr/tmp/main-853f29.o" "-lc++_shared" "/data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a" "-ldl" "-lm" "-lc" "/data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a" "-ldl" "/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o"
+
+--- 11. RESULT ---
+BUILD_SKIPPED=CONFIGURE_FAILED
+BUILD_RC=99
+
+EXECUTABLE=NOT_CREATED
+
+--- 12. KEY ERRORS ---
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeConfigureLog.yaml:        ld.lld: error: unable to find library -l:libunwind.a
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeConfigureLog.yaml:        ld.lld: error: unable to find library -l:libunwind.a
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeConfigureLog.yaml:        clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeConfigureLog.yaml:        ld.lld: error: unable to find library -l:libunwind.a
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeConfigureLog.yaml:        ld.lld: error: unable to find library -l:libunwind.a
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build/CMakeFiles/CMakeConfigureLog.yaml:        clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_default_handlers.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_guard.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_vector.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:fallback_malloc.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_demangle.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a:cxa_personality.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:call_once.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:exception.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:filesystem_error.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:path.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:hash.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:memory_resource.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:stdexcept.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:string.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:system_error.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:valarray.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:vector.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:barrier.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:condition_variable.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:future.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:mutex.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:thread.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:random.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:ios.instantiations.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:iostream.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:locale.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_entry.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:directory_iterator.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt:/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a:operations.cpp.o:                  U _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxshared_symbols.txt:  7044: 0000000000124cfc   132 FUNC    LOCAL  HIDDEN     16 _Unwind_Resume
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/configure.log:    ld.lld: error: unable to find library -l:libunwind.a
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/configure.log:    ld.lld: error: unable to find library -l:libunwind.a
+/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/configure.log:    clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+
+==================================================
+PHASE 225 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test
+LIBCXXABI_SYMBOLS=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxabi_symbols.txt
+LIBCXXSTATIC_SYMBOLS=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxstatic_symbols.txt
+LIBCXXSHARED_SYMBOLS=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/libcxxshared_symbols.txt
+DRIVER_TRACE=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/driver_link_trace.txt
+BUILD_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase225_test/build.log
+==================================================

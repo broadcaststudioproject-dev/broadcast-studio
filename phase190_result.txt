@@ -1,0 +1,136 @@
+==================================================
+ PHASE 190: NATIVE CLANG + NDK LLD CMAKE TOOLCHAIN
+==================================================
+
+--- 1. ENVIRONMENT ---
+HOST=aarch64
+NATIVE_CLANG=/data/data/com.termux/files/usr/bin/clang
+NATIVE_CLANGXX=/data/data/com.termux/files/usr/bin/clang++
+NDK=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358
+LLD=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 2. VERIFY NATIVE CLANG ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android24
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+CLANG_RC=0
+
+--- 3. CREATE LLD WRAPPER ---
+WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/ld-wrapper
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+WRAPPER_RC=0
+
+--- 4. CREATE CMAKE TOOLCHAIN ---
+TOOLCHAIN_CREATED=YES
+set(CMAKE_SYSTEM_NAME Android)
+set(CMAKE_SYSTEM_VERSION 21)
+
+set(CMAKE_ANDROID_NDK "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358")
+set(CMAKE_ANDROID_ARCH_ABI arm64-v8a)
+set(CMAKE_ANDROID_API 21)
+
+set(CMAKE_C_COMPILER "/data/data/com.termux/files/usr/bin/clang")
+set(CMAKE_CXX_COMPILER "/data/data/com.termux/files/usr/bin/clang++")
+
+set(CMAKE_C_COMPILER_TARGET aarch64-linux-android21)
+set(CMAKE_CXX_COMPILER_TARGET aarch64-linux-android21)
+
+set(CMAKE_SYSROOT "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot")
+
+set(CMAKE_LINKER "/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/ld-wrapper")
+
+set(CMAKE_EXE_LINKER_FLAGS
+    "-fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/ld-wrapper"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_SHARED_LINKER_FLAGS
+    "-fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/ld-wrapper"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_MODULE_LINKER_FLAGS
+    "-fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/ld-wrapper"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_C_FLAGS
+    "--target=aarch64-linux-android21"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_CXX_FLAGS
+    "--target=aarch64-linux-android21"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+--- 5. CREATE CMAKE TEST PROJECT ---
+
+--- 6. CMAKE VERSION ---
+cmake version 4.4.2
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+CMAKE_RC=0
+
+--- 7. CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (1.8s)
+-- Generating done (0.0s)
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build
+
+CONFIGURE_RC=0
+
+--- 8. BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/cmake -E env VERBOSE=1 /data/data/com.termux/files/usr/bin/make -f Makefile
+/data/data/com.termux/files/usr/bin/cmake -S/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/src -B/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build --check-build-system CMakeFiles/Makefile.cmake 0
+/data/data/com.termux/files/usr/bin/cmake -E cmake_progress_start /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build/CMakeFiles /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build//CMakeFiles/progress.marks
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase190.dir/build.make CMakeFiles/phase190.dir/depend
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+cd /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build && /data/data/com.termux/files/usr/bin/cmake -E cmake_depends "Unix Makefiles" /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build/CMakeFiles/phase190.dir/DependInfo.cmake "--color=" phase190
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase190.dir/build.make CMakeFiles/phase190.dir/build
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+[ 50%] Building C object CMakeFiles/phase190.dir/main.c.o
+/data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   --target=aarch64-linux-android21 -O3 -DNDEBUG -MD -MT CMakeFiles/phase190.dir/main.c.o -MF CMakeFiles/phase190.dir/main.c.o.d -o CMakeFiles/phase190.dir/main.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/src/main.c
+[100%] Linking C executable phase190
+/data/data/com.termux/files/usr/bin/cmake -E cmake_link_script CMakeFiles/phase190.dir/link.txt --verbose=1
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: error: unable to find library -l:libunwind.a
+ld.lld: error: unable to find library -l:libunwind.a
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+/data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot --target=aarch64-linux-android21 -O3 -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/ld-wrapper CMakeFiles/phase190.dir/main.c.o -o phase190
+make[2]: *** [CMakeFiles/phase190.dir/build.make:100: phase190] Error 1
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/phase190.dir/all] Error 2
+make[1]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test/build'
+make: *** [Makefile:91: all] Error 2
+
+
+BUILD_RC=2
+
+--- 9. OUTPUT ---
+EXECUTABLE=NOT_CREATED
+
+--- 10. CMAKE CACHE COMPILERS ---
+
+--- 11. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=0
+BUILD_RC=2
+CMAKE_NATIVE_CLANG_NDK_LLD=FAILED
+
+==================================================
+ PHASE 190 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase190_result.txt
+==================================================

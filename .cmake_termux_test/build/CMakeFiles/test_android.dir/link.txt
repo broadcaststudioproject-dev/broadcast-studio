@@ -1,0 +1,1 @@
+clang -O2 -g -DNDEBUG -Xlinker --dependency-file=CMakeFiles/test_android.dir/link.d CMakeFiles/test_android.dir/test.c.o -o test_android

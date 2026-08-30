@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(AndroidNDKJNI C)
+
+message(STATUS "HOST_SYSTEM=${CMAKE_HOST_SYSTEM_NAME}")
+message(STATUS "HOST_PROCESSOR=${CMAKE_HOST_SYSTEM_PROCESSOR}")
+message(STATUS "SYSTEM_NAME=${CMAKE_SYSTEM_NAME}")
+message(STATUS "SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "C_COMPILER=${CMAKE_C_COMPILER}")
+message(STATUS "C_FLAGS=${CMAKE_C_FLAGS}")
+message(STATUS "SYSROOT=${CMAKE_SYSROOT}")
+
+add_library(testjni SHARED test.c)
+
+set_target_properties(testjni PROPERTIES
+    OUTPUT_NAME "testjni"
+)

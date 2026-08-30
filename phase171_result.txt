@@ -1,0 +1,90 @@
+==================================================
+ PHASE 171: COMPLETE X86_64 RUNTIME DIAGNOSTIC
+==================================================
+
+--- 1. HOST ---
+aarch64
+arm64-v8a
+arm64-v8a,armeabi-v7a,armeabi
+
+--- 2. NDK ---
+NDK=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358
+drwx------. 11 u0_a255 u0_a255 3452 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358
+NDK_VERSION:
+Pkg.Desc = Android NDK
+Pkg.Revision = 28.2.13676358
+
+--- 3. X86_64 TOOLCHAIN ---
+X86=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+drwx------. 11 u0_a255 u0_a255 3452 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.24, stripped
+
+--- 4. CLANG INTERPRETER ---
+      [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
+
+--- 5. TERMUX NATIVE CLANG ---
+/data/data/com.termux/files/usr/bin/clang
+clang version 21.1.8
+Target: aarch64-unknown-linux-android24
+Thread model: posix
+
+--- 6. QEMU ---
+QEMU=/data/data/com.termux/files/usr/bin/qemu-x86_64
+qemu-x86_64 version 11.0.3
+Copyright (c) 2003-2026 Fabrice Bellard and the QEMU Project developers
+
+--- 7. GLIBC ---
+GLIBC=/data/data/com.termux/files/usr/glibc
+drwx------. 11 u0_a255 u0_a255 3452 Aug 27 22:37 /data/data/com.termux/files/usr/glibc
+
+--- 8. GLIBC ARCHITECTURE ---
+/data/data/com.termux/files/usr/glibc/lib/libc.so.6: ELF 64-bit LSB shared object, ARM aarch64, version 1 (GNU/Linux), dynamically linked, interpreter /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1, BuildID[sha1]=f386dc8ca35a4e5e78b9640b70fdbe43ad06688b, for GNU/Linux 3.7.0, with debug_info, not stripped
+
+--- 9. GLIBC LOADER SEARCH ---
+
+--- 10. BOX64 ---
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+/data/data/com.termux/files/usr/glibc/bin/box64: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1, BuildID[sha1]=b85852636d5d7ea5e1b23dca22a1a002f4e25dd7, for GNU/Linux 3.7.0, with debug_info, not stripped
+      [Requesting program interpreter: /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1]
+
+--- 11. BOX64 LIBRARY DIRECTORIES ---
+/data/data/com.termux/files/usr/glibc/lib/box64-i386-linux-gnu
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu
+
+--- 12. X86_64 LIBC SEARCH ---
+/data/data/com.termux/files/usr/glibc/lib/libc.so.6
+/data/data/com.termux/files/usr/glibc/lib/libc.so.6
+
+--- 13. QEMU + NDK CLANG ---
+qemu-x86_64: Could not open '/lib64/ld-linux-x86-64.so.2': No such file or directory
+QEMU_CLANG_RC=255
+
+--- 14. BOX64 + NDK CLANG ---
+/data/data/com.termux/files/usr/glibc/bin/box64: error while loading shared libraries: /data/data/com.termux/files/usr/glibc/lib/libc.so: invalid ELF header
+BOX64_CLANG_RC=127
+
+--- 15. BOX64 ENVIRONMENT ---
+PATH=/data/data/com.termux/files/usr/opt/flutter/bin:/data/data/com.termux/files/home/flutter/bin:/data/data/com.termux/files/home/flutter/bin:/data/data/com.termux/files/usr/opt/flutter/bin:/data/data/com.termux/files/home/.pub-cache/bin:/data/data/com.termux/files/usr/bin:/data/data/com.termux/files/usr/opt/android-sdk/platform-tools:/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin
+
+--- 16. JNI CMAKE DIRECTORIES ---
+JNI=/data/data/com.termux/files/home/.pub-cache/hosted/pub.dev/jni-1.0.3/android
+/data/data/com.termux/files/home/.pub-cache/hosted/pub.dev/jni-1.0.3/android/.cxx/Debug/4g3dtn6a/arm64-v8a/CMakeCache.txt
+
+--- 17. CMAKE COMPILER CACHE ---
+
+CACHE=/data/data/com.termux/files/home/.pub-cache/hosted/pub.dev/jni-1.0.3/android/.cxx/Debug/4g3dtn6a/arm64-v8a/CMakeCache.txt
+// Windows). Defaults to CMAKE_HOST_SYSTEM_NAME; set explicitly
+CMAKE_SYSTEM_NAME:UNINITIALIZED=Android
+// for host builds; must be set explicitly alongside CMAKE_SYSTEM_NAME
+
+--- 18. FINAL STATUS ---
+HOST_ARCH=aarch64
+NDK_CLANG=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19
+QEMU=/data/data/com.termux/files/usr/bin/qemu-x86_64
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+
+==================================================
+ END PHASE 171
+==================================================

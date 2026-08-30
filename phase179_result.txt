@@ -1,0 +1,217 @@
+==================================================
+ PHASE 179: BOX64 + NDK CLANG LIBXML2 RUNTIME
+==================================================
+
+--- 1. ENVIRONMENT ---
+HOST=aarch64
+PREFIX=/data/data/com.termux/files/usr
+GLIBC=/data/data/com.termux/files/usr/glibc
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+NDK=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358
+X86=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+NDKLIB=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib
+NDKXML=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/libxml2.so.2
+X86LIB=/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu
+
+--- 2. NDK LIBXML2 ---
+-rw-------. 1 u0_a255 u0_a255 1567368 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/libxml2.so.2
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/libxml2.so.2: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, not stripped
+  Class:                             ELF64
+  Type:                              DYN (Shared object file)
+  Machine:                           Advanced Micro Devices X86-64
+
+--- 3. NDK LIBXML2 NEEDED ---
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so.2]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so.6]
+  0x0000000000000001 (NEEDED)       Shared library: [libpthread.so.0]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so.6]
+  0x000000000000000e (SONAME)       Library soname: [libxml2.so.2]
+
+--- 4. BOX64 X86_64 LIBXML2 ---
+
+--- 5. BOX64 VERSION ---
+Box64 arm64 v0.4.2 nogit with Dynarec built on Aug  5 2026 08:50:17
+BOX64_RC=0
+
+--- 6. CLANG VERSION THROUGH BOX64 ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+CLANG_VERSION_RC=0
+
+--- 7. CLANG PRINT RESOURCE DIR ---
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19
+RESOURCE_RC=0
+
+--- 8. CLANG PRINT SEARCH DIRS ---
+programs: =/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+libraries: =/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19:/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../lib/x86_64-unknown-linux-gnu:/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/x86_64
+SEARCHDIR_RC=0
+
+--- 9. CLANG DRIVER VERBOSE WITHOUT INPUT ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+ (in-process)
+ "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19" -cc1 -triple aarch64-unknown-linux-android21 -E -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name null -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=non-leaf -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-feature +fix-cortex-a53-835769 -target-abi aapcs -debugger-tuning=gdb -fdebug-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio -v -fcoverage-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio -resource-dir /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19 -internal-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/include -internal-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/local/include -internal-externc-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/aarch64-linux-android -internal-externc-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/include -internal-externc-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include -ferror-limit 19 -femulated-tls -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -target-feature +outline-atomics -target-feature -fmv -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o - -x c /dev/null
+clang -cc1 version 19.0.1 based upon LLVM 19.0.1 default target x86_64-unknown-linux-gnu
+ignoring nonexistent directory "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/local/include"
+ignoring nonexistent directory "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/include"
+#include "..." search starts here:
+#include <...> search starts here:
+ /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/include
+ /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include/aarch64-linux-android
+ /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/include
+End of search list.
+# 1 "/dev/null"
+# 1 "<built-in>" 1
+# 1 "<built-in>" 3
+# 402 "<built-in>" 3
+# 1 "<command line>" 1
+# 1 "<built-in>" 2
+# 1 "/dev/null" 2
+
+DRIVER_RC=0
+
+--- 10. CREATE SIMPLE SOURCE ---
+-rw-------. 1 u0_a255 u0_a255 33 Aug 28 02:16 /data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test.c
+/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test.c: C source, ASCII text
+
+--- 11. COMPILE ONLY THROUGH BOX64 ---
+COMPILE_RC=0
+OBJECT_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+  Class:                             ELF64
+  Type:                              REL (Relocatable file)
+  Machine:                           AArch64
+
+--- 12. CLANG LINKER DRIVER TRACE ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+ "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld" "-EL" "--fix-cortex-a53-843419" "-z" "now" "-z" "relro" "-z" "max-page-size=16384" "--hash-style=both" "--eh-frame-hdr" "-m" "aarch64linux" "-pie" "-dynamic-linker" "/system/bin/linker64" "-o" "/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test_link" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android/21" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib" "/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test.o" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a" "-l:libunwind.a" "-ldl" "-lc" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a" "-l:libunwind.a" "-ldl" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o"
+TRACE_RC=0
+
+--- 13. EXTRACT LIBXML2 FROM TRACE ---
+ "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld" "-EL" "--fix-cortex-a53-843419" "-z" "now" "-z" "relro" "-z" "max-page-size=16384" "--hash-style=both" "--eh-frame-hdr" "-m" "aarch64linux" "-pie" "-dynamic-linker" "/system/bin/linker64" "-o" "/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test_link" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android/21" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib" "/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test.o" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a" "-l:libunwind.a" "-ldl" "-lc" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a" "-l:libunwind.a" "-ldl" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o"
+
+--- 14. LINK TEST WITH EMPTY ENVIRONMENT ---
+*** buffer overflow detected ***: terminated
+./phase179.sh: line 191:  8141 Aborted                    env -i PATH="$PREFIX/bin:$PREFIX/glibc/bin" HOME="$HOME" PREFIX="$PREFIX" "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 "$TESTDIR/test.o" -o "$TESTDIR/test_empty_env" 2>&1
+EMPTY_LINK_RC=134
+
+--- 15. LINK TEST WITH NDK LIBRARY PATH ---
+*** buffer overflow detected ***: terminated
+./phase179.sh: line 205:  8145 Aborted                    LD_LIBRARY_PATH="$NDKLIB:$X86LIB" "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 "$TESTDIR/test.o" -o "$TESTDIR/test_ndk_libpath" 2>&1
+NDK_LINK_RC=134
+
+--- 16. LINK TEST WITH BOX64 LIBRARY PATH ---
+*** buffer overflow detected ***: terminated
+./phase179.sh: line 219:  8148 Aborted                    LD_LIBRARY_PATH="$X86LIB:$NDKLIB" "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 "$TESTDIR/test.o" -o "$TESTDIR/test_box64_libpath" 2>&1
+BOX64_LINK_RC=134
+
+--- 17. LINK TEST WITH BOTH LIBRARY PATHS ---
+CANNOT LINK EXECUTABLE "/data/data/com.termux/files/usr/bin/bash": "/data/data/com.termux/files/usr/glibc/lib/libc.so" has bad ELF magic: 2f2a2047
+BOTH_LINK_RC=1
+
+--- 18. CREATED EXECUTABLES ---
+NOT_CREATED: /data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test_empty_env
+NOT_CREATED: /data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test_ndk_libpath
+NOT_CREATED: /data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test_box64_libpath
+NOT_CREATED: /data/data/com.termux/files/home/pocket_pcr_studio/phase179_test/test_both_libpath
+
+--- 19. NDK CLANG HOST NEEDED LIBRARIES ---
+CLANG_REAL=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19
+  0x000000000000001d (RUNPATH)      Library runpath: [$ORIGIN:$ORIGIN/../lib/x86_64-unknown-linux-gnu:$ORIGIN/../lib]
+  0x0000000000000001 (NEEDED)       Shared library: [libpthread.so.0]
+  0x0000000000000001 (NEEDED)       Shared library: [librt.so.1]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so.2]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so.6]
+  0x0000000000000001 (NEEDED)       Shared library: [libz.so.1]
+  0x0000000000000001 (NEEDED)       Shared library: [libgcc_s.so.1]
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so.6]
+  0x0000000000000001 (NEEDED)       Shared library: [ld-linux-x86-64.so.2]
+
+--- 20. SEARCH FOR LIBXML2 ---
+NDK:
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/libxml2.so.2
+
+PREFIX:
+/data/data/com.termux/files/usr/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libxml2.so.2
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/libxml2.so.2
+/data/data/com.termux/files/usr/opt/android-sdk/build-tools/35.0.0/lib64/libxml2.so.2
+
+--- 21. LIBUNWIND SEARCH ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i686-unknown-linux-musl/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i686-unknown-linux-musl/libunwind.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/arm-unknown-linux-musleabihf/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/arm-unknown-linux-musleabihf/libunwind.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/aarch64-unknown-linux-musl/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/aarch64-unknown-linux-musl/libunwind.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-musl/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-musl/libunwind.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-gnu/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-gnu/libunwind.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/x86_64/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/i386/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/riscv64/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/arm/libunwind.a
+/data/data/com.termux/files/usr/lib/libunwind.a
+/data/data/com.termux/files/usr/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/lib/linux/aarch64/libunwind.a
+/data/data/com.termux/files/usr/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/lib/linux/arm/libunwind.a
+/data/data/com.termux/files/usr/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/lib/linux/i386/libunwind.a
+/data/data/com.termux/files/usr/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/lib/linux/riscv64/libunwind.a
+/data/data/com.termux/files/usr/opt/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/18/lib/linux/x86_64/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i686-unknown-linux-musl/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i686-unknown-linux-musl/libunwind.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/arm-unknown-linux-musleabihf/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/arm-unknown-linux-musleabihf/libunwind.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/aarch64-unknown-linux-musl/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/aarch64-unknown-linux-musl/libunwind.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-musl/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-musl/libunwind.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-gnu/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/x86_64-unknown-linux-gnu/libunwind.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/x86_64/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/i386/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/riscv64/libunwind.a
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/arm/libunwind.a
+/data/data/com.termux/files/usr/glibc/lib/libunwind.so.8.1.0
+/data/data/com.termux/files/usr/glibc/lib/box64-i386-linux-gnu/libunwind.so.8
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libunwind.so.8
+
+--- 22. BUILTINS SEARCH ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a
+
+--- 23. FINAL STATUS ---
+HOST=aarch64
+BOX64_RC=0
+CLANG_VERSION_RC=0
+RESOURCE_RC=0
+SEARCHDIR_RC=0
+DRIVER_RC=0
+COMPILE_RC=0
+TRACE_RC=0
+EMPTY_LINK_RC=134
+NDK_LINK_RC=134
+BOX64_LINK_RC=134
+BOTH_LINK_RC=1
+
+==================================================
+ PHASE 179 COMPLETE
+==================================================
+
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase179_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase179_result.txt

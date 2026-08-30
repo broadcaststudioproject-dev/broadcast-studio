@@ -1,0 +1,3 @@
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/.phase82_android_target/build/CMakeFiles/testjni.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/.phase82_android_target/build/CMakeFiles/edit_cache.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/.phase82_android_target/build/CMakeFiles/rebuild_cache.dir

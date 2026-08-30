@@ -1,0 +1,10 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+RUNNER="$PREFIX/bin/glibc-runner"
+BOX64="$PREFIX/glibc/bin/box64"
+
+NDK="$HOME/../usr/opt/android-sdk/ndk/28.2.13676358"
+LLD="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
+
+exec "$RUNNER" "$BOX64" "$LLD" "$@"

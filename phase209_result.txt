@@ -1,0 +1,57 @@
+==================================================
+ PHASE 209: CMAKE LLD + LIBUNWIND PATH FIX
+==================================================
+
+--- 1. TOOLS ---
+NATIVE_CLANG=YES
+NDK_LLD=YES
+
+--- 2. FIND LIBUNWIND ---
+LIBUNWIND=YES
+UNWIND=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+UNWIND_DIR=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu
+
+--- 3. CREATE LLD WRAPPER ---
+LD_WRAPPER=YES
+
+--- 4. SOURCE ---
+SOURCE=YES
+
+--- 5. CMAKE CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (2.9s)
+-- Generating done (0.0s)
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase209_test/build
+CONFIGURE_RC=0
+
+--- 6. BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase209_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v
+[1/2] /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -O3 -DNDEBUG -MD -MT CMakeFiles/phase209.dir/main.c.o -MF CMakeFiles/phase209.dir/main.c.o.d -o CMakeFiles/phase209.dir/main.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase209_test/src/main.c
+[2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O3 -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase209_test/ld-wrapper -nostdlib -nostartfiles -Wl,-e,main -lunwind CMakeFiles/phase209.dir/main.c.o -o phase209   && :
+[BOX64] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+
+BUILD_RC=0
+
+--- 7. EXECUTABLE ---
+EXECUTABLE=CREATED
+/data/data/com.termux/files/home/pocket_pcr_studio/phase209_test/build/phase209: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, not stripped
+
+--- 8. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=0
+BUILD_RC=0
+CMAKE_LLD_LIBUNWIND=SUCCESS
+
+==================================================
+ PHASE 209 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase209_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase209_result.txt
+==================================================

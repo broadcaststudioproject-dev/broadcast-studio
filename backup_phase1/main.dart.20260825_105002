@@ -1,0 +1,470 @@
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final cameras = await availableCameras();
+
+  runApp(
+    PocketPCRStudio(cameras: cameras),
+  );
+}
+class PocketPCRStudio extends StatelessWidget {
+  final List<CameraDescription> cameras;
+
+  const PocketPCRStudio({
+    super.key,
+    required this.cameras,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Pocket PCR Studio',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0B0F14),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.red,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: StudioHome(cameras: cameras),
+    );
+  }
+}
+
+class StudioHome extends StatefulWidget {
+  final List<CameraDescription> cameras;
+
+  const StudioHome({
+    super.key,
+    required this.cameras,
+  });
+
+  @override
+  State<StudioHome> createState() => _StudioHomeState();
+}
+
+class _StudioHomeState extends State<StudioHome> {
+  CameraController? _cameraController;
+  bool _cameraOpen = false;
+  bool _loadingCamera = false;
+
+  Future<void> _openCamera() async {
+    if (widget.cameras.isEmpty) {
+      _showMessage('No camera found');
+      return;
+    }
+
+    setState(() {
+      _loadingCamera = true;
+    });
+
+    final camera = widget.cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+      orElse: () => widget.cameras.first,
+    );
+
+    final controller = CameraController(
+      camera,
+      ResolutionPreset.high,
+      enableAudio: true,
+    );
+
+    try {
+      await controller.initialize();
+
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+
+      setState(() {
+        _cameraController = controller;
+        _cameraOpen = true;
+        _loadingCamera = false;
+      });
+    } catch (e) {
+      await controller.dispose();
+
+      if (!mounted) return;
+
+      setState(() {
+        _loadingCamera = false;
+      });
+
+      _showMessage('Camera error: $e');
+    }
+  }
+
+  Future<void> _switchCamera() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _loadingCamera) {
+      _showMessage('Camera switch is not available');
+      return;
+    }
+
+    final currentDirection =
+        _cameraController!.description.lensDirection;
+
+    final targetDirection = currentDirection == CameraLensDirection.back
+        ? CameraLensDirection.front
+        : CameraLensDirection.back;
+
+    final matchingCameras = widget.cameras
+        .where((camera) => camera.lensDirection == targetDirection)
+        .toList();
+
+    if (matchingCameras.isEmpty) {
+      _showMessage(
+        targetDirection == CameraLensDirection.front
+            ? 'Front camera not available'
+            : 'Rear camera not available',
+      );
+      return;
+    }
+
+    setState(() {
+      _loadingCamera = true;
+    });
+
+    final oldController = _cameraController;
+    _cameraController = null;
+
+    await oldController?.dispose();
+
+    final controller = CameraController(
+      matchingCameras.first,
+      ResolutionPreset.high,
+      enableAudio: true,
+    );
+
+    try {
+      await controller.initialize();
+
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+
+      setState(() {
+        _cameraController = controller;
+        _loadingCamera = false;
+      });
+    } catch (e) {
+      await controller.dispose();
+
+      if (!mounted) return;
+
+      setState(() {
+        _loadingCamera = false;
+      });
+
+      _showMessage('Camera switch error: $e');
+    }
+  }
+  Future<void> _closeCamera() async {
+    await _cameraController?.dispose();
+
+    if (!mounted) return;
+
+    setState(() {
+      _cameraController = null;
+      _cameraOpen = false;
+    });
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'POCKET PCR STUDIO',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.settings),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildPreview(),
+
+              const SizedBox(height: 18),
+
+                 Row(
+                  children: [
+                    Expanded(
+                      child: _StudioButton(
+                        icon: Icons.videocam,
+                        label: _cameraOpen ? 'CLOSE CAMERA' : 'CAMERA',
+                        onTap: _loadingCamera
+                            ? null
+                            : (_cameraOpen ? _closeCamera : _openCamera),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StudioButton(
+                        icon: Icons.cameraswitch,
+                        label: 'SWITCH',
+                        onTap: _cameraOpen && !_loadingCamera
+                            ? _switchCamera
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),             Row(
+                children: [
+                  Expanded(
+                    child: _StudioButton(
+                      icon: Icons.videocam,
+                      label: _cameraOpen ? 'CLOSE CAMERA' : 'CAMERA',
+                      onTap: _loadingCamera
+                          ? null
+                          : (_cameraOpen ? _closeCamera : _openCamera),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: _StudioButton(
+                        icon: Icons.cameraswitch,
+                        label: 'SWITCH',
+                        onTap: _cameraOpen && !_loadingCamera
+                            ? _switchCamera
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                    child: _StudioButton(
+                      icon: Icons.mic,
+                      label: 'AUDIO',
+                      onTap: () {
+                        _showMessage('Audio controls coming next');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _StudioButton(
+                      icon: Icons.photo_library,
+                      label: 'MEDIA',
+                      onTap: () {
+                        _showMessage('Media picker coming next');
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StudioButton(
+                      icon: Icons.article,
+                      label: 'NEWS',
+                      onTap: () {
+                        _showMessage('News editor coming next');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 22),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF171D25),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'BROADCAST CONTROL',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _showMessage(
+                            'Live streaming will be connected next',
+                          );
+                        },
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text(
+                          'START LIVE',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              const Text(
+                'Pocket PCR Studio • Mobile Broadcast',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview() {
+    if (_cameraController != null &&
+        _cameraController!.value.isInitialized) {
+      return Container(
+        height: 280,
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: CameraPreview(_cameraController!),
+      );
+    }
+
+    return Container(
+      height: 190,
+      decoration: BoxDecoration(
+        color: const Color(0xFF171D25),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white12,
+        ),
+      ),
+      child: Stack(
+        children: [
+          const Center(
+            child: Icon(
+              Icons.live_tv,
+              size: 70,
+              color: Colors.white24,
+            ),
+          ),
+          Positioned(
+            left: 14,
+            top: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 5,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                'LIVE PREVIEW',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+          if (_loadingCamera)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StudioButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  const _StudioButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 95,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF171D25),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: const Color(0xFF101419),
+          disabledForegroundColor: Colors.white38,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 30),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,105 @@
+==================================================
+ PHASE 213: CMAKE FORCE LIBUNWIND SEARCH PATH
+==================================================
+
+--- 1. TOOLS ---
+CMAKE=YES
+NINJA=YES
+CLANG=YES
+CLANGXX=YES
+
+--- 2. FIND LIBUNWIND ---
+LIBUNWIND=YES
+UNWIND=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+UNWIND_DIR=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu
+
+--- 3. CLEAN TEST ---
+SOURCE=YES
+
+--- 4. CMAKE CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - broken
+CMake Error at /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:65 (message):
+  The C compiler
+
+    "/data/data/com.termux/files/usr/bin/clang"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase213_test/build/CMakeFiles/CMakeScratch/TryCompile-ZID59x'
+    
+    Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_1981e
+    [1/2] /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21   --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot  -O2 -g -DNDEBUG -MD -MT CMakeFiles/cmTC_1981e.dir/testCCompiler.c.o -MF CMakeFiles/cmTC_1981e.dir/testCCompiler.c.o.d -o CMakeFiles/cmTC_1981e.dir/testCCompiler.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase213_test/build/CMakeFiles/CMakeScratch/TryCompile-ZID59x/testCCompiler.c
+    [2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot  -O2 -g -DNDEBUG -L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu CMakeFiles/cmTC_1981e.dir/testCCompiler.c.o -o cmTC_1981e   && :
+    FAILED: [code=1] cmTC_1981e 
+    : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot  -O2 -g -DNDEBUG -L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu CMakeFiles/cmTC_1981e.dir/testCCompiler.c.o -o cmTC_1981e   && :
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(libunwind.cpp.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-EHABI.cpp.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-seh.cpp.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindLevel1.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindLevel1-gcc-ext.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-sjlj.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-wasm.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindRegistersRestore.S.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindRegistersSave.S.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(libunwind.cpp.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-EHABI.cpp.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-seh.cpp.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindLevel1.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindLevel1-gcc-ext.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-sjlj.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(Unwind-wasm.c.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindRegistersRestore.S.o) is incompatible with aarch64linux
+    ld.lld: error: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a(UnwindRegistersSave.S.o) is incompatible with aarch64linux
+    clang: error: linker command failed with exit code 1 (use -v to see invocation)
+    ninja: build stopped: subcommand failed.
+    
+    
+
+
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:3 (project)
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 5. CACHE LINKER FLAGS ---
+CACHE=YES
+
+CMAKE_EXE_LINKER_FLAGS:
+CMAKE_EXE_LINKER_FLAGS:STRING=-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu
+
+CMAKE_SHARED_LINKER_FLAGS:
+CMAKE_SHARED_LINKER_FLAGS:STRING=-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu
+
+CMAKE_MODULE_LINKER_FLAGS:
+CMAKE_MODULE_LINKER_FLAGS:STRING=-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu
+
+--- 6. BUILD ---
+BUILD_RC=99
+
+--- 7. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 8. LINK COMMAND ---
+
+--- 9. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+CMAKE_FORCE_LIBUNWIND=FAILED
+==================================================
+ PHASE 213 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase213_test
+CONFIGURE_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase213_test/configure.log
+BUILD_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase213_test/build.log
+==================================================

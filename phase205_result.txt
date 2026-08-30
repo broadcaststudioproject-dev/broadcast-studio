@@ -1,0 +1,97 @@
+==================================================
+ PHASE 205: NDK TOOLCHAIN RELATIVE INCLUDE FIX
+==================================================
+
+--- 1. VERIFY NDK ---
+CLANG=YES
+LLD=YES
+TOOLCHAIN=YES
+LEGACY=YES
+
+--- 2. COPY TOOLCHAIN FILES ---
+TOOLCHAIN_COPY=YES
+
+--- 3. CREATE SHADOW HOST ---
+SHADOW=YES
+
+--- 4. PATCH HOST ROOT ---
+LEGACY_PATCH=YES
+
+--- 5. SOURCE ---
+SOURCE=YES
+
+--- 6. CONFIGURE ---
+CMake Error at /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android-legacy.toolchain.cmake:65 (file):
+  file failed to open for reading (No such file or directory):
+
+    /data/data/com.termux/files/home/source.properties
+Call Stack (most recent call first):
+  /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android.toolchain.cmake:55 (include)
+  /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:152 (include)
+  CMakeLists.txt:3 (project)
+
+
+CMake Error at /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android-legacy.toolchain.cmake:70 (message):
+  Failed to parse Android NDK revision:
+  /data/data/com.termux/files/home/source.properties.
+
+Call Stack (most recent call first):
+  /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android.toolchain.cmake:55 (include)
+  /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:152 (include)
+  CMakeLists.txt:3 (project)
+
+
+CMake Error at /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android-legacy.toolchain.cmake:178 (include):
+  include could not find requested file:
+
+    /data/data/com.termux/files/home/build/cmake/abis.cmake
+Call Stack (most recent call first):
+  /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android.toolchain.cmake:55 (include)
+  /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:152 (include)
+  CMakeLists.txt:3 (project)
+
+
+CMake Error at /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android-legacy.toolchain.cmake:179 (include):
+  include could not find requested file:
+
+    /data/data/com.termux/files/home/build/cmake/platforms.cmake
+Call Stack (most recent call first):
+  /data/data/com.termux/files/home/pocket_pcr_studio/phase205_test/android.toolchain.cmake:55 (include)
+  /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:152 (include)
+  CMakeLists.txt:3 (project)
+
+
+-- The C compiler identification is unknown
+CMake Error at CMakeLists.txt:3 (project):
+  The CMAKE_C_COMPILER:
+
+    /data/data/com.termux/files/home/toolchains/llvm/prebuilt/bin/clang
+
+  is not a full path to an existing compiler tool.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CC" or the CMake cache entry CMAKE_C_COMPILER to the full path to
+  the compiler, or to the compiler name if it is in the PATH.
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 7. BUILD ---
+BUILD_RC=99
+
+--- 8. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 9. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+NDK_HOST_SHADOW=FAILED
+
+==================================================
+ PHASE 205 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase205_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase205_result.txt
+==================================================

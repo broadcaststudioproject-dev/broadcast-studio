@@ -1,0 +1,14 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+PREFIX="/data/data/com.termux/files/usr"
+RUNNER="/data/data/com.termux/files/usr/bin/glibc-runner"
+BOX64="/data/data/com.termux/files/usr/glibc/bin/box64"
+LLD="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
+
+RESOURCE="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19"
+RESLIB="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux"
+ARM64LIB="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64"
+SYSROOT="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+LIBDIR="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21"
+
+exec "$RUNNER" "$BOX64" "$LLD"     -L"$ARM64LIB"     -L"$RESLIB"     -L"$LIBDIR"     -L"$SYSROOT/usr/lib/aarch64-linux-android"     "$@"

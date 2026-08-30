@@ -1,0 +1,996 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(const PocketPCRStudioApp());
+}
+
+class PocketPCRStudioApp extends StatelessWidget {
+  const PocketPCRStudioApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Pocket PCR Studio',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        useMaterial3: true,
+        colorSchemeSeed: Colors.red,
+        scaffoldBackgroundColor: const Color(0xFF080808),
+      ),
+      home: const StudioHomePage(),
+    );
+  }
+}
+
+class StudioHomePage extends StatefulWidget {
+  const StudioHomePage({super.key});
+
+  @override
+  State<StudioHomePage> createState() => _StudioHomePageState();
+}
+
+class _StudioHomePageState extends State<StudioHomePage>
+    with WidgetsBindingObserver {
+  CameraController? _controller;
+  List<CameraDescription> _cameras = [];
+
+  CameraDescription? _frontCamera;
+  CameraDescription? _backCamera;
+
+  CameraLensDirection _currentDirection = CameraLensDirection.back;
+
+  bool _initializing = true;
+  bool _busy = false;
+  bool _recording = false;
+
+  PermissionStatus _microphoneStatus = PermissionStatus.denied;
+
+  String _status = 'Initializing Pocket PCR Studio...';
+  String? _lastSavedPath;
+
+  // Phase 303 — Professional broadcast output state.
+  bool _broadcastOverlayEnabled = true;
+  String _broadcastHeadline = 'LIVE UPDATE';
+  String _broadcastLocation = 'LIVE';
+  String _broadcastTicker =
+      'BREAKING NEWS  •  LIVE FROM THE FIELD  •  POCKET PCR STUDIO';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initializeStudio();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controller;
+
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      if (!controller.value.isRecordingVideo) {
+        controller.dispose();
+        _controller = null;
+      }
+    }
+
+    if (state == AppLifecycleState.resumed) {
+      if (_controller == null && !_busy) {
+        _initializeStudio();
+      }
+    }
+  }
+
+  Future<void> _initializeStudio() async {
+    if (_busy) return;
+
+    _busy = true;
+
+    if (mounted) {
+      setState(() {
+        _initializing = true;
+        _status = 'Checking camera and microphone permissions...';
+      });
+    }
+
+    try {
+      final cameraPermission = await Permission.camera.request();
+      final microphonePermission = await Permission.microphone.request();
+
+      _microphoneStatus = microphonePermission;
+
+      if (!cameraPermission.isGranted) {
+        throw Exception(
+          'Camera permission was not granted. Please allow Camera permission.',
+        );
+      }
+
+      _cameras = await availableCameras();
+
+      if (_cameras.isEmpty) {
+        throw Exception('No camera was detected on this device.');
+      }
+
+      for (final camera in _cameras) {
+        if (camera.lensDirection == CameraLensDirection.front &&
+            _frontCamera == null) {
+          _frontCamera = camera;
+        }
+
+        if (camera.lensDirection == CameraLensDirection.back &&
+            _backCamera == null) {
+          _backCamera = camera;
+        }
+      }
+
+      CameraDescription selected;
+
+      if (_backCamera != null) {
+        selected = _backCamera!;
+        _currentDirection = CameraLensDirection.back;
+      } else if (_frontCamera != null) {
+        selected = _frontCamera!;
+        _currentDirection = CameraLensDirection.front;
+      } else {
+        selected = _cameras.first;
+        _currentDirection = selected.lensDirection;
+      }
+
+      await _openCamera(selected);
+
+      if (mounted) {
+        setState(() {
+          _status = microphonePermission.isGranted
+              ? 'Camera + Microphone ready'
+              : 'Camera ready — Microphone permission unavailable';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _status = 'Initialization error: $e';
+        });
+      }
+    } finally {
+      _busy = false;
+
+      if (mounted) {
+        setState(() {
+          _initializing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openCamera(CameraDescription camera) async {
+    final oldController = _controller;
+    _controller = null;
+
+    if (oldController != null) {
+      try {
+        await oldController.dispose();
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() {
+        _initializing = true;
+        _status = camera.lensDirection == CameraLensDirection.front
+            ? 'Opening Front Camera...'
+            : 'Opening Back Camera...';
+      });
+    }
+
+    final controller = CameraController(
+      camera,
+      ResolutionPreset.high,
+      enableAudio: true,
+      fps: 30,
+      videoBitrate: 6000000,
+      audioBitrate: 128000,
+    );
+
+    _controller = controller;
+
+    try {
+      await controller.initialize();
+
+      if (mounted) {
+        setState(() {
+          _currentDirection = camera.lensDirection;
+          _initializing = false;
+          _status = camera.lensDirection == CameraLensDirection.front
+              ? 'Front Camera Ready'
+              : 'Back Camera Ready';
+        });
+      }
+    } catch (e) {
+      await controller.dispose();
+
+      if (identical(_controller, controller)) {
+        _controller = null;
+      }
+
+      if (mounted) {
+        setState(() {
+          _initializing = false;
+          _status = 'Camera error: $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _switchCamera(CameraLensDirection direction) async {
+    if (_busy || _recording) return;
+
+    CameraDescription? target;
+
+    if (direction == CameraLensDirection.front) {
+      target = _frontCamera;
+    } else {
+      target = _backCamera;
+    }
+
+    if (target == null) {
+      _showMessage(
+        direction == CameraLensDirection.front
+            ? 'Front camera not available.'
+            : 'Back camera not available.',
+      );
+      return;
+    }
+
+    _busy = true;
+
+    try {
+      await _openCamera(target);
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Future<void> _startRecording() async {
+    final controller = _controller;
+
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        _busy ||
+        _recording) {
+      return;
+    }
+
+    try {
+      final mic = await Permission.microphone.status;
+
+      if (!mic.isGranted) {
+        final requested = await Permission.microphone.request();
+
+        if (!requested.isGranted) {
+          _showMessage(
+            'Microphone permission is required for video recording with audio.',
+          );
+          return;
+        }
+      }
+
+      await controller.prepareForVideoRecording();
+      await controller.startVideoRecording();
+
+      if (mounted) {
+        setState(() {
+          _recording = true;
+          _status = 'RECORDING — video + audio';
+        });
+      }
+    } on CameraException catch (e) {
+      _showMessage('Recording error: ${e.code}');
+    } catch (e) {
+      _showMessage('Recording error: $e');
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    final controller = _controller;
+
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        !controller.value.isRecordingVideo ||
+        _busy) {
+      return;
+    }
+
+    _busy = true;
+
+    try {
+      final video = await controller.stopVideoRecording();
+
+      if (mounted) {
+        setState(() {
+          _recording = false;
+          _status = 'Recording stopped — video ready to save';
+        });
+      }
+
+      await _saveVideo(video);
+    } on CameraException catch (e) {
+      if (mounted) {
+        setState(() {
+          _recording = false;
+        });
+      }
+
+      _showMessage('Stop recording error: ${e.code}');
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _recording = false;
+        });
+      }
+
+      _showMessage('Stop recording error: $e');
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Future<void> _saveVideo(XFile video) async {
+    try {
+      final externalDir = await getExternalStorageDirectory();
+
+      if (externalDir == null) {
+        throw Exception('Android external app storage is unavailable.');
+      }
+
+      final videosDir = Directory('${externalDir.path}/PocketPCRStudio/Videos');
+
+      if (!await videosDir.exists()) {
+        await videosDir.create(recursive: true);
+      }
+
+      final timestamp = _timestamp();
+
+      final destination = '${videosDir.path}/PCR_${timestamp}.mp4';
+
+      await File(video.path).copy(destination);
+
+      _lastSavedPath = destination;
+
+      if (mounted) {
+        setState(() {
+          _status = 'Saved successfully';
+        });
+      }
+
+      _showMessage(
+        'Video saved successfully.\n\n'
+        'Tap PLAY LAST VIDEO to test playback.',
+      );
+    } catch (e) {
+      _showMessage('Save error: $e');
+    }
+  }
+
+  Future<void> _playLastVideo() async {
+    final path = _lastSavedPath;
+
+    if (path == null) {
+      _showMessage('No video has been saved yet.');
+      return;
+    }
+
+    final file = File(path);
+
+    if (!await file.exists()) {
+      _showMessage('Saved video file was not found.');
+      return;
+    }
+
+    try {
+      final result = await OpenFilex.open(path, type: 'video/mp4');
+
+      if (result.type != ResultType.done) {
+        _showMessage(
+          'Android could not open the video.\n'
+          '${result.message}',
+        );
+      }
+    } catch (e) {
+      _showMessage('Playback error: $e');
+    }
+  }
+
+  String _timestamp() {
+    final now = DateTime.now();
+
+    String two(int value) => value.toString().padLeft(2, '0');
+
+    return '${now.year}'
+        '${two(now.month)}'
+        '${two(now.day)}_'
+        '${two(now.hour)}'
+        '${two(now.minute)}'
+        '${two(now.second)}';
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 4)),
+      );
+  }
+
+  Widget _statusChip({
+    required IconData icon,
+    required String label,
+    required bool active,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: active
+            ? Colors.green.withOpacity(0.18)
+            : Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: active
+              ? Colors.green.withOpacity(0.55)
+              : Colors.white.withOpacity(0.12),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: active ? Colors.greenAccent : Colors.white54,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: active ? Colors.greenAccent : Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cameraButton({
+    required String label,
+    required IconData icon,
+    required CameraLensDirection direction,
+  }) {
+    final selected = _currentDirection == direction;
+
+    final available = direction == CameraLensDirection.front
+        ? _frontCamera != null
+        : _backCamera != null;
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: FilledButton.icon(
+          onPressed: (!available || _busy || _recording)
+              ? null
+              : () => _switchCamera(direction),
+          icon: Icon(icon),
+          label: Text(label),
+          style: FilledButton.styleFrom(
+            backgroundColor: selected ? Colors.red.shade700 : Colors.white10,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: Colors.white10,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreview() {
+    final controller = _controller;
+
+    if (_initializing ||
+        controller == null ||
+        !controller.value.isInitialized) {
+      return Container(
+        color: Colors.black,
+        alignment: Alignment.center,
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 14),
+            Text(
+              'Preparing camera...',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: controller.value.previewSize?.height ?? 720,
+                  height: controller.value.previewSize?.width ?? 1280,
+                  child: CameraPreview(controller),
+                ),
+              ),
+            ),
+
+            Positioned(
+              top: 12,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _recording ? Icons.fiber_manual_record : Icons.videocam,
+                      size: 14,
+                      color: _recording ? Colors.redAccent : Colors.white,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _recording ? 'LIVE RECORDING' : 'PREVIEW',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            _buildBroadcastOverlay(),
+
+            if (_recording)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade900.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'REC',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBroadcastOverlay() {
+    if (!_broadcastOverlayEnabled) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // TOP LIVE INDICATOR
+            Positioned(
+              top: 12,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.78),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    const Text(
+                      'LIVE',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // MAIN LOWER THIRD
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 54,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.84),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(7),
+                        topRight: Radius.circular(7),
+                      ),
+                      border: const Border(
+                        left: BorderSide(color: Colors.redAccent, width: 5),
+                      ),
+                    ),
+                    child: Text(
+                      _broadcastHeadline,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade700.withOpacity(0.94),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(7),
+                        bottomRight: Radius.circular(7),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 13,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            _broadcastLocation,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.7,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'POCKET PCR STUDIO',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // BOTTOM BREAKING NEWS TICKER
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: 38,
+                color: Colors.black.withOpacity(0.92),
+                child: Row(
+                  children: [
+                    Container(
+                      height: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      alignment: Alignment.center,
+                      color: Colors.red.shade700,
+                      child: const Text(
+                        'BREAKING',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          _broadcastTicker,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final micReady = _microphoneStatus.isGranted;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF111111),
+        titleSpacing: 16,
+        title: const Row(
+          children: [
+            Icon(Icons.live_tv, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text(
+              'Pocket PCR Studio',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              color: const Color(0xFF111111),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _statusChip(
+                    icon: Icons.camera_alt,
+                    label: _currentDirection == CameraLensDirection.front
+                        ? 'FRONT CAMERA'
+                        : 'BACK CAMERA',
+                    active:
+                        _controller != null && _controller!.value.isInitialized,
+                  ),
+                  _statusChip(
+                    icon: Icons.mic,
+                    label: micReady ? 'MIC READY' : 'MIC CHECK',
+                    active: micReady,
+                  ),
+                  _statusChip(
+                    icon: Icons.high_quality,
+                    label: 'HD',
+                    active: true,
+                  ),
+                  _statusChip(
+                    icon: Icons.audiotrack,
+                    label: 'AUDIO',
+                    active: micReady,
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(10),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _recording ? Colors.redAccent : Colors.white12,
+                    width: _recording ? 2 : 1,
+                  ),
+                ),
+                child: _buildPreview(),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  _cameraButton(
+                    label: 'FRONT',
+                    icon: Icons.camera_front,
+                    direction: CameraLensDirection.front,
+                  ),
+                  _cameraButton(
+                    label: 'BACK',
+                    icon: Icons.camera_rear,
+                    direction: CameraLensDirection.back,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _broadcastOverlayEnabled = !_broadcastOverlayEnabled;
+                        });
+                      },
+                      icon: Icon(
+                        _broadcastOverlayEnabled
+                            ? Icons.layers
+                            : Icons.layers_clear,
+                      ),
+                      label: Text(
+                        _broadcastOverlayEnabled
+                            ? 'GRAPHICS ON'
+                            : 'GRAPHICS OFF',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: (!_recording && !_busy)
+                          ? _startRecording
+                          : null,
+                      icon: const Icon(Icons.fiber_manual_record),
+                      label: const Text('RECORD'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: (_recording && !_busy) ? _stopRecording : null,
+                      icon: const Icon(Icons.stop),
+                      label: const Text('STOP'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.grey.shade800,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _lastSavedPath == null ? null : _playLastVideo,
+                  icon: const Icon(Icons.play_circle),
+                  label: const Text('PLAY LAST SAVED VIDEO'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Text(
+                _status,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/data/data/com.termux/files/home/pocket_pcr_studio/.jni_cmake_test/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

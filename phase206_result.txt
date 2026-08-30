@@ -1,0 +1,73 @@
+==================================================
+ PHASE 206: EXPLICIT NDK TOOL WRAPPERS
+==================================================
+
+--- 1. REAL TOOLS ---
+CLANG=YES
+LLD=YES
+
+--- 2. CREATE CLANG WRAPPER ---
+CLANG_WRAPPER=YES
+
+--- 3. CREATE LLD WRAPPER ---
+LD_WRAPPER=YES
+
+--- 4. SOURCE ---
+SOURCE=YES
+
+--- 5. CONFIGURE ---
+-- The C compiler identification is Clang 19.0.1
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: /data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/clang-wrapper
+-- Check for working C compiler: /data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/clang-wrapper - broken
+CMake Error at /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:65 (message):
+  The C compiler
+
+    "/data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/clang-wrapper"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/build/CMakeFiles/CMakeScratch/TryCompile-yg16nm'
+    
+    Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_7f6da
+    [1/2] /data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/clang-wrapper --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -O2 -g -DNDEBUG -MD -MT CMakeFiles/cmTC_7f6da.dir/testCCompiler.c.o -MF CMakeFiles/cmTC_7f6da.dir/testCCompiler.c.o.d -o CMakeFiles/cmTC_7f6da.dir/testCCompiler.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/build/CMakeFiles/CMakeScratch/TryCompile-yg16nm/testCCompiler.c
+    [2/2] : && /data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/clang-wrapper --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG  CMakeFiles/cmTC_7f6da.dir/testCCompiler.c.o -o cmTC_7f6da   && :
+    FAILED: [code=134] cmTC_7f6da 
+    : && /data/data/com.termux/files/home/pocket_pcr_studio/phase206_test/clang-wrapper --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG  CMakeFiles/cmTC_7f6da.dir/testCCompiler.c.o -o cmTC_7f6da   && :
+    *** buffer overflow detected ***: terminated
+    Aborted
+    ninja: build stopped: subcommand failed.
+    
+    
+
+
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:3 (project)
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 6. BUILD ---
+BUILD_RC=99
+
+--- 7. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 8. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+EXPLICIT_WRAPPER_CMAKE=FAILED
+
+==================================================
+ PHASE 206 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase206_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase206_result.txt
+==================================================

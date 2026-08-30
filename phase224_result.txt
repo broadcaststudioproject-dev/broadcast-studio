@@ -1,0 +1,161 @@
+==================================================
+PHASE 224: ANDROID AARCH64 C++ RUNTIME SOURCE
+==================================================
+
+--- 1. ANDROID AARCH64 LIBRARY DIRECTORY ---
+LIBDIR=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android
+-rwx--x--x.  1 u0_a255 u0_a255 8.9M Aug 25 18:45 libc++_shared.so
+-rw-------.  1 u0_a255 u0_a255  15M Aug 25 18:45 libc++_static.a
+-rw-------.  1 u0_a255 u0_a255 3.0M Aug 25 18:45 libc++abi.a
+-rw-------.  1 u0_a255 u0_a255 1.2K Aug 25 18:45 libc++experimental.a
+-rw-------.  1 u0_a255 u0_a255  13K Aug 25 18:45 libcompiler_rt-extras.a
+-rw-------.  1 u0_a255 u0_a255 6.2K Aug 25 18:45 libdl.a
+-rw-------.  1 u0_a255 u0_a255 1.8M Aug 25 18:45 libm.a
+
+--- 2. API 21 LIBRARY DIRECTORY ---
+LIB21=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21
+-rw-------.  1 u0_a255 u0_a255   28 Aug 25 18:45 libc++.a
+-rw-------.  1 u0_a255 u0_a255   19 Aug 25 18:45 libc++.so
+
+--- 3. LIBC++ SHARED ---
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/riscv64-linux-android/libc++_shared.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/i686-linux-android/libc++_shared.so
+
+--- 4. READ ELF LIBC++ SHARED ---
+
+FILE=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so
+  Class:                             ELF32
+  OS/ABI:                            UNIX - System V
+  Machine:                           ARM
+--- NEEDED ---
+  0x00000001 (NEEDED)       Shared library: [libc.so]
+  0x00000001 (NEEDED)       Shared library: [libm.so]
+  0x00000001 (NEEDED)       Shared library: [libdl.so]
+--- UNWIND SYMBOLS ---
+   170: 0007c963    54 FUNC    GLOBAL DEFAULT    15 __cxa_throw
+  1008: 0007ce63   438 FUNC    GLOBAL DEFAULT    15 __gxx_personality_v0
+  2331: 00069e15    40 FUNC    GLOBAL DEFAULT    15 __cxa_throw_bad_array_new_length
+  5463: 000c7970   156 FUNC    LOCAL  HIDDEN     15 _Unwind_Resume
+  6550: 000c9175    12 FUNC    LOCAL  DEFAULT    15 __ThumbV7PILongThunk__Unwind_Resume
+  6635: 0007c963    54 FUNC    GLOBAL DEFAULT    15 __cxa_throw
+  6642: 00069e15    40 FUNC    GLOBAL DEFAULT    15 __cxa_throw_bad_array_new_length
+  6651: 0007ce63   438 FUNC    GLOBAL DEFAULT    15 __gxx_personality_v0
+
+FILE=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so
+  Class:                             ELF64
+  OS/ABI:                            UNIX - System V
+  Machine:                           Advanced Micro Devices X86-64
+--- NEEDED ---
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+--- UNWIND SYMBOLS ---
+   740: 00000000000b4060    69 FUNC    GLOBAL DEFAULT    15 __cxa_throw
+  1417: 00000000000b4520  1689 FUNC    GLOBAL DEFAULT    15 __gxx_personality_v0
+  1784: 0000000000097a00    49 FUNC    GLOBAL DEFAULT    15 __cxa_throw_bad_array_new_length
+    22: 00000000001377e8     8 OBJECT  LOCAL  HIDDEN     25 DW.ref.__gxx_personality_v0
+  2146: 00000000001202b0   142 FUNC    LOCAL  HIDDEN     15 _Unwind_Resume
+  2217: 00000000000b4060    69 FUNC    GLOBAL DEFAULT    15 __cxa_throw
+  2222: 0000000000097a00    49 FUNC    GLOBAL DEFAULT    15 __cxa_throw_bad_array_new_length
+  2239: 00000000000b4520  1689 FUNC    GLOBAL DEFAULT    15 __gxx_personality_v0
+
+FILE=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/riscv64-linux-android/libc++_shared.so
+  Class:                             ELF64
+  OS/ABI:                            UNIX - System V
+  Machine:                           RISC-V
+--- NEEDED ---
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)       Shared library: [libdl.so]
+--- UNWIND SYMBOLS ---
+     3: 0000000000000000     0 FUNC    GLOBAL DEFAULT   UND _Unwind_Resume@LIBC_R
+   383: 00000000000a8032    60 FUNC    GLOBAL DEFAULT    14 __cxa_throw
+  1454: 0000000000091744    44 FUNC    GLOBAL DEFAULT    14 __cxa_throw_bad_array_new_length
+  1561: 00000000000a8422  1178 FUNC    GLOBAL DEFAULT    14 __gxx_personality_v0
+   694: 000000000010d298     8 OBJECT  LOCAL  HIDDEN     25 DW.ref.__gxx_personality_v0
+246297: 00000000000a8032    60 FUNC    GLOBAL DEFAULT    14 __cxa_throw
+246302: 0000000000091744    44 FUNC    GLOBAL DEFAULT    14 __cxa_throw_bad_array_new_length
+246310: 0000000000000000     0 FUNC    GLOBAL DEFAULT   UND _Unwind_Resume
+246320: 00000000000a8422  1178 FUNC    GLOBAL DEFAULT    14 __gxx_personality_v0
+
+FILE=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
+  Class:                             ELF64
+  OS/ABI:                            UNIX - System V
+  Machine:                           AArch64
+--- NEEDED ---
+  0x0000000000000001 (NEEDED)          Shared library: [libc.so]
+  0x0000000000000001 (NEEDED)          Shared library: [libm.so]
+  0x0000000000000001 (NEEDED)          Shared library: [libdl.so]
+--- UNWIND SYMBOLS ---
+   170: 00000000000b8088    92 FUNC    GLOBAL DEFAULT    16 __cxa_throw
+   999: 00000000000b8628  1436 FUNC    GLOBAL DEFAULT    16 __gxx_personality_v0
+  2331: 000000000009c960    56 FUNC    GLOBAL DEFAULT    16 __cxa_throw_bad_array_new_length
+    64: 000000000013d448     8 OBJECT  LOCAL  HIDDEN     26 DW.ref.__gxx_personality_v0
+  7044: 0000000000124cfc   132 FUNC    LOCAL  HIDDEN     16 _Unwind_Resume
+  7172: 00000000000b8088    92 FUNC    GLOBAL DEFAULT    16 __cxa_throw
+  7177: 000000000009c960    56 FUNC    GLOBAL DEFAULT    16 __cxa_throw_bad_array_new_length
+  7194: 00000000000b8628  1436 FUNC    GLOBAL DEFAULT    16 __gxx_personality_v0
+
+FILE=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/i686-linux-android/libc++_shared.so
+  Class:                             ELF32
+  OS/ABI:                            UNIX - System V
+  Machine:                           Intel 80386
+--- NEEDED ---
+  0x00000001 (NEEDED)       Shared library: [libc.so]
+  0x00000001 (NEEDED)       Shared library: [libm.so]
+  0x00000001 (NEEDED)       Shared library: [libdl.so]
+--- UNWIND SYMBOLS ---
+   372: 0009d390    82 FUNC    GLOBAL DEFAULT    15 __cxa_throw
+  1435: 00080b70    70 FUNC    GLOBAL DEFAULT    15 __cxa_throw_bad_array_new_length
+  1546: 0009d8e0  1774 FUNC    GLOBAL DEFAULT    15 __gxx_personality_v0
+    22: 001199a4     4 OBJECT  LOCAL  HIDDEN     25 DW.ref.__gxx_personality_v0
+  2076: 0010d3f0   148 FUNC    LOCAL  HIDDEN     15 _Unwind_Resume
+  2149: 0009d390    82 FUNC    GLOBAL DEFAULT    15 __cxa_throw
+  2154: 00080b70    70 FUNC    GLOBAL DEFAULT    15 __cxa_throw_bad_array_new_length
+  2171: 0009d8e0  1774 FUNC    GLOBAL DEFAULT    15 __gxx_personality_v0
+
+--- 5. COMPILER BUILTINS ---
+/data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a
+
+--- 6. NDK BUILTINS ---
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a
+
+--- 7. ANDROID LIBC UNWIND SYMBOLS ---
+FOUND _Unwind_Resume:
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
+FOUND _Unwind_Resume:
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a
+FOUND _Unwind_Resume:
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a
+
+--- 8. ANDROID C++ ABI SYMBOLS ---
+
+--- 9. CLANG++ PRINT SEARCH DIRS ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+ (in-process)
+ "/data/data/com.termux/files/usr/bin/clang-21" "-cc1" "-triple" "aarch64-unknown-linux-android21" "-emit-obj" "-disable-free" "-clear-ast-before-backend" "-disable-llvm-verifier" "-discard-value-names" "-main-file-name" "null" "-mrelocation-model" "pic" "-pic-level" "2" "-pic-is-pie" "-mframe-pointer=non-leaf" "-ffp-contract=on" "-fno-rounding-math" "-mconstructor-aliases" "-funwind-tables=2" "-enable-tlsdesc" "-target-cpu" "generic" "-target-feature" "+v8a" "-target-feature" "+fp-armv8" "-target-feature" "+neon" "-target-feature" "+fix-cortex-a53-835769" "-target-abi" "aapcs" "-debugger-tuning=gdb" "-fdebug-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio" "-fcoverage-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio" "-resource-dir" "/data/data/com.termux/files/usr/lib/clang/21" "-isysroot" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot" "-internal-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1" "-internal-isystem" "/data/data/com.termux/files/usr/lib/clang/21/include" "-internal-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/local/include" "-internal-externc-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android" "-internal-externc-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/include" "-internal-externc-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include" "-fdeprecated-macro" "-ferror-limit" "19" "-femulated-tls" "-fno-signed-char" "-fgnuc-version=4.2.1" "-fskip-odr-check-in-gmf" "-fcxx-exceptions" "-fexceptions" "-target-feature" "+outline-atomics" "-target-feature" "-fmv" "-D__GCC_HAVE_DWARF2_CFI_ASM=1" "-o" "null.o" "-x" "c++" "/dev/null"
+
+--- 10. CLANG++ PRINT LINK DRIVER ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+ "/data/data/com.termux/files/usr/bin/clang-21" "-cc1" "-triple" "aarch64-unknown-linux-android21" "-emit-obj" "-dumpdir" "/data/data/com.termux/files/home/pocket_pcr_studio/phase224_test/test-" "-disable-free" "-clear-ast-before-backend" "-disable-llvm-verifier" "-discard-value-names" "-main-file-name" "test.cpp" "-mrelocation-model" "pic" "-pic-level" "2" "-pic-is-pie" "-mframe-pointer=non-leaf" "-ffp-contract=on" "-fno-rounding-math" "-mconstructor-aliases" "-funwind-tables=2" "-enable-tlsdesc" "-target-cpu" "generic" "-target-feature" "+v8a" "-target-feature" "+fp-armv8" "-target-feature" "+neon" "-target-feature" "+fix-cortex-a53-835769" "-target-abi" "aapcs" "-debugger-tuning=gdb" "-fdebug-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio" "-fcoverage-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio" "-resource-dir" "/data/data/com.termux/files/usr/lib/clang/21" "-isysroot" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot" "-internal-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1" "-internal-isystem" "/data/data/com.termux/files/usr/lib/clang/21/include" "-internal-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/local/include" "-internal-externc-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android" "-internal-externc-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/include" "-internal-externc-isystem" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include" "-fdeprecated-macro" "-ferror-limit" "19" "-femulated-tls" "-fno-signed-char" "-fgnuc-version=4.2.1" "-fskip-odr-check-in-gmf" "-fcxx-exceptions" "-fexceptions" "-target-feature" "+outline-atomics" "-target-feature" "-fmv" "-D__GCC_HAVE_DWARF2_CFI_ASM=1" "-o" "/data/data/com.termux/files/usr/tmp/test-f17efc.o" "-x" "c++" "/data/data/com.termux/files/home/pocket_pcr_studio/phase224_test/test.cpp"
+ "/data/data/com.termux/files/usr/bin/ld.lld" "--sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot" "-EL" "--fix-cortex-a53-843419" "-z" "now" "-z" "relro" "-z" "max-page-size=16384" "--no-rosegment" "--hash-style=both" "-rpath=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib" "--eh-frame-hdr" "-m" "aarch64linux" "-pie" "-dynamic-linker" "/system/bin/linker64" "-o" "/data/data/com.termux/files/home/pocket_pcr_studio/phase224_test/test" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android" "-L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib" "-L/system/lib64" "/data/data/com.termux/files/usr/tmp/test-f17efc.o" "-lc++_shared" "/data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a" "-l:libunwind.a" "-ldl" "-lm" "-lc" "/data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a" "-l:libunwind.a" "-ldl" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o"
+
+--- 11. RESULT SUMMARY ---
+LIBCXX_SHARED_COUNT=5
+TERMUX_BUILTINS_COUNT=1
+NDK_BUILTINS_COUNT=1
+UNWIND_SYMBOL_SOURCES=3
+
+==================================================
+PHASE 224 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase224_test

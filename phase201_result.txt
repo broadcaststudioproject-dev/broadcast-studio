@@ -1,0 +1,61 @@
+==================================================
+ PHASE 201: NDK HOST PATH RESOLUTION TEST
+==================================================
+
+--- 1. NDK ---
+NDK=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358
+NDK_DIR=YES
+
+--- 2. PREBUILT ---
+PRE=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt
+total 11
+drwx------.  3 u0_a255 u0_a255 3452 Aug 25 18:45 .
+drwx------.  3 u0_a255 u0_a255 3452 Aug 25 18:45 ..
+drwx------. 11 u0_a255 u0_a255 3452 Aug 25 18:45 linux-x86_64
+
+--- 3. EXPECTED HOST DIRECTORY ---
+HOSTPRE=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+HOSTPRE=YES
+
+--- 4. CLANG ---
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+CLANG=YES
+
+--- 5. LLD ---
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+LLD=YES
+
+--- 6. WRONG PATH FROM FLUTTER ERROR ---
+BAD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/bin/clang
+BAD_PATH_EXISTS=NO
+
+--- 7. NDK TOOLCHAIN ---
+TOOLCHAIN_FILE=YES
+
+--- 8. TOOLCHAIN HOST REFERENCES ---
+23:# ANDROID_TOOLCHAIN
+114:  elseif(ANDROID_TOOLCHAIN_NAME MATCHES "^arm-linux-androideabi-")
+116:  elseif(ANDROID_TOOLCHAIN_NAME MATCHES "^aarch64-linux-android-")
+118:  elseif(ANDROID_TOOLCHAIN_NAME MATCHES "^x86-")
+120:  elseif(ANDROID_TOOLCHAIN_NAME MATCHES "^x86_64-")
+122:  elseif(ANDROID_TOOLCHAIN_NAME MATCHES "^riscv64-")
+165:if(NOT ANDROID_TOOLCHAIN)
+166:  set(ANDROID_TOOLCHAIN clang)
+167:elseif(ANDROID_TOOLCHAIN STREQUAL gcc)
+213:  set(CMAKE_C_COMPILER_LAUNCHER   "${ANDROID_CCACHE}")
+256:  ANDROID_TOOLCHAIN
+284:set(ANDROID_TOOLCHAIN_ROOT
+285:  "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}")
+291:set(CMAKE_SYSROOT "${ANDROID_TOOLCHAIN_ROOT}/sysroot")
+
+--- 9. PHASE 195 WORKING PATH ---
+#!/data/data/com.termux/files/usr/bin/bash
+exec "/data/data/com.termux/files/usr/bin/glibc-runner" "/data/data/com.termux/files/usr/glibc/bin/box64" "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld" -L"/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64" -L"/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux" -L"/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21" "$@"
+
+--- 10. FINAL STATUS ---
+HOST=aarch64
+NDK_HOST_TOOLCHAIN=AVAILABLE
+
+==================================================
+ PHASE 201 COMPLETE
+==================================================

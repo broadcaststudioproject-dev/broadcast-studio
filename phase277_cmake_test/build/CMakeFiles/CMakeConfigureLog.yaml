@@ -1,0 +1,887 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:12 (find_program)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_UNAME"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "uname"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+      - "/bin/"
+      - "/usr/bin/"
+      - "/usr/local/bin/"
+    searched_directories:
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/uname"
+      - "/data/data/com.termux/files/home/flutter/bin/uname"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/uname"
+    found: "/data/data/com.termux/files/usr/bin/uname"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:213 (message)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      The target system is: Android - 24 - aarch64
+      The host system is: Android - 35 - aarch64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeNinjaFindMake.cmake:5 (find_program)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_MAKE_PROGRAM"
+    description: "Program used to build from build.ninja files."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ninja-build"
+      - "ninja"
+      - "samu"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    searched_directories:
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/ninja-build"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/ninja"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/samu"
+      - "/data/data/com.termux/files/home/flutter/bin/ninja-build"
+      - "/data/data/com.termux/files/home/flutter/bin/ninja"
+      - "/data/data/com.termux/files/home/flutter/bin/samu"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/ninja-build"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/ninja"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/samu"
+      - "/data/data/com.termux/files/usr/bin/ninja-build"
+    found: "/data/data/com.termux/files/usr/bin/ninja"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:501 (find_file)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:538 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCCompilerId.c.in"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/"
+    found: "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeCCompilerId.c.in"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:122 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:3 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: /data/data/com.termux/files/usr/bin/clang 
+      Build flags: 
+      Id flags: -c;--target=aarch64-linux-android24 
+      
+      The output was:
+      0
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+      
+      The C compiler identification is Clang, found in:
+        /data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/4.4.2/CompilerIdC/CMakeCCompilerId.o
+      
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ar"
+      - "ar"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-ar"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_RANLIB"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ranlib"
+      - "ranlib"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_STRIP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-strip"
+      - "strip"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-strip"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ld.lld"
+      - "ld"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/ld.lld"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_NM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-nm"
+      - "nm"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-nm"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJDUMP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-objdump"
+      - "objdump"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-objdump"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJCOPY"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-objcopy"
+      - "objcopy"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-objcopy"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_READELF"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-readelf"
+      - "readelf"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-readelf"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_DLLTOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-dlltool"
+      - "dlltool"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-dlltool"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_ADDR2LINE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-addr2line"
+      - "addr2line"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    found: "/data/data/com.termux/files/usr/bin/llvm-addr2line"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeFindBinUtils.cmake:247 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:200 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_TAPI"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "tapi"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    searched_directories:
+      - "/data/data/com.termux/files/usr/bin/tapi"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/tapi"
+      - "/data/data/com.termux/files/home/flutter/bin/tapi"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/tapi"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/tapi"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/tapi"
+    found: false
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/Compiler/Clang-FindBinUtils.cmake:26 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:201 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_C_COMPILER_AR"
+    description: "LLVM archiver"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ar-21.1"
+      - "llvm-ar-21"
+      - "llvm-ar21"
+      - "llvm-ar"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    searched_directories:
+      - "/data/data/com.termux/files/usr/bin/llvm-ar-21.1"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/llvm-ar-21.1"
+      - "/data/data/com.termux/files/home/flutter/bin/llvm-ar-21.1"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/llvm-ar-21.1"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/llvm-ar-21.1"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/llvm-ar-21.1"
+      - "/data/data/com.termux/files/usr/bin/llvm-ar-21"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/llvm-ar-21"
+      - "/data/data/com.termux/files/home/flutter/bin/llvm-ar-21"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/llvm-ar-21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/llvm-ar-21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/llvm-ar-21"
+      - "/data/data/com.termux/files/usr/bin/llvm-ar21"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/llvm-ar21"
+      - "/data/data/com.termux/files/home/flutter/bin/llvm-ar21"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/llvm-ar21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/llvm-ar21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/llvm-ar21"
+    found: "/data/data/com.termux/files/usr/bin/llvm-ar"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/Compiler/Clang-FindBinUtils.cmake:38 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:201 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_C_COMPILER_RANLIB"
+    description: "Generate index for LLVM archive"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ranlib-21.1"
+      - "llvm-ranlib-21"
+      - "llvm-ranlib21"
+      - "llvm-ranlib"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    searched_directories:
+      - "/data/data/com.termux/files/usr/bin/llvm-ranlib-21.1"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/llvm-ranlib-21.1"
+      - "/data/data/com.termux/files/home/flutter/bin/llvm-ranlib-21.1"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/llvm-ranlib-21.1"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/llvm-ranlib-21.1"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/llvm-ranlib-21.1"
+      - "/data/data/com.termux/files/usr/bin/llvm-ranlib-21"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/llvm-ranlib-21"
+      - "/data/data/com.termux/files/home/flutter/bin/llvm-ranlib-21"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/llvm-ranlib-21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/llvm-ranlib-21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/llvm-ranlib-21"
+      - "/data/data/com.termux/files/usr/bin/llvm-ranlib21"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/llvm-ranlib21"
+      - "/data/data/com.termux/files/home/flutter/bin/llvm-ranlib21"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/llvm-ranlib21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/llvm-ranlib21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/llvm-ranlib21"
+    found: "/data/data/com.termux/files/usr/bin/llvm-ranlib"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/Compiler/Clang-FindBinUtils.cmake:50 (find_program)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCCompiler.cmake:201 (include)"
+      - "CMakeLists.txt:3 (project)"
+    mode: "program"
+    variable: "CMAKE_C_COMPILER_CLANG_SCAN_DEPS"
+    description: "`clang-scan-deps` dependency scanner"
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "clang-scan-deps-21.1"
+      - "clang-scan-deps-21"
+      - "clang-scan-deps21"
+      - "clang-scan-deps"
+      - "clang-scan-deps-21.1"
+      - "clang-scan-deps-21"
+      - "clang-scan-deps21"
+      - "clang-scan-deps"
+    candidate_directories:
+      - "/data/data/com.termux/files/usr/bin/"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/"
+      - "/data/data/com.termux/files/home/flutter/bin/"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/"
+    searched_directories:
+      - "/data/data/com.termux/files/usr/bin/clang-scan-deps-21.1"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/clang-scan-deps-21.1"
+      - "/data/data/com.termux/files/home/flutter/bin/clang-scan-deps-21.1"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/clang-scan-deps-21.1"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/clang-scan-deps-21.1"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/clang-scan-deps-21.1"
+      - "/data/data/com.termux/files/usr/bin/clang-scan-deps-21"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/clang-scan-deps-21"
+      - "/data/data/com.termux/files/home/flutter/bin/clang-scan-deps-21"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/clang-scan-deps-21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/clang-scan-deps-21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/clang-scan-deps-21"
+      - "/data/data/com.termux/files/usr/bin/clang-scan-deps21"
+      - "/data/data/com.termux/files/usr/opt/flutter/bin/clang-scan-deps21"
+      - "/data/data/com.termux/files/home/flutter/bin/clang-scan-deps21"
+      - "/data/data/com.termux/files/home/.pub-cache/bin/clang-scan-deps21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/clang-scan-deps21"
+      - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/clang-scan-deps21"
+    found: "/data/data/com.termux/files/usr/bin/clang-scan-deps"
+    search_context:
+      ENV{PATH}:
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/home/flutter/bin"
+        - "/data/data/com.termux/files/usr/opt/flutter/bin"
+        - "/data/data/com.termux/files/home/.pub-cache/bin"
+        - "/data/data/com.termux/files/usr/bin"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/platform-tools"
+        - "/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin"
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+      CMAKE_FIND_ROOT_PATH: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:123 (try_compile)"
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:3 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-oZeTqF"
+      binary: "/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-oZeTqF"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_TARGET: "aarch64-linux-android24"
+      CMAKE_C_COMPILER_TARGET: "aarch64-linux-android24"
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: false
+      stdout: |
+        Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-oZeTqF'
+        
+        Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_3d10c
+        [1/2] /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android24 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -O2 -g -DNDEBUG   -v -MD -MT CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o -MF CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o.d -o CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o -c /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeCCompilerABI.c
+        clang version 21.1.8
+        Target: aarch64-unknown-linux-android24
+        Thread model: posix
+        InstalledDir: /data/data/com.termux/files/usr/bin
+         (in-process)
+         "/data/data/com.termux/files/usr/bin/clang-21" -cc1 -triple aarch64-unknown-linux-android24 -O2 -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCCompilerABI.c -mrelocation-model pic -pic-level 2 -pic-is-pie -mframe-pointer=non-leaf -ffp-contract=on -fno-rounding-math -mconstructor-aliases -funwind-tables=2 -enable-tlsdesc -target-cpu generic -target-feature +v8a -target-feature +fp-armv8 -target-feature +neon -target-feature +fix-cortex-a53-835769 -target-abi aapcs -debug-info-kind=constructor -dwarf-version=4 -debugger-tuning=gdb -fdebug-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-oZeTqF -v -fcoverage-compilation-dir=/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-oZeTqF -resource-dir /data/data/com.termux/files/usr/lib/clang/21 -dependency-file CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o.d -MT CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o -sys-header-deps -D NDEBUG -isysroot /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -internal-isystem /data/data/com.termux/files/usr/lib/clang/21/include -internal-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/local/include -internal-externc-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android -internal-externc-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/include -internal-externc-isystem /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include -ferror-limit 19 -femulated-tls -fno-signed-char -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -vectorize-loops -vectorize-slp -target-feature +outline-atomics -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o -x c /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeCCompilerABI.c
+        clang -cc1 version 21.1.8 based upon LLVM 21.1.8 default target aarch64-unknown-linux-android24
+        ignoring nonexistent directory "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/local/include"
+        ignoring nonexistent directory "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /data/data/com.termux/files/usr/lib/clang/21/include
+         /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android
+         /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include
+        End of search list.
+        [2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android24 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG -v CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o -o cmTC_3d10c   && :
+        FAILED: [code=1] cmTC_3d10c 
+        : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android24 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG -v CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o -o cmTC_3d10c   && :
+        clang version 21.1.8
+        Target: aarch64-unknown-linux-android24
+        Thread model: posix
+        InstalledDir: /data/data/com.termux/files/usr/bin
+         "/data/data/com.termux/files/usr/bin/ld.lld" --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -EL --fix-cortex-a53-843419 -z now -z relro -z max-page-size=16384 --no-rosegment --hash-style=gnu -rpath=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib --eh-frame-hdr -m aarch64linux -pie -dynamic-linker /system/bin/linker64 -o cmTC_3d10c /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/24/crtbegin_dynamic.o -L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/24 -L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android -L/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib -L/system/lib64 CMakeFiles/cmTC_3d10c.dir/CMakeCCompilerABI.c.o /data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl -lc /data/data/com.termux/files/usr/lib/clang/21/lib/linux/libclang_rt.builtins-aarch64-android.a -l:libunwind.a -ldl /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/24/crtend_android.o
+        ld.lld: error: unable to find library -l:libunwind.a
+        ld.lld: error: unable to find library -l:libunwind.a
+        clang: error: linker command failed with exit code 1 (use -v to see invocation)
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:56 (try_compile)"
+      - "CMakeLists.txt:3 (project)"
+    checks:
+      - "Check for working C compiler: /data/data/com.termux/files/usr/bin/clang"
+    directories:
+      source: "/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-OqeqZL"
+      binary: "/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-OqeqZL"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_TARGET: "aarch64-linux-android24"
+      CMAKE_C_COMPILER_TARGET: "aarch64-linux-android24"
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_SYSROOT: "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+    buildResult:
+      variable: "CMAKE_C_COMPILER_WORKS"
+      cached: false
+      stdout: |
+        Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-OqeqZL'
+        
+        Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_22808
+        [1/2] /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android24 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -O2 -g -DNDEBUG -MD -MT CMakeFiles/cmTC_22808.dir/testCCompiler.c.o -MF CMakeFiles/cmTC_22808.dir/testCCompiler.c.o.d -o CMakeFiles/cmTC_22808.dir/testCCompiler.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase277_cmake_test/build/CMakeFiles/CMakeScratch/TryCompile-OqeqZL/testCCompiler.c
+        [2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android24 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG  CMakeFiles/cmTC_22808.dir/testCCompiler.c.o -o cmTC_22808   && :
+        FAILED: [code=1] cmTC_22808 
+        : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android24 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG  CMakeFiles/cmTC_22808.dir/testCCompiler.c.o -o cmTC_22808   && :
+        ld.lld: error: unable to find library -l:libunwind.a
+        ld.lld: error: unable to find library -l:libunwind.a
+        clang: error: linker command failed with exit code 1 (use -v to see invocation)
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+...
