@@ -6,18 +6,18 @@ plugins {
 
 android {
     namespace = "com.example.pocket_pcr_studio"
-    compileSdk = 36
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     defaultConfig {
         applicationId = "com.example.pocket_pcr_studio"
         minSdk = 21
-        targetSdk = 36
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -32,3 +32,4 @@ android {
 flutter {
     source = "../.."
 }
+
