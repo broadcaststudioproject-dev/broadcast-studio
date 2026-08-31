@@ -8,14 +8,6 @@ List<CameraDescription> cameras = [];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // ఫోన్ తిప్పినప్పుడు ఆటో-రోటేట్ అవ్వడానికి పర్మిషన్ ఇస్తున్నాం
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
-
   try {
     cameras = await availableCameras();
   } catch (e) {
@@ -44,6 +36,8 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   bool hideControls = false;
+  int currentCameraIndex = 0;
+  bool isLandscape = false;
 
   String locationText = "LIVE KOTHAKOTA";
   String channelName = "SS\nYATRA\nTV";
@@ -54,8 +48,16 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   void initState() {
     super.initState();
+    // యాప్ ఓపెన్ చేయగానే నిలువుగా (Portrait) ఉండేలా సెట్ చేస్తున్నాం
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _initCamera();
     _requestPermissions();
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
   }
 
   Future<void> _requestPermissions() async {
@@ -64,13 +66,36 @@ class _StudioScreenState extends State<StudioScreen> {
 
   void _initCamera() {
     if (cameras.isEmpty) return;
-    controller = CameraController(cameras[0], ResolutionPreset.high);
+    controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
     controller!.initialize().then((_) {
       if (!mounted) return;
       setState(() {});
     });
   }
 
+  // ఫ్రంట్ / బ్యాక్ కెమెరా మార్చే కోడ్
+  void _switchCamera() async {
+    if (cameras.length < 2) return;
+    currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
+    await controller?.dispose();
+    controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
+    await controller!.initialize();
+    if (mounted) setState(() {});
+  }
+
+  // స్క్రీన్ రొటేట్ చేసే కోడ్
+  void _toggleOrientation() {
+    setState(() {
+      isLandscape = !isLandscape;
+    });
+    if (isLandscape) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+    } else {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
+  }
+
+  // వివరాలు మార్చుకునే ఎడిట్ బాక్స్
   void _showEditDialog() {
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController chCtrl = TextEditingController(text: channelName);
@@ -88,7 +113,7 @@ class _StudioScreenState extends State<StudioScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "Live Location (లొకేషన్)")),
-                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Channel Name (ఛానెల్ పేరు)"), maxLines: 3),
+                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Channel Logo Text (ఛానెల్ పేరు)"), maxLines: 3),
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Reporter Name (రిపోర్టర్ పేరు)")),
                 TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "Designation (హోదా)")),
                 TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "Breaking News (బ్రేకింగ్ న్యూస్)"), maxLines: 3),
@@ -105,6 +130,7 @@ class _StudioScreenState extends State<StudioScreen> {
                   reporterName = nameCtrl.text;
                   reporterRole = roleCtrl.text;
                   breakingNews = newsCtrl.text;
+                  hideControls = true; // సేవ్ చేయగానే బటన్స్ మాయం అవుతాయి
                 });
                 Navigator.pop(context);
               },
@@ -127,14 +153,17 @@ class _StudioScreenState extends State<StudioScreen> {
       backgroundColor: Colors.black,
       body: GestureDetector(
         onTap: () {
-          setState(() {
-            hideControls = !hideControls;
-          });
+          // స్క్రీన్ మీద టచ్ చేసినప్పుడు కంట్రోల్స్ తెప్పించడం
+          if (hideControls) {
+            setState(() { hideControls = false; });
+          }
         },
         child: Stack(
           children: [
+            // 1. కెమెరా వ్యూ
             SizedBox.expand(child: CameraPreview(controller!)),
             
+            // 2. న్యూస్ గ్రాఫిక్స్
             SafeArea(
               child: Stack(
                 children: [
@@ -173,11 +202,10 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
-                  // స్క్రోలింగ్ బ్రేకింగ్ న్యూస్
                   Positioned(
                     bottom: 10, left: 0, right: 0,
                     child: Container(
-                      height: 40, // స్క్రోలింగ్ కి కచ్చితమైన ఎత్తు ఉండాలి
+                      height: 40,
                       color: Colors.red,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Row(
@@ -189,8 +217,8 @@ class _StudioScreenState extends State<StudioScreen> {
                               style: const TextStyle(color: Colors.white, fontSize: 18),
                               scrollAxis: Axis.horizontal,
                               crossAxisAlignment: CrossAxisAlignment.center,
-                              blankSpace: 50.0, // ఒకసారి న్యూస్ వెళ్ళాక ఎంత గ్యాప్ ఉండాలి
-                              velocity: 40.0, // స్క్రోలింగ్ స్పీడ్
+                              blankSpace: 50.0,
+                              velocity: 40.0,
                               startPadding: 10.0,
                             ),
                           ),
@@ -198,37 +226,55 @@ class _StudioScreenState extends State<StudioScreen> {
                       ),
                     ),
                   ),
-                  
-                  if (!hideControls)
-                    Positioned(
-                      bottom: 150, left: 0, right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _showEditDialog,
-                            icon: const Icon(Icons.edit, color: Colors.white),
-                            label: const Text("EDIT GRAPHICS"),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                hideControls = true;
-                              });
-                            },
-                            icon: const Icon(Icons.fullscreen, color: Colors.white),
-                            label: const Text("CLEAN VIEW"),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.black87),
-                          ),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ),
+
+            // 3. యూట్యూబ్ స్టైల్ టచ్ కంట్రోల్స్ (హైడ్ బటన్స్)
+            if (!hideControls)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    // నల్లటి బ్యాక్‌గ్రౌండ్ మీద టచ్ చేస్తే మాయం అవ్వడం
+                    setState(() { hideControls = true; });
+                  },
+                  child: Container(
+                    color: Colors.black54, // యూట్యూబ్ లాగా లైట్ బ్లాక్ షేడ్
+                    child: Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 35,
+                        children: [
+                          _buildControlButton(Icons.flip_camera_android, "Flip Cam", _switchCamera),
+                          _buildControlButton(isLandscape ? Icons.screen_lock_portrait : Icons.screen_rotation, "Rotate", _toggleOrientation),
+                          _buildControlButton(Icons.edit, "Edit", _showEditDialog),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  // బటన్స్ డిజైన్ కోసం చిన్న ఫంక్షన్
+  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.white30,
+            child: Icon(icon, color: Colors.white, size: 30),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
