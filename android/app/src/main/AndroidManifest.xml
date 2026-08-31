@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- పర్మిషన్స్ ఇక్కడే (అప్లికేషన్ ట్యాగ్ కి పైన) ఉండాలి -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
@@ -25,8 +24,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        
+        <!-- ఇక్కడే పోయినసారి android: పదం మిస్ అయింది, ఇప్పుడు కరెక్ట్ చేశాను -->
         <meta-data
             android:name="flutterEmbedding"
-            value="2" />
+            android:value="2" />
+            
     </application>
 </manifest>
