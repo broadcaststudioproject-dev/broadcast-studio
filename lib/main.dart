@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
-import 'dart:convert'; // ఇంటర్నెట్ లొకేషన్ డేటా చదవడానికి యాడ్ చేశాం
+import 'dart:convert';
 import 'dart:async';
 
 List<CameraDescription> cameras = [];
@@ -43,6 +43,11 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
 
+  // రికార్డింగ్ టైమర్ కోసం వేరియబుల్స్
+  bool isRecording = false;
+  int recordDuration = 0;
+  Timer? recordTimer;
+
   String locationText = "GETTING LOCATION..."; 
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
@@ -59,9 +64,9 @@ class _StudioScreenState extends State<StudioScreen> {
     _initCamera();
     _requestPermissions();
     
-    // యాప్ ఓపెన్ అవ్వగానే ఈ రెండు లాగుతుంది
+    // ఇంటర్నెట్ ద్వారా న్యూస్, లొకేషన్ లాగుతుంది
     _fetchGoogleNews();
-    _fetchLocationByIP(); 
+    _fetchLocationByIP();
     
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchGoogleNews();
@@ -71,11 +76,11 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   void dispose() {
     _newsTimer?.cancel();
+    recordTimer?.cancel();
     controller?.dispose();
     super.dispose();
   }
 
-  // ఇప్పుడు కేవలం కెమెరా, మైక్ పర్మిషన్ మాత్రమే అడుగుతుంది (GPS అడగదు)
   Future<void> _requestPermissions() async {
     await [Permission.camera, Permission.microphone].request();
   }
@@ -89,6 +94,7 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
+  // ఫ్రంట్ / బ్యాక్ కెమెరా స్విచ్ ఫంక్షన్
   void _switchCamera() async {
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
@@ -98,6 +104,7 @@ class _StudioScreenState extends State<StudioScreen> {
     if (mounted) setState(() {});
   }
 
+  // స్క్రీన్ రోటేట్ ఫంక్షన్
   void _toggleOrientation() {
     setState(() {
       isLandscape = !isLandscape;
@@ -109,7 +116,39 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // 1. గూగుల్ నుండి లైవ్ న్యూస్ తెచ్చే ఫంక్షన్
+  // REC టైమర్ స్టార్ట్ ఫంక్షన్
+  void _startRecordingUI() {
+    setState(() {
+      isRecording = true;
+      recordDuration = 0;
+      hideControls = true; // రికార్డ్ స్టార్ట్ అవ్వగానే బటన్స్ హైడ్ అవుతాయి
+    });
+    recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          recordDuration++;
+        });
+      }
+    });
+  }
+
+  // REC టైమర్ స్టాప్ ఫంక్షన్
+  void _stopRecordingUI() {
+    recordTimer?.cancel();
+    setState(() {
+      isRecording = false;
+      recordDuration = 0;
+    });
+  }
+
+  // టైమర్ ఫార్మాట్ (00:00)
+  String get formattedTime {
+    int minutes = recordDuration ~/ 60;
+    int seconds = recordDuration % 60;
+    return '\${minutes.toString().padLeft(2, '0')}:\${seconds.toString().padLeft(2, '0')}';
+  }
+
+  // గూగుల్ లైవ్ న్యూస్ 
   Future<void> _fetchGoogleNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -131,10 +170,9 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // 2. GPS లేకుండా కేవలం ఇంటర్నెట్ IP ద్వారా లొకేషన్ తెచ్చే ఫంక్షన్
+  // ఇంటర్నెట్ IP ద్వారా ఆటోమేటిక్ లొకేషన్ 
   Future<void> _fetchLocationByIP() async {
     try {
-      // ఫ్రీ IP Geolocation సర్వీస్ వాడి ఊరి పేరు లాగుతున్నాం
       final response = await http.get(Uri.parse('https://ipinfo.io/json'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -153,6 +191,7 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
+  // ఎడిట్ గ్రాఫిక్స్ పాప్-అప్
   void _showEditDialog() {
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController chCtrl = TextEditingController(text: channelName);
@@ -229,6 +268,20 @@ class _StudioScreenState extends State<StudioScreen> {
                       child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
+                  
+                  // పైన మధ్యలో బ్లింక్ అయ్యే REC టైమర్
+                  if (isRecording)
+                    Positioned(
+                      top: 15, left: 0, right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.circle, color: recordDuration % 2 == 0 ? Colors.red : Colors.transparent, size: 14),
+                          const SizedBox(width: 6),
+                          Text("REC $formattedTime", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1.2)),
+                        ],
+                      ),
+                    ),
                   
                   Positioned(
                     top: 10, right: 10,
@@ -308,6 +361,7 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
 
+            // యూట్యూబ్ స్టైల్ టచ్ కంట్రోల్స్ 
             if (!hideControls)
               Positioned.fill(
                 child: GestureDetector(
@@ -319,11 +373,16 @@ class _StudioScreenState extends State<StudioScreen> {
                     child: Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
-                        spacing: 35,
+                        spacing: 30,
+                        runSpacing: 20,
                         children: [
                           _buildControlButton(Icons.flip_camera_android, "Flip Cam", _switchCamera),
                           _buildControlButton(isLandscape ? Icons.screen_lock_portrait : Icons.screen_rotation, "Rotate", _toggleOrientation),
                           _buildControlButton(Icons.edit, "Edit", _showEditDialog),
+                          // రికార్డ్ అవుతున్నప్పుడు స్టాప్ బటన్, లేకపోతే స్టార్ట్ బటన్ చూపిస్తుంది
+                          isRecording 
+                            ? _buildControlButton(Icons.stop_circle, "Stop REC", _stopRecordingUI, color: Colors.red)
+                            : _buildControlButton(Icons.fiber_manual_record, "Start REC", _startRecordingUI, color: Colors.red),
                         ],
                       ),
                     ),
@@ -336,7 +395,8 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap) {
+  // బటన్స్ డిజైన్
+  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, {Color color = Colors.white}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -345,7 +405,7 @@ class _StudioScreenState extends State<StudioScreen> {
           CircleAvatar(
             radius: 30,
             backgroundColor: Colors.white30,
-            child: Icon(icon, color: Colors.white, size: 30),
+            child: Icon(icon, color: color, size: 30),
           ),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
