@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
+import 'dart:convert'; // ఇంటర్నెట్ లొకేషన్ డేటా చదవడానికి యాడ్ చేశాం
 import 'dart:async';
 
 List<CameraDescription> cameras = [];
@@ -14,7 +15,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: $e");
+    debugPrint("Camera Error: \$e");
   }
   runApp(const PocketPCRApp());
 }
@@ -42,13 +43,12 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
 
-  String locationText = "LIVE KOTHAKOTA";
+  String locationText = "GETTING LOCATION..."; 
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   
-  // గూగుల్ న్యూస్ కోసం
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   Timer? _newsTimer;
 
@@ -58,9 +58,11 @@ class _StudioScreenState extends State<StudioScreen> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _initCamera();
     _requestPermissions();
-    _fetchGoogleNews(); // యాప్ ఓపెన్ అవ్వగానే న్యూస్ లాగుతుంది
     
-    // ప్రతి 10 నిమిషాలకు ఒకసారి ఆటోమేటిక్‌గా కొత్త వార్తలు అప్‌డేట్ అవుతాయి
+    // యాప్ ఓపెన్ అవ్వగానే ఈ రెండు లాగుతుంది
+    _fetchGoogleNews();
+    _fetchLocationByIP(); 
+    
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchGoogleNews();
     });
@@ -73,6 +75,7 @@ class _StudioScreenState extends State<StudioScreen> {
     super.dispose();
   }
 
+  // ఇప్పుడు కేవలం కెమెరా, మైక్ పర్మిషన్ మాత్రమే అడుగుతుంది (GPS అడగదు)
   Future<void> _requestPermissions() async {
     await [Permission.camera, Permission.microphone].request();
   }
@@ -106,7 +109,7 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // గూగుల్ నుండి లైవ్ న్యూస్ తెచ్చే ఫంక్షన్ (తెలుగు)
+  // 1. గూగుల్ నుండి లైవ్ న్యూస్ తెచ్చే ఫంక్షన్
   Future<void> _fetchGoogleNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -114,19 +117,39 @@ class _StudioScreenState extends State<StudioScreen> {
         final document = XmlDocument.parse(response.body);
         final items = document.findAllElements('item');
         List<String> titles = [];
-        // టాప్ 15 వార్తలు తీసుకుంటున్నాం
         for (var item in items.take(15)) {
           titles.add(item.findElements('title').first.innerText);
         }
         if (titles.isNotEmpty && mounted) {
           setState(() {
-            // వార్తల మధ్యలో గ్యాప్ మరియు బులెట్ పాయింట్ యాడ్ చేస్తున్నాం
             googleNews = titles.join("   ♦   ");
           });
         }
       }
     } catch (e) {
-      debugPrint("News Error: $e");
+      debugPrint("News Error: \$e");
+    }
+  }
+
+  // 2. GPS లేకుండా కేవలం ఇంటర్నెట్ IP ద్వారా లొకేషన్ తెచ్చే ఫంక్షన్
+  Future<void> _fetchLocationByIP() async {
+    try {
+      // ఫ్రీ IP Geolocation సర్వీస్ వాడి ఊరి పేరు లాగుతున్నాం
+      final response = await http.get(Uri.parse('https://ipinfo.io/json'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        String city = data['city'] ?? "KOTHAKOTA";
+        if (mounted) {
+          setState(() {
+            locationText = "LIVE \${city.toUpperCase()}";
+          });
+        }
+      } else {
+        setState(() { locationText = "LIVE KOTHAKOTA"; });
+      }
+    } catch (e) {
+      debugPrint("IP Location Error: \$e");
+      setState(() { locationText = "LIVE KOTHAKOTA"; });
     }
   }
 
@@ -198,7 +221,6 @@ class _StudioScreenState extends State<StudioScreen> {
             SafeArea(
               child: Stack(
                 children: [
-                  // లొకేషన్ టాగ్
                   Positioned(
                     top: 10, left: 10,
                     child: Container(
@@ -208,7 +230,6 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
-                  // ఛానెల్ లోగో
                   Positioned(
                     top: 10, right: 10,
                     child: Container(
@@ -218,7 +239,6 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
-                  // రిపోర్టర్ పేరు
                   Positioned(
                     bottom: 90, left: 10,
                     child: Column(
@@ -236,13 +256,11 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
-                  // డ్యూయల్ స్క్రోలింగ్ న్యూస్ బార్
                   Positioned(
                     bottom: 10, left: 0, right: 0,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // లైన్ 1: గూగుల్ లైవ్ న్యూస్ (బ్లూ కలర్)
                         Container(
                           height: 35,
                           color: Colors.blue[900],
@@ -263,7 +281,6 @@ class _StudioScreenState extends State<StudioScreen> {
                             ],
                           ),
                         ),
-                        // లైన్ 2: మీరు రాసిన స్టేట్ న్యూస్ (రెడ్ కలర్)
                         Container(
                           height: 40,
                           color: Colors.red,
@@ -291,7 +308,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
 
-            // యూట్యూబ్ స్టైల్ టచ్ కంట్రోల్స్
             if (!hideControls)
               Positioned.fill(
                 child: GestureDetector(
