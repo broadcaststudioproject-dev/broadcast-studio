@@ -9,7 +9,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: $e");
+    debugPrint("Camera Error: \$e");
   }
   runApp(const PocketPCRApp());
 }
@@ -58,7 +58,7 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   Widget build(BuildContext context) {
     if (controller == null || !controller!.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator(color: Colors.red));
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.red)));
     }
 
     return Scaffold(
@@ -71,10 +71,8 @@ class _StudioScreenState extends State<StudioScreen> {
         },
         child: Stack(
           children: [
-            // 1. Camera View
             SizedBox.expand(child: CameraPreview(controller!)),
             
-            // 2. Location Tag
             Positioned(
               top: 40, left: 20,
               child: Container(
@@ -84,7 +82,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
-            // 3. Channel Logo
             Positioned(
               top: 40, right: 20,
               child: Container(
@@ -94,7 +91,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
-            // 4. Reporter Name
             Positioned(
               bottom: 120, left: 20,
               child: Column(
@@ -112,7 +108,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
-            // 5. Breaking News Ticker
             Positioned(
               bottom: 60, left: 0, right: 0,
               child: Container(
@@ -126,7 +121,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
-            // 6. Clean View Button
             if (!hideControls)
               Positioned(
                 bottom: 10, left: 0, right: 0,
