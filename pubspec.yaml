@@ -15,7 +15,6 @@ dependencies:
   http: ^1.2.0
   xml: ^6.3.0
   geolocator: ^13.0.0
-  geocoding: ^3.0.0
 
 flutter:
   uses-material-design: true
