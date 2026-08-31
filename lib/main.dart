@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter_screen_recording/flutter_screen_recording.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 List<CameraDescription> cameras = [];
@@ -30,7 +29,7 @@ class StudioScreen extends StatefulWidget {
 
 class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
-  bool isRecording = false;
+  bool hideControls = false;
 
   @override
   void initState() {
@@ -40,7 +39,7 @@ class _StudioScreenState extends State<StudioScreen> {
   }
 
   Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone, Permission.storage].request();
+    await [Permission.camera, Permission.microphone].request();
   }
 
   void _initCamera() {
@@ -51,17 +50,6 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  Future<void> _startRecording() async {
-    setState(() => isRecording = true);
-    bool started = await FlutterScreenRecording.startRecordScreenAndAudio("SS_YATRA_LIVE");
-  }
-
-  Future<void> _stopRecording() async {
-    String path = await FlutterScreenRecording.stopRecordScreen;
-    setState(() => isRecording = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('వీడియో సేవ్ అయింది: \$path')));
-  }
-
   @override
   Widget build(BuildContext context) {
     if (controller == null || !controller!.value.isInitialized) {
@@ -70,81 +58,85 @@ class _StudioScreenState extends State<StudioScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          SizedBox.expand(child: CameraPreview(controller!)),
-          Positioned(
-            top: 40, left: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              color: Colors.red,
-              child: const Text("LIVE KOTHAKOTA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          Positioned(
-            top: 40, right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              color: Colors.blue[900],
-              child: const Text("SS\nYATRA\nTV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-            ),
-          ),
-          Positioned(
-            bottom: 120, left: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  child: const Text("VINOD KUMAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
-                ),
-                Container(
-                  color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 3),
-                  child: const Text("SPECIAL CORRESPONDENT", style: TextStyle(color: Colors.white, fontSize: 14)),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 60, left: 0, right: 0,
-            child: Container(
-              color: Colors.red, padding: const EdgeInsets.all(10),
-              child: const Row(
-                children: [
-                  Text("BREAKING NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
-                  Expanded(child: Text("కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం", style: TextStyle(color: Colors.white, fontSize: 18), overflow: TextOverflow.ellipsis)),
-                ],
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            hideControls = !hideControls;
+          });
+        },
+        child: Stack(
+          children: [
+            SizedBox.expand(child: CameraPreview(controller!)),
+            
+            Positioned(
+              top: 40, left: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                color: Colors.red,
+                child: const Text("LIVE KOTHAKOTA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
-          ),
-          if (!isRecording)
+            
             Positioned(
-              bottom: 10, left: 0, right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              top: 40, right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                color: Colors.blue[900],
+                child: const Text("SS\nYATRA\nTV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              ),
+            ),
+            
+            Positioned(
+              bottom: 120, left: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _startRecording,
-                    icon: const Icon(Icons.circle, color: Colors.red),
-                    label: const Text("REC"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+                  Container(
+                    color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    child: const Text("VINOD KUMAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
+                  ),
+                  Container(
+                    color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 3),
+                    child: const Text("SPECIAL CORRESPONDENT", style: TextStyle(color: Colors.white, fontSize: 14)),
                   ),
                 ],
               ),
             ),
-          if (isRecording)
+            
             Positioned(
-              bottom: 10, left: 0, right: 0,
-              child: Center(
-                child: ElevatedButton.icon(
-                  onPressed: _stopRecording,
-                  icon: const Icon(Icons.stop, color: Colors.white),
-                  label: const Text("STOP RECORDING"),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              bottom: 60, left: 0, right: 0,
+              child: Container(
+                color: Colors.red, padding: const EdgeInsets.all(10),
+                child: const Row(
+                  children: [
+                    Text("BREAKING NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
+                    Expanded(child: Text("కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం", style: TextStyle(color: Colors.white, fontSize: 18), overflow: TextOverflow.ellipsis)),
+                  ],
                 ),
               ),
             ),
-        ],
+            
+            if (!hideControls)
+              Positioned(
+                bottom: 10, left: 0, right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          hideControls = true;
+                        });
+                      },
+                      icon: const Icon(Icons.fullscreen, color: Colors.white),
+                      label: const Text("CLEAN STUDIO VIEW"),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
