@@ -5,23 +5,17 @@ allprojects {
     }
 }
 
-rootProject.buildDir = '../build'
+val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+rootProject.layout.buildDirectory.value(newBuildDir)
+
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+    project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 subprojects {
-    project.evaluationDependsOn(':app')
-    
-    // ప్రాజెక్ట్ లోని అన్ని ప్యాకేజీలను 34 వెర్షన్ కి అప్‌గ్రేడ్ చేసే మ్యాజిక్ కోడ్
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
-                compileSdkVersion 34
-            }
-        }
-    }
+    project.evaluationDependsOn(":app")
 }
 
-tasks.register("clean", Delete) {
-    delete rootProject.buildDir
+tasks.register<Delete>("clean") {
+    delete(rootProject.layout.buildDirectory)
 }
