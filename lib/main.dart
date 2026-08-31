@@ -6,7 +6,7 @@ import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'dart:convert';
 import 'dart:async';
 
 List<CameraDescription> cameras = [];
@@ -16,7 +16,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: \$e");
+    debugPrint("Camera Error: $e");
   }
   runApp(const PocketPCRApp());
 }
@@ -125,11 +125,11 @@ class _StudioScreenState extends State<StudioScreen> {
         }
       }
     } catch (e) {
-      debugPrint("News Error: \$e");
+      debugPrint("News Error: $e");
     }
   }
 
-  // ఖచ్చితమైన GPS ద్వారా ఊరి పేరు లాగే ఫంక్షన్ 
+  // ఆండ్రాయిడ్ బగ్ లేకుండా కేవలం API ద్వారా ఖచ్చితమైన ఊరి పేరు తెచ్చే ఫంక్షన్
   Future<void> _fetchExactGPSLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -151,20 +151,25 @@ class _StudioScreenState extends State<StudioScreen> {
         return;
       }
 
+      // GPS ద్వారా అక్షాంశ, రేఖాంశాలు తీసుకుంటున్నాం
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
 
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
-        String city = place.locality ?? place.subAdministrativeArea ?? place.administrativeArea ?? "LIVE";
+      // ఆండ్రాయిడ్ ప్యాకేజీ వాడకుండా.. ఆన్‌లైన్ ఫ్రీ API ద్వారా ఊరి పేరు లాగుతున్నాం!
+      final response = await http.get(Uri.parse('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.latitude}&longitude=${position.longitude}&localityLanguage=en'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        String city = data['locality'] ?? data['city'] ?? data['principalSubdivision'] ?? "LIVE";
         if (mounted) {
           setState(() {
-            locationText = "LIVE \${city.toUpperCase()}";
+            locationText = "LIVE ${city.toUpperCase()}";
           });
         }
+      } else {
+        setState(() { locationText = "LIVE KOTHAKOTA"; });
       }
     } catch (e) {
-      debugPrint("GPS Location Error: \$e");
+      debugPrint("GPS Location Error: $e");
       setState(() { locationText = "LIVE KOTHAKOTA"; });
     }
   }
