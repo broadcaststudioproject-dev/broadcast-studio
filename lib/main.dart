@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/services.dart';
+import 'package:marquee/marquee.dart';
 
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // ఫోన్ తిప్పినప్పుడు ఆటో-రోటేట్ అవ్వడానికి పర్మిషన్ ఇస్తున్నాం
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+
   try {
     cameras = await availableCameras();
   } catch (e) {
@@ -35,12 +45,11 @@ class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   bool hideControls = false;
 
-  // ఇక్కడ ఎడిట్ చేసుకోవడానికి వీలుగా వేరియబుల్స్ సెట్ చేశాం
   String locationText = "LIVE KOTHAKOTA";
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
-  String breakingNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం";
+  String breakingNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
 
   @override
   void initState() {
@@ -62,7 +71,6 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  // ఎడిట్ బటన్ నొక్కినప్పుడు ఓపెన్ అయ్యే పాప్-అప్ బాక్స్
   void _showEditDialog() {
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController chCtrl = TextEditingController(text: channelName);
@@ -83,7 +91,7 @@ class _StudioScreenState extends State<StudioScreen> {
                 TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Channel Name (ఛానెల్ పేరు)"), maxLines: 3),
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Reporter Name (రిపోర్టర్ పేరు)")),
                 TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "Designation (హోదా)")),
-                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "Breaking News (బ్రేకింగ్ న్యూస్)"), maxLines: 2),
+                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "Breaking News (బ్రేకింగ్ న్యూస్)"), maxLines: 3),
               ],
             ),
           ),
@@ -165,20 +173,32 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
+                  // స్క్రోలింగ్ బ్రేకింగ్ న్యూస్
                   Positioned(
                     bottom: 10, left: 0, right: 0,
                     child: Container(
-                      color: Colors.red, padding: const EdgeInsets.all(10),
+                      height: 40, // స్క్రోలింగ్ కి కచ్చితమైన ఎత్తు ఉండాలి
+                      color: Colors.red,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Row(
                         children: [
                           const Text("BREAKING NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
-                          Expanded(child: Text(breakingNews, style: const TextStyle(color: Colors.white, fontSize: 18), overflow: TextOverflow.ellipsis)),
+                          Expanded(
+                            child: Marquee(
+                              text: breakingNews,
+                              style: const TextStyle(color: Colors.white, fontSize: 18),
+                              scrollAxis: Axis.horizontal,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              blankSpace: 50.0, // ఒకసారి న్యూస్ వెళ్ళాక ఎంత గ్యాప్ ఉండాలి
+                              velocity: 40.0, // స్క్రోలింగ్ స్పీడ్
+                              startPadding: 10.0,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
                   
-                  // ఎడిట్ మరియు క్లీన్ వ్యూ బటన్స్
                   if (!hideControls)
                     Positioned(
                       bottom: 150, left: 0, right: 0,
