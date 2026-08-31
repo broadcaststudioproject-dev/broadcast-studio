@@ -12,7 +12,6 @@ dependencies:
   camera: ^0.11.0
   path_provider: ^2.1.2
   permission_handler: ^11.3.0
-  flutter_screen_recording: ^3.0.1
-
+      flutter_screen_recording: ^2.0.25
 flutter:
   uses-material-design: true
