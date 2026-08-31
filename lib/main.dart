@@ -5,7 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
-import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'dart:async';
 
 List<CameraDescription> cameras = [];
@@ -15,7 +16,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: $e");
+    debugPrint("Camera Error: \$e");
   }
   runApp(const PocketPCRApp());
 }
@@ -43,11 +44,6 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
 
-  // రికార్డింగ్ టైమర్ కోసం వేరియబుల్స్
-  bool isRecording = false;
-  int recordDuration = 0;
-  Timer? recordTimer;
-
   String locationText = "GETTING LOCATION..."; 
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
@@ -64,9 +60,8 @@ class _StudioScreenState extends State<StudioScreen> {
     _initCamera();
     _requestPermissions();
     
-    // ఇంటర్నెట్ ద్వారా న్యూస్, లొకేషన్ లాగుతుంది
     _fetchGoogleNews();
-    _fetchLocationByIP();
+    _fetchExactGPSLocation(); 
     
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchGoogleNews();
@@ -76,13 +71,12 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   void dispose() {
     _newsTimer?.cancel();
-    recordTimer?.cancel();
     controller?.dispose();
     super.dispose();
   }
 
   Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone].request();
+    await [Permission.camera, Permission.microphone, Permission.location].request();
   }
 
   void _initCamera() {
@@ -94,7 +88,6 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  // ఫ్రంట్ / బ్యాక్ కెమెరా స్విచ్ ఫంక్షన్
   void _switchCamera() async {
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
@@ -104,7 +97,6 @@ class _StudioScreenState extends State<StudioScreen> {
     if (mounted) setState(() {});
   }
 
-  // స్క్రీన్ రోటేట్ ఫంక్షన్
   void _toggleOrientation() {
     setState(() {
       isLandscape = !isLandscape;
@@ -116,39 +108,6 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // REC టైమర్ స్టార్ట్ ఫంక్షన్
-  void _startRecordingUI() {
-    setState(() {
-      isRecording = true;
-      recordDuration = 0;
-      hideControls = true; // రికార్డ్ స్టార్ట్ అవ్వగానే బటన్స్ హైడ్ అవుతాయి
-    });
-    recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          recordDuration++;
-        });
-      }
-    });
-  }
-
-  // REC టైమర్ స్టాప్ ఫంక్షన్
-  void _stopRecordingUI() {
-    recordTimer?.cancel();
-    setState(() {
-      isRecording = false;
-      recordDuration = 0;
-    });
-  }
-
-  // టైమర్ ఫార్మాట్ (00:00)
-  String get formattedTime {
-    int minutes = recordDuration ~/ 60;
-    int seconds = recordDuration % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  // గూగుల్ లైవ్ న్యూస్ 
   Future<void> _fetchGoogleNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -166,32 +125,50 @@ class _StudioScreenState extends State<StudioScreen> {
         }
       }
     } catch (e) {
-      debugPrint("News Error: $e");
+      debugPrint("News Error: \$e");
     }
   }
 
-  // ఇంటర్నెట్ IP ద్వారా ఆటోమేటిక్ లొకేషన్ 
-  Future<void> _fetchLocationByIP() async {
+  // ఖచ్చితమైన GPS ద్వారా ఊరి పేరు లాగే ఫంక్షన్ 
+  Future<void> _fetchExactGPSLocation() async {
     try {
-      final response = await http.get(Uri.parse('https://ipinfo.io/json'));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        String city = data['city'] ?? "KOTHAKOTA";
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() { locationText = "LIVE KOTHAKOTA"; });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() { locationText = "LIVE KOTHAKOTA"; });
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() { locationText = "LIVE KOTHAKOTA"; });
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String city = place.locality ?? place.subAdministrativeArea ?? place.administrativeArea ?? "LIVE";
         if (mounted) {
           setState(() {
-            locationText = "LIVE ${city.toUpperCase()}";
+            locationText = "LIVE \${city.toUpperCase()}";
           });
         }
-      } else {
-        setState(() { locationText = "LIVE KOTHAKOTA"; });
       }
     } catch (e) {
-      debugPrint("IP Location Error: $e");
+      debugPrint("GPS Location Error: \$e");
       setState(() { locationText = "LIVE KOTHAKOTA"; });
     }
   }
 
-  // ఎడిట్ గ్రాఫిక్స్ పాప్-అప్
   void _showEditDialog() {
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController chCtrl = TextEditingController(text: channelName);
@@ -268,20 +245,6 @@ class _StudioScreenState extends State<StudioScreen> {
                       child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  
-                  // పైన మధ్యలో బ్లింక్ అయ్యే REC టైమర్
-                  if (isRecording)
-                    Positioned(
-                      top: 15, left: 0, right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.circle, color: recordDuration % 2 == 0 ? Colors.red : Colors.transparent, size: 14),
-                          const SizedBox(width: 6),
-                          Text("REC $formattedTime", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 1.2)),
-                        ],
-                      ),
-                    ),
                   
                   Positioned(
                     top: 10, right: 10,
@@ -361,7 +324,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
 
-            // యూట్యూబ్ స్టైల్ టచ్ కంట్రోల్స్ 
             if (!hideControls)
               Positioned.fill(
                 child: GestureDetector(
@@ -379,10 +341,6 @@ class _StudioScreenState extends State<StudioScreen> {
                           _buildControlButton(Icons.flip_camera_android, "Flip Cam", _switchCamera),
                           _buildControlButton(isLandscape ? Icons.screen_lock_portrait : Icons.screen_rotation, "Rotate", _toggleOrientation),
                           _buildControlButton(Icons.edit, "Edit", _showEditDialog),
-                          // రికార్డ్ అవుతున్నప్పుడు స్టాప్ బటన్, లేకపోతే స్టార్ట్ బటన్ చూపిస్తుంది
-                          isRecording 
-                            ? _buildControlButton(Icons.stop_circle, "Stop REC", _stopRecordingUI, color: Colors.red)
-                            : _buildControlButton(Icons.fiber_manual_record, "Start REC", _startRecordingUI, color: Colors.red),
                         ],
                       ),
                     ),
@@ -395,7 +353,6 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  // బటన్స్ డిజైన్
   Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, {Color color = Colors.white}) {
     return GestureDetector(
       onTap: onTap,
