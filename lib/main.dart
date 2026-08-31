@@ -72,59 +72,43 @@ class _StudioScreenState extends State<StudioScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Camera View
-          SizedBox.expand(
-            child: CameraPreview(controller!),
-          ),
-
-          // 2. SS YATRA TV Graphics
+          SizedBox.expand(child: CameraPreview(controller!)),
           Positioned(
-            top: 40,
-            left: 20,
+            top: 40, left: 20,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               color: Colors.red,
               child: const Text("LIVE KOTHAKOTA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
-          
           Positioned(
-            top: 40,
-            right: 20,
+            top: 40, right: 20,
             child: Container(
               padding: const EdgeInsets.all(10),
               color: Colors.blue[900],
               child: const Text("SS\nYATRA\nTV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
             ),
           ),
-
           Positioned(
-            bottom: 120,
-            left: 20,
+            bottom: 120, left: 20,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
                   child: const Text("VINOD KUMAR", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22)),
                 ),
                 Container(
-                  color: Colors.red,
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 3),
+                  color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 3),
                   child: const Text("SPECIAL CORRESPONDENT", style: TextStyle(color: Colors.white, fontSize: 14)),
                 ),
               ],
             ),
           ),
-
           Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
+            bottom: 60, left: 0, right: 0,
             child: Container(
-              color: Colors.red,
-              padding: const EdgeInsets.all(10),
+              color: Colors.red, padding: const EdgeInsets.all(10),
               child: const Row(
                 children: [
                   Text("BREAKING NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
@@ -133,13 +117,9 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
           ),
-
-          // 3. Buttons (కనపడకుండా పోవడానికి)
           if (!isRecording)
             Positioned(
-              bottom: 10,
-              left: 0,
-              right: 0,
+              bottom: 10, left: 0, right: 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -152,12 +132,9 @@ class _StudioScreenState extends State<StudioScreen> {
                 ],
               ),
             ),
-
           if (isRecording)
             Positioned(
-              bottom: 10,
-              left: 0,
-              right: 0,
+              bottom: 10, left: 0, right: 0,
               child: Center(
                 child: ElevatedButton.icon(
                   onPressed: _stopRecording,
@@ -172,4 +149,3 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 }
-
