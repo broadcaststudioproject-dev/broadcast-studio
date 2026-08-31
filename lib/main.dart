@@ -15,7 +15,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: \$e");
+    debugPrint("Camera Error: $e");
   }
   runApp(const PocketPCRApp());
 }
@@ -145,7 +145,7 @@ class _StudioScreenState extends State<StudioScreen> {
   String get formattedTime {
     int minutes = recordDuration ~/ 60;
     int seconds = recordDuration % 60;
-    return '\${minutes.toString().padLeft(2, '0')}:\${seconds.toString().padLeft(2, '0')}';
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   // గూగుల్ లైవ్ న్యూస్ 
@@ -166,7 +166,7 @@ class _StudioScreenState extends State<StudioScreen> {
         }
       }
     } catch (e) {
-      debugPrint("News Error: \$e");
+      debugPrint("News Error: $e");
     }
   }
 
@@ -179,14 +179,14 @@ class _StudioScreenState extends State<StudioScreen> {
         String city = data['city'] ?? "KOTHAKOTA";
         if (mounted) {
           setState(() {
-            locationText = "LIVE \${city.toUpperCase()}";
+            locationText = "LIVE ${city.toUpperCase()}";
           });
         }
       } else {
         setState(() { locationText = "LIVE KOTHAKOTA"; });
       }
     } catch (e) {
-      debugPrint("IP Location Error: \$e");
+      debugPrint("IP Location Error: $e");
       setState(() { locationText = "LIVE KOTHAKOTA"; });
     }
   }
