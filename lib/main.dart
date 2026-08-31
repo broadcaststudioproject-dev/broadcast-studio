@@ -3,6 +3,9 @@ import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
+import 'package:http/http.dart' as http;
+import 'package:xml/xml.dart';
+import 'dart:async';
 
 List<CameraDescription> cameras = [];
 
@@ -11,7 +14,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: \$e");
+    debugPrint("Camera Error: $e");
   }
   runApp(const PocketPCRApp());
 }
@@ -43,19 +46,29 @@ class _StudioScreenState extends State<StudioScreen> {
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
-  String breakingNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
+  String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
+  
+  // గూగుల్ న్యూస్ కోసం
+  String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
+  Timer? _newsTimer;
 
   @override
   void initState() {
     super.initState();
-    // యాప్ ఓపెన్ చేయగానే నిలువుగా (Portrait) ఉండేలా సెట్ చేస్తున్నాం
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _initCamera();
     _requestPermissions();
+    _fetchGoogleNews(); // యాప్ ఓపెన్ అవ్వగానే న్యూస్ లాగుతుంది
+    
+    // ప్రతి 10 నిమిషాలకు ఒకసారి ఆటోమేటిక్‌గా కొత్త వార్తలు అప్‌డేట్ అవుతాయి
+    _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
+      _fetchGoogleNews();
+    });
   }
 
   @override
   void dispose() {
+    _newsTimer?.cancel();
     controller?.dispose();
     super.dispose();
   }
@@ -73,7 +86,6 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  // ఫ్రంట్ / బ్యాక్ కెమెరా మార్చే కోడ్
   void _switchCamera() async {
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
@@ -83,7 +95,6 @@ class _StudioScreenState extends State<StudioScreen> {
     if (mounted) setState(() {});
   }
 
-  // స్క్రీన్ రొటేట్ చేసే కోడ్
   void _toggleOrientation() {
     setState(() {
       isLandscape = !isLandscape;
@@ -95,13 +106,36 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // వివరాలు మార్చుకునే ఎడిట్ బాక్స్
+  // గూగుల్ నుండి లైవ్ న్యూస్ తెచ్చే ఫంక్షన్ (తెలుగు)
+  Future<void> _fetchGoogleNews() async {
+    try {
+      final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.body);
+        final items = document.findAllElements('item');
+        List<String> titles = [];
+        // టాప్ 15 వార్తలు తీసుకుంటున్నాం
+        for (var item in items.take(15)) {
+          titles.add(item.findElements('title').first.innerText);
+        }
+        if (titles.isNotEmpty && mounted) {
+          setState(() {
+            // వార్తల మధ్యలో గ్యాప్ మరియు బులెట్ పాయింట్ యాడ్ చేస్తున్నాం
+            googleNews = titles.join("   ♦   ");
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("News Error: $e");
+    }
+  }
+
   void _showEditDialog() {
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController chCtrl = TextEditingController(text: channelName);
     TextEditingController nameCtrl = TextEditingController(text: reporterName);
     TextEditingController roleCtrl = TextEditingController(text: reporterRole);
-    TextEditingController newsCtrl = TextEditingController(text: breakingNews);
+    TextEditingController newsCtrl = TextEditingController(text: stateNews);
 
     showDialog(
       context: context,
@@ -116,7 +150,7 @@ class _StudioScreenState extends State<StudioScreen> {
                 TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Channel Logo Text (ఛానెల్ పేరు)"), maxLines: 3),
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Reporter Name (రిపోర్టర్ పేరు)")),
                 TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "Designation (హోదా)")),
-                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "Breaking News (బ్రేకింగ్ న్యూస్)"), maxLines: 3),
+                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "State News (మీరు టైప్ చేసే న్యూస్)"), maxLines: 3),
               ],
             ),
           ),
@@ -129,8 +163,8 @@ class _StudioScreenState extends State<StudioScreen> {
                   channelName = chCtrl.text;
                   reporterName = nameCtrl.text;
                   reporterRole = roleCtrl.text;
-                  breakingNews = newsCtrl.text;
-                  hideControls = true; // సేవ్ చేయగానే బటన్స్ మాయం అవుతాయి
+                  stateNews = newsCtrl.text;
+                  hideControls = true;
                 });
                 Navigator.pop(context);
               },
@@ -153,20 +187,18 @@ class _StudioScreenState extends State<StudioScreen> {
       backgroundColor: Colors.black,
       body: GestureDetector(
         onTap: () {
-          // స్క్రీన్ మీద టచ్ చేసినప్పుడు కంట్రోల్స్ తెప్పించడం
           if (hideControls) {
             setState(() { hideControls = false; });
           }
         },
         child: Stack(
           children: [
-            // 1. కెమెరా వ్యూ
             SizedBox.expand(child: CameraPreview(controller!)),
             
-            // 2. న్యూస్ గ్రాఫిక్స్
             SafeArea(
               child: Stack(
                 children: [
+                  // లొకేషన్ టాగ్
                   Positioned(
                     top: 10, left: 10,
                     child: Container(
@@ -176,6 +208,7 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
+                  // ఛానెల్ లోగో
                   Positioned(
                     top: 10, right: 10,
                     child: Container(
@@ -185,8 +218,9 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
+                  // రిపోర్టర్ పేరు
                   Positioned(
-                    bottom: 70, left: 10,
+                    bottom: 90, left: 10,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -202,44 +236,70 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
+                  // డ్యూయల్ స్క్రోలింగ్ న్యూస్ బార్
                   Positioned(
                     bottom: 10, left: 0, right: 0,
-                    child: Container(
-                      height: 40,
-                      color: Colors.red,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Row(
-                        children: [
-                          const Text("BREAKING NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
-                          Expanded(
-                            child: Marquee(
-                              text: breakingNews,
-                              style: const TextStyle(color: Colors.white, fontSize: 18),
-                              scrollAxis: Axis.horizontal,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              blankSpace: 50.0,
-                              velocity: 40.0,
-                              startPadding: 10.0,
-                            ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // లైన్ 1: గూగుల్ లైవ్ న్యూస్ (బ్లూ కలర్)
+                        Container(
+                          height: 35,
+                          color: Colors.blue[900],
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Row(
+                            children: [
+                              const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16)),
+                              Expanded(
+                                child: Marquee(
+                                  text: googleNews,
+                                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                                  scrollAxis: Axis.horizontal,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  blankSpace: 100.0,
+                                  velocity: 35.0,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        // లైన్ 2: మీరు రాసిన స్టేట్ న్యూస్ (రెడ్ కలర్)
+                        Container(
+                          height: 40,
+                          color: Colors.red,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Row(
+                            children: [
+                              const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
+                              Expanded(
+                                child: Marquee(
+                                  text: stateNews,
+                                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                  scrollAxis: Axis.horizontal,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  blankSpace: 50.0,
+                                  velocity: 45.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
 
-            // 3. యూట్యూబ్ స్టైల్ టచ్ కంట్రోల్స్ (హైడ్ బటన్స్)
+            // యూట్యూబ్ స్టైల్ టచ్ కంట్రోల్స్
             if (!hideControls)
               Positioned.fill(
                 child: GestureDetector(
                   onTap: () {
-                    // నల్లటి బ్యాక్‌గ్రౌండ్ మీద టచ్ చేస్తే మాయం అవ్వడం
                     setState(() { hideControls = true; });
                   },
                   child: Container(
-                    color: Colors.black54, // యూట్యూబ్ లాగా లైట్ బ్లాక్ షేడ్
+                    color: Colors.black54,
                     child: Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
@@ -260,7 +320,6 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  // బటన్స్ డిజైన్ కోసం చిన్న ఫంక్షన్
   Widget _buildControlButton(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
