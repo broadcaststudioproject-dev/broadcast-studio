@@ -51,7 +51,6 @@ class _StudioScreenState extends State<StudioScreen> {
   String watermarkText = "SS YATRA TV";
   
   double channelNameSize = 14.0;
-
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   Timer? _newsTimer;
 
@@ -84,8 +83,10 @@ class _StudioScreenState extends State<StudioScreen> {
   void _initCamera() {
     if (cameras.isEmpty) return;
     controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
-    controller!.initialize().then((_) {
+    controller!.initialize().then((_) async {
       if (!mounted) return;
+      // 🔥 యాప్ ఓపెన్ అయినప్పుడు కెమెరా యాంగిల్ పోర్ట్రెయిట్ లో లాక్ చేయాలి 🔥
+      await controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
       setState(() {});
     });
   }
@@ -96,19 +97,34 @@ class _StudioScreenState extends State<StudioScreen> {
     await controller?.dispose();
     controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
     await controller!.initialize();
+    
+    // కెమెరా మార్చినప్పుడు కూడా ప్రస్తుతం ఉన్న యాంగిల్ కి లాక్ అవ్వాలి
+    if (isLandscape) {
+      await controller!.lockCaptureOrientation(DeviceOrientation.landscapeRight);
+    } else {
+      await controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
+    }
     if (mounted) setState(() {});
   }
 
-  void _toggleOrientation() {
+  // 🔥 ఈ ఫంక్షన్ లోనే అసలైన రొటేషన్ మ్యాజిక్ జరుగుతుంది 🔥
+  void _toggleOrientation() async {
     setState(() {
       isLandscape = !isLandscape;
     });
+    
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
     if (isLandscape) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      // ఫోన్ స్క్రీన్ అడ్డంగా తిరుగుతుంది..
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      // కెమెరా సెన్సార్ కూడా అడ్డంగా తిరగాలని చెప్తున్నాం
+      await controller?.lockCaptureOrientation(DeviceOrientation.landscapeRight);
     } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      await controller?.lockCaptureOrientation(DeviceOrientation.portraitUp);
     }
+    setState(() {}); // రీఫ్రెష్
   }
 
   Future<void> _fetchGoogleNews() async {
@@ -155,14 +171,12 @@ class _StudioScreenState extends State<StudioScreen> {
                 TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "ఛానెల్ పేరు"), maxLines: 2),
                 TextField(controller: chSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "సైజ్ (ఉదా: 14)")),
                 const Divider(thickness: 2),
-
-                const Text("కింద ఎడమవైపు వివరాలు (Fixed Size)", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                const Text("కింద ఎడమవైపు వివరాలు", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                 TextField(controller: watermarkCtrl, decoration: const InputDecoration(labelText: "1. వాటర్‌మార్క్")),
                 TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "2. లైవ్ లొకేషన్")),
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "3. రిపోర్టర్ పేరు")),
                 TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "4. హోదా")),
                 const Divider(thickness: 2),
-
                 const Text("స్క్రోలింగ్ న్యూస్", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
                 TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "వార్తను టైప్ చేయండి"), maxLines: 3),
               ],
@@ -216,29 +230,41 @@ class _StudioScreenState extends State<StudioScreen> {
         },
         child: Stack(
           children: [
-            // 1. కెమెరా ఫీడ్
-            SizedBox.expand(child: CameraPreview(controller!)),
+            // 1. కెమెరా ఫీడ్ (సాగిపోకుండా కరెక్ట్ గా సెట్ అయ్యేలా మార్చాను)
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.black,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: controller!.value.previewSize?.height ?? 1080,
+                  height: controller!.value.previewSize?.width ?? 1920,
+                  child: CameraPreview(controller!),
+                ),
+              ),
+            ),
             
-            // 2. 🔥 కొత్త ఫీచర్: స్క్రీన్ చుట్టూ ప్రొఫెషనల్ బ్రాడ్‌కాస్ట్ బోర్డర్ (Live Frame) 🔥
+            // 2. ప్రొఫెషనల్ బ్రాడ్‌కాస్ట్ బోర్డర్ (మందాన్ని 2 కి తగ్గించాను)
             Positioned.fill(
               child: IgnorePointer(
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.red.withOpacity(0.85), // ఎరుపు రంగు బోర్డర్
-                      width: 3.0, // బోర్డర్ మందం
+                      color: Colors.red.withOpacity(0.9), 
+                      width: 2.0, 
                     ),
                   ),
                 ),
               ),
             ),
             
-            // 3. గ్రాఫిక్స్ (బోర్డర్‌కి దగ్గరగా అలైన్ చేయబడ్డాయి)
+            // 3. గ్రాఫిక్స్ 
             Stack(
               children: [
-                // పైన కుడి వైపు బాక్స్ (బోర్డర్‌కి పర్ఫెక్ట్ గ్యాప్‌లో)
+                // పైన కుడి వైపు బాక్స్ (నాచ్ కిందకి వెళ్లకుండా గ్యాప్ పెంచాను: top 30, right 30)
                 Positioned(
-                  top: 15, right: 15, 
+                  top: 30, right: 30, 
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     color: Colors.blue[900]?.withOpacity(0.8),
@@ -246,9 +272,9 @@ class _StudioScreenState extends State<StudioScreen> {
                   ),
                 ),
 
-                // ఎడమ వైపు కింద ఒకే వరుసలో (గ్యాప్ తగ్గించి బోర్డర్ కి దగ్గర చేశాను)
+                // ఎడమ వైపు కింద ఒకే వరుసలో
                 Positioned(
-                  bottom: 95, left: 12, 
+                  bottom: 95, left: 15, 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -291,9 +317,9 @@ class _StudioScreenState extends State<StudioScreen> {
                   ),
                 ),
                 
-                // కింద స్క్రోలింగ్ న్యూస్ (బోర్డర్ లోపల కరెక్ట్‌గా ఇమిడిపోయేలా)
+                // కింద స్క్రోలింగ్ న్యూస్ 
                 Positioned(
-                  bottom: 3, left: 3, right: 3, // బోర్డర్ (3) కి టచ్ అవుతూ ఉంటుంది
+                  bottom: 3, left: 3, right: 3, 
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
