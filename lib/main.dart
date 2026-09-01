@@ -42,12 +42,17 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
 
+  // టెక్స్ట్ మరియు వాటర్‌మార్క్ వేరియబుల్స్
   String locationText = "LIVE KOTHAKOTA"; 
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   
+  // కొత్త వాటర్‌మార్క్ వేరియబుల్స్
+  String watermarkText = "SS YATRA TV";
+  double watermarkSize = 24.0; // డీఫాల్ట్ సైజ్
+
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   Timer? _newsTimer;
 
@@ -125,12 +130,17 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
+  // ఎడిట్ పాప్-అప్
   void _showEditDialog() {
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController chCtrl = TextEditingController(text: channelName);
     TextEditingController nameCtrl = TextEditingController(text: reporterName);
     TextEditingController roleCtrl = TextEditingController(text: reporterRole);
     TextEditingController newsCtrl = TextEditingController(text: stateNews);
+    
+    // వాటర్‌మార్క్ కోసం కొత్త కంట్రోలర్స్
+    TextEditingController watermarkCtrl = TextEditingController(text: watermarkText);
+    TextEditingController watermarkSizeCtrl = TextEditingController(text: watermarkSize.toString());
 
     showDialog(
       context: context,
@@ -142,7 +152,19 @@ class _StudioScreenState extends State<StudioScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "Live Location (లొకేషన్)")),
-                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Top Edit Text (ఎడిట్ చేయగల టెక్స్ట్)"), maxLines: 2),
+                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Top Edit Text (కుడివైపు టెక్స్ట్)"), maxLines: 2),
+                
+                // వాటర్‌మార్క్ సెట్టింగ్స్
+                const Divider(thickness: 2, height: 30),
+                const Text("Watermark Settings", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                TextField(controller: watermarkCtrl, decoration: const InputDecoration(labelText: "Watermark Name (వాటర్‌మార్క్ పేరు)")),
+                TextField(
+                  controller: watermarkSizeCtrl, 
+                  keyboardType: TextInputType.number, 
+                  decoration: const InputDecoration(labelText: "Watermark Size (సైజ్: ఉదా|| 20, 30, 40)")
+                ),
+                const Divider(thickness: 2, height: 30),
+
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Reporter Name (రిపోర్టర్ పేరు)")),
                 TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "Designation (హోదా)")),
                 TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "State News (మీరు టైప్ చేసే న్యూస్)"), maxLines: 3),
@@ -159,7 +181,12 @@ class _StudioScreenState extends State<StudioScreen> {
                   reporterName = nameCtrl.text;
                   reporterRole = roleCtrl.text;
                   stateNews = newsCtrl.text;
-                  hideControls = true;
+                  
+                  // వాటర్‌మార్క్ అప్‌డేట్
+                  watermarkText = watermarkCtrl.text;
+                  watermarkSize = double.tryParse(watermarkSizeCtrl.text) ?? 24.0;
+                  
+                  hideControls = true; // సేవ్ చేయగానే బటన్స్ ఆటోమేటిక్ గా హైడ్ అవుతాయి
                 });
                 Navigator.pop(context);
               },
@@ -193,7 +220,7 @@ class _StudioScreenState extends State<StudioScreen> {
             SafeArea(
               child: Stack(
                 children: [
-                  // ఎడమ వైపు లొకేషన్ 
+                  // పైన ఎడమ వైపు లొకేషన్ 
                   Positioned(
                     top: 10, left: 10,
                     child: Container(
@@ -203,9 +230,9 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
 
-                  // కొద్దిగా కిందికి ఉన్న ఎడిట్ చేయగల టెక్స్ట్ బాక్స్
+                  // పైన కుడి వైపు చిన్న టెక్స్ట్
                   Positioned(
-                    top: 60, right: 10,
+                    top: 10, right: 10,
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       color: Colors.blue[900]?.withOpacity(0.8),
@@ -213,28 +240,32 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
 
-                  // కొత్తగా జతచేసిన పర్మినెంట్ వాటర్‌మార్క్ లోగో (Top Right)
+                  // 🔥 కొత్త ఫీచర్: స్క్రీన్ మధ్యభాగంలో ఎడమవైపు పర్మినెంట్ వాటర్‌మార్క్ 🔥
                   Positioned(
-                    top: 10, right: 10,
-                    child: Opacity(
-                      opacity: 0.6, // ట్రాన్స్‌పరెంట్ ఎఫెక్ట్ (60%)
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.satellite_alt, color: Colors.white, size: 24),
-                          const SizedBox(width: 5),
-                          Text(
-                            "SS YATRA TV",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              shadows: [
-                                Shadow(blurRadius: 3.0, color: Colors.black, offset: const Offset(1.5, 1.5))
-                              ],
+                    left: 10,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Opacity(
+                        opacity: 0.5, // 50% ట్రాన్స్‌పరెంట్ (గ్రీన్ మ్యాట్ ఫీల్)
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(Icons.satellite_alt, color: Colors.white, size: watermarkSize * 1.2), // సైజ్‌ని బట్టి ఐకాన్ మారుతుంది
+                            const SizedBox(width: 8),
+                            Text(
+                              watermarkText,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: watermarkSize, // మీరు ఇచ్చిన సైజ్ ప్రకారం
+                                shadows: const [
+                                  Shadow(blurRadius: 3.0, color: Colors.black, offset: Offset(1.5, 1.5))
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
