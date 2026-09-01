@@ -42,7 +42,7 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
 
-  // టెక్స్ట్ వేరియబుల్స్
+  // టెక్స్ట్ వేరియబుల్స్ (ఎడిట్ చేసుకోవడానికి)
   String locationText = "LIVE KOTHAKOTA"; 
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
@@ -50,12 +50,8 @@ class _StudioScreenState extends State<StudioScreen> {
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String watermarkText = "SS YATRA TV";
   
-  // సైజులు (Resize) వేరియబుల్స్
-  double locationSize = 14.0;
+  // టాప్ ఛానెల్ పేరు సైజ్ (ఇది మాత్రమే రీసైజ్ అవుతుంది)
   double channelNameSize = 14.0;
-  double reporterNameSize = 22.0;
-  double reporterRoleSize = 14.0;
-  double watermarkSize = 24.0; 
 
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   Timer? _newsTimer;
@@ -134,64 +130,44 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // అడ్వాన్స్‌డ్ ఎడిట్ పాప్-అప్
+  // సందర్భాన్ని బట్టి డీటెయిల్స్ మార్చుకునే ఎడిట్ బాక్స్
   void _showEditDialog() {
-    TextEditingController locCtrl = TextEditingController(text: locationText);
-    TextEditingController locSizeCtrl = TextEditingController(text: locationSize.toString());
-
     TextEditingController chCtrl = TextEditingController(text: channelName);
     TextEditingController chSizeCtrl = TextEditingController(text: channelNameSize.toString());
 
-    TextEditingController nameCtrl = TextEditingController(text: reporterName);
-    TextEditingController nameSizeCtrl = TextEditingController(text: reporterNameSize.toString());
-
-    TextEditingController roleCtrl = TextEditingController(text: reporterRole);
-    TextEditingController roleSizeCtrl = TextEditingController(text: reporterRoleSize.toString());
-
     TextEditingController watermarkCtrl = TextEditingController(text: watermarkText);
-    TextEditingController watermarkSizeCtrl = TextEditingController(text: watermarkSize.toString());
-    
+    TextEditingController locCtrl = TextEditingController(text: locationText);
+    TextEditingController nameCtrl = TextEditingController(text: reporterName);
+    TextEditingController roleCtrl = TextEditingController(text: reporterRole);
     TextEditingController newsCtrl = TextEditingController(text: stateNews);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("ఎడిట్ సెట్టింగ్స్", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text("వివరాలు మార్చుకోండి (Edit)", style: TextStyle(fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // లైవ్ లొకేషన్
-                const Text("Live Location", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "ఊరి పేరు")),
-                TextField(controller: locSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "లొకేషన్ సైజ్ (ఉదా: 14)")),
-                const Divider(),
+                // టాప్ ఛానెల్ బాక్స్ 
+                const Text("కుడివైపు పైన ఉండే ఛానెల్ పేరు", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "ఛానెల్ పేరు టైప్ చేయండి"), maxLines: 2),
+                TextField(controller: chSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "దాని సైజ్ (ఉదా: 14)")),
+                const Divider(thickness: 2),
 
-                // రిపోర్టర్ పేరు & హోదా
-                const Text("Reporter Details", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
-                TextField(controller: nameSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "పేరు సైజ్ (ఉదా: 22)")),
-                TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "హోదా")),
-                TextField(controller: roleSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "హోదా సైజ్ (ఉదా: 14)")),
-                const Divider(),
-
-                // టాప్ ఛానెల్ పేరు
-                const Text("Top Channel Box", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "బాక్స్ టెక్స్ట్"), maxLines: 2),
-                TextField(controller: chSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "టెక్స్ట్ సైజ్ (ఉదా: 14)")),
-                const Divider(),
-
-                // వాటర్‌మార్క్
-                const Text("Center Watermark", style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
-                TextField(controller: watermarkCtrl, decoration: const InputDecoration(labelText: "వాటర్‌మార్క్ పేరు")),
-                TextField(controller: watermarkSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "వాటర్‌మార్క్ సైజ్ (ఉదా: 24)")),
-                const Divider(),
+                // కింద వరుసగా ఉండే పర్మినెంట్ సైజ్ బ్లాక్స్ (వీటి సైజులు ఆటోమేటిక్ గా ఫిక్స్ ఉంటాయి)
+                const Text("కింద ఎడమవైపు వివరాలు (సందర్భాన్ని బట్టి)", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                TextField(controller: watermarkCtrl, decoration: const InputDecoration(labelText: "1. వాటర్‌మార్క్ పేరు")),
+                TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "2. లైవ్ లొకేషన్ (ఊరి పేరు)")),
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "3. రిపోర్టర్ పేరు")),
+                TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "4. రిపోర్టర్ హోదా")),
+                const Divider(thickness: 2),
 
                 // న్యూస్
-                const Text("Scrolling News", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్"), maxLines: 3),
+                const Text("కింద స్క్రోల్ అయ్యే బ్రేకింగ్ న్యూస్", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "ఇక్కడ వార్తను టైప్ చేయండి..."), maxLines: 3),
               ],
             ),
           ),
@@ -200,24 +176,16 @@ class _StudioScreenState extends State<StudioScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  locationText = locCtrl.text;
-                  locationSize = double.tryParse(locSizeCtrl.text) ?? 14.0;
-
                   channelName = chCtrl.text;
                   channelNameSize = double.tryParse(chSizeCtrl.text) ?? 14.0;
 
-                  reporterName = nameCtrl.text;
-                  reporterNameSize = double.tryParse(nameSizeCtrl.text) ?? 22.0;
-
-                  reporterRole = roleCtrl.text;
-                  reporterRoleSize = double.tryParse(roleSizeCtrl.text) ?? 14.0;
-
                   watermarkText = watermarkCtrl.text;
-                  watermarkSize = double.tryParse(watermarkSizeCtrl.text) ?? 24.0;
-
+                  locationText = locCtrl.text;
+                  reporterName = nameCtrl.text;
+                  reporterRole = roleCtrl.text;
                   stateNews = newsCtrl.text;
                   
-                  hideControls = true; // బటన్స్ హైడ్ అవుతాయి
+                  hideControls = true; // సేవ్ చేయగానే క్లీన్ స్క్రీన్ వస్తుంది
                 });
                 Navigator.pop(context);
               },
@@ -251,7 +219,7 @@ class _StudioScreenState extends State<StudioScreen> {
             SafeArea(
               child: Stack(
                 children: [
-                  // పైన కుడి వైపు టెక్స్ట్ బాక్స్ (సైజ్ ఆప్షన్ తో)
+                  // పైన కుడి వైపు టెక్స్ట్ బాక్స్ (దీనికి మాత్రమే సైజ్ ఎడిట్ ఆప్షన్ ఉంది)
                   Positioned(
                     top: 10, right: 10,
                     child: Container(
@@ -261,58 +229,52 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
 
-                  // ఎడమ వైపు సెంటర్ వాటర్‌మార్క్ 
-                  Positioned(
-                    left: 10,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: Opacity(
-                        opacity: 0.5, 
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Icon(Icons.satellite_alt, color: Colors.white, size: watermarkSize * 1.2), 
-                            const SizedBox(width: 8),
-                            Text(
-                              watermarkText,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: watermarkSize, 
-                                shadows: const [
-                                  Shadow(blurRadius: 3.0, color: Colors.black, offset: Offset(1.5, 1.5))
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // 🔥 కొత్త బ్లాక్: ఒకదాని కింద ఒకటి (లొకేషన్ + రిపోర్టర్ + హోదా) బ్రేకింగ్ న్యూస్ పైన 🔥
+                  // ఎడమ వైపు కింద ఒకే వరుసలో వాటర్‌మార్క్, లొకేషన్, పేరు, హోదా (Fixed Sizes)
                   Positioned(
                     bottom: 90, left: 10,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 1. లైవ్ లొకేషన్ 
+                        // 1. వాటర్‌మార్క్ (ఫిక్స్‌డ్ సైజ్: 8)
+                        Opacity(
+                          opacity: 0.7, 
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.satellite_alt, color: Colors.white, size: 12), 
+                              const SizedBox(width: 4),
+                              Text(
+                                watermarkText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 8.0, // Fixed Size 8
+                                  shadows: [Shadow(blurRadius: 2.0, color: Colors.black, offset: Offset(1.0, 1.0))]
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6), 
+                        
+                        // 2. లైవ్ లొకేషన్ (ఫిక్స్‌డ్ సైజ్: 8)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           color: Colors.red,
-                          child: Text(locationText, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: locationSize)),
+                          child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8.0)), // Fixed Size 8
                         ),
-                        const SizedBox(height: 5), // చిన్న గ్యాప్
-                        // 2. రిపోర్టర్ పేరు
+                        const SizedBox(height: 4), 
+                        
+                        // 3. రిపోర్టర్ పేరు (ఫిక్స్‌డ్ సైజ్: 9)
                         Container(
-                          color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                          child: Text(reporterName, style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: reporterNameSize)),
+                          color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 9.0)), // Fixed Size 9
                         ),
-                        // 3. రిపోర్టర్ హోదా
+                        
+                        // 4. రిపోర్టర్ హోదా (ఫిక్స్‌డ్ సైజ్: 8)
                         Container(
-                          color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 3),
-                          child: Text(reporterRole, style: TextStyle(color: Colors.white, fontSize: reporterRoleSize)),
+                          color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                          child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 8.0)), // Fixed Size 8
                         ),
                       ],
                     ),
@@ -371,7 +333,7 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
 
-            // టచ్ కంట్రోల్స్ (హైడ్ బటన్స్)
+            // టచ్ కంట్రోల్స్ (హైడ్/ఎడిట్ బటన్స్)
             if (!hideControls)
               Positioned.fill(
                 child: GestureDetector(
