@@ -11,6 +11,7 @@ List<CameraDescription> cameras = [];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   try {
     cameras = await availableCameras();
   } catch (e) {
@@ -57,7 +58,6 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   void initState() {
     super.initState();
-    // 🔥 యాప్ స్టార్ట్ అవ్వగానే పూర్తిగా ఫుల్ స్క్రీన్ (బటన్స్, బ్యాటరీ హైడ్) అవ్వడానికి సెట్టింగ్ 🔥
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     
@@ -103,10 +103,7 @@ class _StudioScreenState extends State<StudioScreen> {
     setState(() {
       isLandscape = !isLandscape;
     });
-    
-    // 🔥 స్క్రీన్ తిప్పినప్పుడు కూడా ఫుల్ స్క్రీన్ పోకుండా మళ్ళీ సెట్ చేస్తున్నాం 🔥
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
     if (isLandscape) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
     } else {
@@ -138,7 +135,6 @@ class _StudioScreenState extends State<StudioScreen> {
   void _showEditDialog() {
     TextEditingController chCtrl = TextEditingController(text: channelName);
     TextEditingController chSizeCtrl = TextEditingController(text: channelNameSize.toString());
-
     TextEditingController watermarkCtrl = TextEditingController(text: watermarkText);
     TextEditingController locCtrl = TextEditingController(text: locationText);
     TextEditingController nameCtrl = TextEditingController(text: reporterName);
@@ -192,7 +188,6 @@ class _StudioScreenState extends State<StudioScreen> {
                   stateNews = newsCtrl.text;
                   hideControls = true; 
                 });
-                // సేవ్ చేసిన తర్వాత కూడా ఫుల్ స్క్రీన్ లోనే ఉండేలా..
                 SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
                 Navigator.pop(context);
               },
@@ -221,15 +216,29 @@ class _StudioScreenState extends State<StudioScreen> {
         },
         child: Stack(
           children: [
-            // కెమెరా ఫుల్ స్క్రీన్
+            // 1. కెమెరా ఫీడ్
             SizedBox.expand(child: CameraPreview(controller!)),
             
-            // 🔥 SafeArea తీసేశాను! ఇప్పుడు గ్రాఫిక్స్ నిజంగా స్క్రీన్ అంచుల వరకూ వెళ్తాయి 🔥
+            // 2. 🔥 కొత్త ఫీచర్: స్క్రీన్ చుట్టూ ప్రొఫెషనల్ బ్రాడ్‌కాస్ట్ బోర్డర్ (Live Frame) 🔥
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.red.withOpacity(0.85), // ఎరుపు రంగు బోర్డర్
+                      width: 3.0, // బోర్డర్ మందం
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            // 3. గ్రాఫిక్స్ (బోర్డర్‌కి దగ్గరగా అలైన్ చేయబడ్డాయి)
             Stack(
               children: [
-                // పైన కుడి వైపు బాక్స్
+                // పైన కుడి వైపు బాక్స్ (బోర్డర్‌కి పర్ఫెక్ట్ గ్యాప్‌లో)
                 Positioned(
-                  top: 20, right: 20, 
+                  top: 15, right: 15, 
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     color: Colors.blue[900]?.withOpacity(0.8),
@@ -237,9 +246,9 @@ class _StudioScreenState extends State<StudioScreen> {
                   ),
                 ),
 
-                // ఎడమ వైపు కింద ఒకే వరుసలో (ఫుల్ స్క్రీన్ అంచుకి కరెక్ట్ గ్యాప్ తో)
+                // ఎడమ వైపు కింద ఒకే వరుసలో (గ్యాప్ తగ్గించి బోర్డర్ కి దగ్గర చేశాను)
                 Positioned(
-                  bottom: 100, left: 20, 
+                  bottom: 95, left: 12, 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -282,16 +291,16 @@ class _StudioScreenState extends State<StudioScreen> {
                   ),
                 ),
                 
-                // కింద స్క్రోలింగ్ న్యూస్
+                // కింద స్క్రోలింగ్ న్యూస్ (బోర్డర్ లోపల కరెక్ట్‌గా ఇమిడిపోయేలా)
                 Positioned(
-                  bottom: 15, left: 0, right: 0, // ఫుల్ స్క్రీన్ కింది అంచుకు దగ్గరగా
+                  bottom: 3, left: 3, right: 3, // బోర్డర్ (3) కి టచ్ అవుతూ ఉంటుంది
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         height: 35,
                         color: Colors.blue[900],
-                        padding: const EdgeInsets.only(left: 20, right: 10), 
+                        padding: const EdgeInsets.only(left: 10, right: 10), 
                         child: Row(
                           children: [
                             const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16)),
@@ -311,7 +320,7 @@ class _StudioScreenState extends State<StudioScreen> {
                       Container(
                         height: 40,
                         color: Colors.red,
-                        padding: const EdgeInsets.only(left: 20, right: 10), 
+                        padding: const EdgeInsets.only(left: 10, right: 10), 
                         child: Row(
                           children: [
                             const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
