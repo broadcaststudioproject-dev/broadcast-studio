@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
-import 'package:geolocator/geolocator.dart';
-import 'dart:convert';
 import 'dart:async';
 
 List<CameraDescription> cameras = [];
@@ -16,7 +14,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: $e");
+    debugPrint("Camera Error: \$e");
   }
   runApp(const PocketPCRApp());
 }
@@ -44,7 +42,7 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
 
-  String locationText = "GETTING LOCATION..."; 
+  String locationText = "LIVE KOTHAKOTA"; 
   String channelName = "SS\nYATRA\nTV";
   String reporterName = "VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
@@ -59,9 +57,7 @@ class _StudioScreenState extends State<StudioScreen> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     _initCamera();
     _requestPermissions();
-    
-    _fetchGoogleNews();
-    _fetchExactGPSLocation(); 
+    _fetchGoogleNews(); 
     
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchGoogleNews();
@@ -76,7 +72,7 @@ class _StudioScreenState extends State<StudioScreen> {
   }
 
   Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone, Permission.location].request();
+    await [Permission.camera, Permission.microphone].request();
   }
 
   void _initCamera() {
@@ -125,52 +121,7 @@ class _StudioScreenState extends State<StudioScreen> {
         }
       }
     } catch (e) {
-      debugPrint("News Error: $e");
-    }
-  }
-
-  // ఆండ్రాయిడ్ బగ్ లేకుండా కేవలం API ద్వారా ఖచ్చితమైన ఊరి పేరు తెచ్చే ఫంక్షన్
-  Future<void> _fetchExactGPSLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() { locationText = "LIVE KOTHAKOTA"; });
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() { locationText = "LIVE KOTHAKOTA"; });
-          return;
-        }
-      }
-      if (permission == LocationPermission.deniedForever) {
-        setState(() { locationText = "LIVE KOTHAKOTA"; });
-        return;
-      }
-
-      // GPS ద్వారా అక్షాంశ, రేఖాంశాలు తీసుకుంటున్నాం
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-
-      // ఆండ్రాయిడ్ ప్యాకేజీ వాడకుండా.. ఆన్‌లైన్ ఫ్రీ API ద్వారా ఊరి పేరు లాగుతున్నాం!
-      final response = await http.get(Uri.parse('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.latitude}&longitude=${position.longitude}&localityLanguage=en'));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        String city = data['locality'] ?? data['city'] ?? data['principalSubdivision'] ?? "LIVE";
-        if (mounted) {
-          setState(() {
-            locationText = "LIVE ${city.toUpperCase()}";
-          });
-        }
-      } else {
-        setState(() { locationText = "LIVE KOTHAKOTA"; });
-      }
-    } catch (e) {
-      debugPrint("GPS Location Error: $e");
-      setState(() { locationText = "LIVE KOTHAKOTA"; });
+      debugPrint("News Error: \$e");
     }
   }
 
@@ -191,7 +142,7 @@ class _StudioScreenState extends State<StudioScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "Live Location (లొకేషన్)")),
-                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Channel Logo Text (ఛానెల్ పేరు)"), maxLines: 3),
+                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "Top Edit Text (ఎడిట్ చేయగల టెక్స్ట్)"), maxLines: 2),
                 TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Reporter Name (రిపోర్టర్ పేరు)")),
                 TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "Designation (హోదా)")),
                 TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "State News (మీరు టైప్ చేసే న్యూస్)"), maxLines: 3),
@@ -242,6 +193,7 @@ class _StudioScreenState extends State<StudioScreen> {
             SafeArea(
               child: Stack(
                 children: [
+                  // ఎడమ వైపు లొకేషన్ 
                   Positioned(
                     top: 10, left: 10,
                     child: Container(
@@ -250,16 +202,44 @@ class _StudioScreenState extends State<StudioScreen> {
                       child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  
+
+                  // కొద్దిగా కిందికి ఉన్న ఎడిట్ చేయగల టెక్స్ట్ బాక్స్
+                  Positioned(
+                    top: 60, right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.blue[900]?.withOpacity(0.8),
+                      child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
+                  ),
+
+                  // కొత్తగా జతచేసిన పర్మినెంట్ వాటర్‌మార్క్ లోగో (Top Right)
                   Positioned(
                     top: 10, right: 10,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      color: Colors.blue[900],
-                      child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    child: Opacity(
+                      opacity: 0.6, // ట్రాన్స్‌పరెంట్ ఎఫెక్ట్ (60%)
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.satellite_alt, color: Colors.white, size: 24),
+                          const SizedBox(width: 5),
+                          Text(
+                            "SS YATRA TV",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              shadows: [
+                                Shadow(blurRadius: 3.0, color: Colors.black, offset: const Offset(1.5, 1.5))
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   
+                  // కింద రిపోర్టర్ పేరు మరియు హోదా
                   Positioned(
                     bottom: 90, left: 10,
                     child: Column(
@@ -277,6 +257,7 @@ class _StudioScreenState extends State<StudioScreen> {
                     ),
                   ),
                   
+                  // కింద స్క్రోలింగ్ న్యూస్
                   Positioned(
                     bottom: 10, left: 0, right: 0,
                     child: Column(
@@ -329,6 +310,7 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
 
+            // టచ్ కంట్రోల్స్ (హైడ్ బటన్స్)
             if (!hideControls)
               Positioned.fill(
                 child: GestureDetector(
@@ -358,7 +340,7 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, {Color color = Colors.white}) {
+  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -367,7 +349,7 @@ class _StudioScreenState extends State<StudioScreen> {
           CircleAvatar(
             radius: 30,
             backgroundColor: Colors.white30,
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(icon, color: Colors.white, size: 30),
           ),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
