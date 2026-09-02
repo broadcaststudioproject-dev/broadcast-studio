@@ -104,16 +104,6 @@ class _StudioScreenState extends State<StudioScreen> {
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await controller?.dispose();
     _initCamera();
-      void _toggleRotation() {
-    setState(() {
-      isLandscape = !isLandscape;
-      if (isLandscape) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-      } else {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      }
-    });
-      }
   }
 
   void _scanForUSBCamera() async {
@@ -151,6 +141,18 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
+  // 🔥 రొటేట్ ఫంక్షన్ 🔥
+  void _toggleRotation() {
+    setState(() {
+      isLandscape = !isLandscape;
+      if (isLandscape) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      } else {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      }
+    });
+  }
+
   Future<void> _fetchGoogleNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -185,8 +187,9 @@ class _StudioScreenState extends State<StudioScreen> {
     double boxWidth = isLandscape ? previewWidth : previewHeight;
     double boxHeight = isLandscape ? previewHeight : previewWidth;
 
-        return Scaffold(
+    return Scaffold(
       backgroundColor: Colors.black,
+      // 🔥 హైడ్ కంట్రోల్స్ టచ్ ఫంక్షన్ 🔥
       body: GestureDetector(
         onTap: () { 
           setState(() { hideControls = !hideControls; }); 
@@ -202,6 +205,17 @@ class _StudioScreenState extends State<StudioScreen> {
                   child: isIpCameraActive && _vlcViewController != null
                       ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator()))
                       : CameraPreview(controller!),
+                ),
+              ),
+            ),
+            
+            // 🔥 లైవ్ టీవీ బార్డర్ 🔥
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.8), width: 4.0),
+                  ),
                 ),
               ),
             ),
@@ -273,3 +287,4 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 }
+
