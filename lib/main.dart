@@ -7,8 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'package:qr_flutter/qr_flutter.dart'; // 🔥 QR కోడ్ జనరేషన్ కోసం
+import 'package:qr_flutter/qr_flutter.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -43,7 +42,7 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
-  YoutubePlayerController? _youtubePlayerController;
+  VlcPlayerController? _videoAdVlcController; // 🔥 వీడియో యాడ్స్ కోసం VLC ప్లేయర్
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -56,11 +55,11 @@ class _StudioScreenState extends State<StudioScreen> {
 
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
-  TextEditingController qrDataController = TextEditingController(); // QR జెనరేటర్ కోసం
+  TextEditingController qrDataController = TextEditingController();
 
-  // 🔥 10 రకాల వీడియో యాడ్స్ లింక్స్ స్టోరేజ్
+  // 🔥 10 రకాల వీడియో యాడ్స్ లింక్స్ స్టోరేజ్ (MP4 లేదా డైరెక్ట్ స్ట్రీమ్ లింక్స్)
   final List<String> videoAdsList = [
-    "https://www.youtube.com/watch?v=7I5OvEzLG6I", // Ad 1: Dhara Ad
+    "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4", // Ad 1 Sample
     "", "", "", "", "", "", "", "", ""
   ];
   int selectedAdIndex = 0;
@@ -121,7 +120,7 @@ class _StudioScreenState extends State<StudioScreen> {
     _lBandAutoTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
-    _youtubePlayerController?.dispose();
+    _videoAdVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     channelCtrl.dispose();
@@ -180,33 +179,36 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // వీడియో యాడ్ ప్లే చేసే ఫంక్షన్
-  void _playVideoAd(String youtubeUrl) {
-    if (youtubeUrl.isEmpty) {
+  // 🔥 VLC ప్లేయర్ ద్వారా వీడియో యాడ్ ప్లే చేసే ఫంక్షన్ 🔥
+  void _playVideoAd(String videoUrl) {
+    if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లింక్ లేదు!"), backgroundColor: Colors.red));
       return;
     }
 
-    final videoId = YoutubePlayer.convertUrlToId(youtubeUrl);
-    if (videoId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్!"), backgroundColor: Colors.red));
-      return;
-    }
+    _videoAdVlcController?.dispose();
+    _videoAdVlcController = VlcPlayerController.network(
+      videoUrl,
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+      options: VlcPlayerOptions(),
+    );
 
     setState(() {
       isVideoAdPlaying = true;
-      _youtubePlayerController = YoutubePlayerController(
-        initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(autoPlay: true, mute: false, enableCaption: false),
-      );
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("కమర్షియల్ వీడియో యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
+    );
   }
 
   void _stopVideoAd() {
-    _youtubePlayerController?.dispose();
+    _videoAdVlcController?.stopRendererScanning();
+    _videoAdVlcController?.dispose();
     setState(() {
       isVideoAdPlaying = false;
-      _youtubePlayerController = null;
+      _videoAdVlcController = null;
     });
   }
 
@@ -235,7 +237,7 @@ class _StudioScreenState extends State<StudioScreen> {
                         child: TextField(
                           controller: adCtrl,
                           style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                          decoration: const InputDecoration(hintText: "YouTube లింక్ ఇవ్వండి", hintStyle: TextStyle(color: Colors.white38)),
+                          decoration: const InputDecoration(hintText: "వీడియో లింక్ (MP4 / Stream)", hintStyle: TextStyle(color: Colors.white38)),
                           onChanged: (val) { videoAdsList[index] = val; },
                         ),
                       ),
@@ -263,7 +265,6 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  // 🔥 QR కోడ్ జనరేటర్ డెడికేటెడ్ డైలాగ్ 🔥
   void _showQrGeneratorDialog() {
     showDialog(
       context: context,
@@ -517,16 +518,14 @@ class _StudioScreenState extends State<StudioScreen> {
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            if (isVideoAdPlaying && _youtubePlayerController != null)
+            if (isVideoAdPlaying && _videoAdVlcController != null)
               Positioned.fill(
                 child: Container(
                   color: Colors.black,
-                  child: Center(
-                    child: YoutubePlayer(
-                      controller: _youtubePlayerController!,
-                      showVideoProgressIndicator: true,
-                      onEnded: (meta) { _stopVideoAd(); },
-                    ),
+                  child: VlcPlayer(
+                    controller: _videoAdVlcController!,
+                    aspectRatio: 16 / 9,
+                    placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
                   ),
                 ),
               )
@@ -650,7 +649,7 @@ class _StudioScreenState extends State<StudioScreen> {
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
-                        _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent), // 🔥 కొత్త QR జనరేటర్ బటన్
+                        _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
                         _buildControlButton(Icons.edit, "Edit Text", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
