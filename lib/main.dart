@@ -104,6 +104,16 @@ class _StudioScreenState extends State<StudioScreen> {
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await controller?.dispose();
     _initCamera();
+      void _toggleRotation() {
+    setState(() {
+      isLandscape = !isLandscape;
+      if (isLandscape) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      } else {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      }
+    });
+      }
   }
 
   void _scanForUSBCamera() async {
@@ -237,6 +247,7 @@ class _StudioScreenState extends State<StudioScreen> {
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.usb, "USB Cam", _scanForUSBCamera, Colors.blueAccent),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                        _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
                     ),
                   ),
