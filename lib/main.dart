@@ -47,23 +47,39 @@ class _StudioScreenState extends State<StudioScreen> {
   bool isLandscape = false;
   bool isIpCameraActive = false;
 
-  // మీ రెండో ఫోన్ IP Webcam అడ్రస్‌ను ఇక్కడ మార్చండి
-  String ipCameraUrl = "rtsp://192.168.1.10:8080/h264_ulaw.sdp"; 
+  String ipCameraUrl = ""; 
+  TextEditingController ipController = TextEditingController();
 
-  String locationText = "LIVE KOTHAKOTA"; 
+  // టెక్స్ట్ వేరియబుల్స్
   String channelName = "SS\nYATRA\nTV";
-  String reporterName = "VINOD KUMAR";
+  String watermarkText = "SS YATRA TV";
+  String locationText = "LIVE KOTHAKOTA"; 
+  String reporterName = "JANAMPALLY VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
-  String watermarkText = "SS YATRA TV";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
+  // ఎడిట్ కంట్రోలర్స్
+  TextEditingController channelCtrl = TextEditingController();
+  TextEditingController watermarkCtrl = TextEditingController();
+  TextEditingController locCtrl = TextEditingController();
+  TextEditingController nameCtrl = TextEditingController();
+  TextEditingController roleCtrl = TextEditingController();
+  TextEditingController newsCtrl = TextEditingController();
+
   double channelNameSize = 14.0;
   Timer? _newsTimer;
 
   @override
   void initState() {
     super.initState();
+    channelCtrl.text = channelName;
+    watermarkCtrl.text = watermarkText;
+    locCtrl.text = locationText;
+    nameCtrl.text = reporterName;
+    roleCtrl.text = reporterRole;
+    newsCtrl.text = stateNews;
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     
@@ -81,6 +97,13 @@ class _StudioScreenState extends State<StudioScreen> {
     _newsTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
+    ipController.dispose();
+    channelCtrl.dispose();
+    watermarkCtrl.dispose();
+    locCtrl.dispose();
+    nameCtrl.dispose();
+    roleCtrl.dispose();
+    newsCtrl.dispose();
     super.dispose();
   }
 
@@ -106,23 +129,6 @@ class _StudioScreenState extends State<StudioScreen> {
     _initCamera();
   }
 
-  void _scanForUSBCamera() async {
-    if (isIpCameraActive) _toggleIpCamera(); 
-    try {
-      cameras = await availableCameras();
-      if (cameras.length > 2) {
-        currentCameraIndex = cameras.length - 1;
-        await controller?.dispose();
-        _initCamera();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB కెమెరా కనెక్ట్ అయింది!"), backgroundColor: Colors.green));
-      } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB కెమెరా సిగ్నల్ రాలేదు."), backgroundColor: Colors.red));
-      }
-    } catch (e) {
-      debugPrint("USB Error: $e");
-    }
-  }
-
   void _toggleIpCamera() {
     if (isIpCameraActive) {
       _vlcViewController?.stopRendererScanning();
@@ -130,6 +136,10 @@ class _StudioScreenState extends State<StudioScreen> {
       setState(() { isIpCameraActive = false; });
       _initCamera();
     } else {
+      if (ipCameraUrl.isEmpty) {
+        _showIpInputDialog();
+        return;
+      }
       controller?.dispose();
       _vlcViewController = VlcPlayerController.network(
         ipCameraUrl,
@@ -141,7 +151,84 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // 🔥 రొటేట్ ఫంక్షన్ 🔥
+  void _showIpInputDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("IP Camera సెట్టింగ్స్", style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: ipController,
+            style: const TextStyle(color: Colors.yellow),
+            decoration: const InputDecoration(labelText: "RTSP లింక్ ఇక్కడ పేస్ట్ చేయండి", labelStyle: TextStyle(color: Colors.white54)),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                setState(() { ipCameraUrl = ipController.text; });
+                Navigator.pop(context);
+                if (isIpCameraActive) {
+                  _toggleIpCamera();
+                  Future.delayed(const Duration(milliseconds: 500), () => _toggleIpCamera());
+                } else {
+                  _toggleIpCamera();
+                }
+              },
+              child: const Text("Save & Start", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 🔥 అప్‌డేట్ చేయబడిన Edit ఫంక్షన్ 🔥
+  void _showEditDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("గ్రాఫిక్స్ ఎడిట్ చేయండి", style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: channelCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "ఛానల్ పేరు (Top Right)", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్ (లొకేషన్ పైన)", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ హోదా", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్ (స్క్రోలింగ్)", labelStyle: TextStyle(color: Colors.white54))),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                setState(() {
+                  channelName = channelCtrl.text;
+                  watermarkText = watermarkCtrl.text;
+                  locationText = locCtrl.text;
+                  reporterName = nameCtrl.text;
+                  reporterRole = roleCtrl.text;
+                  stateNews = newsCtrl.text;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Save", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _toggleRotation() {
     setState(() {
       isLandscape = !isLandscape;
@@ -189,7 +276,6 @@ class _StudioScreenState extends State<StudioScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      // 🔥 హైడ్ కంట్రోల్స్ టచ్ ఫంక్షన్ 🔥
       body: GestureDetector(
         onTap: () { 
           setState(() { hideControls = !hideControls; }); 
@@ -203,19 +289,16 @@ class _StudioScreenState extends State<StudioScreen> {
                 child: SizedBox(
                   width: boxWidth, height: boxHeight,
                   child: isIpCameraActive && _vlcViewController != null
-                      ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator()))
+                      ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
                       : CameraPreview(controller!),
                 ),
               ),
             ),
             
-            // 🔥 లైవ్ టీవీ బార్డర్ 🔥
             Positioned.fill(
               child: IgnorePointer(
                 child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.8), width: 4.0),
-                  ),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.redAccent.withOpacity(0.8), width: 4.0)),
                 ),
               ),
             ),
@@ -226,6 +309,8 @@ class _StudioScreenState extends State<StudioScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 🔥 వాటర్ మార్క్ ఇక్కడ యాడ్ చేయబడింది 🔥
+                  if (watermarkText.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 5, left: 2), child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 13.0, shadows: const [Shadow(blurRadius: 2.0, color: Colors.black)])),),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), color: Colors.red, child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0))),
                   const SizedBox(height: 4), 
                   Container(color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14.0))),
@@ -256,11 +341,12 @@ class _StudioScreenState extends State<StudioScreen> {
                   color: Colors.black54,
                   child: Center(
                     child: Wrap(
-                      alignment: WrapAlignment.center, spacing: 30, runSpacing: 20,
+                      alignment: WrapAlignment.center, spacing: 25, runSpacing: 20,
                       children: [
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                        _buildControlButton(Icons.usb, "USB Cam", _scanForUSBCamera, Colors.blueAccent),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                        _buildControlButton(Icons.edit, "Edit", _showEditDialog, Colors.blue),
+                        _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.tealAccent),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
                     ),
@@ -287,4 +373,3 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 }
-
