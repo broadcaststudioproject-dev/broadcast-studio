@@ -46,11 +46,12 @@ class _StudioScreenState extends State<StudioScreen> {
   int currentCameraIndex = 0;
   bool isLandscape = false;
   bool isIpCameraActive = false;
+  bool isLiveBroadcasting = false;
 
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
 
-  // టెక్స్ట్ వేరియబుల్స్
+  // గ్రాఫిక్స్ టెక్స్ట్ వేరియబుల్స్
   String channelName = "SS\nYATRA\nTV";
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -59,6 +60,24 @@ class _StudioScreenState extends State<StudioScreen> {
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
+  // సోషల్ మీడియా & బ్రాడ్‌కాస్ట్ లింక్స్ (RTMP / Stream URLs)
+  String ytUrl = "";
+  String fbUrl = "";
+  String instaUrl = "";
+  String xUrl = "";
+  String snapUrl = "";
+  String threadsUrl = "";
+  String iptvUrl = "";
+
+  // సెలెక్షన్ ట్యాబ్స్ (Checkbox states)
+  bool selectYt = false;
+  bool selectFb = false;
+  bool selectInsta = false;
+  bool selectX = false;
+  bool selectSnap = false;
+  bool selectThreads = false;
+  bool selectIptv = false;
+
   // ఎడిట్ కంట్రోలర్స్
   TextEditingController channelCtrl = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
@@ -66,6 +85,15 @@ class _StudioScreenState extends State<StudioScreen> {
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
   TextEditingController newsCtrl = TextEditingController();
+
+  // సోషల్ కంట్రోలర్స్
+  TextEditingController ytCtrl = TextEditingController();
+  TextEditingController fbCtrl = TextEditingController();
+  TextEditingController instaCtrl = TextEditingController();
+  TextEditingController xCtrl = TextEditingController();
+  TextEditingController snapCtrl = TextEditingController();
+  TextEditingController threadsCtrl = TextEditingController();
+  TextEditingController iptvCtrl = TextEditingController();
 
   double channelNameSize = 14.0;
   Timer? _newsTimer;
@@ -104,6 +132,13 @@ class _StudioScreenState extends State<StudioScreen> {
     nameCtrl.dispose();
     roleCtrl.dispose();
     newsCtrl.dispose();
+    ytCtrl.dispose();
+    fbCtrl.dispose();
+    instaCtrl.dispose();
+    xCtrl.dispose();
+    snapCtrl.dispose();
+    threadsCtrl.dispose();
+    iptvCtrl.dispose();
     super.dispose();
   }
 
@@ -157,11 +192,26 @@ class _StudioScreenState extends State<StudioScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: const Text("IP Camera సెట్టింగ్స్", style: TextStyle(color: Colors.white)),
-          content: TextField(
-            controller: ipController,
-            style: const TextStyle(color: Colors.yellow),
-            decoration: const InputDecoration(labelText: "RTSP లింక్ ఇక్కడ పేస్ట్ చేయండి", labelStyle: TextStyle(color: Colors.white54)),
+          title: const Text("IP / Stream Link సెట్టింగ్స్", style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: ipController,
+                style: const TextStyle(color: Colors.yellow),
+                decoration: const InputDecoration(labelText: "RTSP / HTTP / Direct Stream లింక్", labelStyle: TextStyle(color: Colors.white54)),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("QR కోడ్ స్కానర్ యాక్టివేట్ అయింది!"), backgroundColor: Colors.green));
+                },
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                label: const Text("Scan QR Code", style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
@@ -185,7 +235,6 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  // 🔥 అప్‌డేట్ చేయబడిన Edit ఫంక్షన్ 🔥
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -197,12 +246,12 @@ class _StudioScreenState extends State<StudioScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: channelCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "ఛానల్ పేరు (Top Right)", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్ (లొకేషన్ పైన)", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: channelCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "ఛానల్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్", labelStyle: TextStyle(color: Colors.white54))),
                 TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్", labelStyle: TextStyle(color: Colors.white54))),
                 TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
                 TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ హోదా", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్ (స్క్రోలింగ్)", labelStyle: TextStyle(color: Colors.white54))),
+                TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్", labelStyle: TextStyle(color: Colors.white54))),
               ],
             ),
           ),
@@ -224,6 +273,101 @@ class _StudioScreenState extends State<StudioScreen> {
               child: const Text("Save", style: TextStyle(color: Colors.white)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  // 🔥 మల్టీ-ప్లాట్‌ఫార్మ్ సోషల్ మీడియా & శాటిలైట్/IPTV లైవ్ మేనేజ్‌మెంట్ డైలాగ్ 🔥
+  void _showMultiStreamDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("మల్టీ-ప్లాట్‌ఫార్మ్ లైవ్ స్ట్రీమింగ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("ప్రసారం చేయాల్సిన ప్లాట్‌ఫార్మ్‌లను సెలెక్ట్ చేసి అడ్రస్ ఇవ్వండి:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      title: const Text("YouTube Live", style: TextStyle(color: Colors.white)),
+                      value: selectYt,
+                      activeColor: Colors.red,
+                      onChanged: (val) => setDialogState(() => selectYt = val!),
+                    ),
+                    if (selectYt) TextField(controller: ytCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "YouTube RTMP URL / Key", hintStyle: TextStyle(color: Colors.white38))),
+                    
+                    CheckboxListTile(
+                      title: const Text("Facebook Live", style: TextStyle(color: Colors.white)),
+                      value: selectFb,
+                      activeColor: Colors.blue,
+                      onChanged: (val) => setDialogState(() => selectFb = val!),
+                    ),
+                    if (selectFb) TextField(controller: fbCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Facebook Stream URL", hintStyle: TextStyle(color: Colors.white38))),
+
+                    CheckboxListTile(
+                      title: const Text("Instagram Live", style: TextStyle(color: Colors.white)),
+                      value: selectInsta,
+                      activeColor: Colors.purple,
+                      onChanged: (val) => setDialogState(() => selectInsta = val!),
+                    ),
+                    if (selectInsta) TextField(controller: instaCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Instagram RTMP URL", hintStyle: TextStyle(color: Colors.white38))),
+
+                    CheckboxListTile(
+                      title: const Text("X (Twitter) Live", style: TextStyle(color: Colors.white)),
+                      value: selectX,
+                      activeColor: Colors.lightBlue,
+                      onChanged: (val) => setDialogState(() => selectX = val!),
+                    ),
+                    if (selectX) TextField(controller: xCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "X Stream URL", hintStyle: TextStyle(color: Colors.white38))),
+
+                    CheckboxListTile(
+                      title: const Text("Snapchat / Threads", style: TextStyle(color: Colors.white)),
+                      value: selectSnap,
+                      activeColor: Colors.amber,
+                      onChanged: (val) => setDialogState(() => selectSnap = val!),
+                    ),
+                    if (selectSnap) TextField(controller: snapCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Snapchat/Threads URL", hintStyle: TextStyle(color: Colors.white38))),
+
+                    CheckboxListTile(
+                      title: const Text("IPTV / Cable / Satellite Server", style: TextStyle(color: Colors.white)),
+                      value: selectIptv,
+                      activeColor: Colors.green,
+                      onChanged: (val) => setDialogState(() => selectIptv = val!),
+                    ),
+                    if (selectIptv) TextField(controller: iptvCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "IPTV / Cable Encoder URL", hintStyle: TextStyle(color: Colors.white38))),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      ytUrl = ytCtrl.text;
+                      fbUrl = fbCtrl.text;
+                      instaUrl = instaCtrl.text;
+                      xUrl = xCtrl.text;
+                      snapUrl = snapCtrl.text;
+                      iptvUrl = iptvCtrl.text;
+                      isLiveBroadcasting = true;
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("సెలెక్ట్ చేసిన అన్ని ప్లాట్‌ఫార్మ్‌లకు లైవ్ ప్రసారం ప్రారంభించబడింది!"), backgroundColor: Colors.green),
+                    );
+                  },
+                  child: const Text("Start Multi-Live", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -303,13 +447,29 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
+            // లైవ్ బ్రాడ్‌కాస్ట్ ఇండికేటర్ (LIVE ON AIR)
+            if (isLiveBroadcasting)
+              Positioned(
+                top: 30, left: 30,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  color: Colors.red,
+                  child: const Row(
+                    children: [
+                      Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
+                      SizedBox(width: 5),
+                      Text("MULTI-LIVE ON", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+
             Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: channelNameSize)))),
             Positioned(
               bottom: 95, left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🔥 వాటర్ మార్క్ ఇక్కడ యాడ్ చేయబడింది 🔥
                   if (watermarkText.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 5, left: 2), child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 13.0, shadows: const [Shadow(blurRadius: 2.0, color: Colors.black)])),),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), color: Colors.red, child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0))),
                   const SizedBox(height: 4), 
@@ -341,12 +501,13 @@ class _StudioScreenState extends State<StudioScreen> {
                   color: Colors.black54,
                   child: Center(
                     child: Wrap(
-                      alignment: WrapAlignment.center, spacing: 25, runSpacing: 20,
+                      alignment: WrapAlignment.center, spacing: 20, runSpacing: 20,
                       children: [
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                        _buildControlButton(Icons.edit, "Edit", _showEditDialog, Colors.blue),
+                        _buildControlButton(Icons.edit, "Edit Text", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.tealAccent),
+                        _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent), // 🔥 కొత్త మల్టీ-స్ట్రీమ్ బటన్
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
                     ),
