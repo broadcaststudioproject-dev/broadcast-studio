@@ -6,7 +6,6 @@ import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
-import 'package:flutter_screen_recording/flutter_screen_recording.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 List<CameraDescription> cameras = [];
@@ -17,7 +16,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: \$e");
+    debugPrint("Camera Error: $e");
   }
   runApp(const PocketPCRApp());
 }
@@ -46,10 +45,9 @@ class _StudioScreenState extends State<StudioScreen> {
   bool hideControls = false;
   int currentCameraIndex = 0;
   bool isLandscape = false;
-  bool isRecording = false;
   bool isIpCameraActive = false;
 
-  // మీ రెండో ఫోన్ IP Webcam అడ్రస్‌ను ఇక్కడ మార్చండి (చివరన /h264_ulaw.sdp ఉంచండి)
+  // మీ రెండో ఫోన్ IP Webcam అడ్రస్‌ను ఇక్కడ మార్చండి
   String ipCameraUrl = "rtsp://192.168.1.10:8080/h264_ulaw.sdp"; 
 
   String locationText = "LIVE KOTHAKOTA"; 
@@ -101,7 +99,7 @@ class _StudioScreenState extends State<StudioScreen> {
   }
 
   void _switchCamera() async {
-    if (isIpCameraActive) return; // IP కెమెరా ఆన్‌లో ఉంటే ఇది పనిచేయదు
+    if (isIpCameraActive) return; 
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await controller?.dispose();
@@ -109,7 +107,7 @@ class _StudioScreenState extends State<StudioScreen> {
   }
 
   void _scanForUSBCamera() async {
-    if (isIpCameraActive) _toggleIpCamera(); // IP కామ్ ఉంటే ఆపేస్తుంది
+    if (isIpCameraActive) _toggleIpCamera(); 
     try {
       cameras = await availableCameras();
       if (cameras.length > 2) {
@@ -121,7 +119,7 @@ class _StudioScreenState extends State<StudioScreen> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB కెమెరా సిగ్నల్ రాలేదు."), backgroundColor: Colors.red));
       }
     } catch (e) {
-      debugPrint("USB Error: \$e");
+      debugPrint("USB Error: $e");
     }
   }
 
@@ -143,19 +141,6 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  void _toggleRecording() async {
-    if (isRecording) {
-      String path = await FlutterScreenRecording.stopRecordScreen;
-      setState(() { isRecording = false; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("వీడియో సేవ్ అయింది: \$path")));
-    } else {
-      bool started = await FlutterScreenRecording.startRecordScreenAndAudio("SS_YATRA_${DateTime.now().millisecondsSinceEpoch}");
-      if (started) {
-        setState(() { isRecording = true; hideControls = true; });
-      }
-    }
-  }
-
   Future<void> _fetchGoogleNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -169,7 +154,7 @@ class _StudioScreenState extends State<StudioScreen> {
         if (titles.isNotEmpty && mounted) setState(() { googleNews = titles.join("   ♦   "); });
       }
     } catch (e) {
-      debugPrint("News Error: \$e");
+      debugPrint("News Error: $e");
     }
   }
 
@@ -209,15 +194,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
-            // రికార్డింగ్ బార్డర్
-            if (isRecording)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.red, width: 3.0))),
-                ),
-              ),
-            
-            // గ్రాఫిక్స్ (Logo, Name, News)
             Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: channelNameSize)))),
             Positioned(
               bottom: 95, left: 15, 
@@ -248,7 +224,6 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
 
-            // కంట్రోల్స్
             if (!hideControls)
               Positioned.fill(
                 child: Container(
@@ -260,7 +235,6 @@ class _StudioScreenState extends State<StudioScreen> {
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.usb, "USB Cam", _scanForUSBCamera, Colors.blueAccent),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                        _buildControlButton(isRecording ? Icons.stop_circle : Icons.fiber_manual_record, isRecording ? "Stop" : "Record", _toggleRecording, isRecording ? Colors.red : Colors.green),
                       ],
                     ),
                   ),
@@ -286,4 +260,3 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 }
-
