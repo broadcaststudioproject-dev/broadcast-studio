@@ -175,10 +175,12 @@ class _StudioScreenState extends State<StudioScreen> {
     double boxWidth = isLandscape ? previewWidth : previewHeight;
     double boxHeight = isLandscape ? previewHeight : previewWidth;
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () { if (hideControls) setState(() { hideControls = false; }); },
+        onTap: () { 
+          setState(() { hideControls = !hideControls; }); 
+        },
         child: Stack(
           children: [
             Container(
