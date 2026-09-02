@@ -20,7 +20,7 @@ dependencies:
   path_provider: ^2.0.15
   geolocator: ^13.0.0
 
-# 🔥 ఈ చిన్న లైన్లను కింద చేర్చండి (ఇది పాత ఎర్రర్‌ని ఆటోమేటిక్‌గా క్లియర్ చేస్తుంది) 🔥
+
 dependency_overrides:
   flutter_inappwebview_android: ^1.1.0
 
