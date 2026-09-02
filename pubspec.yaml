@@ -14,7 +14,7 @@ dependencies:
   marquee: ^2.2.3
   http: ^1.1.0
   xml: ^6.3.0
-  flutter_screen_recording: ^2.1.0
+  flutter_screen_recording: ^2.1.25
   path_provider: ^2.0.15
   flutter_vlc_player: ^7.3.0
   geolocator: ^13.0.0
