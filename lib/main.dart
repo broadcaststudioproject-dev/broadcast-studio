@@ -6,6 +6,8 @@ import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
+import 'package:flutter_screen_recording/flutter_screen_recording.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -39,9 +41,16 @@ class StudioScreen extends StatefulWidget {
 
 class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
+  VlcPlayerController? _vlcViewController;
+  
   bool hideControls = false;
   int currentCameraIndex = 0;
   bool isLandscape = false;
+  bool isRecording = false;
+  bool isIpCameraActive = false;
+
+  // మీ రెండో ఫోన్ IP Webcam అడ్రస్‌ను ఇక్కడ మార్చండి (చివరన /h264_ulaw.sdp ఉంచండి)
+  String ipCameraUrl = "rtsp://192.168.1.10:8080/h264_ulaw.sdp"; 
 
   String locationText = "LIVE KOTHAKOTA"; 
   String channelName = "SS\nYATRA\nTV";
@@ -49,10 +58,9 @@ class _StudioScreenState extends State<StudioScreen> {
   String reporterRole = "SPECIAL CORRESPONDENT";
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String watermarkText = "SS YATRA TV";
+  String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
   double channelNameSize = 14.0;
-
-  String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   Timer? _newsTimer;
 
   @override
@@ -74,11 +82,12 @@ class _StudioScreenState extends State<StudioScreen> {
   void dispose() {
     _newsTimer?.cancel();
     controller?.dispose();
+    _vlcViewController?.dispose();
     super.dispose();
   }
 
   Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone].request();
+    await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
   void _initCamera() {
@@ -86,35 +95,65 @@ class _StudioScreenState extends State<StudioScreen> {
     controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
     controller!.initialize().then((_) async {
       if (!mounted) return;
-      // 🔥 కెమెరా ఓరియంటేషన్‌ను అన్‌లాక్ చేస్తున్నాం (దీనివల్లే తలక్రిందులు కాదు) 🔥
       await controller!.unlockCaptureOrientation();
       setState(() {});
     });
   }
 
   void _switchCamera() async {
+    if (isIpCameraActive) return; // IP కెమెరా ఆన్‌లో ఉంటే ఇది పనిచేయదు
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await controller?.dispose();
-    controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
-    await controller!.initialize();
-    await controller!.unlockCaptureOrientation();
-    if (mounted) setState(() {});
+    _initCamera();
   }
 
-  void _toggleOrientation() async {
-    setState(() {
-      isLandscape = !isLandscape;
-    });
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    if (isLandscape) {
-      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    } else {
-      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  void _scanForUSBCamera() async {
+    if (isIpCameraActive) _toggleIpCamera(); // IP కామ్ ఉంటే ఆపేస్తుంది
+    try {
+      cameras = await availableCameras();
+      if (cameras.length > 2) {
+        currentCameraIndex = cameras.length - 1;
+        await controller?.dispose();
+        _initCamera();
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB కెమెరా కనెక్ట్ అయింది!"), backgroundColor: Colors.green));
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB కెమెరా సిగ్నల్ రాలేదు."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      debugPrint("USB Error: \$e");
     }
-    // 🔥 స్క్రీన్ తిప్పిన ప్రతిసారీ కెమెరా యాంగిల్ ఆటోమేటిక్ గా సెట్ అవ్వడానికి అన్‌లాక్ 🔥
-    await controller?.unlockCaptureOrientation();
-    setState(() {});
+  }
+
+  void _toggleIpCamera() {
+    if (isIpCameraActive) {
+      _vlcViewController?.stopRendererScanning();
+      _vlcViewController?.dispose();
+      setState(() { isIpCameraActive = false; });
+      _initCamera();
+    } else {
+      controller?.dispose();
+      _vlcViewController = VlcPlayerController.network(
+        ipCameraUrl,
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+        options: VlcPlayerOptions(),
+      );
+      setState(() { isIpCameraActive = true; });
+    }
+  }
+
+  void _toggleRecording() async {
+    if (isRecording) {
+      String path = await FlutterScreenRecording.stopRecordScreen;
+      setState(() { isRecording = false; });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("వీడియో సేవ్ అయింది: \$path")));
+    } else {
+      bool started = await FlutterScreenRecording.startRecordScreenAndAudio("SS_YATRA_${DateTime.now().millisecondsSinceEpoch}");
+      if (started) {
+        setState(() { isRecording = true; hideControls = true; });
+      }
+    }
   }
 
   Future<void> _fetchGoogleNews() async {
@@ -127,266 +166,102 @@ class _StudioScreenState extends State<StudioScreen> {
         for (var item in items.take(15)) {
           titles.add(item.findElements('title').first.innerText);
         }
-        if (titles.isNotEmpty && mounted) {
-          setState(() {
-            googleNews = titles.join("   ♦   ");
-          });
-        }
+        if (titles.isNotEmpty && mounted) setState(() { googleNews = titles.join("   ♦   "); });
       }
     } catch (e) {
       debugPrint("News Error: \$e");
     }
   }
 
-  void _showEditDialog() {
-    TextEditingController chCtrl = TextEditingController(text: channelName);
-    TextEditingController chSizeCtrl = TextEditingController(text: channelNameSize.toString());
-    TextEditingController watermarkCtrl = TextEditingController(text: watermarkText);
-    TextEditingController locCtrl = TextEditingController(text: locationText);
-    TextEditingController nameCtrl = TextEditingController(text: reporterName);
-    TextEditingController roleCtrl = TextEditingController(text: reporterRole);
-    TextEditingController newsCtrl = TextEditingController(text: stateNews);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("వివరాలు మార్చుకోండి", style: TextStyle(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("కుడివైపు పైన ఉండే ఛానెల్ పేరు", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                TextField(controller: chCtrl, decoration: const InputDecoration(labelText: "ఛానెల్ పేరు"), maxLines: 2),
-                TextField(controller: chSizeCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "సైజ్ (ఉదా: 14)")),
-                const Divider(thickness: 2),
-
-                const Text("కింద ఎడమవైపు వివరాలు (Fixed Size)", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-                TextField(controller: watermarkCtrl, decoration: const InputDecoration(labelText: "1. వాటర్‌మార్క్")),
-                TextField(controller: locCtrl, decoration: const InputDecoration(labelText: "2. లైవ్ లొకేషన్")),
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "3. రిపోర్టర్ పేరు")),
-                TextField(controller: roleCtrl, decoration: const InputDecoration(labelText: "4. హోదా")),
-                const Divider(thickness: 2),
-
-                const Text("స్క్రోలింగ్ న్యూస్", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                TextField(controller: newsCtrl, decoration: const InputDecoration(labelText: "వార్తను టైప్ చేయండి"), maxLines: 3),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-                Navigator.pop(context);
-              }, 
-              child: const Text("CANCEL")
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  channelName = chCtrl.text;
-                  channelNameSize = double.tryParse(chSizeCtrl.text) ?? 14.0;
-                  watermarkText = watermarkCtrl.text;
-                  locationText = locCtrl.text;
-                  reporterName = nameCtrl.text;
-                  reporterRole = roleCtrl.text;
-                  stateNews = newsCtrl.text;
-                  hideControls = true; 
-                });
-                SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text("SAVE", style: TextStyle(color: Colors.white)),
-            )
-          ],
-        );
-      }
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (controller == null || !controller!.value.isInitialized) {
+    bool isCamReady = isIpCameraActive ? (_vlcViewController != null) : (controller != null && controller!.value.isInitialized);
+
+    if (!isCamReady) {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.red)));
     }
 
-    // 🔥 కెమెరా పొడవు, వెడల్పులను రొటేషన్ కి తగ్గట్లు ఆటోమేటిక్ గా మార్చే లాజిక్ 🔥
-    double previewWidth = controller!.value.previewSize?.width ?? 1920;
-    double previewHeight = controller!.value.previewSize?.height ?? 1080;
-    
+    double previewWidth = 1920;
+    double previewHeight = 1080;
+    if (!isIpCameraActive && controller != null) {
+      previewWidth = controller!.value.previewSize?.width ?? 1920;
+      previewHeight = controller!.value.previewSize?.height ?? 1080;
+    }
     double boxWidth = isLandscape ? previewWidth : previewHeight;
     double boxHeight = isLandscape ? previewHeight : previewWidth;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () {
-          if (hideControls) {
-            setState(() { hideControls = false; });
-          }
-        },
+        onTap: () { if (hideControls) setState(() { hideControls = false; }); },
         child: Stack(
           children: [
-            // 1. కెమెరా ఫీడ్ (ఇకపై సాగిపోదు, రొటేట్ చేస్తే కరెక్ట్ గా వస్తుంది)
             Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.black,
+              width: double.infinity, height: double.infinity, color: Colors.black,
               child: FittedBox(
                 fit: BoxFit.cover,
                 child: SizedBox(
-                  width: boxWidth,
-                  height: boxHeight,
-                  child: CameraPreview(controller!),
+                  width: boxWidth, height: boxHeight,
+                  child: isIpCameraActive && _vlcViewController != null
+                      ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator()))
+                      : CameraPreview(controller!),
                 ),
               ),
             ),
             
-            // 2. ప్రొఫెషనల్ బ్రాడ్‌కాస్ట్ బోర్డర్ 
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.9), 
-                      width: 2.0, 
-                    ),
-                  ),
+            // రికార్డింగ్ బార్డర్
+            if (isRecording)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.red, width: 3.0))),
                 ),
               ),
-            ),
             
-            // 3. గ్రాఫిక్స్ 
-            Stack(
-              children: [
-                // పైన కుడి వైపు బాక్స్ 
-                Positioned(
-                  top: 30, right: 30, 
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.blue[900]?.withOpacity(0.8),
-                    child: Text(channelName, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: channelNameSize)),
+            // గ్రాఫిక్స్ (Logo, Name, News)
+            Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: channelNameSize)))),
+            Positioned(
+              bottom: 95, left: 15, 
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), color: Colors.red, child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0))),
+                  const SizedBox(height: 4), 
+                  Container(color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14.0))),
+                  Container(color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 12.0))),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 3, left: 3, right: 3, 
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 35, color: Colors.blue[900], padding: const EdgeInsets.symmetric(horizontal: 10), 
+                    child: Row(children: [const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)), Expanded(child: Marquee(text: googleNews, style: const TextStyle(color: Colors.white), blankSpace: 100.0, velocity: 35.0))]),
                   ),
-                ),
-
-                // ఎడమ వైపు కింద ఒకే వరుసలో
-                Positioned(
-                  bottom: 95, left: 15, 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Opacity(
-                        opacity: 0.8, 
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.satellite_alt, color: Colors.white, size: 16), 
-                            const SizedBox(width: 4),
-                            Text(
-                              watermarkText,
-                              style: const TextStyle(
-                                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0, 
-                                shadows: [Shadow(blurRadius: 2.0, color: Colors.black, offset: Offset(1.0, 1.0))]
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 6), 
-                      
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        color: Colors.red,
-                        child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0)),
-                      ),
-                      const SizedBox(height: 4), 
-                      
-                      Container(
-                        color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14.0)),
-                      ),
-                      
-                      Container(
-                        color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                        child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 12.0)),
-                      ),
-                    ],
+                  Container(
+                    height: 40, color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10), 
+                    child: Row(children: [const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
                   ),
-                ),
-                
-                // కింద స్క్రోలింగ్ న్యూస్ 
-                Positioned(
-                  bottom: 3, left: 3, right: 3, 
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        height: 35,
-                        color: Colors.blue[900],
-                        padding: const EdgeInsets.only(left: 10, right: 10), 
-                        child: Row(
-                          children: [
-                            const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16)),
-                            Expanded(
-                              child: Marquee(
-                                text: googleNews,
-                                style: const TextStyle(color: Colors.white, fontSize: 16),
-                                scrollAxis: Axis.horizontal,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                blankSpace: 100.0,
-                                velocity: 35.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        height: 40,
-                        color: Colors.red,
-                        padding: const EdgeInsets.only(left: 10, right: 10), 
-                        child: Row(
-                          children: [
-                            const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)),
-                            Expanded(
-                              child: Marquee(
-                                text: stateNews,
-                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                scrollAxis: Axis.horizontal,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                blankSpace: 50.0,
-                                velocity: 45.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
 
+            // కంట్రోల్స్
             if (!hideControls)
               Positioned.fill(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() { hideControls = true; });
-                  },
-                  child: Container(
-                    color: Colors.black54,
-                    child: Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 30,
-                        runSpacing: 20,
-                        children: [
-                          _buildControlButton(Icons.flip_camera_android, "Flip Cam", _switchCamera),
-                          _buildControlButton(isLandscape ? Icons.screen_lock_portrait : Icons.screen_rotation, "Rotate", _toggleOrientation),
-                          _buildControlButton(Icons.edit, "Edit", _showEditDialog),
-                        ],
-                      ),
+                child: Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center, spacing: 30, runSpacing: 20,
+                      children: [
+                        _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                        _buildControlButton(Icons.usb, "USB Cam", _scanForUSBCamera, Colors.blueAccent),
+                        _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                        _buildControlButton(isRecording ? Icons.stop_circle : Icons.fiber_manual_record, isRecording ? "Stop" : "Record", _toggleRecording, isRecording ? Colors.red : Colors.green),
+                      ],
                     ),
                   ),
                 ),
@@ -397,17 +272,13 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, Color iconColor) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white30,
-            child: Icon(icon, color: Colors.white, size: 30),
-          ),
+          CircleAvatar(radius: 30, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 30)),
           const SizedBox(height: 8),
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ],
@@ -415,3 +286,4 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 }
+
