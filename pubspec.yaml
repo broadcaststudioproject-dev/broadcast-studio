@@ -9,14 +9,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.10.5
+  camera: ^0.10.5+9
   permission_handler: ^11.3.0
   marquee: ^2.2.3
-  http: ^1.1.0
-  xml: ^6.3.0
+  http: ^1.2.0
+  xml: ^6.5.0
+  flutter_vlc_player: ^7.4.1
+  youtube_player_flutter: ^9.0.2
+  qr_flutter: ^4.1.0
   
   path_provider: ^2.0.15
-  flutter_vlc_player: ^7.3.0
+  flutter_vlc_player: ^7.4.1
+  youtube_player_flutter: ^9.0.2
   geolocator: ^13.0.0
 
 flutter:
