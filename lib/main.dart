@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:qr_flutter/qr_flutter.dart'; // 🔥 QR కోడ్ జనరేషన్ కోసం
 
 List<CameraDescription> cameras = [];
 
@@ -41,15 +43,27 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
+  YoutubePlayerController? _youtubePlayerController;
   
   bool hideControls = false;
   int currentCameraIndex = 0;
   bool isLandscape = false;
   bool isIpCameraActive = false;
   bool isLiveBroadcasting = false;
+  bool isLBandMode = false; 
+  bool isAutoTimerActive = false; 
+  bool isVideoAdPlaying = false; 
 
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
+  TextEditingController qrDataController = TextEditingController(); // QR జెనరేటర్ కోసం
+
+  // 🔥 10 రకాల వీడియో యాడ్స్ లింక్స్ స్టోరేజ్
+  final List<String> videoAdsList = [
+    "https://www.youtube.com/watch?v=7I5OvEzLG6I", // Ad 1: Dhara Ad
+    "", "", "", "", "", "", "", "", ""
+  ];
+  int selectedAdIndex = 0;
 
   // గ్రాఫిక్స్ టెక్స్ట్ వేరియబుల్స్
   String channelName = "SS\nYATRA\nTV";
@@ -60,25 +74,10 @@ class _StudioScreenState extends State<StudioScreen> {
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
-  // సోషల్ మీడియా & బ్రాడ్‌కాస్ట్ లింక్స్ (RTMP / Stream URLs)
-  String ytUrl = "";
-  String fbUrl = "";
-  String instaUrl = "";
-  String xUrl = "";
-  String snapUrl = "";
-  String threadsUrl = "";
-  String iptvUrl = "";
+  // సోషల్ మీడియా & బ్రాడ్‌కాస్ట్ లింక్స్
+  String ytUrl = "", fbUrl = "", iptvUrl = "";
+  bool selectYt = false, selectFb = false, selectIptv = false;
 
-  // సెలెక్షన్ ట్యాబ్స్ (Checkbox states)
-  bool selectYt = false;
-  bool selectFb = false;
-  bool selectInsta = false;
-  bool selectX = false;
-  bool selectSnap = false;
-  bool selectThreads = false;
-  bool selectIptv = false;
-
-  // ఎడిట్ కంట్రోలర్స్
   TextEditingController channelCtrl = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
@@ -86,17 +85,12 @@ class _StudioScreenState extends State<StudioScreen> {
   TextEditingController roleCtrl = TextEditingController();
   TextEditingController newsCtrl = TextEditingController();
 
-  // సోషల్ కంట్రోలర్స్
   TextEditingController ytCtrl = TextEditingController();
   TextEditingController fbCtrl = TextEditingController();
-  TextEditingController instaCtrl = TextEditingController();
-  TextEditingController xCtrl = TextEditingController();
-  TextEditingController snapCtrl = TextEditingController();
-  TextEditingController threadsCtrl = TextEditingController();
   TextEditingController iptvCtrl = TextEditingController();
 
-  double channelNameSize = 14.0;
   Timer? _newsTimer;
+  Timer? _lBandAutoTimer; 
 
   @override
   void initState() {
@@ -107,6 +101,7 @@ class _StudioScreenState extends State<StudioScreen> {
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
     newsCtrl.text = stateNews;
+    qrDataController.text = "http://192.168.1.100:8081/video";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -123,9 +118,12 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   void dispose() {
     _newsTimer?.cancel();
+    _lBandAutoTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
+    _youtubePlayerController?.dispose();
     ipController.dispose();
+    qrDataController.dispose();
     channelCtrl.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
@@ -134,10 +132,6 @@ class _StudioScreenState extends State<StudioScreen> {
     newsCtrl.dispose();
     ytCtrl.dispose();
     fbCtrl.dispose();
-    instaCtrl.dispose();
-    xCtrl.dispose();
-    snapCtrl.dispose();
-    threadsCtrl.dispose();
     iptvCtrl.dispose();
     super.dispose();
   }
@@ -157,7 +151,7 @@ class _StudioScreenState extends State<StudioScreen> {
   }
 
   void _switchCamera() async {
-    if (isIpCameraActive) return; 
+    if (isIpCameraActive || isVideoAdPlaying) return; 
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await controller?.dispose();
@@ -186,30 +180,165 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
+  // వీడియో యాడ్ ప్లే చేసే ఫంక్షన్
+  void _playVideoAd(String youtubeUrl) {
+    if (youtubeUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లింక్ లేదు!"), backgroundColor: Colors.red));
+      return;
+    }
+
+    final videoId = YoutubePlayer.convertUrlToId(youtubeUrl);
+    if (videoId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్!"), backgroundColor: Colors.red));
+      return;
+    }
+
+    setState(() {
+      isVideoAdPlaying = true;
+      _youtubePlayerController = YoutubePlayerController(
+        initialVideoId: videoId,
+        flags: const YoutubePlayerFlags(autoPlay: true, mute: false, enableCaption: false),
+      );
+    });
+  }
+
+  void _stopVideoAd() {
+    _youtubePlayerController?.dispose();
+    setState(() {
+      isVideoAdPlaying = false;
+      _youtubePlayerController = null;
+    });
+  }
+
+  // 10 వీడియో యాడ్స్ మేనేజర్ డైలాగ్
+  void _showAdsManagerDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("10 వీడియో యాడ్స్ మేనేజర్ & ప్లేయర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: 10,
+              itemBuilder: (context, index) {
+                TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    children: [
+                      Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: adCtrl,
+                          style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                          decoration: const InputDecoration(hintText: "YouTube లింక్ ఇవ్వండి", hintStyle: TextStyle(color: Colors.white38)),
+                          onChanged: (val) { videoAdsList[index] = val; },
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(50, 30)),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          selectedAdIndex = index;
+                          _playVideoAd(videoAdsList[index]);
+                        },
+                        child: const Text("Play", style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+          ],
+        );
+      },
+    );
+  }
+
+  // 🔥 QR కోడ్ జనరేటర్ డెడికేటెడ్ డైలాగ్ 🔥
+  void _showQrGeneratorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("PCR QR కోడ్ జనరేటర్", style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("మీ ఛానల్ లేదా స్టూడియో లింక్ కోసం QR కోడ్:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: qrDataController,
+                style: const TextStyle(color: Colors.yellow),
+                decoration: const InputDecoration(labelText: "స్ట్రీమ్ లింక్ / IP అడ్రస్", labelStyle: TextStyle(color: Colors.white54)),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(10),
+                color: Colors.white,
+                child: QrImageView(
+                  data: qrDataController.text,
+                  version: QrVersions.auto,
+                  size: 180.0,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+          ],
+        );
+      },
+    );
+  }
+
   void _showIpInputDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: const Text("IP / Stream Link సెట్టింగ్స్", style: TextStyle(color: Colors.white)),
+          title: const Text("IP / Stream Link & QR సెట్టింగ్స్", style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: ipController,
                 style: const TextStyle(color: Colors.yellow),
-                decoration: const InputDecoration(labelText: "RTSP / HTTP / Direct Stream లింక్", labelStyle: TextStyle(color: Colors.white54)),
+                decoration: const InputDecoration(labelText: "RTSP / HTTP లింక్", labelStyle: TextStyle(color: Colors.white54)),
               ),
               const SizedBox(height: 15),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("QR కోడ్ స్కానర్ యాక్టివేట్ అయింది!"), backgroundColor: Colors.green));
-                },
-                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                label: const Text("Scan QR Code", style: TextStyle(color: Colors.white)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("QR స్కానర్ యాక్టివేట్ అయింది!"), backgroundColor: Colors.green));
+                    },
+                    icon: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 16),
+                    label: const Text("Scan", style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showQrGeneratorDialog();
+                    },
+                    icon: const Icon(Icons.qr_code, color: Colors.white, size: 16),
+                    label: const Text("Generate QR", style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -278,7 +407,6 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  // 🔥 మల్టీ-ప్లాట్‌ఫార్మ్ సోషల్ మీడియా & శాటిలైట్/IPTV లైవ్ మేనేజ్‌మెంట్ డైలాగ్ 🔥
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -292,55 +420,12 @@ class _StudioScreenState extends State<StudioScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("ప్రసారం చేయాల్సిన ప్లాట్‌ఫార్మ్‌లను సెలెక్ట్ చేసి అడ్రస్ ఇవ్వండి:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 10),
-                    CheckboxListTile(
-                      title: const Text("YouTube Live", style: TextStyle(color: Colors.white)),
-                      value: selectYt,
-                      activeColor: Colors.red,
-                      onChanged: (val) => setDialogState(() => selectYt = val!),
-                    ),
-                    if (selectYt) TextField(controller: ytCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "YouTube RTMP URL / Key", hintStyle: TextStyle(color: Colors.white38))),
-                    
-                    CheckboxListTile(
-                      title: const Text("Facebook Live", style: TextStyle(color: Colors.white)),
-                      value: selectFb,
-                      activeColor: Colors.blue,
-                      onChanged: (val) => setDialogState(() => selectFb = val!),
-                    ),
-                    if (selectFb) TextField(controller: fbCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Facebook Stream URL", hintStyle: TextStyle(color: Colors.white38))),
-
-                    CheckboxListTile(
-                      title: const Text("Instagram Live", style: TextStyle(color: Colors.white)),
-                      value: selectInsta,
-                      activeColor: Colors.purple,
-                      onChanged: (val) => setDialogState(() => selectInsta = val!),
-                    ),
-                    if (selectInsta) TextField(controller: instaCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Instagram RTMP URL", hintStyle: TextStyle(color: Colors.white38))),
-
-                    CheckboxListTile(
-                      title: const Text("X (Twitter) Live", style: TextStyle(color: Colors.white)),
-                      value: selectX,
-                      activeColor: Colors.lightBlue,
-                      onChanged: (val) => setDialogState(() => selectX = val!),
-                    ),
-                    if (selectX) TextField(controller: xCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "X Stream URL", hintStyle: TextStyle(color: Colors.white38))),
-
-                    CheckboxListTile(
-                      title: const Text("Snapchat / Threads", style: TextStyle(color: Colors.white)),
-                      value: selectSnap,
-                      activeColor: Colors.amber,
-                      onChanged: (val) => setDialogState(() => selectSnap = val!),
-                    ),
-                    if (selectSnap) TextField(controller: snapCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Snapchat/Threads URL", hintStyle: TextStyle(color: Colors.white38))),
-
-                    CheckboxListTile(
-                      title: const Text("IPTV / Cable / Satellite Server", style: TextStyle(color: Colors.white)),
-                      value: selectIptv,
-                      activeColor: Colors.green,
-                      onChanged: (val) => setDialogState(() => selectIptv = val!),
-                    ),
-                    if (selectIptv) TextField(controller: iptvCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "IPTV / Cable Encoder URL", hintStyle: TextStyle(color: Colors.white38))),
+                    CheckboxListTile(title: const Text("YouTube Live", style: TextStyle(color: Colors.white)), value: selectYt, activeColor: Colors.red, onChanged: (val) => setDialogState(() => selectYt = val!)),
+                    if (selectYt) TextField(controller: ytCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "YouTube RTMP URL / Key")),
+                    CheckboxListTile(title: const Text("Facebook Live", style: TextStyle(color: Colors.white)), value: selectFb, activeColor: Colors.blue, onChanged: (val) => setDialogState(() => selectFb = val!)),
+                    if (selectFb) TextField(controller: fbCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Facebook Stream URL")),
+                    CheckboxListTile(title: const Text("IPTV / Cable / Satellite Server", style: TextStyle(color: Colors.white)), value: selectIptv, activeColor: Colors.green, onChanged: (val) => setDialogState(() => selectIptv = val!)),
+                    if (selectIptv) TextField(controller: iptvCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "IPTV / Cable Encoder URL")),
                   ],
                 ),
               ),
@@ -349,19 +434,9 @@ class _StudioScreenState extends State<StudioScreen> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   onPressed: () {
-                    setState(() {
-                      ytUrl = ytCtrl.text;
-                      fbUrl = fbCtrl.text;
-                      instaUrl = instaCtrl.text;
-                      xUrl = xCtrl.text;
-                      snapUrl = snapCtrl.text;
-                      iptvUrl = iptvCtrl.text;
-                      isLiveBroadcasting = true;
-                    });
+                    setState(() { isLiveBroadcasting = true; });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("సెలెక్ట్ చేసిన అన్ని ప్లాట్‌ఫార్మ్‌లకు లైవ్ ప్రసారం ప్రారంభించబడింది!"), backgroundColor: Colors.green),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సెలెక్ట్ చేసిన ప్లాట్‌ఫార్మ్‌లకు లైవ్ ప్రసారం ప్రారంభమైంది!"), backgroundColor: Colors.green));
                   },
                   child: const Text("Start Multi-Live", style: TextStyle(color: Colors.white)),
                 ),
@@ -371,6 +446,33 @@ class _StudioScreenState extends State<StudioScreen> {
         );
       },
     );
+  }
+
+  void _toggleAutoTimerAds() {
+    setState(() {
+      isAutoTimerActive = !isAutoTimerActive;
+    });
+
+    if (isAutoTimerActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("L-Band ఆటో టైమర్ ఆన్ చేయబడింది (ప్రతి 15 నిమిషాలకు ఒకసారి)"), backgroundColor: Colors.green),
+      );
+      
+      _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
+        setState(() { isLBandMode = true; }); 
+        
+        Timer(const Duration(minutes: 1), () {
+          if (mounted) {
+            setState(() { isLBandMode = false; }); 
+          }
+        });
+      });
+    } else {
+      _lBandAutoTimer?.cancel();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("ఆటో టైమర్ ఆఫ్ చేయబడింది"), backgroundColor: Colors.orange),
+      );
+    }
   }
 
   void _toggleRotation() {
@@ -405,40 +507,89 @@ class _StudioScreenState extends State<StudioScreen> {
   Widget build(BuildContext context) {
     bool isCamReady = isIpCameraActive ? (_vlcViewController != null) : (controller != null && controller!.value.isInitialized);
 
-    if (!isCamReady) {
-      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Colors.red)));
-    }
-
-    double previewWidth = 1920;
-    double previewHeight = 1080;
-    if (!isIpCameraActive && controller != null) {
-      previewWidth = controller!.value.previewSize?.width ?? 1920;
-      previewHeight = controller!.value.previewSize?.height ?? 1080;
-    }
-    double boxWidth = isLandscape ? previewWidth : previewHeight;
-    double boxHeight = isLandscape ? previewHeight : previewWidth;
+    Widget cameraWidget = isIpCameraActive && _vlcViewController != null
+        ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
+        : (controller != null ? CameraPreview(controller!) : const Center(child: CircularProgressIndicator()));
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () { 
-          setState(() { hideControls = !hideControls; }); 
-        },
+        onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            Container(
-              width: double.infinity, height: double.infinity, color: Colors.black,
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: boxWidth, height: boxHeight,
-                  child: isIpCameraActive && _vlcViewController != null
-                      ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
-                      : CameraPreview(controller!),
+            if (isVideoAdPlaying && _youtubePlayerController != null)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: YoutubePlayer(
+                      controller: _youtubePlayerController!,
+                      showVideoProgressIndicator: true,
+                      onEnded: (meta) { _stopVideoAd(); },
+                    ),
+                  ),
+                ),
+              )
+            else if (!isLBandMode)
+              Positioned.fill(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: 1920, height: 1080,
+                    child: cameraWidget,
+                  ),
+                ),
+              )
+            else
+              Positioned.fill(
+                child: Container(
+                  color: Colors.blueGrey[900],
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 20, left: 20, bottom: 90, right: 20,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 140,
+                              color: Colors.orange[800],
+                              child: const Center(
+                                child: RotatedBox(
+                                  quarterTurns: 3,
+                                  textDirection: TextDirection.ltr,
+                                  child: Text("SS YATRA TV SPONSOR ADS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  color: Colors.black,
+                                  child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: 1920, height: 1080, child: cameraWidget)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             
+            if (isVideoAdPlaying)
+              Positioned(
+                top: 40, right: 40,
+                child: FloatingActionButton.extended(
+                  backgroundColor: Colors.red,
+                  onPressed: _stopVideoAd,
+                  label: const Text("Close Ad & Resume Live", style: TextStyle(color: Colors.white)),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ),
+
             Positioned.fill(
               child: IgnorePointer(
                 child: Container(
@@ -447,24 +598,17 @@ class _StudioScreenState extends State<StudioScreen> {
               ),
             ),
             
-            // లైవ్ బ్రాడ్‌కాస్ట్ ఇండికేటర్ (LIVE ON AIR)
             if (isLiveBroadcasting)
               Positioned(
                 top: 30, left: 30,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   color: Colors.red,
-                  child: const Row(
-                    children: [
-                      Icon(Icons.fiber_manual_record, color: Colors.white, size: 12),
-                      SizedBox(width: 5),
-                      Text("MULTI-LIVE ON", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ],
-                  ),
+                  child: const Row(children: [Icon(Icons.fiber_manual_record, color: Colors.white, size: 12), SizedBox(width: 5), Text("MULTI-LIVE ON", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))]),
                 ),
               ),
 
-            Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: channelNameSize)))),
+            Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))),
             Positioned(
               bottom: 95, left: 15, 
               child: Column(
@@ -501,13 +645,27 @@ class _StudioScreenState extends State<StudioScreen> {
                   color: Colors.black54,
                   child: Center(
                     child: Wrap(
-                      alignment: WrapAlignment.center, spacing: 20, runSpacing: 20,
+                      alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
                       children: [
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                        _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
+                        _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent), // 🔥 కొత్త QR జనరేటర్ బటన్
                         _buildControlButton(Icons.edit, "Edit Text", _showEditDialog, Colors.blue),
-                        _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent), // 🔥 కొత్త మల్టీ-స్ట్రీమ్ బటన్
+                        _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
+                        _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
+                        _buildControlButton(
+                          isLBandMode ? Icons.fullscreen : Icons.view_sidebar, 
+                          isLBandMode ? "Ad Off" : "L-Shape", 
+                          () { setState(() { isLBandMode = !isLBandMode; }); }, 
+                          Colors.amber,
+                        ),
+                        _buildControlButton(
+                          isAutoTimerActive ? Icons.timer : Icons.timer_off, 
+                          isAutoTimerActive ? "Auto ON" : "Auto OFF", 
+                          _toggleAutoTimerAds, 
+                          isAutoTimerActive ? Colors.greenAccent : Colors.grey,
+                        ),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
                     ),
@@ -526,9 +684,9 @@ class _StudioScreenState extends State<StudioScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 30, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 30)),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          CircleAvatar(radius: 24, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 24)),
+          const SizedBox(height: 5),
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
         ],
       ),
     );
