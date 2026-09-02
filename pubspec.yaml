@@ -18,5 +18,7 @@ dependencies:
   path_provider: ^2.0.15
   flutter_vlc_player: ^7.3.0
   geolocator: ^13.0.0
-    flutter:
+
+flutter:
   uses-material-design: true
+
