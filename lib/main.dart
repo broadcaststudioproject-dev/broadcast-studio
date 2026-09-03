@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:image_picker/image_picker.dart'; // 🔥 గ్యాలరీ నుండి వీడియో & ఇమేజ్ పిక్ చేయడానికి
+import 'package:image_picker/image_picker.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -60,10 +60,7 @@ class _StudioScreenState extends State<StudioScreen> {
   TextEditingController qrDataController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
-  // 🔥 10 రకాల HD వీడియో యాడ్స్ లింక్స్ / పాత్స్
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
-  
-  // 🔥 10 రకాల L-Band JPEG ఇమేజ్ యాడ్స్ పాత్స్
   final List<String> lBandImagesList = List.generate(10, (index) => "");
   int selectedLBandIndex = 0;
 
@@ -146,7 +143,6 @@ class _StudioScreenState extends State<StudioScreen> {
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
-  // 🔥 కెమెరా సమస్య పూర్తిగా పరిష్కరించబడిన ఇనిషియలైజేషన్
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
@@ -205,12 +201,7 @@ class _StudioScreenState extends State<StudioScreen> {
       videoUrl,
       hwAcc: HwAcc.full,
       autoPlay: true,
-      options: VlcPlayerOptions(
-        advancedOptions: [
-          VlcOption("--network-caching=1500"),
-          VlcOption("--live-caching=1500"),
-        ],
-      ),
+      options: VlcPlayerOptions(),
     );
 
     setState(() {
@@ -231,7 +222,6 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  // 🔥 10 HD వీడియో యాడ్స్ మేనేజర్ (గ్యాలరీ నుండి వీడియో సెలెక్షన్ ఆప్షన్‌తో)
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
@@ -298,7 +288,6 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
-  // 🔥 10 L-Band JPEG ఇమేజ్ యాడ్స్ మేనేజర్ (గ్యాలరీ నుండి ఫోటో సెలెక్షన్ ఆప్షన్‌తో)
   void _showLBandImagesManagerDialog() {
     showDialog(
       context: context,
