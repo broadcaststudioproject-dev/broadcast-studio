@@ -8,6 +8,7 @@ import 'package:xml/xml.dart';
 import 'dart:async';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:file_picker/file_picker.dart'; // 🔥 ఫైల్ అప్‌లోడ్ కోసం
 
 List<CameraDescription> cameras = [];
 
@@ -43,6 +44,7 @@ class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
+  VlcPlayerController? _lBandVlcController; // 🔥 L-Band వీడియో ప్లేయర్
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -57,12 +59,14 @@ class _StudioScreenState extends State<StudioScreen> {
   TextEditingController ipController = TextEditingController();
   TextEditingController qrDataController = TextEditingController();
 
-  final List<String> videoAdsList = [
-    "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4", 
-    "", "", "", "", "", "", "", "", ""
-  ];
-  int selectedAdIndex = 0;
+  // 🔥 10 రకాల వీడియో యాడ్స్ లింక్స్ స్టోరేజ్
+  final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
+  
+  // 🔥 10 రకాల L-Band యాడ్స్ లింక్స్ / ఫైల్స్ స్టోరేజ్
+  final List<String> lBandAdsList = List.generate(10, (index) => "");
+  int selectedLBandIndex = 0;
 
+  // గ్రాఫిక్స్ టెక్స్ట్ వేరియబుల్స్
   String channelName = "SS\nYATRA\nTV";
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -71,8 +75,15 @@ class _StudioScreenState extends State<StudioScreen> {
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
-  String ytUrl = "", fbUrl = "", iptvUrl = "";
-  bool selectYt = false, selectFb = false, selectIptv = false;
+  // మల్టీ-లైవ్ ప్లాట్‌ఫార్మ్స్ (YouTube, FB, Insta, X, Threads, Snapchat, IPTV)
+  bool selectYt = false, selectFb = false, selectInsta = false, selectX = false, selectThreads = false, selectSnap = false, selectIptv = false;
+  TextEditingController ytCtrl = TextEditingController();
+  TextEditingController fbCtrl = TextEditingController();
+  TextEditingController instaCtrl = TextEditingController();
+  TextEditingController xCtrl = TextEditingController();
+  TextEditingController threadsCtrl = TextEditingController();
+  TextEditingController snapCtrl = TextEditingController();
+  TextEditingController iptvCtrl = TextEditingController();
 
   TextEditingController channelCtrl = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
@@ -80,10 +91,6 @@ class _StudioScreenState extends State<StudioScreen> {
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
   TextEditingController newsCtrl = TextEditingController();
-
-  TextEditingController ytCtrl = TextEditingController();
-  TextEditingController fbCtrl = TextEditingController();
-  TextEditingController iptvCtrl = TextEditingController();
 
   Timer? _newsTimer;
   Timer? _lBandAutoTimer; 
@@ -118,6 +125,7 @@ class _StudioScreenState extends State<StudioScreen> {
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
+    _lBandVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     channelCtrl.dispose();
@@ -128,6 +136,10 @@ class _StudioScreenState extends State<StudioScreen> {
     newsCtrl.dispose();
     ytCtrl.dispose();
     fbCtrl.dispose();
+    instaCtrl.dispose();
+    xCtrl.dispose();
+    threadsCtrl.dispose();
+    snapCtrl.dispose();
     iptvCtrl.dispose();
     super.dispose();
   }
@@ -208,58 +220,149 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
+  // 🔥 10 వీడియో యాడ్స్ మేనేజర్ (లింక్ & ఫైల్ అప్‌లోడ్ ఆప్షన్స్)
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text("10 వీడియో యాడ్స్ మేనేజర్ & ప్లేయర్", style: TextStyle(color: Colors.white, fontSize: 16)),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    children: [
-                      Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: adCtrl,
-                          style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                          decoration: const InputDecoration(hintText: "వీడియో లింక్ (MP4 / Stream)", hintStyle: TextStyle(color: Colors.white38)),
-                          onChanged: (val) { videoAdsList[index] = val; },
-                        ),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("10 వీడియో యాడ్స్ మేనేజర్ & ప్లేయర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: 10,
+                  itemBuilder: (context, index) {
+                    TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: TextField(
+                              controller: adCtrl,
+                              style: const TextStyle(color: Colors.yellow, fontSize: 11),
+                              decoration: const InputDecoration(hintText: "వీడియో లింక్ (MP4)", hintStyle: TextStyle(color: Colors.white38)),
+                              onChanged: (val) { videoAdsList[index] = val; },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.folder_open, color: Colors.cyan, size: 20),
+                            onPressed: () async {
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.video);
+                              if (result != null && result.files.single.path != null) {
+                                setDialogState(() {
+                                  videoAdsList[index] = result.files.single.path!;
+                                });
+                              }
+                            },
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(40, 30)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _playVideoAd(videoAdsList[index]);
+                            },
+                            child: const Text("Play", style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 5),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(50, 30)),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          selectedAdIndex = index;
-                          _playVideoAd(videoAdsList[index]);
-                        },
-                        child: const Text("Play", style: TextStyle(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-          ],
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
+            );
+          },
         );
       },
     );
   }
 
+  // 🔥 10 L-Band / L-Shape యాడ్స్ మేనేజర్ (లింక్ & ఫైల్ అప్‌లోడ్ ఆప్షన్స్)
+  void _showLBandAdsManagerDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("10 L-Band స్పాన్సర్ యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: 10,
+                  itemBuilder: (context, index) {
+                    TextEditingController lCtrl = TextEditingController(text: lBandAdsList[index]);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Text("L-Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: TextField(
+                              controller: lCtrl,
+                              style: const TextStyle(color: Colors.yellow, fontSize: 11),
+                              decoration: const InputDecoration(hintText: "వీడియో/ఇమేజ్ లింక్", hintStyle: TextStyle(color: Colors.white38)),
+                              onChanged: (val) { lBandAdsList[index] = val; },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.folder_open, color: Colors.cyan, size: 20),
+                            onPressed: () async {
+                              FilePickerResult? result = await FilePicker.platform.pickFiles();
+                              if (result != null && result.files.single.path != null) {
+                                setDialogState(() {
+                                  lBandAdsList[index] = result.files.single.path!;
+                                });
+                              }
+                            },
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(40, 30)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              selectedLBandIndex = index;
+                              if (lBandAdsList[index].isNotEmpty) {
+                                _lBandVlcController?.dispose();
+                                _lBandVlcController = VlcPlayerController.network(
+                                  lBandAdsList[index],
+                                  hwAcc: HwAcc.full,
+                                  autoPlay: true,
+                                  options: VlcPlayerOptions(),
+                                );
+                              }
+                              setState(() { isLBandMode = true; });
+                            },
+                            child: const Text("Set", style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 🔥 QR కోడ్ జనరేటర్ డెడికేటెడ్ డైలాగ్
   void _showQrGeneratorDialog() {
     showDialog(
       context: context,
@@ -282,7 +385,7 @@ class _StudioScreenState extends State<StudioScreen> {
                 padding: const EdgeInsets.all(10),
                 color: Colors.white,
                 child: QrImageView(
-                  data: qrDataController.text,
+                  data: qrDataController.text.isNotEmpty ? qrDataController.text : "https://ssyatratv.com",
                   version: QrVersions.auto,
                   size: 180.0,
                 ),
@@ -297,6 +400,7 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
+  // 🔥 IP మరియు Set IP రెండింటిలోనూ Scan & Generate QR ఆప్షన్స్
   void _showIpInputDialog() {
     showDialog(
       context: context,
@@ -403,6 +507,7 @@ class _StudioScreenState extends State<StudioScreen> {
     );
   }
 
+  // 🔥 మల్టీ-లైవ్ (YouTube, FB, Instagram, X, Threads, Snapchat, IPTV)
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -417,11 +522,25 @@ class _StudioScreenState extends State<StudioScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CheckboxListTile(title: const Text("YouTube Live", style: TextStyle(color: Colors.white)), value: selectYt, activeColor: Colors.red, onChanged: (val) => setDialogState(() => selectYt = val!)),
-                    if (selectYt) TextField(controller: ytCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "YouTube RTMP URL / Key")),
+                    if (selectYt) TextField(controller: ytCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "YouTube RTMP URL")),
+                    
                     CheckboxListTile(title: const Text("Facebook Live", style: TextStyle(color: Colors.white)), value: selectFb, activeColor: Colors.blue, onChanged: (val) => setDialogState(() => selectFb = val!)),
                     if (selectFb) TextField(controller: fbCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Facebook Stream URL")),
-                    CheckboxListTile(title: const Text("IPTV / Cable / Satellite Server", style: TextStyle(color: Colors.white)), value: selectIptv, activeColor: Colors.green, onChanged: (val) => setDialogState(() => selectIptv = val!)),
-                    if (selectIptv) TextField(controller: iptvCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "IPTV / Cable Encoder URL")),
+                    
+                    CheckboxListTile(title: const Text("Instagram Live", style: TextStyle(color: Colors.white)), value: selectInsta, activeColor: Colors.pink, onChanged: (val) => setDialogState(() => selectInsta = val!)),
+                    if (selectInsta) TextField(controller: instaCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Instagram RTMP URL")),
+                    
+                    CheckboxListTile(title: const Text("X (Twitter) Live", style: TextStyle(color: Colors.white)), value: selectX, activeColor: Colors.white, onChanged: (val) => setDialogState(() => selectX = val!)),
+                    if (selectX) TextField(controller: xCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "X Stream URL")),
+                    
+                    CheckboxListTile(title: const Text("Threads Live", style: TextStyle(color: Colors.white)), value: selectThreads, activeColor: Colors.purple, onChanged: (val) => setDialogState(() => selectThreads = val!)),
+                    if (selectThreads) TextField(controller: threadsCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Threads Stream URL")),
+                    
+                    CheckboxListTile(title: const Text("Snapchat Live", style: TextStyle(color: Colors.white)), value: selectSnap, activeColor: Colors.amber, onChanged: (val) => setDialogState(() => selectSnap = val!)),
+                    if (selectSnap) TextField(controller: snapCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Snapchat Stream URL")),
+                    
+                    CheckboxListTile(title: const Text("IPTV / Cable Server", style: TextStyle(color: Colors.white)), value: selectIptv, activeColor: Colors.green, onChanged: (val) => setDialogState(() => selectIptv = val!)),
+                    if (selectIptv) TextField(controller: iptvCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "IPTV Encoder URL")),
                   ],
                 ),
               ),
@@ -432,7 +551,7 @@ class _StudioScreenState extends State<StudioScreen> {
                   onPressed: () {
                     setState(() { isLiveBroadcasting = true; });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సెలెక్ట్ చేసిన ప్లాట్‌ఫార్మ్‌లకు లైవ్ ప్రసారం ప్రారంభమైంది!"), backgroundColor: Colors.green));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సెలెక్ట్ చేసిన అన్ని సోషల్ మీడియా ఛానెల్స్‌కు లైవ్ ప్రసారం ప్రారంభమైంది!"), backgroundColor: Colors.green));
                   },
                   child: const Text("Start Multi-Live", style: TextStyle(color: Colors.white)),
                 ),
@@ -503,9 +622,12 @@ class _StudioScreenState extends State<StudioScreen> {
   Widget build(BuildContext context) {
     bool isCamReady = isIpCameraActive ? (_vlcViewController != null) : (controller != null && controller!.value.isInitialized);
 
+    // 🔥 కెమెరా ప్రివ్యూ సమస్య పూర్తిగా పరిష్కరించబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
-        : (controller != null ? CameraPreview(controller!) : const Center(child: CircularProgressIndicator()));
+        : (controller != null && controller!.value.isInitialized 
+            ? CameraPreview(controller!) 
+            : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -547,11 +669,10 @@ class _StudioScreenState extends State<StudioScreen> {
                             Container(
                               width: 140,
                               color: Colors.orange[800],
-                              child: const Center(
-                                child: RotatedBox(
-                                  quarterTurns: 3,
-                                  child: Text("SS YATRA TV SPONSOR ADS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                                ),
+                              child: Center(
+                                child: _lBandVlcController != null && lBandAdsList[selectedLBandIndex].isNotEmpty
+                                    ? VlcPlayer(controller: _lBandVlcController!, aspectRatio: 9 / 16)
+                                    : const Text("SS YATRA TV SPONSOR ADS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -650,7 +771,10 @@ class _StudioScreenState extends State<StudioScreen> {
                         _buildControlButton(
                           isLBandMode ? Icons.fullscreen : Icons.view_sidebar, 
                           isLBandMode ? "Ad Off" : "L-Shape", 
-                          () { setState(() { isLBandMode = !isLBandMode; }); }, 
+                          () { 
+                            setState(() { isLBandMode = !isLBandMode; }); 
+                            if(isLBandMode) _showLBandAdsManagerDialog();
+                          }, 
                           Colors.amber,
                         ),
                         _buildControlButton(
