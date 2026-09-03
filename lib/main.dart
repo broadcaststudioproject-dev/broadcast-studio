@@ -42,7 +42,7 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
-  VlcPlayerController? _videoAdVlcController; // 🔥 వీడియో యాడ్స్ కోసం VLC ప్లేయర్
+  VlcPlayerController? _videoAdVlcController; 
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -57,14 +57,12 @@ class _StudioScreenState extends State<StudioScreen> {
   TextEditingController ipController = TextEditingController();
   TextEditingController qrDataController = TextEditingController();
 
-  // 🔥 10 రకాల వీడియో యాడ్స్ లింక్స్ స్టోరేజ్ (MP4 లేదా డైరెక్ట్ స్ట్రీమ్ లింక్స్)
   final List<String> videoAdsList = [
-    "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4", // Ad 1 Sample
+    "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4", 
     "", "", "", "", "", "", "", "", ""
   ];
   int selectedAdIndex = 0;
 
-  // గ్రాఫిక్స్ టెక్స్ట్ వేరియబుల్స్
   String channelName = "SS\nYATRA\nTV";
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -73,7 +71,6 @@ class _StudioScreenState extends State<StudioScreen> {
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
-  // సోషల్ మీడియా & బ్రాడ్‌కాస్ట్ లింక్స్
   String ytUrl = "", fbUrl = "", iptvUrl = "";
   bool selectYt = false, selectFb = false, selectIptv = false;
 
@@ -179,7 +176,6 @@ class _StudioScreenState extends State<StudioScreen> {
     }
   }
 
-  // 🔥 VLC ప్లేయర్ ద్వారా వీడియో యాడ్ ప్లే చేసే ఫంక్షన్ 🔥
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లింక్ లేదు!"), backgroundColor: Colors.red));
@@ -212,7 +208,6 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  // 10 వీడియో యాడ్స్ మేనేజర్ డైలాగ్
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
@@ -555,7 +550,6 @@ class _StudioScreenState extends State<StudioScreen> {
                               child: const Center(
                                 child: RotatedBox(
                                   quarterTurns: 3,
-                                  textDirection: TextDirection.ltr,
                                   child: Text("SS YATRA TV SPONSOR ADS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                                 ),
                               ),
