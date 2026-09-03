@@ -156,6 +156,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
+  Future<void> _fetchGoogleNews() async {
+    try {
+      final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.body);
+        final items = document.findAllElements('item');
+        List<String> titles = [];
+        for (var item in items.take(15)) {
+          titles.add(item.findElements('title').first.innerText);
+        }
+        if (titles.isNotEmpty && mounted) {
+          setState(() {
+            googleNews = titles.join("   ♦   ");
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("News Error: $e");
+    }
+  }
+
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
