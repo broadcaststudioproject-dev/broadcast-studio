@@ -6,8 +6,10 @@ import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:image_picker/image_picker.dart'; // 🔥 గ్యాలరీ నుండి వీడియో & ఇమేజ్ పిక్ చేయడానికి
 
 List<CameraDescription> cameras = [];
 
@@ -43,7 +45,6 @@ class _StudioScreenState extends State<StudioScreen> {
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _lBandVlcController; 
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -57,12 +58,13 @@ class _StudioScreenState extends State<StudioScreen> {
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
   TextEditingController qrDataController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
-  // 🔥 10 రకాల వీడియో యాడ్స్ లింక్స్
+  // 🔥 10 రకాల HD వీడియో యాడ్స్ లింక్స్ / పాత్స్
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
   
-  // 🔥 10 రకాల L-Band యాడ్స్ లింక్స్
-  final List<String> lBandAdsList = List.generate(10, (index) => "");
+  // 🔥 10 రకాల L-Band JPEG ఇమేజ్ యాడ్స్ పాత్స్
+  final List<String> lBandImagesList = List.generate(10, (index) => "");
   int selectedLBandIndex = 0;
 
   String channelName = "SS\nYATRA\nTV";
@@ -122,7 +124,6 @@ class _StudioScreenState extends State<StudioScreen> {
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
-    _lBandVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     channelCtrl.dispose();
@@ -145,21 +146,29 @@ class _StudioScreenState extends State<StudioScreen> {
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
-  void _initCamera() {
+  // 🔥 కెమెరా సమస్య పూర్తిగా పరిష్కరించబడిన ఇనిషియలైజేషన్
+  void _initCamera() async {
     if (cameras.isEmpty) return;
-    controller = CameraController(cameras[currentCameraIndex], ResolutionPreset.high);
-    controller!.initialize().then((_) async {
+    try {
+      await controller?.dispose();
+      controller = CameraController(
+        cameras[currentCameraIndex],
+        ResolutionPreset.high,
+        enableAudio: true,
+        imageFormatGroup: ImageFormatGroup.jpeg,
+      );
+      await controller!.initialize();
       if (!mounted) return;
-      await controller!.unlockCaptureOrientation();
       setState(() {});
-    });
+    } catch (e) {
+      debugPrint("Camera Init Error: $e");
+    }
   }
 
   void _switchCamera() async {
     if (isIpCameraActive || isVideoAdPlaying) return; 
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
-    await controller?.dispose();
     _initCamera();
   }
 
@@ -187,7 +196,7 @@ class _StudioScreenState extends State<StudioScreen> {
 
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లింక్ లేదు!"), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
       return;
     }
 
@@ -196,7 +205,12 @@ class _StudioScreenState extends State<StudioScreen> {
       videoUrl,
       hwAcc: HwAcc.full,
       autoPlay: true,
-      options: VlcPlayerOptions(),
+      options: VlcPlayerOptions(
+        advancedOptions: [
+          VlcOption("--network-caching=1500"),
+          VlcOption("--live-caching=1500"),
+        ],
+      ),
     );
 
     setState(() {
@@ -204,7 +218,7 @@ class _StudioScreenState extends State<StudioScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("కమర్షియల్ వీడియో యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
+      const SnackBar(content: Text("HD కమర్షియల్ వీడియో యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
     );
   }
 
@@ -217,115 +231,138 @@ class _StudioScreenState extends State<StudioScreen> {
     });
   }
 
-  // 🔥 10 వీడియో యాడ్స్ మేనేజర్ (లింక్ ఆధారితం)
+  // 🔥 10 HD వీడియో యాడ్స్ మేనేజర్ (గ్యాలరీ నుండి వీడియో సెలెక్షన్ ఆప్షన్‌తో)
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text("10 వీడియో యాడ్స్ మేనేజర్ & ప్లేయర్", style: TextStyle(color: Colors.white, fontSize: 16)),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    children: [
-                      Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: TextField(
-                          controller: adCtrl,
-                          style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                          decoration: const InputDecoration(hintText: "వీడియో లింక్ (MP4 / Stream)", hintStyle: TextStyle(color: Colors.white38)),
-                          onChanged: (val) { videoAdsList[index] = val; },
-                        ),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("10 HD వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: 10,
+                  itemBuilder: (context, index) {
+                    TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: TextField(
+                              controller: adCtrl,
+                              style: const TextStyle(color: Colors.yellow, fontSize: 11),
+                              decoration: const InputDecoration(hintText: "HD వీడియో లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
+                              onChanged: (val) { videoAdsList[index] = val; },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.video_library, color: Colors.cyan, size: 20),
+                            tooltip: "గ్యాలరీ నుండి వీడియో ఎంచుకోండి",
+                            onPressed: () async {
+                              final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+                              if (video != null) {
+                                setDialogState(() {
+                                  videoAdsList[index] = video.path;
+                                });
+                              }
+                            },
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(40, 30)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _playVideoAd(videoAdsList[index]);
+                            },
+                            child: const Text("Play", style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 5),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(50, 30)),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _playVideoAd(videoAdsList[index]);
-                        },
-                        child: const Text("Play", style: TextStyle(fontSize: 11)),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-          ],
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  // 🔥 10 L-Band స్పాన్సర్ యాడ్స్ మేనేజర్
-  void _showLBandAdsManagerDialog() {
+  // 🔥 10 L-Band JPEG ఇమేజ్ యాడ్స్ మేనేజర్ (గ్యాలరీ నుండి ఫోటో సెలెక్షన్ ఆప్షన్‌తో)
+  void _showLBandImagesManagerDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text("10 L-Band స్పాన్సర్ యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                TextEditingController lCtrl = TextEditingController(text: lBandAdsList[index]);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    children: [
-                      Text("L-Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: TextField(
-                          controller: lCtrl,
-                          style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                          decoration: const InputDecoration(hintText: "వీడియో లింక్ (MP4 / Stream)", hintStyle: TextStyle(color: Colors.white38)),
-                          onChanged: (val) { lBandAdsList[index] = val; },
-                        ),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("10 L-Band JPEG ఇమేజ్ యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 15)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: 10,
+                  itemBuilder: (context, index) {
+                    TextEditingController imgCtrl = TextEditingController(text: lBandImagesList[index]);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Text("L-Img ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: TextField(
+                              controller: imgCtrl,
+                              style: const TextStyle(color: Colors.yellow, fontSize: 11),
+                              decoration: const InputDecoration(hintText: "JPEG ఇమేజ్ లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
+                              onChanged: (val) { lBandImagesList[index] = val; },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.photo_library, color: Colors.amberAccent, size: 20),
+                            tooltip: "గ్యాలరీ నుండి JPEG ఫోటో ఎంచుకోండి",
+                            onPressed: () async {
+                              final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+                              if (image != null) {
+                                setDialogState(() {
+                                  lBandImagesList[index] = image.path;
+                                });
+                              }
+                            },
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(40, 30)),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              setState(() {
+                                selectedLBandIndex = index;
+                                isLBandMode = true;
+                              });
+                            },
+                            child: const Text("Set", style: TextStyle(fontSize: 11)),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 5),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(50, 30)),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          selectedLBandIndex = index;
-                          if (lBandAdsList[index].isNotEmpty) {
-                            _lBandVlcController?.dispose();
-                            _lBandVlcController = VlcPlayerController.network(
-                              lBandAdsList[index],
-                              hwAcc: HwAcc.full,
-                              autoPlay: true,
-                              options: VlcPlayerOptions(),
-                            );
-                          }
-                          setState(() { isLBandMode = true; });
-                        },
-                        child: const Text("Set", style: TextStyle(fontSize: 11)),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-          ],
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
+            );
+          },
         );
       },
     );
@@ -633,9 +670,11 @@ class _StudioScreenState extends State<StudioScreen> {
                               width: 140,
                               color: Colors.orange[800],
                               child: Center(
-                                child: _lBandVlcController != null && lBandAdsList[selectedLBandIndex].isNotEmpty
-                                    ? VlcPlayer(controller: _lBandVlcController!, aspectRatio: 9 / 16)
-                                    : const Text("SS YATRA TV SPONSOR ADS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                child: lBandImagesList[selectedLBandIndex].isNotEmpty
+                                    ? (lBandImagesList[selectedLBandIndex].startsWith('http')
+                                        ? Image.network(lBandImagesList[selectedLBandIndex], fit: BoxFit.cover)
+                                        : Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover))
+                                    : const Text("SS YATRA TV JPEG ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -736,7 +775,7 @@ class _StudioScreenState extends State<StudioScreen> {
                           isLBandMode ? "Ad Off" : "L-Shape", 
                           () { 
                             setState(() { isLBandMode = !isLBandMode; }); 
-                            if(isLBandMode) _showLBandAdsManagerDialog();
+                            if(isLBandMode) _showLBandImagesManagerDialog();
                           }, 
                           Colors.amber,
                         ),
