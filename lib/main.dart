@@ -155,19 +155,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
-  // 🔥 కెమెరా ఆరియెంటేషన్ మరియు ప్రివ్యూ పర్‌ఫెక్ట్ ఫిట్ కోసం అప్‌డేట్ చేయబడింది
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.high,
+        ResolutionPreset.medium, // 🔥 స్టెబిలిటీ కోసం మీడియం రిజల్యూషన్
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       await controller!.initialize();
-      await controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
       if (!mounted) return;
       setState(() {});
     } catch (e) {
@@ -626,12 +624,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 కెమెరా ప్రివ్యూ పర్‌ఫెక్ట్‌గా స్క్రీన్‌కి ఫిట్ అయ్యేలా అడ్జస్ట్ చేయబడింది
+    // 🔥 కెమెరా ప్రివ్యూ స్క్రీన్‌కి సరిగ్గా ఫిట్ అయ్యేలా అడ్జస్ట్ చేయబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? OverflowBox(
-                alignment: Alignment.center,
+            ? SizedBox.expand(
                 child: FittedBox(
                   fit: BoxFit.cover,
                   child: SizedBox(
