@@ -41,7 +41,7 @@ class StudioScreen extends StatefulWidget {
   State<StudioScreen> createState() => _StudioScreenState();
 }
 
-class _StudioScreenState extends State<StudioScreen> {
+class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
@@ -94,6 +94,7 @@ class _StudioScreenState extends State<StudioScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     channelCtrl.text = channelName;
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
@@ -115,7 +116,18 @@ class _StudioScreenState extends State<StudioScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (controller == null || !controller!.value.isInitialized) return;
+    if (state == AppLifecycleState.inactive) {
+      controller?.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     _lBandAutoTimer?.cancel();
     controller?.dispose();
@@ -143,6 +155,7 @@ class _StudioScreenState extends State<StudioScreen> {
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
+  // 🔥 కెమెరా ఆరియెంటేషన్ మరియు ప్రివ్యూ పర్‌ఫెక్ట్ ఫిట్ కోసం అప్‌డేట్ చేయబడింది
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
@@ -154,6 +167,7 @@ class _StudioScreenState extends State<StudioScreen> {
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       await controller!.initialize();
+      await controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
       if (!mounted) return;
       setState(() {});
     } catch (e) {
@@ -612,10 +626,21 @@ class _StudioScreenState extends State<StudioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔥 కెమెరా ప్రివ్యూ పర్‌ఫెక్ట్‌గా స్క్రీన్‌కి ఫిట్ అయ్యేలా అడ్జస్ట్ చేయబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? CameraPreview(controller!) 
+            ? OverflowBox(
+                alignment: Alignment.center,
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: controller!.value.previewSize?.height ?? 1080,
+                    height: controller!.value.previewSize?.width ?? 1920,
+                    child: CameraPreview(controller!),
+                  ),
+                ),
+              )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
     return Scaffold(
@@ -637,13 +662,7 @@ class _StudioScreenState extends State<StudioScreen> {
               )
             else if (!isLBandMode)
               Positioned.fill(
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: 1920, height: 1080,
-                    child: cameraWidget,
-                  ),
-                ),
+                child: cameraWidget,
               )
             else
               Positioned.fill(
@@ -672,7 +691,7 @@ class _StudioScreenState extends State<StudioScreen> {
                                 borderRadius: BorderRadius.circular(8),
                                 child: Container(
                                   color: Colors.black,
-                                  child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: 1920, height: 1080, child: cameraWidget)),
+                                  child: cameraWidget,
                                 ),
                               ),
                             ),
