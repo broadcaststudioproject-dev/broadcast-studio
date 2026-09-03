@@ -632,6 +632,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+    // 🔥 పోర్ట్రైట్ మరియు ల్యాండ్‌స్కేప్ రెండింటిలోనూ పర్‌ఫెక్ట్‌గా ఫిట్ అయ్యే కెమెరా ప్రివ్యూ
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -655,8 +658,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: FittedBox(
                       fit: BoxFit.cover,
                       child: SizedBox(
-                        width: controller!.value.previewSize?.height ?? 1080,
-                        height: controller!.value.previewSize?.width ?? 1920,
+                        width: isScreenLandscape 
+                            ? (controller!.value.previewSize?.width ?? 1920) 
+                            : (controller!.value.previewSize?.height ?? 1080),
+                        height: isScreenLandscape 
+                            ? (controller!.value.previewSize?.height ?? 1080) 
+                            : (controller!.value.previewSize?.width ?? 1920),
                         child: CameraPreview(controller!),
                       ),
                     ),
@@ -693,21 +700,49 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Stack(
                     children: [
                       Positioned(
-                        top: 20, left: 20, bottom: 90, right: 20,
+                        top: 15, left: 15, bottom: 85, right: 15,
                         child: Row(
                           children: [
+                            // 🔥 L-Shape / L-Band సైడ్ బ్యానర్ + సైజ్ వివరాల డిస్ప్లే
                             Container(
-                              width: 140,
-                              color: Colors.orange[800],
-                              child: Center(
-                                child: lBandImagesList[selectedLBandIndex].isNotEmpty
-                                    ? (lBandImagesList[selectedLBandIndex].startsWith('http')
-                                        ? Image.network(lBandImagesList[selectedLBandIndex], fit: BoxFit.cover, filterQuality: FilterQuality.high)
-                                        : Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high))
-                                    : const Text("SS YATRA TV HD ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              width: isScreenLandscape ? 200 : 130,
+                              decoration: BoxDecoration(
+                                color: Colors.orange[800],
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.star, color: Colors.yellow, size: 28),
+                                  const SizedBox(height: 5),
+                                  const Text("SS YATRA TV\nL-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  const SizedBox(height: 10),
+                                  // 🔥 యాడ్ సైజ్ / రెజల్యూషన్ వివరాలు స్క్రీన్‌పై డిస్ప్లే అవుతాయి
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    color: Colors.black54,
+                                    child: Text(
+                                      isScreenLandscape ? "Size: 400x720 HD" : "Size: 300x600 HD", 
+                                      style: const TextStyle(color: Colors.yellowAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Expanded(
+                                    child: Center(
+                                      child: lBandImagesList[selectedLBandIndex].isNotEmpty
+                                          ? (lBandImagesList[selectedLBandIndex].startsWith('http')
+                                              ? Image.network(lBandImagesList[selectedLBandIndex], fit: BoxFit.cover, filterQuality: FilterQuality.high)
+                                              : Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high))
+                                          : const Padding(
+                                              padding: EdgeInsets.all(8.0),
+                                              child: Text("ග్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 10)),
+                                            ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
