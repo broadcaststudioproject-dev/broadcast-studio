@@ -55,6 +55,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isAutoTimerActive = false; 
   bool isVideoAdPlaying = false; 
 
+  // 🔥 జూమ్ కంట్రోల్ వేరియబుల్స్
+  double _currentZoomLevel = 1.0;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 8.0;
+
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
   TextEditingController qrDataController = TextEditingController();
@@ -161,11 +166,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.medium, // 🔥 స్టెబిలిటీ కోసం మీడియం రిజల్యూషన్
+        ResolutionPreset.max,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       await controller!.initialize();
+      _minZoomLevel = await controller!.getMinZoomLevel();
+      _maxZoomLevel = await controller!.getMaxZoomLevel();
+      _currentZoomLevel = _minZoomLevel;
       if (!mounted) return;
       setState(() {});
     } catch (e) {
@@ -221,7 +229,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("HD కమర్షియల్ వీడియో యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
+      const SnackBar(content: Text("ఫుల్ హెచ్‌డి యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
     );
   }
 
@@ -242,7 +250,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("10 HD వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              title: const Text("10 ఫుల్ హెచ్‌డి వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -260,7 +268,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             child: TextField(
                               controller: adCtrl,
                               style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                              decoration: const InputDecoration(hintText: "HD వీడియో లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
+                              decoration: const InputDecoration(hintText: "హెచ్‌డి వీడియో లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
                               onChanged: (val) { videoAdsList[index] = val; },
                             ),
                           ),
@@ -308,7 +316,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("10 L-Band JPEG ఇమేజ్ యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 15)),
+              title: const Text("10 L-Band HD JPEG ఇమేజ్ యాడ్స్", style: TextStyle(color: Colors.white, fontSize: 15)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -326,15 +334,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             child: TextField(
                               controller: imgCtrl,
                               style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                              decoration: const InputDecoration(hintText: "JPEG ఇమేజ్ లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
+                              decoration: const InputDecoration(hintText: "హై-క్వాలిటీ JPEG లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
                               onChanged: (val) { lBandImagesList[index] = val; },
                             ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.photo_library, color: Colors.amberAccent, size: 20),
-                            tooltip: "గ్యాలరీ నుండి JPEG ఫోటో ఎంచుకోండి",
+                            tooltip: "గ్యాలరీ నుండి ఫోటో ఎంచుకోండి",
                             onPressed: () async {
-                              final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+                              final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                               if (image != null) {
                                 setDialogState(() {
                                   lBandImagesList[index] = image.path;
@@ -624,7 +632,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 కెమెరా ప్రివ్యూ స్క్రీన్‌కి సరిగ్గా ఫిట్ అయ్యేలా అడ్జస్ట్ చేయబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -677,9 +684,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               child: Center(
                                 child: lBandImagesList[selectedLBandIndex].isNotEmpty
                                     ? (lBandImagesList[selectedLBandIndex].startsWith('http')
-                                        ? Image.network(lBandImagesList[selectedLBandIndex], fit: BoxFit.cover)
-                                        : Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover))
-                                    : const Text("SS YATRA TV JPEG ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                        ? Image.network(lBandImagesList[selectedLBandIndex], fit: BoxFit.cover, filterQuality: FilterQuality.high)
+                                        : Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high))
+                                    : const Text("SS YATRA TV HD ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -696,6 +703,48 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+
+            // 🔥 స్క్రీన్ రైట్ సైడ్ జూమ్ స్లైడర్ (Zoom In / Out Option)
+            if (!isIpCameraActive && controller != null && controller!.value.isInitialized)
+              Positioned(
+                right: 15,
+                top: MediaQuery.of(context).size.height * 0.3,
+                bottom: MediaQuery.of(context).size.height * 0.3,
+                child: RotatedBox(
+                  quarterTurns: 3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white30, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        const Text("ZOOM", style: TextStyle(color: Colors.yellow, fontSize: 10, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 5),
+                        SizedBox(
+                          width: 150,
+                          child: Slider(
+                            value: _currentZoomLevel,
+                            min: _minZoomLevel,
+                            max: _maxZoomLevel,
+                            activeColor: Colors.red,
+                            inactiveColor: Colors.white30,
+                            onChanged: (val) async {
+                              setState(() {
+                                _currentZoomLevel = val;
+                              });
+                              await controller?.setZoomLevel(val);
+                            },
+                          ),
+                        ),
+                        Text("${_currentZoomLevel.toStringAsFixed(1)}x", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
                 ),
               ),
