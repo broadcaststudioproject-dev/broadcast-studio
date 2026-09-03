@@ -58,6 +58,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
   double _maxZoomLevel = 8.0;
+  double _baseScale = 1.0;
 
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
@@ -108,7 +109,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     qrDataController.text = "http://192.168.1.100:8081/video";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     
     _initCamera();
     _requestPermissions();
@@ -558,7 +559,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               actions: [
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFor(backgroundColor: Colors.red),
                   onPressed: () {
                     setState(() { isLiveBroadcasting = true; });
                     Navigator.pop(context);
@@ -607,7 +608,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (isLandscape) {
         SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
       } else {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
       }
     });
   }
@@ -631,19 +632,34 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 కెమెరా ప్రివ్యూ రొటేషన్ మరియు షేప్ అవుట్ కాకుండా పర్‌ఫెక్ట్ ఫిట్ కోసం సరిచేయబడింది
+    // 🔥 పోర్ట్రైట్ మరియు ల్యాండ్‌స్కేప్ రెండింటిలోనూ పర్‌ఫెక్ట్‌గా ఫిట్ అయ్యే కెమెరా ప్రివ్యూ
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? ClipRect(
-                child: OverflowBox(
-                  alignment: Alignment.center,
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller!.value.previewSize?.height ?? 1080,
-                      height: controller!.value.previewSize?.width ?? 1920,
-                      child: CameraPreview(controller!),
+            ? Listener(
+                onPointerSignal: (pointerSignal) {},
+                child: GestureDetector(
+                  onScaleStart: (details) {
+                    _baseScale = _currentZoomLevel;
+                  },
+                  onScaleUpdate: (details) async {
+                    if (controller == null) return;
+                    double zoom = _baseScale * details.scale;
+                    if (zoom < _minZoomLevel) zoom = _minZoomLevel;
+                    if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+                    setState(() {
+                      _currentZoomLevel = zoom;
+                    });
+                    await controller?.setZoomLevel(zoom);
+                  },
+                  child: SizedBox.expand(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller!.value.previewSize?.height ?? 1080,
+                        height: controller!.value.previewSize?.width ?? 1920,
+                        child: CameraPreview(controller!),
+                      ),
                     ),
                   ),
                 ),
@@ -710,47 +726,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 స్క్రీన్ ట్యాప్ చేసినప్పుడు హైడ్ అయ్యేలా జూమ్ స్లైడర్ అప్‌డేట్ చేయబడింది
-            if (!hideControls && !isIpCameraActive && controller != null && controller!.value.isInitialized)
-              Positioned(
-                right: 15,
-                top: MediaQuery.of(context).size.height * 0.3,
-                bottom: MediaQuery.of(context).size.height * 0.3,
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white30, width: 1),
-                    ),
-                    child: Row(
-                      children: [
-                        const Text("ZOOM", style: TextStyle(color: Colors.yellow, fontSize: 10, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 5),
-                        SizedBox(
-                          width: 150,
-                          child: Slider(
-                            value: _currentZoomLevel,
-                            min: _minZoomLevel,
-                            max: _maxZoomLevel,
-                            activeColor: Colors.red,
-                            inactiveColor: Colors.white30,
-                            onChanged: (val) async {
-                              setState(() {
-                                _currentZoomLevel = val;
-                              });
-                              await controller?.setZoomLevel(val);
-                            },
-                          ),
-                        ),
-                        Text("${_currentZoomLevel.toStringAsFixed(1)}x", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            // 🔥 జూమ్ కోసం ప్రత్యేక బటన్ అవసరం లేకుండా, స్క్రీన్‌పై పించ్ జెస్చర్ (Pinch Zoom) ద్వారా నేరుగా పనిచేస్తుంది.
             
             if (isVideoAdPlaying)
               Positioned(
