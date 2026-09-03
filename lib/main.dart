@@ -54,7 +54,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isLBandMode = false; 
   bool isAutoTimerActive = false; 
   bool isVideoAdPlaying = false; 
-  bool isRecordingShort = false; // 🔥 ఇన్‌స్టంట్ షార్ట్స్ రికార్డింగ్ స్టేటస్
 
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
@@ -204,35 +203,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         options: VlcPlayerOptions(),
       );
       setState(() { isIpCameraActive = true; });
-    }
-  }
-
-  // 🔥 ఇన్‌స్టంట్ షార్ట్స్ / రీల్స్ రికార్డర్ ఫంక్షన్ (15 సెకండ్ల క్లిప్ క్యాప్చర్)
-  void _startInstantShortsRecorder() async {
-    if (controller == null || !controller!.value.isInitialized) return;
-    try {
-      if (controller!.value.isRecordingVideo) return;
-      
-      setState(() { isRecordingShort = true; });
-      await controller!.startVideoRecording();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("🔴 ఇన్‌స్టంట్ షార్ట్స్ / రీల్స్ రికార్డింగ్ ప్రారంభమైంది (15s)..."), backgroundColor: Colors.red),
-      );
-
-      // 15 సెకండ్ల తరువాత ఆటోమేటిక్‌గా సేవ్ అవుతుంది
-      Timer(const Duration(seconds: 15), () async {
-        if (controller != null && controller!.value.isRecordingVideo) {
-          XFile file = await controller!.stopVideoRecording();
-          setState(() { isRecordingShort = false; });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("✅ షార్ట్ క్లిప్ గ్యాలరీకి సేవ్ అయింది: ${file.path}"), backgroundColor: Colors.green),
-          );
-        }
-      });
-    } catch (e) {
-      setState(() { isRecordingShort = false; });
-      debugPrint("Recording Error: $e");
     }
   }
 
@@ -542,10 +512,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            // 🔥 బిగ్ టీవీ స్టైల్ ప్రొఫెషనల్ న్యూస్ రీల్ లేఅవుట్
             Column(
               children: [
-                // 1. టాప్ హెడ్‌లైన్ బ్యానర్ (Top Red News Header)
                 Container(
                   width: double.infinity,
                   color: Colors.red[800],
@@ -560,7 +528,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
                 
-                // 2. మిడిల్ వీడియో / లైవ్ కెమెరా ఫీడ్ & L-Shape యాడ్
                 Expanded(
                   child: Stack(
                     children: [
@@ -591,7 +558,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               )),
                       ),
                       
-                      // ఛానెల్ లోగో (Top-Right Badge)
                       Positioned(
                         top: 10, right: 10,
                         child: Container(
@@ -601,7 +567,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // లైవ్ బ్రాడ్‌కాస్ట్ ఇండికేటర్
                       if (isLiveBroadcasting)
                         Positioned(
                           top: 10, left: 10,
@@ -615,7 +580,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-                // 3. బాటమ్ స్పాన్సర్ / యాడ్ స్పేస్ & న్యూస్ టిక్కర్స్
                 Container(
                   color: Colors.black87,
                   padding: const EdgeInsets.all(4),
@@ -656,7 +620,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 కంట్రోల్స్ మెనూ (షార్ట్స్ రికార్డర్ బటన్‌తో సహా)
             if (!hideControls)
               Positioned.fill(
                 child: Container(
@@ -665,7 +628,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: Wrap(
                       alignment: WrapAlignment.center, spacing: 12, runSpacing: 12,
                       children: [
-                        _buildControlButton(Icons.fiber_smart_record, "Shorts Rec", _startInstantShortsRecorder, Colors.pinkAccent),
                         _buildControlButton(Icons.flip_camera_android, "Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
