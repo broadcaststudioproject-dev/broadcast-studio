@@ -559,7 +559,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               actions: [
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
                 ElevatedButton(
-                  style: ElevatedButton.styleFor(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   onPressed: () {
                     setState(() { isLiveBroadcasting = true; });
                     Navigator.pop(context);
@@ -632,7 +632,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 పోర్ట్రైట్ మరియు ల్యాండ్‌స్కేప్ రెండింటిలోనూ పర్‌ఫెక్ట్‌గా ఫిట్ అయ్యే కెమెరా ప్రివ్యూ
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -726,8 +725,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 జూమ్ కోసం ప్రత్యేక బటన్ అవసరం లేకుండా, స్క్రీన్‌పై పించ్ జెస్చర్ (Pinch Zoom) ద్వారా నేరుగా పనిచేస్తుంది.
-            
             if (isVideoAdPlaying)
               Positioned(
                 top: 40, right: 40,
