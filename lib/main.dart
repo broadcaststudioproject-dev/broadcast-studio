@@ -55,7 +55,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isAutoTimerActive = false; 
   bool isVideoAdPlaying = false; 
 
-  // 🔥 జూమ్ కంట్రోల్ వేరియబుల్స్
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
   double _maxZoomLevel = 8.0;
@@ -632,16 +631,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    // 🔥 కెమెరా ప్రివ్యూ రొటేషన్ మరియు షేప్ అవుట్ కాకుండా పర్‌ఫెక్ట్ ఫిట్ కోసం సరిచేయబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? SizedBox.expand(
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: controller!.value.previewSize?.height ?? 1080,
-                    height: controller!.value.previewSize?.width ?? 1920,
-                    child: CameraPreview(controller!),
+            ? ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
+                      child: CameraPreview(controller!),
+                    ),
                   ),
                 ),
               )
@@ -707,8 +710,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 స్క్రీన్ రైట్ సైడ్ జూమ్ స్లైడర్ (Zoom In / Out Option)
-            if (!isIpCameraActive && controller != null && controller!.value.isInitialized)
+            // 🔥 స్క్రీన్ ట్యాప్ చేసినప్పుడు హైడ్ అయ్యేలా జూమ్ స్లైడర్ అప్‌డేట్ చేయబడింది
+            if (!hideControls && !isIpCameraActive && controller != null && controller!.value.isInitialized)
               Positioned(
                 right: 15,
                 top: MediaQuery.of(context).size.height * 0.3,
