@@ -65,9 +65,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController qrDataController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
+  Color lShapeColor = const Color(0xFF95C8F2);
+  String verticalAdImagePath = "";
+  String horizontalAdImagePath = "";
+  
+  double verticalAdWidth = 110.0;
+  double landscapeVerticalWidth = 180.0;
+  double horizontalAdHeight = 100.0;
+  double landscapeHorizontalHeight = 70.0;
+
+  double verticalAdRotation = 0.0;
+  double horizontalAdRotation = 0.0;
+
+  String lShapeCustomText = "SS YATRA TV - L-SHAPE AD BANNER";
+  TextEditingController lShapeTextCtrl = TextEditingController();
+
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
-  final List<String> lBandImagesList = List.generate(10, (index) => "");
-  int selectedLBandIndex = 0;
 
   String channelName = "SS\nYATRA\nTV";
   String watermarkText = "SS YATRA TV";
@@ -106,6 +119,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
     newsCtrl.text = stateNews;
+    lShapeTextCtrl.text = lShapeCustomText;
     qrDataController.text = "http://192.168.1.100:8081/video";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -140,6 +154,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _videoAdVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
+    lShapeTextCtrl.dispose();
     channelCtrl.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
@@ -160,13 +175,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
+  // 🔥 అత్యుత్తమ HD కెమెరా క్లారిటీ కోసం max రెసొల్యూషన్ సెట్టింగ్
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max,
+        ResolutionPreset.max, // అల్ట్రా హెచ్‌డి క్లారిటీ
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -274,7 +290,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                           IconButton(
                             icon: const Icon(Icons.video_library, color: Colors.cyan, size: 20),
-                            tooltip: "గ్యాలరీ నుండి వీడియో ఎంచుకోండి",
                             onPressed: () async {
                               final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
                               if (video != null) {
@@ -314,66 +329,172 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("బ్లూ కలర్ L-Shape JPEG యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 15)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: 10,
-                  itemBuilder: (context, index) {
-                    TextEditingController imgCtrl = TextEditingController(text: lBandImagesList[index]);
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Text("L-Blue ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: TextField(
-                              controller: imgCtrl,
-                              style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                              decoration: const InputDecoration(hintText: "హై-క్వాలిటీ JPEG లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
-                              onChanged: (val) { lBandImagesList[index] = val; },
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.photo_library, color: Colors.blueAccent, size: 20),
-                            tooltip: "గ్యాలరీ నుండి ఫోటో ఎంచుకోండి",
-                            onPressed: () async {
-                              final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                              if (image != null) {
-                                setDialogState(() {
-                                  lBandImagesList[index] = image.path;
-                                });
-                              }
-                            },
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, minimumSize: const Size(40, 30)),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              setState(() {
-                                selectedLBandIndex = index;
-                                isLBandMode = true;
-                              });
-                            },
-                            child: const Text("Set", style: TextStyle(fontSize: 11)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+              title: const Text("L-Shape నిలువు & అడ్డు యాడ్స్ ఎడిటర్", style: TextStyle(color: Colors.white, fontSize: 15)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("బ్యాక్‌గ్రౌండ్ కలర్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _colorOptionButton(setDialogState, const Color(0xFF95C8F2), "Sky Blue"),
+                        _colorOptionButton(setDialogState, Colors.blue[800]!, "Dark Blue"),
+                        _colorOptionButton(setDialogState, Colors.orange[800]!, "Orange"),
+                        _colorOptionButton(setDialogState, Colors.red[800]!, "Red"),
+                      ],
+                    ),
+                    const Divider(color: Colors.white24, height: 20),
+
+                    const Text("1. నిలువు (Vertical) యాడ్ JPEG:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(verticalAdImagePath.isEmpty ? "ఇమేజ్ సెలెక్ట్ కాలేదు" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { verticalAdImagePath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, size: 14),
+                          label: const Text("Upload", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    const Text("నిలువు బాక్స్ వెడల్పు (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Slider(
+                      value: isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth,
+                      min: 80,
+                      max: 300,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (isLandscapeMode) {
+                            landscapeVerticalWidth = val;
+                          } else {
+                            verticalAdWidth = val;
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    const Text("నిలువు ఇమేజ్ రొటేట్ (Rotate 90°):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 20),
+                          onPressed: () {
+                            setDialogState(() { verticalAdRotation -= 1.5708; });
+                            setState(() {});
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 20),
+                          onPressed: () {
+                            setDialogState(() { verticalAdRotation += 1.5708; });
+                            setState(() {});
+                          },
+                        ),
+                        const Text("తిప్పడానికి క్లిక్ చేయండి", style: TextStyle(color: Colors.white38, fontSize: 10)),
+                      ],
+                    ),
+
+                    const Divider(color: Colors.white24, height: 20),
+
+                    const Text("2. అడ్డు (Horizontal) బాటమ్ యాడ్ JPEG:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(horizontalAdImagePath.isEmpty ? "ఇమేజ్ లేదా డిఫాల్ట్ టెక్స్ట్" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { horizontalAdImagePath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, size: 14),
+                          label: const Text("Upload", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    const Text("అడ్డు బ్యానర్ ఎత్తు (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Slider(
+                      value: isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight,
+                      min: 50,
+                      max: 184,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (isLandscapeMode) {
+                            landscapeHorizontalHeight = val;
+                          } else {
+                            horizontalAdHeight = val;
+                          }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    const Text("బాటమ్ టెక్స్ట్ (ఇమేజ్ లేకపోతే):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    TextField(
+                      controller: lShapeTextCtrl,
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                      decoration: const InputDecoration(hintText: "టెక్స్ట్ రాయండి", hintStyle: TextStyle(color: Colors.white38)),
+                      onChanged: (val) {
+                        setState(() { lShapeCustomText = val; });
+                      },
+                    ),
+                  ],
                 ),
               ),
               actions: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  onPressed: () {
+                    setState(() { isLBandMode = true; });
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Apply L-Shape", style: TextStyle(color: Colors.white)),
+                ),
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
               ],
             );
           },
         );
       },
+    );
+  }
+
+  Widget _colorOptionButton(StateSetter setDialogState, Color color, String name) {
+    return GestureDetector(
+      onTap: () {
+        setDialogState(() { lShapeColor = color; });
+        setState(() { lShapeColor = color; });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(color: Colors.white, width: lShapeColor == color ? 2 : 1),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(name, style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 
@@ -634,6 +755,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
+    // 🔥 డిస్‌ప్లే క్రాపింగ్ సమస్య లేకుండా పూర్తి స్క్రీన్‌ను నింపే పర్‌ఫెక్ట్ కెమెరా ప్రివ్యూ
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -667,6 +789,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
+    double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
+    double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
@@ -689,69 +814,64 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
-              // 🔥 L-Shape మోడ్: బ్లూ కలర్ L-Shape బ్యాండ్ (కింది న్యూస్ టిక్కర్లపైన పర్‌ఫెక్ట్‌గా ఆగిపోయేలా సెట్ చేయబడింది)
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                bottom: 85, // కింద ఉన్న న్యూస్ టిక్కర్ల కోసం ఖాళీ స్థలం వదిలివేయబడింది
+                bottom: 85,
                 child: Container(
                   color: Colors.white,
                   child: Stack(
                     children: [
-                      // కుడి వైపు మరియు పైన కెమెరా ప్రివ్యూ
                       Positioned(
                         top: 0,
-                        left: isScreenLandscape ? 180 : 110,
+                        left: currentVerticalWidth,
                         right: 0,
-                        bottom: isScreenLandscape ? 70 : 100,
+                        bottom: currentHorizontalHeight,
                         child: SizedBox.expand(
                           child: ClipRect(
                             child: cameraWidget,
                           ),
                         ),
                       ),
-                      // ఎడమ వైపు నిలువు బ్లూ బ్యాండ్
                       Positioned(
                         left: 0,
                         top: 0,
                         bottom: 0,
-                        width: isScreenLandscape ? 180 : 110,
+                        width: currentVerticalWidth,
                         child: Container(
-                          color: const Color(0xFF95C8F2),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.star, color: Colors.white, size: 20),
-                              const SizedBox(height: 2),
-                              const Text("BLUE L-AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 10)),
-                              const SizedBox(height: 4),
-                              Expanded(
-                                child: Center(
-                                  child: lBandImagesList[selectedLBandIndex].isNotEmpty
-                                      ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
-                                      : const Padding(
-                                          padding: EdgeInsets.all(4.0),
-                                          child: Text("JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 9)),
-                                        ),
-                                ),
-                              ),
-                            ],
+                          color: lShapeColor,
+                          child: Center(
+                            child: verticalAdImagePath.isNotEmpty
+                                ? Transform.rotate(
+                                    angle: verticalAdRotation,
+                                    child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
+                                  )
+                                : const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.star, color: Colors.white, size: 20),
+                                      SizedBox(height: 2),
+                                      Text("VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 10)),
+                                    ],
+                                  ),
                           ),
                         ),
                       ),
-                      // క్రింది అడ్డపు బ్లూ బ్యాండ్ (న్యూస్ టిక్కర్లకు పైన ఉండేలా)
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: isScreenLandscape ? 70 : 100,
+                        height: currentHorizontalHeight,
                         child: Container(
-                          color: const Color(0xFF95C8F2),
+                          color: lShapeColor,
                           alignment: Alignment.center,
-                          child: lBandImagesList[selectedLBandIndex].isNotEmpty
-                              ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
-                              : const Text("SS YATRA TV - L-SHAPE AD BANNER", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
+                          child: horizontalAdImagePath.isNotEmpty
+                              ? Transform.rotate(
+                                  angle: horizontalAdRotation,
+                                  child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
+                                )
+                              : Text(lShapeCustomText, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
                     ],
@@ -802,7 +922,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ],
               ),
             ),
-            // 🔥 బ్రేకింగ్ న్యూస్ / స్టేట్ న్యూస్ టిక్కర్స్ (ఇప్పుడు L-Shape యాడ్‌కి ఎప్పుడూ అడ్డురాకుండా స్పష్టంగా క్రింది భాగంలో కనిపిస్తాయి)
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: Column(
@@ -837,7 +956,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
                         _buildControlButton(
                           isLBandMode ? Icons.fullscreen : Icons.view_sidebar, 
-                          isLBandMode ? "Ad Off" : "L-Shape", 
+                          isLBandMode ? "Ad Off" : "L-Shape Edit", 
                           () { 
                             setState(() { isLBandMode = !isLBandMode; }); 
                             if(isLBandMode) _showLBandImagesManagerDialog();
