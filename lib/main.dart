@@ -71,7 +71,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   double verticalAdWidth = 130.0;
   double landscapeVerticalWidth = 200.0;
-  double horizontalAdHeight = 130.0; // స్టేట్ న్యూస్ స్పేస్ కలిపి పెంచబడింది
+  double horizontalAdHeight = 130.0;
   double landscapeHorizontalHeight = 100.0;
 
   int verticalAdRotationTurns = 0; 
@@ -89,7 +89,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String reporterRole = "SPECIAL CORRESPONDENT";
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
-  String breakingNewsText = "⚠️ బ్రేకింగ్ న్యూస్: ప్రత్యేక ప్రసారాలు మరియు తాజా అప్‌డేట్స్ కొరకు చూస్తూనే ఉండండి - SS YATRA TV LIVE";
 
   bool selectYt = false, selectFb = false, selectInsta = false, selectX = false, selectThreads = false, selectSnap = false, selectIptv = false;
   TextEditingController ytCtrl = TextEditingController();
@@ -728,7 +727,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     if (isAutoTimerActive) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("L-Band ఆటో టైమర్ ఆన్ చేయబడింది (ప్రతి 15 నిమిషాలకు ఒకసారి)"), backgroundColor: Colors.green),
+        const SnackBar(content: Text("L-Band ఆటో టైమర్ ఆన్ చేయబడింది (ప్రతి 15 నిమిషాలకు ఒకసారిப்பதி"), backgroundColor: Colors.green),
       );
       
       _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
@@ -838,7 +837,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
-              // 🔥 L-Shape మోడ్: స్టేట్ న్యూస్ స్థలాన్ని కూడా కలుపుకుని అడ్డు యాడ్ హైట్ పెంచబడింది (No Blank Space)
+              // 🔥 L-Shape మోడ్: స్టేట్ న్యూస్ స్థలాన్ని కలుపుకుని అడ్డు యాడ్ హైట్ పెంచబడింది (No Blank Space)
               Positioned.fill(
                 child: Container(
                   color: Colors.white,
@@ -856,7 +855,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // 1. నిలువు యాడ్ బాక్స్ (H x W కొలతలతో)
+                      // 1. నిలువు యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై H x W కొలతలతో)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -889,7 +888,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (పెంచబడిన హైట్ మరియు H x W కొలతలతో)
+                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై H x W కొలతలతో)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -961,7 +960,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             Positioned(
               bottom: isLBandMode ? currentHorizontalHeight + 15 : 95, 
-              left: 15, 
+              left: max(15, currentVerticalWidth + 15), // నిలువు యాడ్‌ను ఓవర్‌లాప్ చేయకుండా సరిగ్గా కెమెరా ప్రివ్యూలో ఉంటాయి
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -974,7 +973,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్: L-Shape ఆన్ ఉన్నప్పుడు కేవలం బ్రేకింగ్ న్యూస్ మాత్రమే; లేకపోతే లేటెస్ట్ & స్టేట్ న్యూస్
+            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: isLBandMode
@@ -982,8 +981,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          height: 40, color: Colors.amber[800], padding: const EdgeInsets.symmetric(horizontal: 10), 
-                          child: Row(children: [const Text("BREAKING NEWS: ", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), Expanded(child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), blankSpace: 100.0, velocity: 40.0))]),
+                          height: 40, color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10), 
+                          child: Row(children: [const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
                         ),
                       ],
                     )
@@ -1058,3 +1057,5 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
+double max(double a, double b) => a > b ? a : b;
