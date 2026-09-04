@@ -71,8 +71,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   double verticalAdWidth = 130.0;
   double landscapeVerticalWidth = 200.0;
-  double horizontalAdHeight = 90.0;
-  double landscapeHorizontalHeight = 70.0;
+  double horizontalAdHeight = 130.0; // స్టేట్ న్యూస్ స్పేస్ కలిపి పెంచబడింది
+  double landscapeHorizontalHeight = 100.0;
 
   int verticalAdRotationTurns = 0; 
   int horizontalAdRotationTurns = 0;
@@ -332,12 +332,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
             double curVWidth = isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth;
             double curHHeight = isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight;
-            double screenW = MediaQuery.of(context).size.width;
-            double screenH = MediaQuery.of(context).size.height;
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape యాడ్స్ & H×W కొలతల ఎడిటర్", style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text("L-Shape యాడ్స్ & H x W కొలతల ఎడిటర్", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -356,9 +354,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
-                    // నిలువు యాడ్ H x W కొలతలు
                     const Text("1. నిలువు (Vertical) యాడ్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("కొలతలు (Height × Width): [ ${screenH.toInt()} × ${curVWidth.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("డిజైనర్ల కోసం ఎక్సాక్ట్ సైజ్ (H x W): [ Height x Width: Full x ${curVWidth.toInt()}px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -379,7 +376,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                     const SizedBox(height: 5),
-                    const Text("నిలువు వెడల్పు మార్చడానికి (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    const Text("నిలువు బాక్స్ వెడల్పు మార్చడానికి (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
                       value: curVWidth,
                       min: 80,
@@ -419,9 +416,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     const Divider(color: Colors.white24, height: 20),
 
-                    // అడ్డు యాడ్ H x W కొలతలు (స్టేట్ న్యూస్ స్థలాన్ని కలుపుకుని పెద్దదిగా)
                     const Text("2. అడ్డు (Horizontal) బాటమ్ యాడ్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("కొలతలు (Height × Width): [ ${curHHeight.toInt()} × ${(screenW - curVWidth).toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("డిజైనర్ల కోసం ఎక్సాక్ట్ సైజ్ (H x W): [ Height x Width: ${curHHeight.toInt()}px x Full ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -445,8 +441,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     const Text("అడ్డు బ్యానర్ ఎత్తు మార్చడానికి (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
                       value: curHHeight,
-                      min: 60,
-                      max: 180, // స్టేట్ న్యూస్ స్పేస్ ని కూడా భర్తీ చేసేలా హైట్ పెంచుకోవచ్చు
+                      min: 80,
+                      max: 220,
                       activeColor: Colors.blue,
                       onChanged: (val) {
                         setDialogState(() {
@@ -783,8 +779,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    double screenW = MediaQuery.of(context).size.width;
-    double screenH = MediaQuery.of(context).size.height;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
@@ -839,75 +833,93 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               )
-            else
-              // 🔥 కెమెరా ప్రివ్యూ ఎప్పుడూ పూర్తి స్క్రీన్‌లో ఉంటుంది
+            else if (!isLBandMode)
               Positioned.fill(
                 child: cameraWidget,
-              ),
-
-            // 🔥 L-Shape యాడ్స్ ఆన్‌లో ఉన్నప్పుడు కనిపించే ఓవర్‌లే బాక్సెస్ (కెమెరా పైన అతుక్కుంటాయి)
-            if (isLBandMode) ...[
-              // 1. నిలువు యాడ్ బాక్స్ (Height × Width కొలతలతో)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: isLBandMode ? currentHorizontalHeight + (isLBandMode ? 0 : 75) : 0,
-                width: currentVerticalWidth,
+              )
+            else
+              // 🔥 L-Shape మోడ్: స్టేట్ న్యూస్ స్థలాన్ని కూడా కలుపుకుని అడ్డు యాడ్ హైట్ పెంచబడింది (No Blank Space)
+              Positioned.fill(
                 child: Container(
-                  color: lShapeColor,
+                  color: Colors.white,
                   child: Stack(
                     children: [
-                      Center(
-                        child: verticalAdImagePath.isNotEmpty
-                            ? RotatedBox(
-                                quarterTurns: verticalAdRotationTurns,
-                                child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
-                              )
-                            : const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.star, color: Colors.white, size: 20),
-                                  SizedBox(height: 2),
-                                  Text("VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 10)),
-                                ],
+                      // కెమెరా ప్రివ్యూ (L-Shape బ్యానర్ల లోపల పర్‌ఫెక్ట్‌గా ఫిట్ అవుతుంది)
+                      Positioned(
+                        top: 0,
+                        left: currentVerticalWidth,
+                        right: 0,
+                        bottom: currentHorizontalHeight,
+                        child: SizedBox.expand(
+                          child: ClipRect(
+                            child: cameraWidget,
+                          ),
+                        ),
+                      ),
+                      // 1. నిలువు యాడ్ బాక్స్ (H x W కొలతలతో)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: currentVerticalWidth,
+                        child: Container(
+                          color: lShapeColor,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: verticalAdImagePath.isNotEmpty
+                                    ? RotatedBox(
+                                        quarterTurns: verticalAdRotationTurns,
+                                        child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
+                                      )
+                                    : const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.star, color: Colors.white, size: 20),
+                                          SizedBox(height: 2),
+                                          Text("VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 10)),
+                                        ],
+                                      ),
                               ),
+                              Positioned(
+                                bottom: 5, left: 2, right: 2,
+                                child: Text("H x W: Full x ${currentVerticalWidth.toInt()}px", textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
+                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (పెంచబడిన హైట్ మరియు H x W కొలతలతో)
                       Positioned(
-                        bottom: 5, left: 2, right: 2,
-                        child: Text("${screenH.toInt()}×${currentVerticalWidth.toInt()}px", textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: currentHorizontalHeight,
+                        child: Container(
+                          color: lShapeColor,
+                          alignment: Alignment.center,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: horizontalAdImagePath.isNotEmpty
+                                    ? RotatedBox(
+                                        quarterTurns: horizontalAdRotationTurns,
+                                        child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
+                                      )
+                                    : Text(lShapeCustomText, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
+                              ),
+                              Positioned(
+                                right: 5, bottom: 2,
+                                child: Text("H x W: ${currentHorizontalHeight.toInt()}px x Full", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (స్టేట్ న్యూస్ స్థలాన్ని ఆక్రమిస్తూ పెద్దదిగా, Height × Width కొలతలతో)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 75, // న్యూస్ టిక్కర్లకు పైన సరిగ్గా ఆగుతుంది
-                height: currentHorizontalHeight,
-                child: Container(
-                  color: lShapeColor,
-                  alignment: Alignment.center,
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: horizontalAdImagePath.isNotEmpty
-                            ? RotatedBox(
-                                quarterTurns: horizontalAdRotationTurns,
-                                child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
-                              )
-                            : Text(lShapeCustomText, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
-                      ),
-                      Positioned(
-                        right: 5, bottom: 2,
-                        child: Text("H×W: ${currentHorizontalHeight.toInt()}×${(screenW - currentVerticalWidth).toInt()}px", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
 
             if (isVideoAdPlaying)
               Positioned(
@@ -938,10 +950,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 ఛానల్ లోగో / వాటర్మార్క్ & రిపోర్టర్ వివరాలు నేరుగా కెమెరా స్క్రీన్ లోపల కనిపిస్తాయి
-            Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))),
+            // 🔥 వాటర్మార్క్ మరియు రిపోర్టర్ వివరాలు కెమెరా స్క్రీన్ లోపల స్పష్టంగా కనిపించేలా సెట్ చేయబడ్డాయి
             Positioned(
-              bottom: isLBandMode ? currentHorizontalHeight + 85 : 95, 
+              top: 30, right: 30, 
+              child: Container(
+                padding: const EdgeInsets.all(8), 
+                color: Colors.blue[900]?.withOpacity(0.8), 
+                child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+            ),
+            Positioned(
+              bottom: isLBandMode ? currentHorizontalHeight + 15 : 95, 
               left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -955,7 +974,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్: L-Shape ఆన్‌లో ఉన్నప్పుడు కేవలం బ్రేకింగ్ న్యూస్ / లేటెస్ట్ న్యూస్ మాత్రమే వస్తాయి (స్టేట్ న్యూస్ రాదు)
+            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్: L-Shape ఆన్ ఉన్నప్పుడు కేవలం బ్రేకింగ్ న్యూస్ మాత్రమే; లేకపోతే లేటెస్ట్ & స్టేట్ న్యూస్
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: isLBandMode
