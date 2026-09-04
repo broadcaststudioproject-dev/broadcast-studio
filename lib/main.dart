@@ -74,8 +74,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   double horizontalAdHeight = 100.0;
   double landscapeHorizontalHeight = 70.0;
 
-  double verticalAdRotation = 0.0;
-  double horizontalAdRotation = 0.0;
+  // 🔥 పక్కాగా పనిచేసే రొటేషన్ కౌంటర్ (0, 90, 180, 270 డిగ్రీలు)
+  int verticalAdRotationTurns = 0; 
+  int horizontalAdRotationTurns = 0;
 
   String lShapeCustomText = "SS YATRA TV - L-SHAPE AD BANNER";
   TextEditingController lShapeTextCtrl = TextEditingController();
@@ -175,14 +176,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
-  // 🔥 అత్యుత్తమ HD కెమెరా క్లారిటీ కోసం max రెసొల్యూషన్ సెట్టింగ్
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max, // అల్ట్రా హెచ్‌డి క్లారిటీ
+        ResolutionPreset.max,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -323,6 +323,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 నిలువు, అడ్డు యాడ్స్, సైజ్ మరియు రొటేట్ (RotatedBox) ఎడిటర్
   void _showLBandImagesManagerDialog() {
     showDialog(
       context: context,
@@ -351,6 +352,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
+                    // 1. నిలువు యాడ్ సెట్టింగ్స్
                     const Text("1. నిలువు (Vertical) యాడ్ JPEG:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
@@ -389,29 +391,34 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() {});
                       },
                     ),
-                    const Text("నిలువు ఇమేజ్ రొటేట్ (Rotate 90°):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    const Text("నిలువు ఇమేజ్ రొటేట్ (Rotate):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 20),
+                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 22),
                           onPressed: () {
-                            setDialogState(() { verticalAdRotation -= 1.5708; });
+                            setDialogState(() {
+                              verticalAdRotationTurns = (verticalAdRotationTurns - 1) % 4;
+                            });
                             setState(() {});
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 20),
+                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 22),
                           onPressed: () {
-                            setDialogState(() { verticalAdRotation += 1.5708; });
+                            setDialogState(() {
+                              verticalAdRotationTurns = (verticalAdRotationTurns + 1) % 4;
+                            });
                             setState(() {});
                           },
                         ),
-                        const Text("తిప్పడానికి క్లిక్ చేయండి", style: TextStyle(color: Colors.white38, fontSize: 10)),
+                        Text("Turns: $verticalAdRotationTurns", style: const TextStyle(color: Colors.white70, fontSize: 11)),
                       ],
                     ),
 
                     const Divider(color: Colors.white24, height: 20),
 
+                    // 2. అడ్డు యాడ్ సెట్టింగ్స్
                     const Text("2. అడ్డు (Horizontal) బాటమ్ యాడ్ JPEG:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
@@ -449,6 +456,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         });
                         setState(() {});
                       },
+                    ),
+                    const Text("అడ్డు ఇమేజ్ రొటేట్ (Rotate):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 22),
+                          onPressed: () {
+                            setDialogState(() {
+                              horizontalAdRotationTurns = (horizontalAdRotationTurns - 1) % 4;
+                            });
+                            setState(() {});
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 22),
+                          onPressed: () {
+                            setDialogState(() {
+                              horizontalAdRotationTurns = (horizontalAdRotationTurns + 1) % 4;
+                            });
+                            setState(() {});
+                          },
+                        ),
+                        Text("Turns: $horizontalAdRotationTurns", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                      ],
                     ),
                     const Text("బాటమ్ టెక్స్ట్ (ఇమేజ్ లేకపోతే):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     TextField(
@@ -755,7 +786,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    // 🔥 డిస్‌ప్లే క్రాపింగ్ సమస్య లేకుండా పూర్తి స్క్రీన్‌ను నింపే పర్‌ఫెక్ట్ కెమెరా ప్రివ్యూ
+    // 🔥 సోషల్ మీడియా మరియు టీవీ తెరల కొలతలకు సరిపోయే పర్‌ఫెక్ట్ HD కెమెరా ప్రివ్యూ
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -834,6 +865,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
+                      // 1. నిలువు యాడ్ (RotatedBox తో పక్కాగా రొటేట్ అవుతుంది)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -843,8 +875,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           color: lShapeColor,
                           child: Center(
                             child: verticalAdImagePath.isNotEmpty
-                                ? Transform.rotate(
-                                    angle: verticalAdRotation,
+                                ? RotatedBox(
+                                    quarterTurns: verticalAdRotationTurns,
                                     child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
                                   )
                                 : const Column(
@@ -858,6 +890,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
+                      // 2. అడ్డు బాటమ్ యాడ్ (RotatedBox తో పక్కాగా రొటేట్ అవుతుంది)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -867,8 +900,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           color: lShapeColor,
                           alignment: Alignment.center,
                           child: horizontalAdImagePath.isNotEmpty
-                              ? Transform.rotate(
-                                  angle: horizontalAdRotation,
+                              ? RotatedBox(
+                                  quarterTurns: horizontalAdRotationTurns,
                                   child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
                                 )
                               : Text(lShapeCustomText, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
@@ -995,4 +1028,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
