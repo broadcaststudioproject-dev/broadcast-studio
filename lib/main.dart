@@ -166,7 +166,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max,
+        ResolutionPreset.medium, // 🔥 ఫాస్ట్ లోడింగ్ కోసం మీడియం రిజల్యూషన్
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -655,8 +655,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: FittedBox(
                     fit: BoxFit.cover,
                     child: SizedBox(
-                      width: isScreenLandscape ? (controller!.value.previewSize?.width ?? 1920) : (controller!.value.previewSize?.height ?? 1080),
-                      height: isScreenLandscape ? (controller!.value.previewSize?.height ?? 1080) : (controller!.value.previewSize?.width ?? 1920),
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
                       child: CameraPreview(controller!),
                     ),
                   ),
@@ -695,9 +695,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         top: 15, left: 15, bottom: 85, right: 15,
                         child: Row(
                           children: [
-                            // 🔥 L-Shape / L-Band యాడ్ బాక్స్ మరియు సైజ్ వివరాలు
+                            // 🔥 L-Shape / L-Band యాడ్ బాక్స్ మరియు క్లియర్ డిస్ప్లే
                             Container(
-                              width: isScreenLandscape ? 220 : 140,
+                              width: isScreenLandscape ? 240 : 150,
                               decoration: BoxDecoration(
                                 color: Colors.orange[900],
                                 border: Border.all(color: Colors.yellow, width: 2),
@@ -705,8 +705,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.star, color: Colors.yellow, size: 24),
-                                  const SizedBox(height: 4),
+                                  const Icon(Icons.star, color: Colors.yellow, size: 22),
+                                  const SizedBox(height: 2),
                                   const Text("L-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                                   const SizedBox(height: 2),
                                   Container(
@@ -717,13 +717,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       style: const TextStyle(color: Colors.yellowAccent, fontSize: 9, fontWeight: FontWeight.bold),
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 4),
                                   Expanded(
                                     child: Center(
                                       child: lBandImagesList[selectedLBandIndex].isNotEmpty
                                           ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
                                           : const Padding(
-                                              padding: EdgeInsets.all(8.0),
+                                              padding: EdgeInsets.all(4.0),
                                               child: Text("గ్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 10)),
                                             ),
                                     ),
