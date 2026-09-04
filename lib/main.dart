@@ -166,7 +166,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.medium, // 🔥 ఫాస్ట్ లోడింగ్ కోసం మీడియం రిజల్యూషన్
+        ResolutionPreset.high, // 🔥 హై రిజల్యూషన్ సెట్ చేయబడింది
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -651,13 +651,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller!.value.previewSize?.height ?? 1080,
-                      height: controller!.value.previewSize?.width ?? 1920,
-                      child: CameraPreview(controller!),
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller!.value.previewSize?.height ?? 1080,
+                        height: controller!.value.previewSize?.width ?? 1920,
+                        child: CameraPreview(controller!),
+                      ),
                     ),
                   ),
                 ),
@@ -695,9 +698,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         top: 15, left: 15, bottom: 85, right: 15,
                         child: Row(
                           children: [
-                            // 🔥 L-Shape / L-Band యాడ్ బాక్స్ మరియు క్లియర్ డిస్ప్లే
+                            // 🔥 L-Shape / L-Band యాడ్ బాక్స్ మరియు సైజ్ వివరాలు పర్‌ఫెక్ట్ ఫిట్
                             Container(
-                              width: isScreenLandscape ? 240 : 150,
+                              width: isScreenLandscape ? 220 : 130,
                               decoration: BoxDecoration(
                                 color: Colors.orange[900],
                                 border: Border.all(color: Colors.yellow, width: 2),
@@ -705,9 +708,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.star, color: Colors.yellow, size: 22),
+                                  const Icon(Icons.star, color: Colors.yellow, size: 20),
                                   const SizedBox(height: 2),
-                                  const Text("L-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                  const Text("L-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
                                   const SizedBox(height: 2),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -724,7 +727,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                           ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
                                           : const Padding(
                                               padding: EdgeInsets.all(4.0),
-                                              child: Text("గ్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 10)),
+                                              child: Text("గ్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 9)),
                                             ),
                                     ),
                                   ),
@@ -865,3 +868,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
