@@ -331,10 +331,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
             double curVWidth = isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth;
             double curHHeight = isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight;
+            double screenWidth = MediaQuery.of(context).size.width;
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape యాడ్స్ & H x W కొలతల ఎడిటర్", style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text("L-Shape యాడ్స్ & రియల్ పిక్సెల్ కొలతలు", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -353,8 +354,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
-                    const Text("1. నిలువు (Vertical) యాడ్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("డిజైనర్ల కోసం ఎక్సాక్ట్ సైజ్ (H x W): [ Height x Width: Full x ${curVWidth.toInt()}px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const Text("1. నిలువు (Vertical) యాడ్ కొలతలు:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    Text("Height x Width: [ Full Screen x ${curVWidth.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -415,8 +416,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     const Divider(color: Colors.white24, height: 20),
 
-                    const Text("2. అడ్డు (Horizontal) బాటమ్ యాడ్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("డిజైనర్ల కోసం ఎక్సాక్ట్ సైజ్ (H x W): [ Height x Width: ${curHHeight.toInt()}px x Full ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const Text("2. అడ్డు (Horizontal) యాడ్ కొలతలు:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    Text("Height x Width: [ ${curHHeight.toInt()} px x ${screenWidth.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -727,7 +728,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     if (isAutoTimerActive) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("L-Band ఆటో టైమర్ ఆన్ చేయబడింది (ప్రతి 15 నిమిషాలకు ఒకసారిப்பதி"), backgroundColor: Colors.green),
+        const SnackBar(content: Text("L-Band ఆటో టైమర్ ఆన్ చేయబడింది (ప్రతి 15 నిమిషాలకు ఒకసారి)"), backgroundColor: Colors.green),
       );
       
       _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
@@ -778,6 +779,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    double screenWidth = MediaQuery.of(context).size.width;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
@@ -837,7 +839,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
-              // 🔥 L-Shape మోడ్: స్టేట్ న్యూస్ స్థలాన్ని కలుపుకుని అడ్డు యాడ్ హైట్ పెంచబడింది (No Blank Space)
+              // 🔥 L-Shape మోడ్: అడ్డు యాడ్ హైట్ మరియు నిలువు యాడ్ వెడల్పు పర్‌ఫెక్ట్‌గా సెట్ చేయబడ్డాయి
               Positioned.fill(
                 child: Container(
                   color: Colors.white,
@@ -855,7 +857,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // 1. నిలువు యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై H x W కొలతలతో)
+                      // 1. నిలువు యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై రియల్ H x W పిక్సెల్ కొలతలతో)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -888,7 +890,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై H x W కొలతలతో)
+                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై రియల్ H x W పిక్సెల్ కొలతలతో)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -909,7 +911,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                               Positioned(
                                 right: 5, bottom: 2,
-                                child: Text("H x W: ${currentHorizontalHeight.toInt()}px x Full", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
+                                child: Text("H x W: ${currentHorizontalHeight.toInt()}px x ${screenWidth.toInt()}px", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -949,7 +951,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 వాటర్మార్క్ మరియు రిపోర్టర్ వివరాలు కెమెరా స్క్రీన్ లోపల స్పష్టంగా కనిపించేలా సెట్ చేయబడ్డాయి
+            // 🔥 వాటర్మార్క్ మరియు రిపోర్టర్ వివరాలు: L-Shape ఆన్/ఆఫ్ అయినప్పుడు డైనమిక్‌గా ఎడమ వైపునకు/సక్రమ స్థానానికి మారుతాయి
             Positioned(
               top: 30, right: 30, 
               child: Container(
@@ -960,7 +962,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             Positioned(
               bottom: isLBandMode ? currentHorizontalHeight + 15 : 95, 
-              left: max(15, currentVerticalWidth + 15), // నిలువు యాడ్‌ను ఓవర్‌లాప్ చేయకుండా సరిగ్గా కెమెరా ప్రివ్యూలో ఉంటాయి
+              left: isLBandMode ? currentVerticalWidth + 15 : 15, // 🔥 L-Shape ఆన్ అయినప్పుడు ఎడమ వైపు నిలువు యాడ్‌కు ఆనుకోకుండా కుడి వైపునకు (కెమెరా స్క్రీన్‌లోకి) పర్ఫెక్ట్‌గా జరుగుతుంది
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1057,5 +1059,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
-double max(double a, double b) => a > b ? a : b;
