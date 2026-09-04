@@ -69,9 +69,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String verticalAdImagePath = "";
   String horizontalAdImagePath = "";
   
-  double verticalAdWidth = 110.0;
-  double landscapeVerticalWidth = 180.0;
-  double horizontalAdHeight = 100.0;
+  double verticalAdWidth = 130.0;
+  double landscapeVerticalWidth = 200.0;
+  double horizontalAdHeight = 90.0;
   double landscapeHorizontalHeight = 70.0;
 
   int verticalAdRotationTurns = 0; 
@@ -335,7 +335,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape యాడ్స్ & కొలతల ఎడిటర్", style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text("L-Shape యాడ్స్ & కొలతల H x W ఎడిటర్", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -354,8 +354,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
+                    // నిలువు యాడ్ సైజ్ H x W
                     const Text("1. నిలువు (Vertical) యాడ్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("డిజైనర్ల కోసం ఎక్సాక్ట్ సైజ్: [ Width: ${curVWidth.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("సైజ్ (Height x Width): [ ${curHHeight.toInt()}H x ${curVWidth.toInt()}W px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -376,7 +377,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                     const SizedBox(height: 5),
-                    const Text("నిలువు బాక్స్ వెడల్పు మార్చడానికి (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    const Text("నిలువు బాక్స్ వెడల్పు (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
                       value: curVWidth,
                       min: 80,
@@ -416,8 +417,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     const Divider(color: Colors.white24, height: 20),
 
+                    // అడ్డు యాడ్ సైజ్ H x W
                     const Text("2. అడ్డు (Horizontal) బాటమ్ యాడ్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("డిజైనర్ల కోసం ఎక్సాక్ట్ సైజ్: [ Height: ${curHHeight.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("సైజ్ (Height x Width): [ ${curHHeight.toInt()}H x Screen Width W px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -438,7 +440,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                     const SizedBox(height: 5),
-                    const Text("అడ్డు బ్యానర్ ఎత్తు మార్చడానికి (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    const Text("అడ్డు బ్యానర్ ఎత్తు (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
                       value: curHHeight,
                       min: 50,
@@ -721,7 +723,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 ఆటో టైమర్: యాడ్స్ డిస్ప్లే అయ్యే సమయంలో బ్రేకింగ్ న్యూస్ హైలైట్ అవుతుంది
   void _toggleAutoTimerAds() {
     setState(() {
       isAutoTimerActive = !isAutoTimerActive;
@@ -834,32 +835,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               )
-            else if (!isLBandMode)
+            else
+              // కెమెరా ప్రివ్యూ ఎప్పుడూ బ్యాక్‌గ్రౌండ్‌లో ఫుల్ స్క్రీన్‌గా ఉంటుంది
               Positioned.fill(
                 child: cameraWidget,
-              )
-            else
+              ),
+
+            // 🔥 L-Shape యాడ్స్ లేఅవుట్ (కెమెరా స్క్రీన్‌పై ఓవర్‌లాప్ కాకుండా పక్కన మరియు కింద అమర్చబడింది)
+            if (isLBandMode)
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                bottom: 85,
-                child: Container(
-                  color: Colors.white,
+                bottom: 85, // న్యూస్ టిక్కర్ల కోసం ఖాళీ
+                child: IgnorePointer(
                   child: Stack(
                     children: [
-                      Positioned(
-                        top: 0,
-                        left: currentVerticalWidth,
-                        right: 0,
-                        bottom: currentHorizontalHeight,
-                        child: SizedBox.expand(
-                          child: ClipRect(
-                            child: cameraWidget,
-                          ),
-                        ),
-                      ),
-                      // 1. నిలువు యాడ్ (కొలతల లేబుల్‌తో)
+                      // 1. నిలువు యాడ్ బాక్స్ (H x W కొలతలతో)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -886,13 +878,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                               Positioned(
                                 bottom: 5, left: 2, right: 2,
-                                child: Text("${currentVerticalWidth.toInt()}px", textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
+                                child: Text("${currentVerticalWidth.toInt()}W px", textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      // 2. అడ్డు బాటమ్ యాడ్ (కొలతల లేబుల్‌తో)
+                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (H x W కొలతలతో)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -913,7 +905,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                               Positioned(
                                 right: 5, bottom: 2,
-                                child: Text("Height: ${currentHorizontalHeight.toInt()}px", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
+                                child: Text("${currentHorizontalHeight.toInt()}H px", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -953,9 +945,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
+            // ఛానల్ లోగో / పేరు (కెమెరా స్క్రీన్ లోపల)
             Positioned(top: 30, right: 30, child: Container(padding: const EdgeInsets.all(8), color: Colors.blue[900]?.withOpacity(0.8), child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))),
+            
+            // రిపోర్టర్ వివరాలు (కెమెరా స్క్రీన్ లోపల)
             Positioned(
-              bottom: 95, left: 15, 
+              bottom: isLBandMode ? currentHorizontalHeight + 90 : 95, 
+              left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -968,7 +964,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్: L-Shape యాడ్స్ ఆన్‌లో ఉన్నప్పుడు 'బ్రేకింగ్ న్యూస్' వస్తుంది, లేకపోతే సాధారణ 'లేటెస్ట్ & స్టేట్ న్యూస్' వస్తాయి
+            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్ (యాడ్స్ ఉన్నప్పుడు కేవలం బ్రేకింగ్ న్యూస్ / లేటెస్ట్ న్యూస్ మాత్రమే; లేకపోతే లేటెస్ట్ & స్టేట్ న్యూస్)
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: isLBandMode
@@ -978,10 +974,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         Container(
                           height: 35, color: Colors.amber[800], padding: const EdgeInsets.symmetric(horizontal: 10), 
                           child: Row(children: [const Text("BREAKING NEWS: ", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), Expanded(child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 40.0))]),
-                        ),
-                        Container(
-                          height: 40, color: Colors.red[900], padding: const EdgeInsets.symmetric(horizontal: 10), 
-                          child: Row(children: [const Text("LIVE UPDATE: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
                         ),
                       ],
                     )
