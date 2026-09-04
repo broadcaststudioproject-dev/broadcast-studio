@@ -368,7 +368,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))],
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
             );
           },
         );
@@ -406,7 +407,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))],
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+          ],
         );
       },
     );
@@ -687,33 +689,36 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
-              // 🔥 బ్లూ కలర్ L-Shape డిజైన్ (ఎడమ వైపు మరియు క్రింది భాగం బ్లూ కలర్ బ్యానర్‌తో, మీ ఇమేజ్ ప్రకారం)
-              Positioned.fill(
+              // 🔥 L-Shape మోడ్: బ్లూ కలర్ L-Shape బ్యాండ్ (కింది న్యూస్ టిక్కర్లపైన పర్‌ఫెక్ట్‌గా ఆగిపోయేలా సెట్ చేయబడింది)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 85, // కింద ఉన్న న్యూస్ టిక్కర్ల కోసం ఖాళీ స్థలం వదిలివేయబడింది
                 child: Container(
-                  color: Colors.white, // వైట్ బ్యాక్‌గ్రౌండ్ (మీ ఇమేజ్ లేఅవుట్ లాగా)
+                  color: Colors.white,
                   child: Stack(
                     children: [
-                      // కెమెరా లేదా వీడియో ఫీడ్ ప్రివ్యూ (కుడి వైపు మరియు పైన ఖాళీ స్థలంలో ఫిట్ అవుతుంది)
+                      // కుడి వైపు మరియు పైన కెమెరా ప్రివ్యూ
                       Positioned(
                         top: 0,
-                        left: isScreenLandscape ? 180 : 110, // బ్లూ విడ్త్ పోను మిగతా స్పేస్
+                        left: isScreenLandscape ? 180 : 110,
                         right: 0,
-                        bottom: isScreenLandscape ? 90 : 120, // బ్లూ హైట్ పోను మిగతా స్పేస్
+                        bottom: isScreenLandscape ? 70 : 100,
                         child: SizedBox.expand(
                           child: ClipRect(
                             child: cameraWidget,
                           ),
                         ),
                       ),
-
-                      // 🔥 L-Shape బ్లూ కలర్ యాడ్ లేఅవుట్ (నిలువుగా మరియు అడ్డంగా బ్లూ బ్యాండ్)
+                      // ఎడమ వైపు నిలువు బ్లూ బ్యాండ్
                       Positioned(
                         left: 0,
                         top: 0,
                         bottom: 0,
                         width: isScreenLandscape ? 180 : 110,
                         child: Container(
-                          color: const Color(0xFF95C8F2), // స్కై బ్లూ కలర్ (ఇమేజ్ ప్రకారం)
+                          color: const Color(0xFF95C8F2),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -735,13 +740,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
+                      // క్రింది అడ్డపు బ్లూ బ్యాండ్ (న్యూస్ టిక్కర్లకు పైన ఉండేలా)
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: isScreenLandscape ? 90 : 120,
+                        height: isScreenLandscape ? 70 : 100,
                         child: Container(
-                          color: const Color(0xFF95C8F2), // స్కై బ్లూ కలర్ బాటమ్ బ్యాండ్
+                          color: const Color(0xFF95C8F2),
                           alignment: Alignment.center,
                           child: lBandImagesList[selectedLBandIndex].isNotEmpty
                               ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
@@ -796,6 +802,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ],
               ),
             ),
+            // 🔥 బ్రేకింగ్ న్యూస్ / స్టేట్ న్యూస్ టిక్కర్స్ (ఇప్పుడు L-Shape యాడ్‌కి ఎప్పుడూ అడ్డురాకుండా స్పష్టంగా క్రింది భాగంలో కనిపిస్తాయి)
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: Column(
