@@ -166,7 +166,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.high, // 🔥 హై రిజల్యూషన్ సెట్ చేయబడింది
+        ResolutionPreset.high,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -651,16 +651,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: ClipRect(
-                  child: OverflowBox(
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: controller!.value.previewSize?.height ?? 1080,
-                        height: controller!.value.previewSize?.width ?? 1920,
-                        child: CameraPreview(controller!),
-                      ),
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
+                      child: CameraPreview(controller!),
                     ),
                   ),
                 ),
@@ -689,62 +686,54 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
+              // 🔥 L-Shape మోడ్ ఆన్ చేసినప్పుడు స్క్రీన్ మొత్తాన్ని ఖాళీ లేకుండా పర్‌ఫెక్ట్‌గా ఆక్రమించే లేఅవుట్
               Positioned.fill(
                 child: Container(
-                  color: Colors.blueGrey[900],
-                  child: Stack(
+                  color: Colors.black,
+                  child: Row(
                     children: [
-                      Positioned(
-                        top: 15, left: 15, bottom: 85, right: 15,
-                        child: Row(
+                      // ఎడమ వైపు L-Shape యాడ్ బాక్స్
+                      Container(
+                        width: isScreenLandscape ? 220 : 135,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.orange[900],
+                          border: Border.all(color: Colors.yellow, width: 2),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // 🔥 L-Shape / L-Band యాడ్ బాక్స్ మరియు సైజ్ వివరాలు పర్‌ఫెక్ట్ ఫిట్
+                            const SizedBox(height: 10),
+                            const Icon(Icons.star, color: Colors.yellow, size: 20),
+                            const SizedBox(height: 2),
+                            const Text("L-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                            const SizedBox(height: 2),
                             Container(
-                              width: isScreenLandscape ? 220 : 130,
-                              decoration: BoxDecoration(
-                                color: Colors.orange[900],
-                                border: Border.all(color: Colors.yellow, width: 2),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.star, color: Colors.yellow, size: 20),
-                                  const SizedBox(height: 2),
-                                  const Text("L-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
-                                  const SizedBox(height: 2),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                    color: Colors.black54,
-                                    child: Text(
-                                      isScreenLandscape ? "HD: 400x720" : "HD: 300x600",
-                                      style: const TextStyle(color: Colors.yellowAccent, fontSize: 9, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Expanded(
-                                    child: Center(
-                                      child: lBandImagesList[selectedLBandIndex].isNotEmpty
-                                          ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
-                                          : const Padding(
-                                              padding: EdgeInsets.all(4.0),
-                                              child: Text("గ్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 9)),
-                                            ),
-                                    ),
-                                  ),
-                                ],
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              color: Colors.black54,
+                              child: Text(
+                                isScreenLandscape ? "HD: 400x720" : "HD: 300x600",
+                                style: const TextStyle(color: Colors.yellowAccent, fontSize: 9, fontWeight: FontWeight.bold),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(height: 4),
                             Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  color: Colors.black,
-                                  child: cameraWidget,
-                                ),
+                              child: Center(
+                                child: lBandImagesList[selectedLBandIndex].isNotEmpty
+                                    ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
+                                    : const Padding(
+                                        padding: EdgeInsets.all(4.0),
+                                        child: Text("గ్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 9)),
+                                      ),
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      // కుడి వైపు కెమెరా ప్రివ్యూ (నల్లటి ఖాళీలు లేకుండా పూర్తి ఫిట్)
+                      Expanded(
+                        child: SizedBox.expand(
+                          child: cameraWidget,
                         ),
                       ),
                     ],
@@ -868,4 +857,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
