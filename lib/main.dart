@@ -166,7 +166,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.high,
+        ResolutionPreset.max,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -316,7 +316,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("10 L-Band HD JPEG ఇమేజ్ యాడ్స్", style: TextStyle(color: Colors.white, fontSize: 15)),
+              title: const Text("బ్లూ కలర్ L-Shape JPEG యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 15)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -328,7 +328,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: Row(
                         children: [
-                          Text("L-Img ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text("L-Blue ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 5),
                           Expanded(
                             child: TextField(
@@ -339,7 +339,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.photo_library, color: Colors.amberAccent, size: 20),
+                            icon: const Icon(Icons.photo_library, color: Colors.blueAccent, size: 20),
                             tooltip: "గ్యాలరీ నుండి ఫోటో ఎంచుకోండి",
                             onPressed: () async {
                               final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
@@ -351,7 +351,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             },
                           ),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(40, 30)),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, minimumSize: const Size(40, 30)),
                             onPressed: () {
                               Navigator.pop(context);
                               setState(() {
@@ -368,8 +368,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-              ],
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))],
             );
           },
         );
@@ -407,8 +406,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-          ],
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))],
         );
       },
     );
@@ -637,27 +635,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? GestureDetector(
-                onScaleStart: (details) {
-                  _baseScale = _currentZoomLevel;
-                },
-                onScaleUpdate: (details) async {
-                  if (controller == null) return;
-                  double zoom = _baseScale * details.scale;
-                  if (zoom < _minZoomLevel) zoom = _minZoomLevel;
-                  if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-                  setState(() {
-                    _currentZoomLevel = zoom;
-                  });
-                  await controller?.setZoomLevel(zoom);
-                },
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller!.value.previewSize?.height ?? 1080,
-                      height: controller!.value.previewSize?.width ?? 1920,
-                      child: CameraPreview(controller!),
+            ? Listener(
+                onPointerSignal: (pointerSignal) {},
+                child: GestureDetector(
+                  onScaleStart: (details) {
+                    _baseScale = _currentZoomLevel;
+                  },
+                  onScaleUpdate: (details) async {
+                    if (controller == null) return;
+                    double zoom = _baseScale * details.scale;
+                    if (zoom < _minZoomLevel) zoom = _minZoomLevel;
+                    if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+                    setState(() {
+                      _currentZoomLevel = zoom;
+                    });
+                    await controller?.setZoomLevel(zoom);
+                  },
+                  child: SizedBox.expand(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller!.value.previewSize?.height ?? 1080,
+                        height: controller!.value.previewSize?.width ?? 1920,
+                        child: CameraPreview(controller!),
+                      ),
                     ),
                   ),
                 ),
@@ -686,54 +687,65 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
-              // 🔥 L-Shape మోడ్ ఆన్ చేసినప్పుడు స్క్రీన్ మొత్తాన్ని ఖాళీ లేకుండా పర్‌ఫెక్ట్‌గా ఆక్రమించే లేఅవుట్
+              // 🔥 బ్లూ కలర్ L-Shape డిజైన్ (ఎడమ వైపు మరియు క్రింది భాగం బ్లూ కలర్ బ్యానర్‌తో, మీ ఇమేజ్ ప్రకారం)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black,
-                  child: Row(
+                  color: Colors.white, // వైట్ బ్యాక్‌గ్రౌండ్ (మీ ఇమేజ్ లేఅవుట్ లాగా)
+                  child: Stack(
                     children: [
-                      // ఎడమ వైపు L-Shape యాడ్ బాక్స్
-                      Container(
-                        width: isScreenLandscape ? 220 : 135,
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.orange[900],
-                          border: Border.all(color: Colors.yellow, width: 2),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 10),
-                            const Icon(Icons.star, color: Colors.yellow, size: 20),
-                            const SizedBox(height: 2),
-                            const Text("L-SHAPE AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
-                            const SizedBox(height: 2),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              color: Colors.black54,
-                              child: Text(
-                                isScreenLandscape ? "HD: 400x720" : "HD: 300x600",
-                                style: const TextStyle(color: Colors.yellowAccent, fontSize: 9, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Expanded(
-                              child: Center(
-                                child: lBandImagesList[selectedLBandIndex].isNotEmpty
-                                    ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
-                                    : const Padding(
-                                        padding: EdgeInsets.all(4.0),
-                                        child: Text("గ్యాలరీ నుండి JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 9)),
-                                      ),
-                              ),
-                            ),
-                          ],
+                      // కెమెరా లేదా వీడియో ఫీడ్ ప్రివ్యూ (కుడి వైపు మరియు పైన ఖాళీ స్థలంలో ఫిట్ అవుతుంది)
+                      Positioned(
+                        top: 0,
+                        left: isScreenLandscape ? 180 : 110, // బ్లూ విడ్త్ పోను మిగతా స్పేస్
+                        right: 0,
+                        bottom: isScreenLandscape ? 90 : 120, // బ్లూ హైట్ పోను మిగతా స్పేస్
+                        child: SizedBox.expand(
+                          child: ClipRect(
+                            child: cameraWidget,
+                          ),
                         ),
                       ),
-                      // కుడి వైపు కెమెరా ప్రివ్యూ (నల్లటి ఖాళీలు లేకుండా పూర్తి ఫిట్)
-                      Expanded(
-                        child: SizedBox.expand(
-                          child: cameraWidget,
+
+                      // 🔥 L-Shape బ్లూ కలర్ యాడ్ లేఅవుట్ (నిలువుగా మరియు అడ్డంగా బ్లూ బ్యాండ్)
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: isScreenLandscape ? 180 : 110,
+                        child: Container(
+                          color: const Color(0xFF95C8F2), // స్కై బ్లూ కలర్ (ఇమేజ్ ప్రకారం)
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.star, color: Colors.white, size: 20),
+                              const SizedBox(height: 2),
+                              const Text("BLUE L-AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 10)),
+                              const SizedBox(height: 4),
+                              Expanded(
+                                child: Center(
+                                  child: lBandImagesList[selectedLBandIndex].isNotEmpty
+                                      ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
+                                      : const Padding(
+                                          padding: EdgeInsets.all(4.0),
+                                          child: Text("JPEG యాడ్ సెట్ చేయండి", textAlign: TextAlign.center, style: TextStyle(color: Colors.black54, fontSize: 9)),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: isScreenLandscape ? 90 : 120,
+                        child: Container(
+                          color: const Color(0xFF95C8F2), // స్కై బ్లూ కలర్ బాటమ్ బ్యాండ్
+                          alignment: Alignment.center,
+                          child: lBandImagesList[selectedLBandIndex].isNotEmpty
+                              ? Image.file(File(lBandImagesList[selectedLBandIndex]), fit: BoxFit.cover, filterQuality: FilterQuality.high)
+                              : const Text("SS YATRA TV - L-SHAPE AD BANNER", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                       ),
                     ],
@@ -755,7 +767,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             Positioned.fill(
               child: IgnorePointer(
                 child: Container(
-                  decoration: BoxDecoration(border: Border.all(color: Colors.redAccent.withOpacity(0.8), width: 4.0)),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.black.withOpacity(0.8), width: 3.0)),
                 ),
               ),
             ),
@@ -857,3 +869,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
