@@ -781,6 +781,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
 
+    // 🔥 కెమెరా ప్రివ్యూ సాగిపోకుండా (Stretch లేకుండా) పర్‌ఫెక్ట్‌గా ఫిట్ అయ్యేలా సరిదిద్దబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -803,9 +804,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: SizedBox.expand(
                     child: FittedBox(
                       fit: BoxFit.cover,
+                      alignment: Alignment.center,
                       child: SizedBox(
-                        width: controller!.value.previewSize?.height ?? 1080,
-                        height: controller!.value.previewSize?.width ?? 1920,
+                        width: controller!.value.previewSize?.width ?? 1080,
+                        height: controller!.value.previewSize?.height ?? 1920,
                         child: CameraPreview(controller!),
                       ),
                     ),
