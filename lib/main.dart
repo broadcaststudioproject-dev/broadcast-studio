@@ -82,7 +82,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
-  // 🔥 3D లోగో ఇమేజ్ మరియు సైజ్ వేరియబుల్స్
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
@@ -94,13 +93,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
 
-  bool selectYt = false, selectFb = false, selectInsta = false, selectX = false, selectThreads = false, selectSnap = false, selectIptv = false;
+  // 🔥 క్లౌడ్ రిలే సర్వర్ (Restream / AWS / DigitalOcean RTMP) కంట్రోలర్
+  bool selectCloudRelay = true;
+  TextEditingController cloudRelayCtrl = TextEditingController();
+
+  bool selectYt = false, selectFb = false, selectIptv = false;
   TextEditingController ytCtrl = TextEditingController();
   TextEditingController fbCtrl = TextEditingController();
-  TextEditingController instaCtrl = TextEditingController();
-  TextEditingController xCtrl = TextEditingController();
-  TextEditingController threadsCtrl = TextEditingController();
-  TextEditingController snapCtrl = TextEditingController();
   TextEditingController iptvCtrl = TextEditingController();
 
   TextEditingController watermarkCtrl = TextEditingController();
@@ -123,6 +122,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     newsCtrl.text = stateNews;
     lShapeTextCtrl.text = lShapeCustomText;
     qrDataController.text = "http://192.168.1.100:8081/video";
+    
+    // డిఫాల్ట్ క్లౌడ్ రిలే సర్వర్ RTMP URL (Restream.io లేదా కస్టమ్ సర్వర్)
+    cloudRelayCtrl.text = "rtmp://live.restream.io/live/your_stream_key";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -157,18 +159,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     ipController.dispose();
     qrDataController.dispose();
     lShapeTextCtrl.dispose();
+    cloudRelayCtrl.dispose();
+    ytCtrl.dispose();
+    fbCtrl.dispose();
+    iptvCtrl.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
     roleCtrl.dispose();
     newsCtrl.dispose();
-    ytCtrl.dispose();
-    fbCtrl.dispose();
-    instaCtrl.dispose();
-    xCtrl.dispose();
-    threadsCtrl.dispose();
-    snapCtrl.dispose();
-    iptvCtrl.dispose();
     super.dispose();
   }
 
@@ -641,7 +640,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 3D లోగో అప్‌లోడ్ మరియు సైజ్ రీసైజ్ ఆప్షన్‌తో కూడిన ఎడిట్ డైలాగ్
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -732,6 +730,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 క్లౌడ్ RTMP రిలే సర్వర్ ద్వారా మల్టీ-లైవ్ స్ట్రీమింగ్ మేనేజ్మెంట్ డైలాగ్
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -740,31 +739,31 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("మల్టీ-ప్లాట్‌ఫార్మ్ లైవ్ స్ట్రీమింగ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              title: const Text("క్లౌడ్ రిలే సర్వర్ - మల్టీ-లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 15)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CheckboxListTile(title: const Text("YouTube Live", style: TextStyle(color: Colors.white)), value: selectYt, activeColor: Colors.red, onChanged: (val) => setDialogState(() => selectYt = val!)),
-                    if (selectYt) TextField(controller: ytCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "YouTube RTMP URL")),
-                    
-                    CheckboxListTile(title: const Text("Facebook Live", style: TextStyle(color: Colors.white)), value: selectFb, activeColor: Colors.blue, onChanged: (val) => setDialogState(() => selectFb = val!)),
-                    if (selectFb) TextField(controller: fbCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Facebook Stream URL")),
-                    
-                    CheckboxListTile(title: const Text("Instagram Live", style: TextStyle(color: Colors.white)), value: selectInsta, activeColor: Colors.pink, onChanged: (val) => setDialogState(() => selectInsta = val!)),
-                    if (selectInsta) TextField(controller: instaCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Instagram RTMP URL")),
-                    
-                    CheckboxListTile(title: const Text("X (Twitter) Live", style: TextStyle(color: Colors.white)), value: selectX, activeColor: Colors.white, onChanged: (val) => setDialogState(() => selectX = val!)),
-                    if (selectX) TextField(controller: xCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "X Stream URL")),
-                    
-                    CheckboxListTile(title: const Text("Threads Live", style: TextStyle(color: Colors.white)), value: selectThreads, activeColor: Colors.purple, onChanged: (val) => setDialogState(() => selectThreads = val!)),
-                    if (selectThreads) TextField(controller: threadsCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Threads Stream URL")),
-                    
-                    CheckboxListTile(title: const Text("Snapchat Live", style: TextStyle(color: Colors.white)), value: selectSnap, activeColor: Colors.amber, onChanged: (val) => setDialogState(() => selectSnap = val!)),
-                    if (selectSnap) TextField(controller: snapCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "Snapchat Stream URL")),
-                    
-                    CheckboxListTile(title: const Text("IPTV / Cable Server", style: TextStyle(color: Colors.white)), value: selectIptv, activeColor: Colors.green, onChanged: (val) => setDialogState(() => selectIptv = val!)),
-                    if (selectIptv) TextField(controller: iptvCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(hintText: "IPTV Encoder URL")),
+                    const Text("మొబైల్ ఫోన్‌పై భారం పడకుండా ఉండటానికి, మీ పాకెట్ పీసీఆర్ ఫీడ్ కేవలం ఈ క్రింది క్లౌడ్ రిలే సర్వర్‌కు (Restream / AWS) మాత్రమే పంపబడుతుంది. సర్వర్ దానిని డూప్లికేట్ చేసి YouTube, Facebook లకు పంపుతుంది.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(height: 10),
+                    CheckboxListTile(
+                      title: const Text("Cloud Relay Server (Restream / AWS)", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 13)), 
+                      value: selectCloudRelay, 
+                      activeColor: Colors.green, 
+                      onChanged: (val) => setDialogState(() => selectCloudRelay = val!)
+                    ),
+                    if (selectCloudRelay) 
+                      TextField(
+                        controller: cloudRelayCtrl, 
+                        style: const TextStyle(color: Colors.yellow, fontSize: 12), 
+                        decoration: const InputDecoration(labelText: "Cloud RTMP Stream URL / Key", labelStyle: TextStyle(color: Colors.white54))
+                      ),
+                    const Divider(color: Colors.white24, height: 20),
+                    const Text("సర్వర్ నుండి ఏయే ప్లాట్‌ఫార్మ్‌లకు ఆటో-లైవ్ వెళ్ళాలి:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    CheckboxListTile(title: const Text("YouTube Live (via Cloud)", style: TextStyle(color: Colors.white, fontSize: 12)), value: selectYt, activeColor: Colors.red, onChanged: (val) => setDialogState(() => selectYt = val!)),
+                    CheckboxListTile(title: const Text("Facebook Live (via Cloud)", style: TextStyle(color: Colors.white, fontSize: 12)), value: selectFb, activeColor: Colors.blue, onChanged: (val) => setDialogState(() => selectFb = val!)),
+                    CheckboxListTile(title: const Text("IPTV / Cable Server (via Cloud)", style: TextStyle(color: Colors.white, fontSize: 12)), value: selectIptv, activeColor: Colors.green, onChanged: (val) => setDialogState(() => selectIptv = val!)),
                   ],
                 ),
               ),
@@ -775,9 +774,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   onPressed: () {
                     setState(() { isLiveBroadcasting = true; });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సెలెక్ట్ చేసిన అన్ని సోషల్ మీడియా ఛానెల్స్‌కు లైవ్ ప్రసారం ప్రారంభమైంది!"), backgroundColor: Colors.green));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("క్లౌడ్ రిలే సర్వర్ ద్వారా మల్టీ-లైవ్ ప్రసారం విజయవంతంగా ప్రారంభమైంది!"), backgroundColor: Colors.green));
                   },
-                  child: const Text("Start Multi-Live", style: TextStyle(color: Colors.white)),
+                  child: const Text("Start Cloud Multi-Live", style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -1010,11 +1009,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   color: Colors.red,
-                  child: const Row(children: [Icon(Icons.fiber_manual_record, color: Colors.white, size: 12), SizedBox(width: 5), Text("MULTI-LIVE ON", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))]),
+                  child: const Row(children: [Icon(Icons.fiber_manual_record, color: Colors.white, size: 12), SizedBox(width: 5), Text("CLOUD MULTI-LIVE ON", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))]),
                 ),
               ),
 
-            // 🔥 టెక్స్ట్ బదులుగా 3D లోగో ఇమేజ్ (JPEG/PNG) లేదా డిఫాల్ట్ లోగో డిస్‌ప్లే అయ్యే సెక్షన్
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
