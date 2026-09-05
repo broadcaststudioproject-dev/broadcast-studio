@@ -225,26 +225,38 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔥 గ్యాలరీ MP4 ఫైల్స్ మరియు డైరెక్ట్ ఇంటర్నెట్ లింక్స్ రెండింటినీ సపోర్ట్ చేసే పర్‌ఫెక్ట్ వీడియో యాడ్ ప్లేయర్ లాజిక్
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
       return;
     }
 
+    _videoAdVlcController?.stopRendererScanning();
     _videoAdVlcController?.dispose();
-    _videoAdVlcController = VlcPlayerController.network(
-      videoUrl,
-      hwAcc: HwAcc.full,
-      autoPlay: true,
-      options: VlcPlayerOptions(),
-    );
+
+    if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
+      _videoAdVlcController = VlcPlayerController.network(
+        videoUrl,
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+        options: VlcPlayerOptions(),
+      );
+    } else {
+      _videoAdVlcController = VlcPlayerController.file(
+        File(videoUrl),
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+        options: VlcPlayerOptions(),
+      );
+    }
 
     setState(() {
       isVideoAdPlaying = true;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("ఫుల్ హెచ్‌డి యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
+      const SnackBar(content: Text("ఫుల్ హెచ్‌డి వీడియో యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
     );
   }
 
@@ -283,7 +295,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             child: TextField(
                               controller: adCtrl,
                               style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                              decoration: const InputDecoration(hintText: "హెచ్‌డి వీడియో లింక్ / పాత్", hintStyle: TextStyle(color: Colors.white38)),
+                              decoration: const InputDecoration(hintText: "డైరెక్ట్ MP4 లింక్ లేదా గ్యాలరీ పాత్", hintStyle: TextStyle(color: Colors.white38)),
                               onChanged: (val) { videoAdsList[index] = val; },
                             ),
                           ),
@@ -781,7 +793,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
 
-    // 🔥 కెమెరా ప్రివ్యూ సాగిపోకుండా (Stretch లేకుండా) పర్‌ఫెక్ట్‌గా ఫిట్ అయ్యేలా సరిదిద్దబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -841,13 +852,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: cameraWidget,
               )
             else
-              // 🔥 L-Shape మోడ్: అడ్డు యాడ్ హైట్ మరియు నిలువు యాడ్ వెడల్పు పర్‌ఫెక్ట్‌గా సెట్ చేయబడ్డాయి
               Positioned.fill(
                 child: Container(
                   color: Colors.white,
                   child: Stack(
                     children: [
-                      // కెమెరా ప్రివ్యూ (L-Shape బ్యానర్ల లోపల పర్‌ఫెక్ట్‌గా ఫిట్ అవుతుంది)
                       Positioned(
                         top: 0,
                         left: currentVerticalWidth,
@@ -859,7 +868,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // 1. నిలువు యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై రియల్ H x W పిక్సెల్ కొలతలతో)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -892,7 +900,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // 2. అడ్డు బాటమ్ యాడ్ బాక్స్ (లైవ్ స్క్రీన్‌పై రియల్ H x W పిక్సెల్ కొలతలతో)
                       Positioned(
                         left: 0,
                         right: 0,
@@ -953,7 +960,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 వాటర్మార్క్ మరియు రిపోర్టర్ వివరాలు: L-Shape ఆన్/ఆఫ్ అయినప్పుడు డైనమిక్‌గా ఎడమ వైపునకు/సక్రమ స్థానానికి మారుతాయి
             Positioned(
               top: 30, right: 30, 
               child: Container(
@@ -964,7 +970,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             Positioned(
               bottom: isLBandMode ? currentHorizontalHeight + 15 : 95, 
-              left: isLBandMode ? currentVerticalWidth + 15 : 15, // 🔥 L-Shape ఆన్ అయినప్పుడు ఎడమ వైపు నిలువు యాడ్‌కు ఆనుకోకుండా కుడి వైపునకు (కెమెరా స్క్రీన్‌లోకి) పర్ఫెక్ట్‌గా జరుగుతుంది
+              left: isLBandMode ? currentVerticalWidth + 15 : 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -977,7 +983,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 డైనమిక్ న్యూస్ టిక్కర్స్
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: isLBandMode
@@ -1061,3 +1066,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
