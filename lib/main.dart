@@ -82,7 +82,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
-  String channelName = "SS\nYATRA\nTV";
+  // 🔥 3D లోగో ఇమేజ్ మరియు సైజ్ వేరియబుల్స్
+  String channelLogoPath = "";
+  double logoWidth = 70.0;
+  double logoHeight = 70.0;
+
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
   String reporterName = "JANAMPALLY VINOD KUMAR";
@@ -99,7 +103,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController snapCtrl = TextEditingController();
   TextEditingController iptvCtrl = TextEditingController();
 
-  TextEditingController channelCtrl = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
@@ -113,7 +116,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    channelCtrl.text = channelName;
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
@@ -155,7 +157,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     ipController.dispose();
     qrDataController.dispose();
     lShapeTextCtrl.dispose();
-    channelCtrl.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
@@ -225,7 +226,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 గ్యాలరీ MP4 ఫైల్స్ మరియు డైరెక్ట్ ఇంటర్నెట్ లింక్స్ రెండింటినీ సపోర్ట్ చేసే పర్‌ఫెక్ట్ వీడియో యాడ్ ప్లేయర్ లాజిక్
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
@@ -235,19 +235,25 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _videoAdVlcController?.stopRendererScanning();
     _videoAdVlcController?.dispose();
 
+    final VlcPlayerOptions options = VlcPlayerOptions(
+      advanced: VlcAdvancedOptions([
+        VlcAdvancedOptions.networkCaching(2000),
+      ]),
+    );
+
     if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
       _videoAdVlcController = VlcPlayerController.network(
         videoUrl,
         hwAcc: HwAcc.full,
         autoPlay: true,
-        options: VlcPlayerOptions(),
+        options: options,
       );
     } else {
       _videoAdVlcController = VlcPlayerController.file(
         File(videoUrl),
         hwAcc: HwAcc.full,
         autoPlay: true,
-        options: VlcPlayerOptions(),
+        options: options,
       );
     }
 
@@ -635,44 +641,92 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 3D లోగో అప్‌లోడ్ మరియు సైజ్ రీసైజ్ ఆప్షన్‌తో కూడిన ఎడిట్ డైలాగ్
   void _showEditDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text("గ్రాఫిక్స్ ఎడిట్ చేయండి", style: TextStyle(color: Colors.white)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: channelCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "ఛానల్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ హోదా", labelStyle: TextStyle(color: Colors.white54))),
-                TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్", labelStyle: TextStyle(color: Colors.white54))),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("3D లోగో & గ్రాఫిక్స్ ఎడిట్ చేయండి", style: TextStyle(color: Colors.white)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("ఛానల్ 3D లోగో (JPEG/PNG):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(channelLogoPath.isEmpty ? "లోగో సెలెక్ట్ చేయలేదు" : "లోగో అటాచ్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { channelLogoPath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, size: 14),
+                          label: const Text("Upload Logo", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Text("లోగో వెడల్పు (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Slider(
+                      value: logoWidth,
+                      min: 40,
+                      max: 150,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() { logoWidth = val; });
+                        setState(() { logoWidth = val; });
+                      },
+                    ),
+                    const Text("లోగో ఎత్తు (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Slider(
+                      value: logoHeight,
+                      min: 40,
+                      max: 150,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() { logoHeight = val; });
+                        setState(() { logoHeight = val; });
+                      },
+                    ),
+                    const Divider(color: Colors.white24, height: 20),
+                    TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్ టెక్స్ట్", labelStyle: TextStyle(color: Colors.white54))),
+                    TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్", labelStyle: TextStyle(color: Colors.white54))),
+                    TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
+                    TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ హోదా", labelStyle: TextStyle(color: Colors.white54))),
+                    TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్", labelStyle: TextStyle(color: Colors.white54))),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      watermarkText = watermarkCtrl.text;
+                      locationText = locCtrl.text;
+                      reporterName = nameCtrl.text;
+                      reporterRole = roleCtrl.text;
+                      stateNews = newsCtrl.text;
+                    });
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Save", style: TextStyle(color: Colors.white)),
+                ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () {
-                setState(() {
-                  channelName = channelCtrl.text;
-                  watermarkText = watermarkCtrl.text;
-                  locationText = locCtrl.text;
-                  reporterName = nameCtrl.text;
-                  reporterRole = roleCtrl.text;
-                  stateNews = newsCtrl.text;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text("Save", style: TextStyle(color: Colors.white)),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -960,14 +1014,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
+            // 🔥 టెక్స్ట్ బదులుగా 3D లోగో ఇమేజ్ (JPEG/PNG) లేదా డిఫాల్ట్ లోగో డిస్‌ప్లే అయ్యే సెక్షన్
             Positioned(
               top: 30, right: 30, 
-              child: Container(
-                padding: const EdgeInsets.all(8), 
-                color: Colors.blue[900]?.withOpacity(0.8), 
-                child: Text(channelName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-              ),
+              child: channelLogoPath.isNotEmpty
+                  ? SizedBox(
+                      width: logoWidth,
+                      height: logoHeight,
+                      child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(8), 
+                      color: Colors.blue[900]?.withOpacity(0.8), 
+                      child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
             ),
+
             Positioned(
               bottom: isLBandMode ? currentHorizontalHeight + 15 : 95, 
               left: isLBandMode ? currentVerticalWidth + 15 : 15, 
@@ -1066,4 +1128,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
