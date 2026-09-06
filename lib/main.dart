@@ -45,7 +45,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _channelLogoVlcController; // 🔥 MP4 లోగో కోసం VLC కంట్రోలర్
+  VlcPlayerController? _channelLogoVlcController; 
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -84,7 +84,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
   String channelLogoPath = "";
-  bool isLogoVideo = false; // 🔥 లోగో వీడియో కాదా అని గుర్తించడానికి
+  bool isLogoVideo = false; 
   double logoWidth = 70.0;
   double logoHeight = 70.0;
 
@@ -155,7 +155,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
-    _channelLogoVlcController?.dispose(); // 🔥 కంట్రోలర్ డిస్పోజ్
+    _channelLogoVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     lShapeTextCtrl.dispose();
@@ -225,7 +225,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 MP4 లోగో సెటప్ చేయడానికి ఫంక్షన్
   void _setupChannelLogo(String path, bool isVideo) {
     _channelLogoVlcController?.dispose();
     setState(() {
@@ -242,9 +241,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           advanced: VlcAdvancedOptions([VlcAdvancedOptions.networkCaching(1000)]),
         ),
       );
-      // లూప్ కావడానికి సెట్టింగ్
-      _channelLogoVlcController?.addOnInitListener(() {
-        _channelLogoVlcController?.setLoop(999);
+      
+      _channelLogoVlcController?.addOnInitListener(() async {
+        await _channelLogoVlcController?.setLooping(true);
       });
     }
   }
@@ -368,7 +367,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
             double curVWidth = isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth;
             double curHHeight = isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight;
-            double screenWidth = MediaQuery.of(context).size.width;
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
@@ -556,7 +554,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 ఇక్కడ లోగో కోసం Image లేదా MP4 Video అప్‌లోడ్ ఆప్షన్ ఇవ్వబడింది
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -578,7 +575,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         Expanded(
                           child: Text(channelLogoPath.isEmpty ? "లోగో సెలెక్ట్ చేయలేదు" : "లోగో అటాచ్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
                         ),
-                        // ఇమేజ్ అప్‌లోడ్ బటన్
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(70, 30)),
                           onPressed: () async {
@@ -593,7 +589,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           label: const Text("Image", style: TextStyle(fontSize: 10)),
                         ),
                         const SizedBox(width: 5),
-                        // 🔥 MP4 వీడియో అప్‌లోడ్ బటన్
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(70, 30)),
                           onPressed: () async {
@@ -752,7 +747,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    double screenWidth = MediaQuery.of(context).size.width;
+    double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
+    double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
@@ -783,9 +779,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
-
-    double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
-    double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -861,7 +854,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 స్ట్రీమ్ స్క్రీన్ పైభాగంలో కుడివైపు లోగో (Image లేదా MP4 Video రూపంలో ప్రదర్శించబడుతుంది)
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
@@ -931,7 +923,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue), // 🔥 లోగో ఎడిట్ బటన్
+                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
                         _buildControlButton(
