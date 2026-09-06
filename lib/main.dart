@@ -93,13 +93,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String stateNews = "తెలంగాణ తాజా వార్తలు లోడ్ అవుతున్నాయి...";
   String googleNews = "జాతీయ వార్తలు లోడ్ అవుతున్నాయి...";
 
-  bool selectCloudRelay = true;
-  TextEditingController cloudRelayCtrl = TextEditingController();
-
-  bool selectYt = false, selectFb = false, selectIptv = false;
-  TextEditingController ytCtrl = TextEditingController();
-  TextEditingController fbCtrl = TextEditingController();
-  TextEditingController iptvCtrl = TextEditingController();
+  // 🔥 డైరెక్ట్ RTMP / Restream లింక్ కంట్రోలర్
+  TextEditingController rtmpUrlController = TextEditingController();
 
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
@@ -122,7 +117,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     newsCtrl.text = stateNews;
     lShapeTextCtrl.text = lShapeCustomText;
     qrDataController.text = "http://192.168.1.100:8081/video";
-    cloudRelayCtrl.text = "rtmp://live.restream.io/live/your_stream_key";
+    
+    // డిఫాల్ట్ Restream RTMP URL (మీ స్టీమ్ కీ తో మార్చుకోవచ్చు)
+    rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -130,7 +127,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _initCamera();
     _requestPermissions();
     _fetchGoogleNews(); 
-    _fetchTelanganaNews(); // 🔥 తెలంగాణ న్యూస్ ఆటో అప్‌డేట్ కాల్
+    _fetchTelanganaNews(); 
     
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchGoogleNews();
@@ -163,10 +160,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     ipController.dispose();
     qrDataController.dispose();
     lShapeTextCtrl.dispose();
-    cloudRelayCtrl.dispose();
-    ytCtrl.dispose();
-    fbCtrl.dispose();
-    iptvCtrl.dispose();
+    rtmpUrlController.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
@@ -291,7 +285,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 తెలంగాణ స్టేట్ న్యూస్ ఆటో-అప్‌డేట్ ఫంక్షన్
   Future<void> _fetchTelanganaNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss/search?q=Telangana+news&hl=te&gl=IN&ceid=IN:te'));
@@ -662,6 +655,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 డైరెక్ట్ RTMP / Restream లింక్ ద్వారా మల్టీ-లైవ్ బ్రాడ్‌కాస్ట్ డైలాగ్
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -670,39 +664,47 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("క్లౌడ్ రిలే సర్వర్ - మల్టీ-లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 15)),
+              title: const Text("డైరెక్ట్ RTMP / Restream లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("మొబైల్ ఫోన్‌పై భారం పడకుండా ఉండటానికి క్లౌడ్ రిలే సర్వర్‌కు పంపబడుతుంది.", style: TextStyle(color: Colors.white70, fontSize: 11)),
-                    const SizedBox(height: 10),
-                    CheckboxListTile(
-                      title: const Text("Cloud Relay Server", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 13)), 
-                      value: selectCloudRelay, 
-                      activeColor: Colors.green, 
-                      onChanged: (val) => setDialogState(() => selectCloudRelay = val!)
-                    ),
-                    if (selectCloudRelay) 
-                      TextField(
-                        controller: cloudRelayCtrl, 
-                        style: const TextStyle(color: Colors.yellow, fontSize: 12), 
-                        decoration: const InputDecoration(labelText: "Cloud RTMP Stream URL / Key", labelStyle: TextStyle(color: Colors.white54))
+                    const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి. దీనిద్వారా యాప్ నుండి నేరుగా ప్రసారం ప్రారంభమవుతుంది.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: rtmpUrlController,
+                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                      decoration: const InputDecoration(
+                        labelText: "RTMP Server URL & Stream Key",
+                        labelStyle: TextStyle(color: Colors.white54),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
                       ),
+                    ),
                   ],
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+                ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
                   onPressed: () {
-                    setState(() { isLiveBroadcasting = true; });
+                    setState(() { 
+                      isLiveBroadcasting = !isLiveBroadcasting; 
+                    });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("క్లౌడ్ రిలే సర్వర్ ద్వారా మల్టీ-లైవ్ ప్రసారం ప్రారంభమైంది!"), backgroundColor: Colors.green));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isLiveBroadcasting ? "డైరెక్ట్ RTMP లైవ్ ప్రసారం ప్రారంభమైంది!" : "లైవ్ ప్రసారం ఆపివేయబడింది!"), 
+                        backgroundColor: isLiveBroadcasting ? Colors.green : Colors.orange,
+                      ),
+                    );
                   },
-                  child: const Text("Start Cloud Multi-Live", style: TextStyle(color: Colors.white)),
+                  child: Text(isLiveBroadcasting ? "Stop Live" : "Start Live", style: const TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -845,7 +847,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 GIF / Logo View
+            // 🔥 Logo / GIF View
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
@@ -912,7 +914,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                        _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
+                        _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
                         _buildControlButton(
                           isLBandMode ? Icons.fullscreen : Icons.view_sidebar, 
                           isLBandMode ? "Ad Off" : "L-Shape Edit", 
