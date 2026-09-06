@@ -28,9 +28,9 @@ class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const StudioScreen(),
+      home: StudioScreen(),
     );
   }
 }
@@ -45,6 +45,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
+  VlcPlayerController? _channelLogoVlcController; // 🔥 MP4 లోగో కోసం VLC కంట్రోలర్
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -83,6 +84,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
   String channelLogoPath = "";
+  bool isLogoVideo = false; // 🔥 లోగో వీడియో కాదా అని గుర్తించడానికి
   double logoWidth = 70.0;
   double logoHeight = 70.0;
 
@@ -93,7 +95,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
   String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
 
-  // 🔥 క్లౌడ్ రిలే సర్వర్ (Restream / AWS / DigitalOcean RTMP) కంట్రోలర్
   bool selectCloudRelay = true;
   TextEditingController cloudRelayCtrl = TextEditingController();
 
@@ -122,8 +123,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     newsCtrl.text = stateNews;
     lShapeTextCtrl.text = lShapeCustomText;
     qrDataController.text = "http://192.168.1.100:8081/video";
-    
-    // డిఫాల్ట్ క్లౌడ్ రిలే సర్వర్ RTMP URL (Restream.io లేదా కస్టమ్ సర్వర్)
     cloudRelayCtrl.text = "rtmp://live.restream.io/live/your_stream_key";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -156,6 +155,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
+    _channelLogoVlcController?.dispose(); // 🔥 కంట్రోలర్ డిస్పోజ్
     ipController.dispose();
     qrDataController.dispose();
     lShapeTextCtrl.dispose();
@@ -225,6 +225,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔥 MP4 లోగో సెటప్ చేయడానికి ఫంక్షన్
+  void _setupChannelLogo(String path, bool isVideo) {
+    _channelLogoVlcController?.dispose();
+    setState(() {
+      channelLogoPath = path;
+      isLogoVideo = isVideo;
+    });
+
+    if (isVideo && path.isNotEmpty) {
+      _channelLogoVlcController = VlcPlayerController.file(
+        File(path),
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+        options: VlcPlayerOptions(
+          advanced: VlcAdvancedOptions([VlcAdvancedOptions.networkCaching(1000)]),
+        ),
+      );
+      // లూప్ కావడానికి సెట్టింగ్
+      _channelLogoVlcController?.addOnInitListener(() {
+        _channelLogoVlcController?.setLoop(999);
+      });
+    }
+  }
+
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
@@ -259,10 +283,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       isVideoAdPlaying = true;
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("ఫుల్ హెచ్‌డి వీడియో యాడ్ ప్లే అవుతోంది..."), backgroundColor: Colors.orange),
-    );
   }
 
   void _stopVideoAd() {
@@ -370,15 +390,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                     const Divider(color: Colors.white24, height: 20),
-
                     const Text("1. నిలువు (Vertical) యాడ్ కొలతలు:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("Height x Width: [ Full Screen x ${curVWidth.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(verticalAdImagePath.isEmpty ? "ఇమేజ్ సెలెక్ట్ కాలేదు" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                        ),
+                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "ఇమేజ్ సెలెక్ట్ కాలేదు" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -392,55 +407,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    const Text("నిలువు బాక్స్ వెడల్పు మార్చడానికి (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
-                      value: curVWidth,
-                      min: 80,
-                      max: 300,
-                      activeColor: Colors.blue,
+                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
                       onChanged: (val) {
                         setDialogState(() {
-                          if (isLandscapeMode) {
-                            landscapeVerticalWidth = val;
-                          } else {
-                            verticalAdWidth = val;
-                          }
+                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
                         });
                         setState(() {});
                       },
                     ),
-                    const Text("నిలువు ఇమేజ్ రొటేట్ (Rotate):", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 20),
-                          onPressed: () {
-                            setDialogState(() { verticalAdRotationTurns = (verticalAdRotationTurns - 1) % 4; });
-                            setState(() {});
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 20),
-                          onPressed: () {
-                            setDialogState(() { verticalAdRotationTurns = (verticalAdRotationTurns + 1) % 4; });
-                            setState(() {});
-                          },
-                        ),
-                        Text("Turns: $verticalAdRotationTurns", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                      ],
-                    ),
-
                     const Divider(color: Colors.white24, height: 20),
-
                     const Text("2. అడ్డు (Horizontal) యాడ్ కొలతలు:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("Height x Width: [ ${curHHeight.toInt()} px x ${screenWidth.toInt()} px ]", style: const TextStyle(color: Colors.cyanAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(horizontalAdImagePath.isEmpty ? "ఇమేజ్ లేదా డిఫాల్ట్ టెక్స్ట్" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                        ),
+                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "ఇమేజ్ లేదా డిఫాల్ట్ టెక్స్ట్" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -454,51 +434,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ],
                     ),
-                    const SizedBox(height: 5),
-                    const Text("అడ్డు బ్యానర్ ఎత్తు మార్చడానికి (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
-                      value: curHHeight,
-                      min: 80,
-                      max: 220,
-                      activeColor: Colors.blue,
+                      value: curHHeight, min: 80, max: 220, activeColor: Colors.blue,
                       onChanged: (val) {
                         setDialogState(() {
-                          if (isLandscapeMode) {
-                            landscapeHorizontalHeight = val;
-                          } else {
-                            horizontalAdHeight = val;
-                          }
+                          if (isLandscapeMode) { landscapeHorizontalHeight = val; } else { horizontalAdHeight = val; }
                         });
                         setState(() {});
-                      },
-                    ),
-                    const Text("అడ్డు ఇమేజ్ రొటేట్ (Rotate):", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 20),
-                          onPressed: () {
-                            setDialogState(() { horizontalAdRotationTurns = (horizontalAdRotationTurns - 1) % 4; });
-                            setState(() {});
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 20),
-                          onPressed: () {
-                            setDialogState(() { horizontalAdRotationTurns = (horizontalAdRotationTurns + 1) % 4; });
-                            setState(() {});
-                          },
-                        ),
-                        Text("Turns: $horizontalAdRotationTurns", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                      ],
-                    ),
-                    const Text("బాటమ్ టెక్స్ట్ (ఇమేజ్ లేకపోతే):", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    TextField(
-                      controller: lShapeTextCtrl,
-                      style: const TextStyle(color: Colors.white, fontSize: 11),
-                      decoration: const InputDecoration(hintText: "టెక్స్ట్ రాయండి", hintStyle: TextStyle(color: Colors.white38)),
-                      onChanged: (val) {
-                        setState(() { lShapeCustomText = val; });
                       },
                     ),
                   ],
@@ -550,8 +492,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("మీ ఛానల్ లేదా స్టూడియో లింక్ కోసం QR కోడ్:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 10),
               TextField(
                 controller: qrDataController,
                 style: const TextStyle(color: Colors.yellow),
@@ -592,30 +532,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 style: const TextStyle(color: Colors.yellow),
                 decoration: const InputDecoration(labelText: "RTSP / HTTP లింక్", labelStyle: TextStyle(color: Colors.white54)),
               ),
-              const SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("QR స్కానర్ యాక్టివేట్ అయింది!"), backgroundColor: Colors.green));
-                    },
-                    icon: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 16),
-                    label: const Text("Scan", style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _showQrGeneratorDialog();
-                    },
-                    icon: const Icon(Icons.qr_code, color: Colors.white, size: 16),
-                    label: const Text("Generate QR", style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                ],
-              ),
             ],
           ),
           actions: [
@@ -640,6 +556,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 ఇక్కడ లోగో కోసం Image లేదా MP4 Video అప్‌లోడ్ ఆప్షన్ ఇవ్వబడింది
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -648,39 +565,54 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("3D లోగో & గ్రాఫిక్స్ ఎడిట్ చేయండి", style: TextStyle(color: Colors.white)),
+              title: const Text("ఛానల్ లోగో (ఇమేజ్ లేదా MP4 వీడియో) ఎడిట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("ఛానల్ 3D లోగో (JPEG/PNG):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const Text("ఛానల్ లోగో (PNG/JPEG లేదా MP4 Video):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
                         Expanded(
                           child: Text(channelLogoPath.isEmpty ? "లోగో సెలెక్ట్ చేయలేదు" : "లోగో అటాచ్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
                         ),
+                        // ఇమేజ్ అప్‌లోడ్ బటన్
                         ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(70, 30)),
                           onPressed: () async {
                             final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                             if (image != null) {
-                              setDialogState(() { channelLogoPath = image.path; });
+                              setDialogState(() {
+                                _setupChannelLogo(image.path, false);
+                              });
                             }
                           },
-                          icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload Logo", style: TextStyle(fontSize: 10)),
+                          icon: const Icon(Icons.image, size: 14),
+                          label: const Text("Image", style: TextStyle(fontSize: 10)),
+                        ),
+                        const SizedBox(width: 5),
+                        // 🔥 MP4 వీడియో అప్‌లోడ్ బటన్
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(70, 30)),
+                          onPressed: () async {
+                            final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+                            if (video != null) {
+                              setDialogState(() {
+                                _setupChannelLogo(video.path, true);
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.videocam, size: 14),
+                          label: const Text("MP4", style: TextStyle(fontSize: 10)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     const Text("లోగో వెడల్పు (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
-                      value: logoWidth,
-                      min: 40,
-                      max: 150,
-                      activeColor: Colors.blue,
+                      value: logoWidth, min: 40, max: 150, activeColor: Colors.blue,
                       onChanged: (val) {
                         setDialogState(() { logoWidth = val; });
                         setState(() { logoWidth = val; });
@@ -688,10 +620,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Text("లోగో ఎత్తు (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
-                      value: logoHeight,
-                      min: 40,
-                      max: 150,
-                      activeColor: Colors.blue,
+                      value: logoHeight, min: 40, max: 150, activeColor: Colors.blue,
                       onChanged: (val) {
                         setDialogState(() { logoHeight = val; });
                         setState(() { logoHeight = val; });
@@ -730,7 +659,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 క్లౌడ్ RTMP రిలే సర్వర్ ద్వారా మల్టీ-లైవ్ స్ట్రీమింగ్ మేనేజ్మెంట్ డైలాగ్
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -745,10 +673,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("మొబైల్ ఫోన్‌పై భారం పడకుండా ఉండటానికి, మీ పాకెట్ పీసీఆర్ ఫీడ్ కేవలం ఈ క్రింది క్లౌడ్ రిలే సర్వర్‌కు (Restream / AWS) మాత్రమే పంపబడుతుంది. సర్వర్ దానిని డూప్లికేట్ చేసి YouTube, Facebook లకు పంపుతుంది.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text("మొబైల్ ఫోన్‌పై భారం పడకుండా ఉండటానికి క్లౌడ్ రిలే సర్వర్‌కు పంపబడుతుంది.", style: TextStyle(color: Colors.white70, fontSize: 11)),
                     const SizedBox(height: 10),
                     CheckboxListTile(
-                      title: const Text("Cloud Relay Server (Restream / AWS)", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 13)), 
+                      title: const Text("Cloud Relay Server", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 13)), 
                       value: selectCloudRelay, 
                       activeColor: Colors.green, 
                       onChanged: (val) => setDialogState(() => selectCloudRelay = val!)
@@ -759,11 +687,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         style: const TextStyle(color: Colors.yellow, fontSize: 12), 
                         decoration: const InputDecoration(labelText: "Cloud RTMP Stream URL / Key", labelStyle: TextStyle(color: Colors.white54))
                       ),
-                    const Divider(color: Colors.white24, height: 20),
-                    const Text("సర్వర్ నుండి ఏయే ప్లాట్‌ఫార్మ్‌లకు ఆటో-లైవ్ వెళ్ళాలి:", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    CheckboxListTile(title: const Text("YouTube Live (via Cloud)", style: TextStyle(color: Colors.white, fontSize: 12)), value: selectYt, activeColor: Colors.red, onChanged: (val) => setDialogState(() => selectYt = val!)),
-                    CheckboxListTile(title: const Text("Facebook Live (via Cloud)", style: TextStyle(color: Colors.white, fontSize: 12)), value: selectFb, activeColor: Colors.blue, onChanged: (val) => setDialogState(() => selectFb = val!)),
-                    CheckboxListTile(title: const Text("IPTV / Cable Server (via Cloud)", style: TextStyle(color: Colors.white, fontSize: 12)), value: selectIptv, activeColor: Colors.green, onChanged: (val) => setDialogState(() => selectIptv = val!)),
                   ],
                 ),
               ),
@@ -774,7 +697,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   onPressed: () {
                     setState(() { isLiveBroadcasting = true; });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("క్లౌడ్ రిలే సర్వర్ ద్వారా మల్టీ-లైవ్ ప్రసారం విజయవంతంగా ప్రారంభమైంది!"), backgroundColor: Colors.green));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("క్లౌడ్ రిలే సర్వర్ ద్వారా మల్టీ-లైవ్ ప్రసారం ప్రారంభమైంది!"), backgroundColor: Colors.green));
                   },
                   child: const Text("Start Cloud Multi-Live", style: TextStyle(color: Colors.white)),
                 ),
@@ -787,29 +710,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _toggleAutoTimerAds() {
-    setState(() {
-      isAutoTimerActive = !isAutoTimerActive;
-    });
-
+    setState(() { isAutoTimerActive = !isAutoTimerActive; });
     if (isAutoTimerActive) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("L-Band ఆటో టైమర్ ఆన్ చేయబడింది (ప్రతి 15 నిమిషాలకు ఒకసారి)"), backgroundColor: Colors.green),
-      );
-      
       _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
         setState(() { isLBandMode = true; }); 
-        
-        Timer(const Duration(minutes: 1), () {
-          if (mounted) {
-            setState(() { isLBandMode = false; }); 
-          }
-        });
+        Timer(const Duration(minutes: 1), () { if (mounted) { setState(() { isLBandMode = false; }); } });
       });
     } else {
       _lBandAutoTimer?.cancel();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ఆటో టైమర్ ఆఫ్ చేయబడింది"), backgroundColor: Colors.orange),
-      );
     }
   }
 
@@ -852,17 +760,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ? Listener(
                 onPointerSignal: (pointerSignal) {},
                 child: GestureDetector(
-                  onScaleStart: (details) {
-                    _baseScale = _currentZoomLevel;
-                  },
+                  onScaleStart: (details) { _baseScale = _currentZoomLevel; },
                   onScaleUpdate: (details) async {
                     if (controller == null) return;
                     double zoom = _baseScale * details.scale;
                     if (zoom < _minZoomLevel) zoom = _minZoomLevel;
                     if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-                    setState(() {
-                      _currentZoomLevel = zoom;
-                    });
+                    setState(() { _currentZoomLevel = zoom; });
                     await controller?.setZoomLevel(zoom);
                   },
                   child: SizedBox.expand(
@@ -901,9 +805,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               )
             else if (!isLBandMode)
-              Positioned.fill(
-                child: cameraWidget,
-              )
+              Positioned.fill(child: cameraWidget)
             else
               Positioned.fill(
                 child: Container(
@@ -911,71 +813,35 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Stack(
                     children: [
                       Positioned(
-                        top: 0,
-                        left: currentVerticalWidth,
-                        right: 0,
-                        bottom: currentHorizontalHeight,
-                        child: SizedBox.expand(
-                          child: ClipRect(
-                            child: cameraWidget,
-                          ),
-                        ),
+                        top: 0, left: currentVerticalWidth, right: 0, bottom: currentHorizontalHeight,
+                        child: SizedBox.expand(child: ClipRect(child: cameraWidget)),
                       ),
                       Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: currentVerticalWidth,
+                        left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
                         child: Container(
                           color: lShapeColor,
-                          child: Stack(
-                            children: [
-                              Center(
-                                child: verticalAdImagePath.isNotEmpty
-                                    ? RotatedBox(
-                                        quarterTurns: verticalAdRotationTurns,
-                                        child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
-                                      )
-                                    : const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.star, color: Colors.white, size: 20),
-                                          SizedBox(height: 2),
-                                          Text("VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 10)),
-                                        ],
-                                      ),
-                              ),
-                              Positioned(
-                                bottom: 5, left: 2, right: 2,
-                                child: Text("H x W: Full x ${currentVerticalWidth.toInt()}px", textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
+                          child: Center(
+                            child: verticalAdImagePath.isNotEmpty
+                                ? RotatedBox(
+                                    quarterTurns: verticalAdRotationTurns,
+                                    child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover),
+                                  )
+                                : const Text("VERTICAL AD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
                           ),
                         ),
                       ),
                       Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: currentHorizontalHeight,
+                        left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
                         child: Container(
                           color: lShapeColor,
                           alignment: Alignment.center,
-                          child: Stack(
-                            children: [
-                              Center(
-                                child: horizontalAdImagePath.isNotEmpty
-                                    ? RotatedBox(
-                                        quarterTurns: horizontalAdRotationTurns,
-                                        child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover, filterQuality: FilterQuality.high),
-                                      )
-                                    : Text(lShapeCustomText, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 11)),
-                              ),
-                              Positioned(
-                                right: 5, bottom: 2,
-                                child: Text("H x W: ${currentHorizontalHeight.toInt()}px x ${screenWidth.toInt()}px", style: const TextStyle(color: Colors.black54, fontSize: 9, fontWeight: FontWeight.bold)),
-                              ),
-                            ],
+                          child: Center(
+                            child: horizontalAdImagePath.isNotEmpty
+                                ? RotatedBox(
+                                    quarterTurns: horizontalAdRotationTurns,
+                                    child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover),
+                                  )
+                                : Text(lShapeCustomText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                           ),
                         ),
                       ),
@@ -990,36 +856,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: FloatingActionButton.extended(
                   backgroundColor: Colors.red,
                   onPressed: _stopVideoAd,
-                  label: const Text("Close Ad & Resume Live", style: TextStyle(color: Colors.white)),
+                  label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)),
                   icon: const Icon(Icons.close, color: Colors.white),
                 ),
               ),
 
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(border: Border.all(color: Colors.black.withOpacity(0.8), width: 3.0)),
-                ),
-              ),
-            ),
-            
-            if (isLiveBroadcasting)
-              Positioned(
-                top: 30, left: 30,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  color: Colors.red,
-                  child: const Row(children: [Icon(Icons.fiber_manual_record, color: Colors.white, size: 12), SizedBox(width: 5), Text("CLOUD MULTI-LIVE ON", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))]),
-                ),
-              ),
-
+            // 🔥 స్ట్రీమ్ స్క్రీన్ పైభాగంలో కుడివైపు లోగో (Image లేదా MP4 Video రూపంలో ప్రదర్శించబడుతుంది)
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
                   ? SizedBox(
                       width: logoWidth,
                       height: logoHeight,
-                      child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+                      child: isLogoVideo && _channelLogoVlcController != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: VlcPlayer(
+                                controller: _channelLogoVlcController!,
+                                aspectRatio: 1.0,
+                                placeholder: const SizedBox(),
+                              ),
+                            )
+                          : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
                     )
                   : Container(
                       padding: const EdgeInsets.all(8), 
@@ -1034,7 +892,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (watermarkText.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 5, left: 2), child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 13.0, shadows: const [Shadow(blurRadius: 2.0, color: Colors.black)])),),
+                  if (watermarkText.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 5, left: 2), child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 13.0))),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), color: Colors.red, child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0))),
                   const SizedBox(height: 4), 
                   Container(color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14.0))),
@@ -1045,29 +903,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             
             Positioned(
               bottom: 3, left: 3, right: 3, 
-              child: isLBandMode
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 40, color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10), 
-                          child: Row(children: [const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          height: 35, color: Colors.blue[900], padding: const EdgeInsets.symmetric(horizontal: 10), 
-                          child: Row(children: [const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)), Expanded(child: Marquee(text: googleNews, style: const TextStyle(color: Colors.white), blankSpace: 100.0, velocity: 35.0))]),
-                        ),
-                        Container(
-                          height: 40, color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10), 
-                          child: Row(children: [const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
-                        ),
-                      ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isLBandMode)
+                    Container(
+                      height: 35, color: Colors.blue[900], padding: const EdgeInsets.symmetric(horizontal: 10), 
+                      child: Row(children: [const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)), Expanded(child: Marquee(text: googleNews, style: const TextStyle(color: Colors.white), blankSpace: 100.0, velocity: 35.0))]),
                     ),
+                  Container(
+                    height: 40, color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10), 
+                    child: Row(children: [const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
+                  ),
+                ],
+              ),
             ),
 
             if (!hideControls)
@@ -1082,16 +931,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.edit, "Edit Text", _showEditDialog, Colors.blue),
+                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue), // 🔥 లోగో ఎడిట్ బటన్
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
                         _buildControlButton(
                           isLBandMode ? Icons.fullscreen : Icons.view_sidebar, 
                           isLBandMode ? "Ad Off" : "L-Shape Edit", 
-                          () { 
-                            setState(() { isLBandMode = !isLBandMode; }); 
-                            if(isLBandMode) _showLBandImagesManagerDialog();
-                          }, 
+                          () { setState(() { isLBandMode = !isLBandMode; }); if(isLBandMode) _showLBandImagesManagerDialog(); }, 
                           Colors.amber,
                         ),
                         _buildControlButton(
