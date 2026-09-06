@@ -45,7 +45,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _channelLogoVlcController; 
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -83,8 +82,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
-  String channelLogoPath = "";
-  bool isLogoVideo = false; 
+  String channelLogoPath = ""; // 🔥 PNG, JPEG లేదా GIF లోగో పాత్ కోసం
   double logoWidth = 70.0;
   double logoHeight = 70.0;
 
@@ -155,7 +153,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
-    _channelLogoVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     lShapeTextCtrl.dispose();
@@ -222,29 +219,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         options: VlcPlayerOptions(),
       );
       setState(() { isIpCameraActive = true; });
-    }
-  }
-
-  void _setupChannelLogo(String path, bool isVideo) {
-    _channelLogoVlcController?.dispose();
-    setState(() {
-      channelLogoPath = path;
-      isLogoVideo = isVideo;
-    });
-
-    if (isVideo && path.isNotEmpty) {
-      _channelLogoVlcController = VlcPlayerController.file(
-        File(path),
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-        options: VlcPlayerOptions(
-          advanced: VlcAdvancedOptions([VlcAdvancedOptions.networkCaching(1000)]),
-        ),
-      );
-      
-      _channelLogoVlcController?.addOnInitListener(() async {
-        await _channelLogoVlcController?.setLooping(true);
-      });
     }
   }
 
@@ -554,6 +528,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 MP4 తొలగించి, GIF మరియు సాధారణ ఇమేజ్ అప్‌లోడ్ చేసుకునేలా డైలాగ్
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -562,13 +537,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో (ఇమేజ్ లేదా MP4 వీడియో) ఎడిట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text("ఛానల్ లోగో (Image లేదా Animated GIF) ఎడిట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("ఛానల్ లోగో (PNG/JPEG లేదా MP4 Video):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const Text("లోగో ఫార్మాట్ (PNG, JPEG లేదా GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -576,31 +551,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           child: Text(channelLogoPath.isEmpty ? "లోగో సెలెక్ట్ చేయలేదు" : "లోగో అటాచ్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
                         ),
                         ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(70, 30)),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(90, 30)),
                           onPressed: () async {
                             final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                             if (image != null) {
                               setDialogState(() {
-                                _setupChannelLogo(image.path, false);
+                                channelLogoPath = image.path;
                               });
                             }
                           },
-                          icon: const Icon(Icons.image, size: 14),
-                          label: const Text("Image", style: TextStyle(fontSize: 10)),
-                        ),
-                        const SizedBox(width: 5),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(70, 30)),
-                          onPressed: () async {
-                            final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-                            if (video != null) {
-                              setDialogState(() {
-                                _setupChannelLogo(video.path, true);
-                              });
-                            }
-                          },
-                          icon: const Icon(Icons.videocam, size: 14),
-                          label: const Text("MP4", style: TextStyle(fontSize: 10)),
+                          icon: const Icon(Icons.upload_file, size: 14),
+                          label: const Text("Upload GIF/Img", style: TextStyle(fontSize: 10)),
                         ),
                       ],
                     ),
@@ -854,22 +815,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
+            // 🔥 GIF లేదా సాధారణ లోగో ఇమేజ్ ప్రదర్శించే స్థానం (పూర్తిగా తేలికైనది & లాగ్స్ ఉండవు)
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
                   ? SizedBox(
                       width: logoWidth,
                       height: logoHeight,
-                      child: isLogoVideo && _channelLogoVlcController != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: VlcPlayer(
-                                controller: _channelLogoVlcController!,
-                                aspectRatio: 1.0,
-                                placeholder: const SizedBox(),
-                              ),
-                            )
-                          : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+                      child: Image.file(
+                        File(channelLogoPath), 
+                        fit: BoxFit.contain, 
+                        filterQuality: FilterQuality.high,
+                      ),
                     )
                   : Container(
                       padding: const EdgeInsets.all(8), 
