@@ -82,7 +82,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
-  String channelLogoPath = ""; // 🔥 PNG, JPEG లేదా GIF లోగో పాత్ కోసం
+  String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
 
@@ -90,8 +90,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String locationText = "LIVE KOTHAKOTA"; 
   String reporterName = "JANAMPALLY VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
-  String stateNews = "కొత్తకోటలో భారీ ర్యాలీ.. ప్రజలతో మంత్రి సమావేశం.. మరిన్ని అప్‌డేట్స్ కోసం చూస్తూనే ఉండండి...";
-  String googleNews = "తాజా వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
+  String stateNews = "తెలంగాణ తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+  String googleNews = "జాతీయ వార్తలు లోడ్ అవుతున్నాయి...";
 
   bool selectCloudRelay = true;
   TextEditingController cloudRelayCtrl = TextEditingController();
@@ -108,6 +108,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController newsCtrl = TextEditingController();
 
   Timer? _newsTimer;
+  Timer? _telanganaNewsTimer;
   Timer? _lBandAutoTimer; 
 
   @override
@@ -129,9 +130,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _initCamera();
     _requestPermissions();
     _fetchGoogleNews(); 
+    _fetchTelanganaNews(); // 🔥 తెలంగాణ న్యూస్ ఆటో అప్‌డేట్ కాల్
     
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchGoogleNews();
+    });
+
+    _telanganaNewsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
+      _fetchTelanganaNews();
     });
   }
 
@@ -149,6 +155,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
+    _telanganaNewsTimer?.cancel();
     _lBandAutoTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
@@ -265,6 +272,45 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       isVideoAdPlaying = false;
       _videoAdVlcController = null;
     });
+  }
+
+  Future<void> _fetchGoogleNews() async {
+    try {
+      final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.body);
+        final items = document.findAllElements('item');
+        List<String> titles = [];
+        for (var item in items.take(15)) {
+          titles.add(item.findElements('title').first.innerText);
+        }
+        if (titles.isNotEmpty && mounted) setState(() { googleNews = titles.join("   ♦   "); });
+      }
+    } catch (e) {
+      debugPrint("News Error: $e");
+    }
+  }
+
+  // 🔥 తెలంగాణ స్టేట్ న్యూస్ ఆటో-అప్‌డేట్ ఫంక్షన్
+  Future<void> _fetchTelanganaNews() async {
+    try {
+      final response = await http.get(Uri.parse('https://news.google.com/rss/search?q=Telangana+news&hl=te&gl=IN&ceid=IN:te'));
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.body);
+        final items = document.findAllElements('item');
+        List<String> titles = [];
+        for (var item in items.take(15)) {
+          titles.add(item.findElements('title').first.innerText);
+        }
+        if (titles.isNotEmpty && mounted) {
+          setState(() { 
+            stateNews = titles.join("   ♦   "); 
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Telangana News Error: $e");
+    }
   }
 
   void _showAdsManagerDialog() {
@@ -528,7 +574,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 MP4 తొలగించి, GIF మరియు సాధారణ ఇమేజ్ అప్‌లోడ్ చేసుకునేలా డైలాగ్
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -537,7 +582,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో (Image లేదా Animated GIF) ఎడిట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో (Image లేదా GIF) ఎడిట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -561,7 +606,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             }
                           },
                           icon: const Icon(Icons.upload_file, size: 14),
-                          label: const Text("Upload GIF/Img", style: TextStyle(fontSize: 10)),
+                          label: const Text("Upload GIF", style: TextStyle(fontSize: 10)),
                         ),
                       ],
                     ),
@@ -587,7 +632,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్", labelStyle: TextStyle(color: Colors.white54))),
                     TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు", labelStyle: TextStyle(color: Colors.white54))),
                     TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ హోదా", labelStyle: TextStyle(color: Colors.white54))),
-                    TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్", labelStyle: TextStyle(color: Colors.white54))),
+                    TextField(controller: newsCtrl, style: const TextStyle(color: Colors.yellow), maxLines: 2, decoration: const InputDecoration(labelText: "స్టేట్ న్యూస్ (మాన్యువల్ ఓవర్‌రైడ్)", labelStyle: TextStyle(color: Colors.white54))),
                   ],
                 ),
               ),
@@ -601,7 +646,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       locationText = locCtrl.text;
                       reporterName = nameCtrl.text;
                       reporterRole = roleCtrl.text;
-                      stateNews = newsCtrl.text;
+                      if(newsCtrl.text.isNotEmpty) {
+                        stateNews = newsCtrl.text;
+                      }
                     });
                     Navigator.pop(context);
                   },
@@ -686,23 +733,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
       }
     });
-  }
-
-  Future<void> _fetchGoogleNews() async {
-    try {
-      final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
-      if (response.statusCode == 200) {
-        final document = XmlDocument.parse(response.body);
-        final items = document.findAllElements('item');
-        List<String> titles = [];
-        for (var item in items.take(15)) {
-          titles.add(item.findElements('title').first.innerText);
-        }
-        if (titles.isNotEmpty && mounted) setState(() { googleNews = titles.join("   ♦   "); });
-      }
-    } catch (e) {
-      debugPrint("News Error: $e");
-    }
   }
 
   @override
@@ -815,7 +845,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 GIF లేదా సాధారణ లోగో ఇమేజ్ ప్రదర్శించే స్థానం (పూర్తిగా తేలికైనది & లాగ్స్ ఉండవు)
+            // 🔥 GIF / Logo View
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
