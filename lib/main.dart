@@ -93,9 +93,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String stateNews = "తెలంగాణ తాజా వార్తలు లోడ్ అవుతున్నాయి...";
   String googleNews = "జాతీయ వార్తలు లోడ్ అవుతున్నాయి...";
 
-  // 🔥 డైరెక్ట్ RTMP / Restream లింక్ కంట్రోలర్
   TextEditingController rtmpUrlController = TextEditingController();
-
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
@@ -117,8 +115,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     newsCtrl.text = stateNews;
     lShapeTextCtrl.text = lShapeCustomText;
     qrDataController.text = "http://192.168.1.100:8081/video";
-    
-    // డిఫాల్ట్ Restream RTMP URL (మీ స్టీమ్ కీ తో మార్చుకోవచ్చు)
     rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -383,7 +379,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape యాడ్స్ & రియల్ పిక్సెల్ కొలతలు", style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text("L-Shape యాడ్స్ సైజులు & సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -401,10 +397,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                     const Divider(color: Colors.white24, height: 20),
-                    const Text("1. నిలువు (Vertical) యాడ్ కొలతలు:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const Text("1. నిలువు (Vertical) యాడ్ వెడల్పు (Width):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    Text("ప్రస్తుత వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                    Slider(
+                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
+                        });
+                        setState(() {});
+                      },
+                    ),
                     Row(
                       children: [
-                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "ఇమేజ్ సెలెక్ట్ కాలేదు" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "నిలువు ఇమేజ్ లేదు" : "ఇమేజ్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -418,20 +424,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ],
                     ),
+                    const Divider(color: Colors.white24, height: 20),
+                    const Text("2. అడ్డు (Horizontal) యాడ్ ఎత్తు (Height):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    Text("ప్రస్తుత ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
-                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
+                      value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
                       onChanged: (val) {
                         setDialogState(() {
-                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
+                          if (isLandscapeMode) { landscapeHorizontalHeight = val; } else { horizontalAdHeight = val; }
                         });
                         setState(() {});
                       },
                     ),
-                    const Divider(color: Colors.white24, height: 20),
-                    const Text("2. అడ్డు (Horizontal) యాడ్ కొలతలు:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Row(
                       children: [
-                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "ఇమేజ్ లేదా డిఫాల్ట్ టెక్స్ట్" : "సెలెక్ట్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "అడ్డు ఇమేజ్ లేదు" : "ఇమేజ్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -444,15 +451,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           label: const Text("Upload", style: TextStyle(fontSize: 10)),
                         ),
                       ],
-                    ),
-                    Slider(
-                      value: curHHeight, min: 80, max: 220, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (isLandscapeMode) { landscapeHorizontalHeight = val; } else { horizontalAdHeight = val; }
-                        });
-                        setState(() {});
-                      },
                     ),
                   ],
                 ),
@@ -655,7 +653,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 డైరెక్ట్ RTMP / Restream లింక్ ద్వారా మల్టీ-లైవ్ బ్రాడ్‌కాస్ట్ డైలాగ్
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -670,7 +667,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి. దీనిద్వారా యాప్ నుండి నేరుగా ప్రసారం ప్రారంభమవుతుంది.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి.", style: TextStyle(color: Colors.white70, fontSize: 11)),
                     const SizedBox(height: 15),
                     TextField(
                       controller: rtmpUrlController,
@@ -686,22 +683,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context), 
-                  child: const Text("Cancel", style: TextStyle(color: Colors.white)),
-                ),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
                   onPressed: () {
-                    setState(() { 
-                      isLiveBroadcasting = !isLiveBroadcasting; 
-                    });
+                    setState(() { isLiveBroadcasting = !isLiveBroadcasting; });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(isLiveBroadcasting ? "డైరెక్ట్ RTMP లైవ్ ప్రసారం ప్రారంభమైంది!" : "లైవ్ ప్రసారం ఆపివేయబడింది!"), 
-                        backgroundColor: isLiveBroadcasting ? Colors.green : Colors.orange,
-                      ),
+                      SnackBar(content: Text(isLiveBroadcasting ? "లైవ్ ప్రారంభమైంది!" : "లైవ్ ఆపివేయబడింది!"), backgroundColor: isLiveBroadcasting ? Colors.green : Colors.orange),
                     );
                   },
                   child: Text(isLiveBroadcasting ? "Stop Live" : "Start Live", style: const TextStyle(color: Colors.white)),
@@ -808,10 +797,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           color: lShapeColor,
                           child: Center(
                             child: verticalAdImagePath.isNotEmpty
-                                ? RotatedBox(
-                                    quarterTurns: verticalAdRotationTurns,
-                                    child: Image.file(File(verticalAdImagePath), fit: BoxFit.cover),
-                                  )
+                                ? Image.file(File(verticalAdImagePath), fit: BoxFit.cover)
                                 : const Text("VERTICAL AD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
                           ),
                         ),
@@ -823,10 +809,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           alignment: Alignment.center,
                           child: Center(
                             child: horizontalAdImagePath.isNotEmpty
-                                ? RotatedBox(
-                                    quarterTurns: horizontalAdRotationTurns,
-                                    child: Image.file(File(horizontalAdImagePath), fit: BoxFit.cover),
-                                  )
+                                ? Image.file(File(horizontalAdImagePath), fit: BoxFit.cover)
                                 : Text(lShapeCustomText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                           ),
                         ),
@@ -847,18 +830,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // 🔥 Logo / GIF View
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
                   ? SizedBox(
                       width: logoWidth,
                       height: logoHeight,
-                      child: Image.file(
-                        File(channelLogoPath), 
-                        fit: BoxFit.contain, 
-                        filterQuality: FilterQuality.high,
-                      ),
+                      child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
                     )
                   : Container(
                       padding: const EdgeInsets.all(8), 
@@ -882,6 +860,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
+            // 🔥 'LATEST NEWS' మరియు 'STATE NEWS' లేబుల్స్ తొలగించబడ్డాయి (కేవలం న్యూస్ స్క్రోలింగ్ మాత్రమే)
             Positioned(
               bottom: 3, left: 3, right: 3, 
               child: Column(
@@ -889,12 +868,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 children: [
                   if (!isLBandMode)
                     Container(
-                      height: 35, color: Colors.blue[900], padding: const EdgeInsets.symmetric(horizontal: 10), 
-                      child: Row(children: [const Text("LATEST NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold)), Expanded(child: Marquee(text: googleNews, style: const TextStyle(color: Colors.white), blankSpace: 100.0, velocity: 35.0))]),
+                      height: 35, 
+                      color: Colors.blue[900], 
+                      padding: const EdgeInsets.symmetric(horizontal: 10), 
+                      child: Center(
+                        child: Marquee(
+                          text: googleNews, 
+                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), 
+                          blankSpace: 100.0, 
+                          velocity: 35.0,
+                        ),
+                      ),
                     ),
                   Container(
-                    height: 40, color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 10), 
-                    child: Row(children: [const Text("STATE NEWS: ", style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 18)), Expanded(child: Marquee(text: stateNews, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 50.0, velocity: 45.0))]),
+                    height: 40, 
+                    color: Colors.red, 
+                    padding: const EdgeInsets.symmetric(horizontal: 10), 
+                    child: Center(
+                      child: Marquee(
+                        text: stateNews, 
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), 
+                        blankSpace: 50.0, 
+                        velocity: 45.0,
+                      ),
+                    ),
                   ),
                 ],
               ),
