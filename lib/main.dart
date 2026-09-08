@@ -860,38 +860,62 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 అప్‌డేట్ చేయబడిన న్యూస్ స్క్రోలింగ్ వ్యూ (స్పష్టంగా కనిపించడానికి సరిదిద్దబడింది)
+            // 🔥 ఎడమ వైపు 'BREAKING NEWS' లేబుల్‌తో కూడిన న్యూస్ స్క్రోలింగ్ బార్
             Positioned(
-              bottom: 10, left: 5, right: 5, 
+              bottom: 5, left: 5, right: 5, 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (!isLBandMode)
                     Container(
-                      height: 35, 
-                      color: Colors.blue[950], 
-                      padding: const EdgeInsets.symmetric(horizontal: 10), 
-                      child: Center(
-                        child: Marquee(
-                          text: googleNews, 
-                          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), 
-                          blankSpace: 100.0, 
-                          velocity: 35.0,
-                        ),
+                      height: 32, 
+                      color: Colors.blue.shade900, 
+                      child: Row(
+                        children: [
+                          Container(
+                            color: Colors.yellow.shade800,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            alignment: Alignment.center,
+                            child: const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Marquee(
+                                text: googleNews, 
+                                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), 
+                                blankSpace: 100.0, 
+                                velocity: 35.0,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   const SizedBox(height: 2),
                   Container(
-                    height: 40, 
-                    color: Colors.red[900], 
-                    padding: const EdgeInsets.symmetric(horizontal: 10), 
-                    child: Center(
-                      child: Marquee(
-                        text: stateNews, 
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), 
-                        blankSpace: 50.0, 
-                        velocity: 45.0,
-                      ),
+                    height: 38, 
+                    color: Colors.red.shade900, 
+                    child: Row(
+                      children: [
+                        Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          alignment: Alignment.center,
+                          child: const Text("LIVE NEWS", style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Marquee(
+                              text: stateNews, 
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
+                              blankSpace: 50.0, 
+                              velocity: 42.0,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -951,3 +975,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
