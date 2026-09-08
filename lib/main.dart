@@ -66,13 +66,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final ImagePicker _picker = ImagePicker();
 
   Color lShapeColor = const Color(0xFF95C8F2);
+  
+  // 🔥 L-Shape JPEG/GIF పాత్స్
   String verticalAdImagePath = "";
   String horizontalAdImagePath = "";
   
+  // 🔥 L-Shape సైజులు మరియు ఇమేజ్ ఫిట్ అడ్జస్ట్మెంట్ (Padding/Scale)
   double verticalAdWidth = 130.0;
   double landscapeVerticalWidth = 200.0;
   double horizontalAdHeight = 130.0;
   double landscapeHorizontalHeight = 100.0;
+
+  double verticalImagePadding = 0.0; // నిలువు ఇమేజ్ అంచుల సర్దుబాటు కోసం
+  double horizontalImagePadding = 0.0; // అడ్డు ఇమేజ్ అంచుల సర్దుబాటు కోసం
 
   int verticalAdRotationTurns = 0; 
   int horizontalAdRotationTurns = 0;
@@ -85,6 +91,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
+  String newsBadgeImagePath = ""; 
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -367,6 +374,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 L-Shape యాడ్స్ సైజులు, JPEG/GIF అప్‌లోడ్ మరియు అంచులు (Padding/Fit) అడ్జస్ట్ చేసే డైలాగ్
   void _showLBandImagesManagerDialog() {
     showDialog(
       context: context,
@@ -379,7 +387,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape యాడ్స్ సైజులు & సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 14)),
+              title: const Text("L-Shape JPEG/GIF అంచులు & సైజులు", style: TextStyle(color: Colors.white, fontSize: 14)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -397,8 +405,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                     const Divider(color: Colors.white24, height: 20),
-                    const Text("1. నిలువు (Vertical) యాడ్ వెడల్పు (Width):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("ప్రస్తుత వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+
+                    // 1. నిలువు (Vertical) JPEG/GIF & అంచుల అడ్జస్ట్‌మెంట్
+                    const Text("1. నిలువు (Vertical) JPEG/GIF బాక్స్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
                       value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
                       onChanged: (val) {
@@ -408,9 +418,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() {});
                       },
                     ),
+                    const Text("నిలువు ఇమేజ్ అంచులు (Padding/Scale):", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Slider(
+                      value: verticalImagePadding, min: 0.0, max: 40.0, activeColor: Colors.amber,
+                      onChanged: (val) {
+                        setDialogState(() { verticalImagePadding = val; });
+                        setState(() { verticalImagePadding = val; });
+                      },
+                    ),
                     Row(
                       children: [
-                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "నిలువు ఇమేజ్ లేదు" : "ఇమేజ్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "JPEG/GIF అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -424,9 +442,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ],
                     ),
+
                     const Divider(color: Colors.white24, height: 20),
-                    const Text("2. అడ్డు (Horizontal) యాడ్ ఎత్తు (Height):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("ప్రస్తుత ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+
+                    // 2. అడ్డు (Horizontal) JPEG/GIF & అంచుల అడ్జస్ట్‌మెంట్
+                    const Text("2. అడ్డు (Horizontal) JPEG/GIF బ్యానర్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
                       value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
                       onChanged: (val) {
@@ -436,9 +457,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() {});
                       },
                     ),
+                    const Text("అడ్డు ఇమేజ్ అంచులు (Padding/Scale):", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Slider(
+                      value: horizontalImagePadding, min: 0.0, max: 40.0, activeColor: Colors.amber,
+                      onChanged: (val) {
+                        setDialogState(() { horizontalImagePadding = val; });
+                        setState(() { horizontalImagePadding = val; });
+                      },
+                    ),
                     Row(
                       children: [
-                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "అడ్డు ఇమేజ్ లేదు" : "ఇమేజ్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "JPEG/GIF అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -573,36 +602,34 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో (Image లేదా GIF) ఎడిట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో & న్యూస్ బ్యాడ్జ్ ఎడిట్", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("లోగో ఫార్మాట్ (PNG, JPEG లేదా GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const Text("1. ఛానల్ లోగో (Image/GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
                         Expanded(
-                          child: Text(channelLogoPath.isEmpty ? "లోగో సెలెక్ట్ చేయలేదు" : "లోగో అటాచ్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          child: Text(channelLogoPath.isEmpty ? "లోగో లేదు" : "లోగో అటాచ్ చేయబడింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
                         ),
                         ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(90, 30)),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
                             final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                             if (image != null) {
-                              setDialogState(() {
-                                channelLogoPath = image.path;
-                              });
+                              setDialogState(() { channelLogoPath = image.path; });
                             }
                           },
                           icon: const Icon(Icons.upload_file, size: 14),
-                          label: const Text("Upload GIF", style: TextStyle(fontSize: 10)),
+                          label: const Text("Upload", style: TextStyle(fontSize: 10)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    const Text("లోగో వెడల్పు (Width):", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    const Text("లోగో వెడల్పు & ఎత్తు:", style: TextStyle(color: Colors.white54, fontSize: 11)),
                     Slider(
                       value: logoWidth, min: 40, max: 150, activeColor: Colors.blue,
                       onChanged: (val) {
@@ -610,14 +637,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() { logoWidth = val; });
                       },
                     ),
-                    const Text("లోగో ఎత్తు (Height):", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    Slider(
-                      value: logoHeight, min: 40, max: 150, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() { logoHeight = val; });
-                        setState(() { logoHeight = val; });
-                      },
+
+                    const Divider(color: Colors.white24, height: 20),
+                    const Text("2. న్యూస్ బ్యాడ్జ్ (JPEG/GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(newsBadgeImagePath.isEmpty ? "బ్యాడ్జ్ లేదు" : "బ్యాడ్జ్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { newsBadgeImagePath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.image, size: 14),
+                          label: const Text("Badge", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
                     ),
+
                     const Divider(color: Colors.white24, height: 20),
                     TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్ టెక్స్ట్", labelStyle: TextStyle(color: Colors.white54))),
                     TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్", labelStyle: TextStyle(color: Colors.white54))),
@@ -791,25 +833,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         top: 0, left: currentVerticalWidth, right: 0, bottom: currentHorizontalHeight,
                         child: SizedBox.expand(child: ClipRect(child: cameraWidget)),
                       ),
+                      // నిలువు L-Shape బాక్స్ (అంచులు/Padding అడ్జస్ట్ చేసేలా)
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
                         child: Container(
                           color: lShapeColor,
+                          padding: EdgeInsets.all(verticalImagePadding),
                           child: Center(
                             child: verticalAdImagePath.isNotEmpty
-                                ? Image.file(File(verticalAdImagePath), fit: BoxFit.cover)
+                                ? Image.file(File(verticalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
                                 : const Text("VERTICAL AD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
                           ),
                         ),
                       ),
+                      // అడ్డు L-Shape బ్యానర్ (అంచులు/Padding అడ్జస్ట్ చేసేలా)
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
                         child: Container(
                           color: lShapeColor,
+                          padding: EdgeInsets.all(horizontalImagePadding),
                           alignment: Alignment.center,
                           child: Center(
                             child: horizontalAdImagePath.isNotEmpty
-                                ? Image.file(File(horizontalAdImagePath), fit: BoxFit.cover)
+                                ? Image.file(File(horizontalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
                                 : Text(lShapeCustomText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                           ),
                         ),
@@ -860,7 +906,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 ఎడమ వైపు 'BREAKING NEWS' లేబుల్‌తో కూడిన న్యూస్ స్క్రోలింగ్ బార్
+            // న్యూస్ స్క్రోలింగ్ బార్ (ఎడమ వైపు JPEG/GIF బ్యాడ్జ్‌తో సహా)
             Positioned(
               bottom: 5, left: 5, right: 5, 
               child: Column(
@@ -874,9 +920,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         children: [
                           Container(
                             color: Colors.yellow.shade800,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             alignment: Alignment.center,
-                            child: const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                            child: newsBadgeImagePath.isNotEmpty
+                                ? Image.file(File(newsBadgeImagePath), fit: BoxFit.contain, width: 70)
+                                : const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                           Expanded(
                             child: Padding(
@@ -900,9 +948,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       children: [
                         Container(
                           color: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           alignment: Alignment.center,
-                          child: const Text("LIVE NEWS", style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold)),
+                          child: newsBadgeImagePath.isNotEmpty
+                              ? Image.file(File(newsBadgeImagePath), fit: BoxFit.contain, width: 70)
+                              : const Text("LIVE NEWS", style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                         Expanded(
                           child: Padding(
