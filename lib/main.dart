@@ -860,16 +860,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 'LATEST NEWS' మరియు 'STATE NEWS' లేబుల్స్ తొలగించబడ్డాయి (కేవలం న్యూస్ స్క్రోలింగ్ మాత్రమే)
+            // 🔥 అప్‌డేట్ చేయబడిన న్యూస్ స్క్రోలింగ్ వ్యూ (స్పష్టంగా కనిపించడానికి సరిదిద్దబడింది)
             Positioned(
-              bottom: 3, left: 3, right: 3, 
+              bottom: 10, left: 5, right: 5, 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (!isLBandMode)
                     Container(
                       height: 35, 
-                      color: Colors.blue[900], 
+                      color: Colors.blue[950], 
                       padding: const EdgeInsets.symmetric(horizontal: 10), 
                       child: Center(
                         child: Marquee(
@@ -880,9 +880,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
                     ),
+                  const SizedBox(height: 2),
                   Container(
                     height: 40, 
-                    color: Colors.red, 
+                    color: Colors.red[900], 
                     padding: const EdgeInsets.symmetric(horizontal: 10), 
                     child: Center(
                       child: Marquee(
