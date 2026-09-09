@@ -177,7 +177,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max, // 🔥 గరిష్ట క్లారిటీ మరియు ఫుల్ HD కోసం max వాడబడింది
+        ResolutionPreset.max, // గరిష్ట క్లారిటీ కోసం max రెసొల్యూషన్
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -832,7 +832,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 కెమెరా క్లారిటీ, కరెక్ట్ ఆస్పెక్ట్ రేషియో మరియు హై-డెఫినిషన్ ఫిట్ కోసం అప్‌డేట్ చేసిన కోడ్
+    // 🔥 పోర్ట్రెయిట్ మరియు ల్యాండ్‌స్కేప్ మోడ్స్ రెండింటిలోనూ క్లారిటీ మరియు ఫిట్ పర్ఫెక్ట్ గా ఉండేలా సవరించబడిన కోడ్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -852,17 +852,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 },
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    var camera = controller!.value;
-                    // స్క్రీన్ మరియు కెమెరా ప్రివ్యూ సైజులను బట్టి పిక్సెల్ డీగ్రేడేషన్ లేకుండా పర్ఫెక్ట్ స్కేలింగ్ లెక్కించడం
-                    var scale = constraints.maxWidth / constraints.maxHeight * camera.aspectRatio;
+                    var cameraValue = controller!.value;
+                    // స్క్రీన్ మరియు కెమెరా ప్రివ్యూ రేషియో ఆధారంగా కరెక్ట్ స్కేల్ లెక్కించడం
+                    var scale = (constraints.maxWidth / constraints.maxHeight) * cameraValue.aspectRatio;
                     if (scale < 1) scale = 1 / scale;
 
                     return ClipRect(
-                      child: Center(
-                        child: Transform.scale(
-                          scale: isScreenLandscape ? (scale > 1 ? scale : 1.1) : (scale < 1 ? 1 / scale : scale),
-                          child: AspectRatio(
-                            aspectRatio: camera.aspectRatio,
+                      child: OverflowBox(
+                        alignment: Alignment.center,
+                        child: FittedBox(
+                          fit: BoxFit.cover, // ఏ మోడ్‌లో ఉన్నా బ్లర్ లేదా స్ట్రెచ్ అవ్వకుండా హై-క్లారిటీతో ఫిట్ అవుతుంది
+                          child: SizedBox(
+                            width: isScreenLandscape ? constraints.maxHeight * cameraValue.aspectRatio : constraints.maxWidth,
+                            height: isScreenLandscape ? constraints.maxHeight : constraints.maxWidth / cameraValue.aspectRatio,
                             child: CameraPreview(controller!),
                           ),
                         ),
@@ -1087,4 +1089,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
