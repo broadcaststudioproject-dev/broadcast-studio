@@ -109,7 +109,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Timer? _newsTimer;
   Timer? _lBandAutoTimer; 
-  Timer? _autoOffTimer; // 🔥 ఆటో ఆఫ్ టైమర్ కోసం
+  Timer? _autoOffTimer;
 
   @override
   void initState() {
@@ -434,7 +434,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
-                    // 1. నిలువు (Vertical) JPEG, PNG, GIF సెటప్
                     const Text("1. నిలువు (Vertical) JPEG/PNG/GIF:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
@@ -500,7 +499,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     const Divider(color: Colors.white24, height: 20),
 
-                    // 2. అడ్డు (Horizontal) JPEG, PNG, GIF సెటప్
                     const Text("2. అడ్డు (Horizontal) JPEG/PNG/GIF:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
@@ -792,7 +790,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 ఆటో టైమర్ మరియు ఆటో-ఆఫ్ (15 నిమిషాలకు ఒకసారి ఆన్ అయి 1 నిమిషంలో ఆఫ్ అయ్యేలా)
   void _toggleAutoTimerAds() {
     setState(() { 
       isAutoTimerActive = !isAutoTimerActive; 
@@ -805,7 +802,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (!mounted) return;
         setState(() { isLBandMode = true; }); 
 
-        // 1 నిమిషం తర్వాత ఆటోమేటిక్‌గా ఆఫ్‌ (Auto-Off) అవుతుంది
         _autoOffTimer = Timer(const Duration(minutes: 1), () {
           if (mounted) { 
             setState(() { isLBandMode = false; }); 
@@ -836,6 +832,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
+    // 🔥 ల్యాండ్‌స్కేప్ మరియు పోర్ట్రెయిట్ మోడ్స్‌లో కెమెరా స్క్రీన్ స్ట్రెచ్ అవకుండా పర్ఫెక్ట్‌గా ఫిక్స్ అయ్యే కోడ్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -853,18 +850,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
+                child: ClipRect(
+                  child: OverflowBox(
                     alignment: Alignment.center,
-                    child: SizedBox(
-                      width: isScreenLandscape 
-                          ? (controller!.value.previewSize?.height ?? 1080)
-                          : (controller!.value.previewSize?.width ?? 1080),
-                      height: isScreenLandscape 
-                          ? (controller!.value.previewSize?.width ?? 1920)
-                          : (controller!.value.previewSize?.height ?? 1920),
-                      child: CameraPreview(controller!),
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller!.value.previewSize!.height,
+                        height: controller!.value.previewSize!.width,
+                        child: CameraPreview(controller!),
+                      ),
                     ),
                   ),
                 ),
@@ -903,7 +898,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         bottom: currentHorizontalHeight,
                         child: cameraWidget,
                       ),
-                      // నిలువు L-Shape (JPEG, PNG, GIF సపోర్ట్)
+                      // నిలువు L-Shape
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
                         child: Container(
@@ -922,7 +917,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // అడ్డు L-Shape (JPEG, PNG, GIF సపోర్ట్)
+                      // అడ్డు L-Shape
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
                         child: Container(
@@ -958,7 +953,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            // ఛానల్ లోగో (JPEG, PNG, GIF సపోర్ట్)
+            // ఛానల్ లోగో
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
@@ -989,7 +984,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // బ్రేకింగ్ న్యూస్ ప్యానెల్ (JPEG, PNG, GIF బ్యాడ్జ్ సపోర్ట్)
+            // బ్రేకింగ్ న్యూస్ ప్యానెల్
             Positioned(
               bottom: 5, 
               left: 5, 
