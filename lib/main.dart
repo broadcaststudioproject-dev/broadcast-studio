@@ -175,7 +175,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max, // 🔥 గరిష్ట క్లారిటీ కోసం Max రిజల్యూషన్
+        ResolutionPreset.high,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -731,24 +731,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             return AlertDialog(
               backgroundColor: Colors.grey[900],
               title: const Text("డైరెక్ట్ RTMP / Restream లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి.", style: TextStyle(color: Colors.white70, fontSize: 11)),
-                    const SizedBox(height: 15),
-                    TextField(
-                      controller: rtmpUrlController,
-                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                      decoration: const InputDecoration(
-                        labelText: "RTMP Server URL & Stream Key",
-                        labelStyle: TextStyle(color: Colors.white54),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      const SizedBox(height: 15),
+                      TextField(
+                        controller: rtmpUrlController,
+                        style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                        decoration: const InputDecoration(
+                          labelText: "RTMP Server URL & Stream Key",
+                          labelStyle: TextStyle(color: Colors.white54),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
+                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -801,20 +804,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 కెమెరా క్లారిటీ మరియు 16:9 రేషియో కచ్చితంగా ఫిట్ అయ్యేలా అప్‌డేట్ చేయబడిన పర్ఫెక్ట్ కెమెరా విడ్జెట్
+    // 🔥 కెమెరా ప్రివ్యూ ఏ మాత్రం కట్ కాకుండా, ఒరిజినల్ ఆస్పెక్ట్ రేషియోతో పర్ఫెక్ట్‌గా ఫిట్ అయ్యే పద్ధతి
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? SizedBox.expand(
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  child: SizedBox(
-                    width: controller!.value.previewSize?.height ?? 1080,
-                    height: controller!.value.previewSize?.width ?? 1920,
-                    child: CameraPreview(controller!),
-                  ),
-                ),
+            ? LayoutBuilder(
+                builder: (context, constraints) {
+                  return Center(
+                    child: SizedBox(
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      child: CameraPreview(controller!),
+                    ),
+                  );
+                },
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
@@ -843,7 +846,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.white,
                   child: Stack(
                     children: [
-                      // L-Shape మోడ్‌లో కెమెరా ఏ మాత్రం కట్ కాకుండా, ఖచ్చితమైన స్పేస్‌లో రన్ అయ్యేలా సెట్ చేయబడింది
+                      // L-Shape మోడ్‌లో కెమెరా ఫిట్టింగ్ కోసం పర్ఫెక్ట్ స్పేస్
                       Positioned(
                         top: 0, 
                         left: currentVerticalWidth, 
@@ -1031,3 +1034,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
