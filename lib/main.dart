@@ -804,20 +804,37 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 కెమెరా ప్రివ్యూ ఏ మాత్రం కట్ కాకుండా, ఒరిజినల్ ఆస్పెక్ట్ రేషియోతో పర్ఫెక్ట్‌గా ఫిట్ అయ్యే పద్ధతి
+    // 🔥 కెమెరా ప్రివ్యూ పర్ఫెక్ట్ 16:9 ఫిట్టింగ్ మరియు టచ్ జూమ్ (Pinch to Zoom) పనిచేసేలా అప్‌డేట్ చేయబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? LayoutBuilder(
-                builder: (context, constraints) {
-                  return Center(
-                    child: SizedBox(
-                      width: constraints.maxWidth,
-                      height: constraints.maxHeight,
-                      child: CameraPreview(controller!),
-                    ),
-                  );
+            ? GestureDetector(
+                onScaleStart: (details) {
+                  _baseScale = _currentZoomLevel;
                 },
+                onScaleUpdate: (details) async {
+                  if (controller == null) return;
+                  double zoom = _baseScale * details.scale;
+                  if (zoom < _minZoomLevel) zoom = _minZoomLevel;
+                  if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+                  setState(() {
+                    _currentZoomLevel = zoom;
+                  });
+                  await controller?.setZoomLevel(zoom);
+                },
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.center,
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: controller!.value.previewSize?.height ?? 1080,
+                        height: controller!.value.previewSize?.width ?? 1920,
+                        child: CameraPreview(controller!),
+                      ),
+                    ),
+                  ),
+                ),
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
@@ -846,7 +863,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.white,
                   child: Stack(
                     children: [
-                      // L-Shape మోడ్‌లో కెమెరా ఫిట్టింగ్ కోసం పర్ఫెక్ట్ స్పేస్
                       Positioned(
                         top: 0, 
                         left: currentVerticalWidth, 
@@ -1034,4 +1050,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
