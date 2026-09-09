@@ -175,7 +175,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.high, // 🔥 హై రిజల్యూషన్ ద్వారా క్లారిటీ తగ్గకుండా ఉంటుంది
+        ResolutionPreset.max, // 🔥 గరిష్ట క్లారిటీ కోసం Max రిజల్యూషన్
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -801,20 +801,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 కెమెరా క్లారిటీ మరియు 16:9 రేషియో పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా అప్‌డేట్ చేయబడిన ప్రివ్యూ
+    // 🔥 కెమెరా క్లారిటీ మరియు 16:9 రేషియో కచ్చితంగా ఫిట్ అయ్యేలా అప్‌డేట్ చేయబడిన పర్ఫెక్ట్ కెమెరా విడ్జెట్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? ClipRect(
-                child: OverflowBox(
+            ? SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
                   alignment: Alignment.center,
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller!.value.previewSize?.height ?? 1080,
-                      height: controller!.value.previewSize?.width ?? 1920,
-                      child: CameraPreview(controller!),
-                    ),
+                  child: SizedBox(
+                    width: controller!.value.previewSize?.height ?? 1080,
+                    height: controller!.value.previewSize?.width ?? 1920,
+                    child: CameraPreview(controller!),
                   ),
                 ),
               )
@@ -845,6 +843,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.white,
                   child: Stack(
                     children: [
+                      // L-Shape మోడ్‌లో కెమెరా ఏ మాత్రం కట్ కాకుండా, ఖచ్చితమైన స్పేస్‌లో రన్ అయ్యేలా సెట్ చేయబడింది
                       Positioned(
                         top: 0, 
                         left: currentVerticalWidth, 
