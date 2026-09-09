@@ -70,20 +70,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String verticalAdImagePath = "";
   String horizontalAdImagePath = "";
   
-  // L-Shape సైజులు
   double verticalAdWidth = 130.0;
   double landscapeVerticalWidth = 200.0;
   double horizontalAdHeight = 130.0;
   double landscapeHorizontalHeight = 100.0;
 
-  // 🔥 నాలుగు వైపులా అంచులు (Padding/Margins), Zoom In/Out (Scale), 360 Rotation
   double verticalPaddingTop = 0.0, verticalPaddingBottom = 0.0, verticalPaddingLeft = 0.0, verticalPaddingRight = 0.0;
   double horizontalPaddingTop = 0.0, horizontalPaddingBottom = 0.0, horizontalPaddingLeft = 0.0, horizontalPaddingRight = 0.0;
   
   double verticalZoomScale = 1.0;
   double horizontalZoomScale = 1.0;
 
-  int verticalAdRotationTurns = 0; // 90 డిగ్రీల చొప్పున 360 రొటేషన్ (0 to 3)
+  int verticalAdRotationTurns = 0; 
   int horizontalAdRotationTurns = 0;
 
   String lShapeCustomText = "SS YATRA TV - L-SHAPE AD BANNER";
@@ -94,7 +92,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
-  String newsBadgeImagePath = ""; // ఒకే బ్రేకింగ్ న్యూస్ బ్యాడ్జ్ (JPEG/GIF)
+  String newsBadgeImagePath = ""; 
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -352,7 +350,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 L-Shape అంచులు, Zoom In/Out, మరియు 360 డిగ్రీల రొటేట్ కంట్రోల్స్ డైలాగ్
   void _showLBandImagesManagerDialog() {
     showDialog(
       context: context,
@@ -384,7 +381,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
-                    // 1. నిలువు (Vertical) సెట్టింగ్స్
                     const Text("1. నిలువు (Vertical) JPEG/GIF సెటప్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
@@ -450,7 +446,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     const Divider(color: Colors.white24, height: 20),
 
-                    // 2. అడ్డు (Horizontal) సెట్టింగ్స్
                     const Text("2. అడ్డు (Horizontal) JPEG/GIF సెటప్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
@@ -826,8 +821,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       fit: BoxFit.cover,
                       alignment: Alignment.center,
                       child: SizedBox(
-                        width: controller!.value.previewSize?.width ?? 1080,
-                        height: controller!.value.previewSize?.height ?? 1920,
+                        width: controller!.value.previewSize?.height ?? 1080,
+                        height: controller!.value.previewSize?.width ?? 1920,
                         child: CameraPreview(controller!),
                       ),
                     ),
@@ -861,11 +856,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.white,
                   child: Stack(
                     children: [
+                      // 🔥 L-Shape మోడ్‌లో కెమెరా కరెక్ట్‌గా ఫిట్ అయ్యేలా సెట్ చేయబడింది
                       Positioned(
-                        top: 0, left: currentVerticalWidth, right: 0, bottom: currentHorizontalHeight,
-                        child: SizedBox.expand(child: ClipRect(child: cameraWidget)),
+                        top: 0, 
+                        left: currentVerticalWidth, 
+                        right: 0, 
+                        bottom: currentHorizontalHeight,
+                        child: ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.center,
+                            child: FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(
+                                width: controller?.value.previewSize?.height ?? 1080,
+                                height: controller?.value.previewSize?.width ?? 1920,
+                                child: controller != null && controller!.value.isInitialized 
+                                    ? CameraPreview(controller!) 
+                                    : Container(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      // నిలువు L-Shape (Zoom, Margins & 360 Rotation తో)
+                      // నిలువు L-Shape
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
                         child: Container(
@@ -884,7 +897,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // అడ్డు L-Shape (Zoom, Margins & 360 Rotation తో)
+                      // అడ్డు L-Shape
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
                         child: Container(
@@ -929,7 +942,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
                     )
                   : Container(
-                      padding: const EdgeInsets.all(8, color: Colors.blue[900]?.withOpacity(0.8), 
+                      padding: const EdgeInsets.all(8), 
+                      color: Colors.blue[900]?.withOpacity(0.8), 
                       child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                     ),
             ),
@@ -949,7 +963,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 రెండు న్యూస్ బార్లను కలిపి ఒకే పవర్‌ఫుల్ 'BREAKING NEWS' ప్యానెల్‌గా మార్చబడింది
+            // 🔥 సింగిల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (JPEG/GIF బ్యాడ్జ్ సపోర్ట్‌తో)
             Positioned(
               bottom: 5, left: 5, right: 5, 
               child: Column(
