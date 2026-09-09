@@ -175,7 +175,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max,
+        ResolutionPreset.high, // 🔥 హై రిజల్యూషన్ ద్వారా క్లారిటీ తగ్గకుండా ఉంటుంది
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -801,30 +801,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
+    // 🔥 కెమెరా క్లారిటీ మరియు 16:9 రేషియో పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా అప్‌డేట్ చేయబడిన ప్రివ్యూ
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? Listener(
-                onPointerSignal: (pointerSignal) {},
-                child: GestureDetector(
-                  onScaleStart: (details) { _baseScale = _currentZoomLevel; },
-                  onScaleUpdate: (details) async {
-                    if (controller == null) return;
-                    double zoom = _baseScale * details.scale;
-                    if (zoom < _minZoomLevel) zoom = _minZoomLevel;
-                    if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-                    setState(() { _currentZoomLevel = zoom; });
-                    await controller?.setZoomLevel(zoom);
-                  },
-                  child: SizedBox.expand(
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        width: controller!.value.previewSize?.height ?? 1080,
-                        height: controller!.value.previewSize?.width ?? 1920,
-                        child: CameraPreview(controller!),
-                      ),
+            ? ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
+                      child: CameraPreview(controller!),
                     ),
                   ),
                 ),
@@ -856,27 +845,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.white,
                   child: Stack(
                     children: [
-                      // 🔥 L-Shape మోడ్‌లో కెమెరా కరెక్ట్‌గా ఫిట్ అయ్యేలా సెట్ చేయబడింది
                       Positioned(
                         top: 0, 
                         left: currentVerticalWidth, 
                         right: 0, 
                         bottom: currentHorizontalHeight,
-                        child: ClipRect(
-                          child: OverflowBox(
-                            alignment: Alignment.center,
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: SizedBox(
-                                width: controller?.value.previewSize?.height ?? 1080,
-                                height: controller?.value.previewSize?.width ?? 1920,
-                                child: controller != null && controller!.value.isInitialized 
-                                    ? CameraPreview(controller!) 
-                                    : Container(color: Colors.black),
-                              ),
-                            ),
-                          ),
-                        ),
+                        child: cameraWidget,
                       ),
                       // నిలువు L-Shape
                       Positioned(
@@ -963,7 +937,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 సింగిల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (JPEG/GIF బ్యాడ్జ్ సపోర్ట్‌తో)
+            // సింగిల్ బ్రేకింగ్ న్యూస్ ప్యానెల్
             Positioned(
               bottom: 5, left: 5, right: 5, 
               child: Column(
