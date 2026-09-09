@@ -177,7 +177,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.high,
+        ResolutionPreset.high, // లేదా max రెసొల్యూషన్ కోసం ResolutionPreset.max వాడవచ్చు
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -832,7 +832,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 ల్యాండ్‌స్కేప్ మరియు పోర్ట్రెయిట్ మోడ్ రెండింటిలోనూ కెమెరా పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా అప్‌డేట్ చేసిన కోడ్
+    // 🔥 ల్యాండ్‌స్కేప్ మరియు పోర్ట్రెయిట్ మోడ్స్‌లో Zoom-out సమస్య లేకుండా ఫుల్ క్లారిటీతో ఫిట్ అయ్యే పర్ఫెక్ట్ లాజిక్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -850,21 +850,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    var camera = controller!.value;
-                    // స్క్రీన్ మరియు కెమెరా సైజ్ ఆధారంగా ఆస్పెక్ట్ రేషియోని సరిచేయడం
-                    final size = constraints.biggest;
-                    var scale = size.aspectRatio * camera.aspectRatio;
-                    if (scale < 1) scale = 1 / scale;
-
-                    return Transform.scale(
-                      scale: scale,
-                      child: Center(
-                        child: CameraPreview(controller!),
-                      ),
-                    );
-                  },
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover, // స్క్రీన్‌కి సరిగ్గా ఫిల్ అయ్యి జూమ్-అవుట్ సమస్య రాకుండా చేస్తుంది
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
+                      child: CameraPreview(controller!),
+                    ),
+                  ),
                 ),
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
