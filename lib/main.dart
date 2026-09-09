@@ -832,7 +832,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 ల్యాండ్‌స్కేప్ మరియు పోర్ట్రెయిట్ మోడ్స్‌లో కెమెరా స్క్రీన్ స్ట్రెచ్ అవకుండా పర్ఫెక్ట్‌గా ఫిక్స్ అయ్యే కోడ్
+    // 🔥 ల్యాండ్‌స్కేప్ మరియు పోర్ట్రెయిట్ మోడ్ రెండింటిలోనూ కెమెరా పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా అప్‌డేట్ చేసిన కోడ్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -850,18 +850,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: ClipRect(
-                  child: OverflowBox(
-                    alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: controller!.value.previewSize!.height,
-                        height: controller!.value.previewSize!.width,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    var camera = controller!.value;
+                    // స్క్రీన్ మరియు కెమెరా సైజ్ ఆధారంగా ఆస్పెక్ట్ రేషియోని సరిచేయడం
+                    final size = constraints.biggest;
+                    var scale = size.aspectRatio * camera.aspectRatio;
+                    if (scale < 1) scale = 1 / scale;
+
+                    return Transform.scale(
+                      scale: scale,
+                      child: Center(
                         child: CameraPreview(controller!),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
