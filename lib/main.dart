@@ -51,8 +51,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isLandscape = false;
   bool isIpCameraActive = false;
   bool isLiveBroadcasting = false;
-  bool isLBandMode = false; 
-  bool isAutoTimerActive = false; 
+  bool isAnimatedAdsMode = false; // యానిమేటెడ్ యాడ్స్ లేయర్ ఆన్/ఆఫ్ కోసం
   bool isVideoAdPlaying = false; 
 
   double _currentZoomLevel = 1.0;
@@ -65,28 +64,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController qrDataController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
-  Color lShapeColor = const Color(0xFF95C8F2);
+  Color adLayerColor = const Color(0xFF111111);
   
-  // వేర్వేరుగా నిలువు మరియు అడ్డు యాడ్స్ పాత్‌లు
-  String verticalAdImagePath = "";
-  String horizontalAdImagePath = "";
+  // విడిగా నిలువు (Vertical) మరియు అడ్డు (Horizontal) JPEG/GIF యాడ్స్ పాత్‌లు
+  String verticalAnimatedAdPath = "";
+  String horizontalAnimatedAdPath = "";
   
   double verticalAdWidth = 130.0;
-  double landscapeVerticalWidth = 200.0;
-  double horizontalAdHeight = 130.0;
-  double landscapeHorizontalHeight = 100.0;
-
-  double verticalPaddingTop = 0.0, verticalPaddingBottom = 0.0, verticalPaddingLeft = 0.0, verticalPaddingRight = 0.0;
-  double horizontalPaddingTop = 0.0, horizontalPaddingBottom = 0.0, horizontalPaddingLeft = 0.0, horizontalPaddingRight = 0.0;
-  
-  double verticalZoomScale = 1.0;
-  double horizontalZoomScale = 1.0;
-
-  int verticalAdRotationTurns = 0; 
-  int horizontalAdRotationTurns = 0;
-
-  String lShapeCustomText = "SS YATRA TV - L-SHAPE AD BANNER";
-  TextEditingController lShapeTextCtrl = TextEditingController();
+  double landscapeVerticalWidth = 180.0;
+  double horizontalAdHeight = 110.0;
+  double landscapeHorizontalHeight = 90.0;
 
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
@@ -109,8 +96,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController newsCtrl = TextEditingController();
 
   Timer? _newsTimer;
-  Timer? _lBandAutoTimer; 
-  Timer? _autoOffTimer;
 
   @override
   void initState() {
@@ -121,7 +106,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
     newsCtrl.text = breakingNewsText;
-    lShapeTextCtrl.text = lShapeCustomText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
     rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
@@ -151,14 +135,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
-    _lBandAutoTimer?.cancel();
-    _autoOffTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
-    lShapeTextCtrl.dispose();
     rtmpUrlController.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
@@ -292,6 +273,105 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔥 యానిమేటెడ్ JPEG & GIF యాడ్స్ మేనేజర్ డైలాగ్ (నిలువు మరియు అడ్డు వేర్వేరుగా)
+  void _showAnimatedAdsManagerDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
+            double curVWidth = isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth;
+            double curHHeight = isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight;
+
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("Animated GIF/JPEG Ads Manager", style: TextStyle(color: Colors.white, fontSize: 14)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("1. నిలువు (Vertical GIF/JPEG) Ad:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(child: Text(verticalAnimatedAdPath.isEmpty ? "ఫైల్ లేదు" : "వర్టికల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { verticalAnimatedAdPath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, size: 14),
+                          label: const Text("Upload V", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                    Slider(
+                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
+                        });
+                        setState(() {});
+                      },
+                    ),
+
+                    const Divider(color: Colors.white24, height: 20),
+
+                    const Text("2. అడ్డు (Horizontal GIF/JPEG) Ad:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(child: Text(horizontalAnimatedAdPath.isEmpty ? "ఫైల్ లేదు" : "హారిజాంటల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { horizontalAnimatedAdPath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, size: 14),
+                          label: const Text("Upload H", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                    Slider(
+                      value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (isLandscapeMode) { landscapeHorizontalHeight = val; } else { horizontalAdHeight = val; }
+                        });
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  onPressed: () {
+                    setState(() { isAnimatedAdsMode = true; });
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Apply Ads", style: TextStyle(color: Colors.white)),
+                ),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
@@ -401,137 +481,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           },
         );
       },
-    );
-  }
-
-  void _showLBandImagesManagerDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
-            double curVWidth = isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth;
-            double curHHeight = isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight;
-
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: const Text("నిలువు & అడ్డు యాడ్స్ వేర్వేరుగా అప్‌లోడ్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 13)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("బ్యాక్‌గ్రౌండ్ కలర్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    const SizedBox(height: 5),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _colorOptionButton(setDialogState, const Color(0xFF95C8F2), "Sky Blue"),
-                        _colorOptionButton(setDialogState, Colors.blue[800]!, "Dark Blue"),
-                        _colorOptionButton(setDialogState, Colors.orange[800]!, "Orange"),
-                        _colorOptionButton(setDialogState, Colors.red[800]!, "Red"),
-                      ],
-                    ),
-                    const Divider(color: Colors.white24, height: 20),
-
-                    // 1. నిలువు (Vertical) యాడ్ అప్లోడ్ & సెట్టింగ్స్
-                    const Text("1. నిలువు (Vertical Ad) Upload:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "వర్టికల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
-                          onPressed: () async {
-                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                            if (image != null) {
-                              setDialogState(() { verticalAdImagePath = image.path; });
-                            }
-                          },
-                          icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload V", style: TextStyle(fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                    Text("నిలువు వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    Slider(
-                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
-                        });
-                        setState(() {});
-                      },
-                    ),
-
-                    const Divider(color: Colors.white24, height: 20),
-
-                    // 2. అడ్డు (Horizontal) యాడ్ అప్లోడ్ & సెట్టింగ్స్
-                    const Text("2. అడ్డు (Horizontal Ad) Upload:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "హారిజాంటల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(80, 30)),
-                          onPressed: () async {
-                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                            if (image != null) {
-                              setDialogState(() { horizontalAdImagePath = image.path; });
-                            }
-                          },
-                          icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload H", style: TextStyle(fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                    Text("అడ్డు ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    Slider(
-                      value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (isLandscapeMode) { landscapeHorizontalHeight = val; } else { horizontalAdHeight = val; }
-                        });
-                        setState(() {});
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  onPressed: () {
-                    setState(() { isLBandMode = true; });
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Apply L-Shape", style: TextStyle(color: Colors.white)),
-                ),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _colorOptionButton(StateSetter setDialogState, Color color, String name) {
-    return GestureDetector(
-      onTap: () {
-        setDialogState(() { lShapeColor = color; });
-        setState(() { lShapeColor = color; });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color,
-          border: Border.all(color: Colors.white, width: lShapeColor == color ? 2 : 1),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(name, style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-      ),
     );
   }
 
@@ -725,31 +674,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  void _toggleAutoTimerAds() {
-    setState(() { 
-      isAutoTimerActive = !isAutoTimerActive; 
-    });
-
-    if (isAutoTimerActive) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Auto Timer Active: ప్రతి 15 నిమిషాలకు L-Shape యాడ్స్ 1 నిమిషం ప్రదర్శించబడతాయి!"), backgroundColor: Colors.green));
-      
-      _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
-        if (!mounted) return;
-        setState(() { isLBandMode = true; }); 
-
-        _autoOffTimer = Timer(const Duration(minutes: 1), () {
-          if (mounted) { 
-            setState(() { isLBandMode = false; }); 
-          }
-        });
-      });
-    } else {
-      _lBandAutoTimer?.cancel();
-      _autoOffTimer?.cancel();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Auto Timer Deactivated!"), backgroundColor: Colors.orange));
-    }
-  }
-
   void _toggleRotation() {
     setState(() {
       isLandscape = !isLandscape;
@@ -822,14 +746,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               )
-            else if (!isLBandMode)
+            else if (!isAnimatedAdsMode)
               Positioned.fill(child: cameraWidget)
             else
               Positioned.fill(
                 child: Container(
-                  color: Colors.white,
+                  color: adLayerColor,
                   child: Stack(
                     children: [
+                      // కెమెరా వ్యూ (యాడ్స్ మధ్యలో పర్ఫెక్ట్‌గా ఫిట్ అవుతుంది)
                       Positioned(
                         top: 0, 
                         left: currentVerticalWidth, 
@@ -837,39 +762,33 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         bottom: currentHorizontalHeight,
                         child: cameraWidget,
                       ),
-                      // 🔥 1. నిలువు (Vertical) Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ (InteractiveViewer) చేసుకోవడానికి
+                      // 🔥 1. నిలువు (Vertical) యానిమేటెడ్ GIF/JPEG Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ చేసుకోవచ్చు
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
-                        child: Container(
-                          color: lShapeColor,
-                          child: InteractiveViewer(
-                            panEnabled: true,
-                            scaleEnabled: true,
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: Center(
-                              child: verticalAdImagePath.isNotEmpty
-                                  ? Image.file(File(verticalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                  : const Text("VERTICAL AD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
-                            ),
+                        child: InteractiveViewer(
+                          panEnabled: true,
+                          scaleEnabled: true,
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: Center(
+                            child: verticalAnimatedAdPath.isNotEmpty
+                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                : const Text("VERTICAL AD", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 10)),
                           ),
                         ),
                       ),
-                      // 🔥 2. అడ్డు (Horizontal) Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ (InteractiveViewer) చేసుకోవడానికి
+                      // 🔥 2. అడ్డు (Horizontal) యానిమేటెడ్ GIF/JPEG Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ చేసుకోవచ్చు
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
-                        child: Container(
-                          color: lShapeColor,
-                          child: InteractiveViewer(
-                            panEnabled: true,
-                            scaleEnabled: true,
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: Center(
-                              child: horizontalAdImagePath.isNotEmpty
-                                  ? Image.file(File(horizontalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                  : Text(lShapeCustomText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                            ),
+                        child: InteractiveViewer(
+                          panEnabled: true,
+                          scaleEnabled: true,
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: Center(
+                            child: horizontalAnimatedAdPath.isNotEmpty
+                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                : const Text("HORIZONTAL AD", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 11)),
                           ),
                         ),
                       ),
@@ -906,8 +825,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
 
             Positioned(
-              bottom: isLBandMode ? currentHorizontalHeight + 15 : 65, 
-              left: isLBandMode ? currentVerticalWidth + 15 : 15, 
+              bottom: isAnimatedAdsMode ? currentHorizontalHeight + 15 : 65, 
+              left: isAnimatedAdsMode ? currentVerticalWidth + 15 : 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -978,17 +897,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                        // 🔥 యానిమేటెడ్ యాడ్స్ సెట్టింగ్స్ బటన్
                         _buildControlButton(
-                          isLBandMode ? Icons.fullscreen : Icons.view_sidebar, 
-                          isLBandMode ? "Ad Off" : "L-Shape Edit", 
-                          () { setState(() { isLBandMode = !isLBandMode; }); if(isLBandMode) _showLBandImagesManagerDialog(); }, 
+                          isAnimatedAdsMode ? Icons.fullscreen : Icons.animation, 
+                          isAnimatedAdsMode ? "Ads Off" : "GIF/JPEG Ads", 
+                          () { setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; }); if(isAnimatedAdsMode) _showAnimatedAdsManagerDialog(); }, 
                           Colors.amber,
-                        ),
-                        _buildControlButton(
-                          isAutoTimerActive ? Icons.timer : Icons.timer_off, 
-                          isAutoTimerActive ? "Auto ON" : "Auto OFF", 
-                          _toggleAutoTimerAds, 
-                          isAutoTimerActive ? Colors.greenAccent : Colors.grey,
                         ),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
