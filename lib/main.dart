@@ -804,7 +804,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 కెమెరా ప్రివ్యూ పర్ఫెక్ట్ 16:9 ఫిట్టింగ్ మరియు టచ్ జూమ్ (Pinch to Zoom) పనిచేసేలా అప్‌డేట్ చేయబడింది
+    // 🔥 కెమెరా ప్రివ్యూ మరియు జూమ్ (Pinch to Zoom) అత్యంత ఖచ్చితంగా పనిచేసేలా సరిదిద్దబడింది
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -822,16 +822,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: ClipRect(
-                  child: OverflowBox(
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: controller!.value.previewSize?.height ?? 1080,
-                        height: controller!.value.previewSize?.width ?? 1920,
-                        child: CameraPreview(controller!),
-                      ),
+                    child: SizedBox(
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
+                      child: CameraPreview(controller!),
                     ),
                   ),
                 ),
