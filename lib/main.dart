@@ -804,7 +804,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 పోర్ట్రైట్ మరియు ల్యాండ్‌స్కేప్ రెండింటిలోనూ కెమెరా పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా అప్‌డేట్ చేయబడిన విడ్జెట్
+    // 🔥 పోర్ట్రైట్ మరియు ల్యాండ్‌స్కేప్ మోడ్‌లకు సరిపోయేలా కెమెరా ప్రివ్యూ ఫిట్టింగ్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -826,10 +826,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: OverflowBox(
                     alignment: Alignment.center,
                     child: FittedBox(
-                      fit: BoxFit.fitWidth,
+                      fit: BoxFit.cover,
                       child: SizedBox(
-                        width: controller!.value.previewSize?.width ?? 1080,
-                        height: controller!.value.previewSize?.height ?? 1920,
+                        width: isScreenLandscape 
+                            ? (controller!.value.previewSize?.height ?? 1080)
+                            : (controller!.value.previewSize?.width ?? 1080),
+                        height: isScreenLandscape 
+                            ? (controller!.value.previewSize?.width ?? 1920)
+                            : (controller!.value.previewSize?.height ?? 1920),
                         child: CameraPreview(controller!),
                       ),
                     ),
@@ -955,44 +959,45 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // సింగిల్ బ్రేకింగ్ న్యూస్ ప్యానెల్
+            // 🔥 L-Shape యాడ్స్ ఉన్నప్పుడు కూడా బ్రేకింగ్ న్యూస్ కనిపించేలా బాటమ్ హైట్ సరిదిద్దబడింది
             Positioned(
-              bottom: 5, left: 5, right: 5, 
+              bottom: 5, 
+              left: 5, 
+              right: 5, 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (!isLBandMode)
-                    Container(
-                      height: 42, 
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade900,
-                        border: Border.all(color: Colors.amber.shade400, width: 1.5),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 125,
-                            height: double.infinity,
-                            color: Colors.yellow.shade800,
-                            alignment: Alignment.center,
-                            child: newsBadgeImagePath.isNotEmpty
-                                ? Image.file(File(newsBadgeImagePath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                                : const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                              child: Marquee(
-                                text: breakingNewsText, 
-                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
-                                blankSpace: 100.0, 
-                                velocity: 40.0,
-                              ),
+                  Container(
+                    height: 42, 
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade900,
+                      border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 125,
+                          height: double.infinity,
+                          color: Colors.yellow.shade800,
+                          alignment: Alignment.center,
+                          child: newsBadgeImagePath.isNotEmpty
+                              ? Image.file(File(newsBadgeImagePath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                              : const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            child: Marquee(
+                              text: breakingNewsText, 
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
+                              blankSpace: 100.0, 
+                              velocity: 40.0,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
