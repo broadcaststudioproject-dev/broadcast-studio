@@ -109,6 +109,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Timer? _newsTimer;
   Timer? _lBandAutoTimer; 
+  Timer? _autoOffTimer; // 🔥 ఆటో ఆఫ్ టైమర్ కోసం
 
   @override
   void initState() {
@@ -120,7 +121,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.text = reporterRole;
     newsCtrl.text = breakingNewsText;
     lShapeTextCtrl.text = lShapeCustomText;
-    qrDataController.text = "http://192.168.1.100:8081/video";
+    qrDataController.text = "https://ssyatratv.com/live-stream";
     rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -150,6 +151,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     _lBandAutoTimer?.cancel();
+    _autoOffTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
@@ -213,7 +215,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ipCameraUrl,
         hwAcc: HwAcc.full,
         autoPlay: true,
-        options: VlcPlayerOptions(),
+        options: VlcPlayerOptions(
+          advanced: VlcAdvancedOptions([
+            VlcAdvancedOptions.networkCaching(1000),
+          ]),
+        ),
       );
       setState(() { isIpCameraActive = true; });
     }
@@ -350,6 +356,53 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  void _showQrGeneratorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text("PCR QR కోడ్ జనరేటర్", style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: qrDataController,
+                    style: const TextStyle(color: Colors.yellow),
+                    decoration: const InputDecoration(
+                      labelText: "లైవ్ స్ట్రీమ్ లింక్ / URL",
+                      labelStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
+                    ),
+                    onChanged: (val) {
+                      setStateDialog(() {}); 
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    color: Colors.white,
+                    child: QrImageView(
+                      data: qrDataController.text.isNotEmpty ? qrDataController.text : "https://ssyatratv.com",
+                      version: QrVersions.auto,
+                      size: 180.0,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showLBandImagesManagerDialog() {
     showDialog(
       context: context,
@@ -362,7 +415,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape: అంచులు, Zoom & 360 Rotate", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("L-Shape: JPEG/PNG/GIF, Zoom & Rotate", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -381,7 +434,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
-                    const Text("1. నిలువు (Vertical) JPEG/GIF సెటప్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    // 1. నిలువు (Vertical) JPEG, PNG, GIF సెటప్
+                    const Text("1. నిలువు (Vertical) JPEG/PNG/GIF:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
                       value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
@@ -400,7 +454,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() { verticalZoomScale = val; });
                       },
                     ),
-                    const Text("నాలుగు వైపుల అంచులు (Margins Top/Bottom/Left/Right):", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    const Text("అంచులు (Margins Top/Bot/Left/Right):", style: TextStyle(color: Colors.white54, fontSize: 10)),
                     Row(
                       children: [
                         Expanded(child: Text("Top/Bot: ${verticalPaddingTop.toInt()}", style: const TextStyle(color: Colors.white70, fontSize: 9))),
@@ -446,7 +500,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     const Divider(color: Colors.white24, height: 20),
 
-                    const Text("2. అడ్డు (Horizontal) JPEG/GIF సెటప్:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    // 2. అడ్డు (Horizontal) JPEG, PNG, GIF సెటప్
+                    const Text("2. అడ్డు (Horizontal) JPEG/PNG/GIF:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
                       value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
@@ -465,7 +520,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() { horizontalZoomScale = val; });
                       },
                     ),
-                    const Text("నాలుగు వైపుల అంచులు (Margins Top/Bottom/Left/Right):", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    const Text("అంచులు (Margins Top/Bot/Left/Right):", style: TextStyle(color: Colors.white54, fontSize: 10)),
                     Row(
                       children: [
                         Expanded(child: Text("Top/Bot: ${horizontalPaddingTop.toInt()}", style: const TextStyle(color: Colors.white70, fontSize: 9))),
@@ -547,41 +602,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  void _showQrGeneratorDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text("PCR QR కోడ్ జనరేటర్", style: TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: qrDataController,
-                style: const TextStyle(color: Colors.yellow),
-                decoration: const InputDecoration(labelText: "స్ట్రీమ్ లింక్ / IP అడ్రస్", labelStyle: TextStyle(color: Colors.white54)),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(10),
-                color: Colors.white,
-                child: QrImageView(
-                  data: qrDataController.text.isNotEmpty ? qrDataController.text : "https://ssyatratv.com",
-                  version: QrVersions.auto,
-                  size: 180.0,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-          ],
-        );
-      },
-    );
-  }
-
   void _showIpInputDialog() {
     showDialog(
       context: context,
@@ -635,7 +655,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("1. ఛానల్ లోగో (Image/GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const Text("1. ఛానల్ లోగో (JPEG/PNG/GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -666,7 +686,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
 
                     const Divider(color: Colors.white24, height: 20),
-                    const Text("2. బ్రేకింగ్ న్యూస్ బ్యాడ్జ్ (JPEG/GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const Text("2. బ్రేకింగ్ న్యూస్ బ్యాడ్జ్ (JPEG/PNG/GIF):", style: TextStyle(color: Colors.yellow, fontSize: 12)),
                     const SizedBox(height: 5),
                     Row(
                       children: [
@@ -731,27 +751,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             return AlertDialog(
               backgroundColor: Colors.grey[900],
               title: const Text("డైరెక్ట్ RTMP / Restream లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి.", style: TextStyle(color: Colors.white70, fontSize: 11)),
-                      const SizedBox(height: 15),
-                      TextField(
-                        controller: rtmpUrlController,
-                        style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                        decoration: const InputDecoration(
-                          labelText: "RTMP Server URL & Stream Key",
-                          labelStyle: TextStyle(color: Colors.white54),
-                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
-                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
-                        ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: rtmpUrlController,
+                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                      decoration: const InputDecoration(
+                        labelText: "RTMP Server URL & Stream Key",
+                        labelStyle: TextStyle(color: Colors.white54),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               actions: [
@@ -775,15 +792,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 ఆటో టైమర్ మరియు ఆటో-ఆఫ్ (15 నిమిషాలకు ఒకసారి ఆన్ అయి 1 నిమిషంలో ఆఫ్ అయ్యేలా)
   void _toggleAutoTimerAds() {
-    setState(() { isAutoTimerActive = !isAutoTimerActive; });
+    setState(() { 
+      isAutoTimerActive = !isAutoTimerActive; 
+    });
+
     if (isAutoTimerActive) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Auto Timer Active: ప్రతి 15 నిమిషాలకు L-Shape యాడ్స్ 1 నిమిషం ప్రదర్శించబడతాయి!"), backgroundColor: Colors.green));
+      
       _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
+        if (!mounted) return;
         setState(() { isLBandMode = true; }); 
-        Timer(const Duration(minutes: 1), () { if (mounted) { setState(() { isLBandMode = false; }); } });
+
+        // 1 నిమిషం తర్వాత ఆటోమేటిక్‌గా ఆఫ్‌ (Auto-Off) అవుతుంది
+        _autoOffTimer = Timer(const Duration(minutes: 1), () {
+          if (mounted) { 
+            setState(() { isLBandMode = false; }); 
+          }
+        });
       });
     } else {
       _lBandAutoTimer?.cancel();
+      _autoOffTimer?.cancel();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Auto Timer Deactivated!"), backgroundColor: Colors.orange));
     }
   }
 
@@ -804,7 +836,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 పోర్ట్రైట్ మరియు ల్యాండ్‌స్కేప్ మోడ్‌లకు సరిపోయేలా కెమెరా ప్రివ్యూ ఫిట్టింగ్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -822,20 +853,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: ClipRect(
-                  child: OverflowBox(
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
                     alignment: Alignment.center,
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: isScreenLandscape 
-                            ? (controller!.value.previewSize?.height ?? 1080)
-                            : (controller!.value.previewSize?.width ?? 1080),
-                        height: isScreenLandscape 
-                            ? (controller!.value.previewSize?.width ?? 1920)
-                            : (controller!.value.previewSize?.height ?? 1920),
-                        child: CameraPreview(controller!),
-                      ),
+                    child: SizedBox(
+                      width: isScreenLandscape 
+                          ? (controller!.value.previewSize?.height ?? 1080)
+                          : (controller!.value.previewSize?.width ?? 1080),
+                      height: isScreenLandscape 
+                          ? (controller!.value.previewSize?.width ?? 1920)
+                          : (controller!.value.previewSize?.height ?? 1920),
+                      child: CameraPreview(controller!),
                     ),
                   ),
                 ),
@@ -874,7 +903,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         bottom: currentHorizontalHeight,
                         child: cameraWidget,
                       ),
-                      // నిలువు L-Shape
+                      // నిలువు L-Shape (JPEG, PNG, GIF సపోర్ట్)
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
                         child: Container(
@@ -893,7 +922,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // అడ్డు L-Shape
+                      // అడ్డు L-Shape (JPEG, PNG, GIF సపోర్ట్)
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
                         child: Container(
@@ -929,6 +958,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
+            // ఛానల్ లోగో (JPEG, PNG, GIF సపోర్ట్)
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
@@ -959,7 +989,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 🔥 L-Shape యాడ్స్ ఉన్నప్పుడు కూడా బ్రేకింగ్ న్యూస్ కనిపించేలా బాటమ్ హైట్ సరిదిద్దబడింది
+            // బ్రేకింగ్ న్యూస్ ప్యానెల్ (JPEG, PNG, GIF బ్యాడ్జ్ సపోర్ట్)
             Positioned(
               bottom: 5, 
               left: 5, 
