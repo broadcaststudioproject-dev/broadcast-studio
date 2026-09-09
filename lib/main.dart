@@ -67,6 +67,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Color lShapeColor = const Color(0xFF95C8F2);
   
+  // వేర్వేరుగా నిలువు మరియు అడ్డు యాడ్స్ పాత్‌లు
   String verticalAdImagePath = "";
   String horizontalAdImagePath = "";
   
@@ -177,7 +178,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await controller?.dispose();
       controller = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max, // గరిష్ట క్లారిటీ కోసం max రెసొల్యూషన్
+        ResolutionPreset.max,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -415,7 +416,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("L-Shape: JPEG/PNG/GIF, Zoom & Rotate", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("నిలువు & అడ్డు యాడ్స్ వేర్వేరుగా అప్‌లోడ్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -434,55 +435,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                     const Divider(color: Colors.white24, height: 20),
 
-                    const Text("1. నిలువు (Vertical) JPEG/PNG/GIF:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    Slider(
-                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
-                        });
-                        setState(() {});
-                      },
-                    ),
-                    const Text("Zoom In / Out (Scale):", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                    Slider(
-                      value: verticalZoomScale, min: 0.5, max: 2.5, activeColor: Colors.green,
-                      onChanged: (val) {
-                        setDialogState(() { verticalZoomScale = val; });
-                        setState(() { verticalZoomScale = val; });
-                      },
-                    ),
-                    const Text("అంచులు (Margins Top/Bot/Left/Right):", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    // 1. నిలువు (Vertical) యాడ్ అప్లోడ్ & సెట్టింగ్స్
+                    const Text("1. నిలువు (Vertical Ad) Upload:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
                     Row(
                       children: [
-                        Expanded(child: Text("Top/Bot: ${verticalPaddingTop.toInt()}", style: const TextStyle(color: Colors.white70, fontSize: 9))),
-                        Slider(value: verticalPaddingTop, min: 0, max: 30, onChanged: (v) => setDialogState(() => verticalPaddingTop = v)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(child: Text("Left/Rgt: ${verticalPaddingLeft.toInt()}", style: const TextStyle(color: Colors.white70, fontSize: 9))),
-                        Slider(value: verticalPaddingLeft, min: 0, max: 30, onChanged: (v) => setDialogState(() => verticalPaddingLeft = v)),
-                      ],
-                    ),
-                    const Text("360 డిగ్రీల రొటేట్ (Rotate):", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 20),
-                          onPressed: () => setDialogState(() => verticalAdRotationTurns = (verticalAdRotationTurns - 1) % 4),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 20),
-                          onPressed: () => setDialogState(() => verticalAdRotationTurns = (verticalAdRotationTurns + 1) % 4),
-                        ),
-                        Text("Turns: $verticalAdRotationTurns", style: const TextStyle(color: Colors.white, fontSize: 11)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        Expanded(child: Text(verticalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "వర్టికల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
                           onPressed: () async {
@@ -492,15 +450,43 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             }
                           },
                           icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload", style: TextStyle(fontSize: 10)),
+                          label: const Text("Upload V", style: TextStyle(fontSize: 10)),
                         ),
                       ],
+                    ),
+                    Text("నిలువు వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                    Slider(
+                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
+                        });
+                        setState(() {});
+                      },
                     ),
 
                     const Divider(color: Colors.white24, height: 20),
 
-                    const Text("2. అడ్డు (Horizontal) JPEG/PNG/GIF:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                    // 2. అడ్డు (Horizontal) యాడ్ అప్లోడ్ & సెట్టింగ్స్
+                    const Text("2. అడ్డు (Horizontal Ad) Upload:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "హారిజాంటల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(80, 30)),
+                          onPressed: () async {
+                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                            if (image != null) {
+                              setDialogState(() { horizontalAdImagePath = image.path; });
+                            }
+                          },
+                          icon: const Icon(Icons.upload, size: 14),
+                          label: const Text("Upload H", style: TextStyle(fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                    Text("అడ్డు ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     Slider(
                       value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
                       onChanged: (val) {
@@ -509,57 +495,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         });
                         setState(() {});
                       },
-                    ),
-                    const Text("Zoom In / Out (Scale):", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                    Slider(
-                      value: horizontalZoomScale, min: 0.5, max: 2.5, activeColor: Colors.green,
-                      onChanged: (val) {
-                        setDialogState(() { horizontalZoomScale = val; });
-                        setState(() { horizontalZoomScale = val; });
-                      },
-                    ),
-                    const Text("అంచులు (Margins Top/Bot/Left/Right):", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                    Row(
-                      children: [
-                        Expanded(child: Text("Top/Bot: ${horizontalPaddingTop.toInt()}", style: const TextStyle(color: Colors.white70, fontSize: 9))),
-                        Slider(value: horizontalPaddingTop, min: 0, max: 30, onChanged: (v) => setDialogState(() => horizontalPaddingTop = v)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(child: Text("Left/Rgt: ${horizontalPaddingLeft.toInt()}", style: const TextStyle(color: Colors.white70, fontSize: 9))),
-                        Slider(value: horizontalPaddingLeft, min: 0, max: 30, onChanged: (v) => setDialogState(() => horizontalPaddingLeft = v)),
-                      ],
-                    ),
-                    const Text("360 డిగ్రీల రొటేట్ (Rotate):", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.rotate_left, color: Colors.amber, size: 20),
-                          onPressed: () => setDialogState(() => horizontalAdRotationTurns = (horizontalAdRotationTurns - 1) % 4),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.rotate_right, color: Colors.amber, size: 20),
-                          onPressed: () => setDialogState(() => horizontalAdRotationTurns = (horizontalAdRotationTurns + 1) % 4),
-                        ),
-                        Text("Turns: $horizontalAdRotationTurns", style: const TextStyle(color: Colors.white, fontSize: 11)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Expanded(child: Text(horizontalAdImagePath.isEmpty ? "ఫైల్ లేదు" : "అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
-                          onPressed: () async {
-                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                            if (image != null) {
-                              setDialogState(() { horizontalAdImagePath = image.path; });
-                            }
-                          },
-                          icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload", style: TextStyle(fontSize: 10)),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -832,7 +767,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
     double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
-    // 🔥 పోర్ట్రెయిట్ మరియు ల్యాండ్‌స్కేప్ మోడ్స్ రెండింటిలోనూ క్లారిటీ మరియు ఫిట్ పర్ఫెక్ట్ గా ఉండేలా సవరించబడిన కోడ్
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -853,15 +787,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     var cameraValue = controller!.value;
-                    // స్క్రీన్ మరియు కెమెరా ప్రివ్యూ రేషియో ఆధారంగా కరెక్ట్ స్కేల్ లెక్కించడం
-                    var scale = (constraints.maxWidth / constraints.maxHeight) * cameraValue.aspectRatio;
-                    if (scale < 1) scale = 1 / scale;
-
                     return ClipRect(
                       child: OverflowBox(
                         alignment: Alignment.center,
                         child: FittedBox(
-                          fit: BoxFit.cover, // ఏ మోడ్‌లో ఉన్నా బ్లర్ లేదా స్ట్రెచ్ అవ్వకుండా హై-క్లారిటీతో ఫిట్ అవుతుంది
+                          fit: BoxFit.cover,
                           child: SizedBox(
                             width: isScreenLandscape ? constraints.maxHeight * cameraValue.aspectRatio : constraints.maxWidth,
                             height: isScreenLandscape ? constraints.maxHeight : constraints.maxWidth / cameraValue.aspectRatio,
@@ -907,41 +837,38 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         bottom: currentHorizontalHeight,
                         child: cameraWidget,
                       ),
-                      // నిలువు L-Shape
+                      // 🔥 1. నిలువు (Vertical) Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ (InteractiveViewer) చేసుకోవడానికి
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
                         child: Container(
                           color: lShapeColor,
-                          padding: EdgeInsets.fromLTRB(verticalPaddingLeft, verticalPaddingTop, verticalPaddingRight, verticalPaddingBottom),
-                          child: Center(
-                            child: Transform.scale(
-                              scale: verticalZoomScale,
-                              child: RotatedBox(
-                                quarterTurns: verticalAdRotationTurns,
-                                child: verticalAdImagePath.isNotEmpty
-                                    ? Image.file(File(verticalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                    : const Text("VERTICAL AD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
-                              ),
+                          child: InteractiveViewer(
+                            panEnabled: true,
+                            scaleEnabled: true,
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: Center(
+                              child: verticalAdImagePath.isNotEmpty
+                                  ? Image.file(File(verticalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                  : const Text("VERTICAL AD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
                             ),
                           ),
                         ),
                       ),
-                      // అడ్డు L-Shape
+                      // 🔥 2. అడ్డు (Horizontal) Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ (InteractiveViewer) చేసుకోవడానికి
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
                         child: Container(
                           color: lShapeColor,
-                          padding: EdgeInsets.fromLTRB(horizontalPaddingLeft, horizontalPaddingTop, horizontalPaddingRight, horizontalPaddingBottom),
-                          alignment: Alignment.center,
-                          child: Center(
-                            child: Transform.scale(
-                              scale: horizontalZoomScale,
-                              child: RotatedBox(
-                                quarterTurns: horizontalAdRotationTurns,
-                                child: horizontalAdImagePath.isNotEmpty
-                                    ? Image.file(File(horizontalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                    : Text(lShapeCustomText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                              ),
+                          child: InteractiveViewer(
+                            panEnabled: true,
+                            scaleEnabled: true,
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: Center(
+                              child: horizontalAdImagePath.isNotEmpty
+                                  ? Image.file(File(horizontalAdImagePath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                  : Text(lShapeCustomText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                             ),
                           ),
                         ),
