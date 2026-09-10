@@ -581,57 +581,39 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             return AlertDialog(
               backgroundColor: Colors.grey[900],
               title: const Text("డైరెక్ట్ RTMP / Restream లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: 10,
-                  itemBuilder: (context, index) {
-                    TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: TextField(
-                              controller: adCtrl,
-                              style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                              decoration: const InputDecoration(hintText: "డైరెక్ట్ MP4 లింక్ లేదా గ్యాలరీ పాత్", hintStyle: TextStyle(color: Colors.white38)),
-                              onChanged: (val) { videoAdsList[index] = val; },
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.video_library, color: Colors.cyan, size: 20),
-                            onPressed: () async {
-                              final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-                              if (video != null) {
-                                setDialogState(() {
-                                  videoAdsList[index] = video.path;
-                                });
-                              }
-                              if (!isIpCameraActive) {
-                                await _initCamera();
-                              }
-                            },
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(40, 30)),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _playVideoAd(videoAdsList[index]);
-                            },
-                            child: const Text("Play", style: TextStyle(fontSize: 11)),
-                          ),
-                        ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("మీ Restream.io లేదా YouTube కస్టమ్ RTMP లింక్‌ని ఇక్కడ ఇవ్వండి.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(height: 15),
+                    TextField(
+                      controller: rtmpUrlController,
+                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                      decoration: const InputDecoration(
+                        labelText: "RTMP Server URL & Stream Key",
+                        labelStyle: TextStyle(color: Colors.white54),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white38)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.blue)),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
+                  onPressed: () {
+                    setState(() { isLiveBroadcasting = !isLiveBroadcasting; });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isLiveBroadcasting ? "లైవ్ ప్రారంభమైంది!" : "లైవ్ ఆపివేయబడింది!"), backgroundColor: isLiveBroadcasting ? Colors.green : Colors.orange),
+                    );
+                  },
+                  child: Text(isLiveBroadcasting ? "Stop Live" : "Start Live", style: const TextStyle(color: Colors.white)),
+                ),
               ],
             );
           },
@@ -719,15 +701,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: adLayerColor,
                   child: Stack(
                     children: [
-                      // కెమెరా వ్యూ (యాడ్స్ మధ్యలో కరెక్ట్‌గా ఫిట్ అవుతుంది)
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - పొడవు సరిగ్గా బ్రేకింగ్ న్యూస్ పై వరకు (Height: 380) పెంచబడింది
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - సైజు పెంచబడింది (140x420), రొటేట్ బటన్స్ తొలగించబడ్డాయి (నేరుగా ట్యాప్ చేస్తే గ్యాలరీ ఓపెన్ అవుతుంది)
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
                         child: GestureDetector(
-                          onTap: verticalAnimatedAdPath.isEmpty ? _pickVerticalAd : null,
+                          onTap: _pickVerticalAd,
                           onPanUpdate: (details) {
                             setState(() {
                               _vertOffset += details.delta;
@@ -746,8 +727,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 120,
-                                height: 380, // 🔥 పొడవు బ్రేకింగ్ న్యూస్ ప్యానెల్ వరకు పెంచబడింది
+                                width: 140, // 🔥 వెడల్పు పెంచబడింది
+                                height: 420, // 🔥 ఎత్తు బ్రేకింగ్ న్యూస్ వరకు పెంచబడింది
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -757,7 +738,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                             child: Column(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
-                                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26),
+                                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 28),
                                                 SizedBox(height: 5),
                                                 Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                                               ],
@@ -768,17 +749,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         color: Colors.black54,
-                                        child: const Text("120x380 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 5, right: 5,
-                                      child: Container(
-                                        color: Colors.black54,
-                                        child: IconButton(
-                                          icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
-                                          onPressed: _pickVerticalAd,
-                                        ),
+                                        child: const Text("140x420 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
                                       ),
                                     ),
                                   ],
@@ -789,12 +760,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - నిలువు యాడ్ పక్కనుండి ప్రారంభమై స్క్రీన్ పూర్తి అంచు వరకు ఉంటుంది
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - వెడల్పు తగ్గించబడి, ఎత్తు పెంచబడింది (Width: screenWidth - 155, Height: 110)
                       Positioned(
-                        left: 135 + _horizOffset.dx, // 🔥 నిలువు యాడ్ పక్క నుండి స్టార్ట్ అవుతుంది
+                        left: 150 + _horizOffset.dx, // 🔥 నిలువు యాడ్ పక్క నుండి స్టార్ట్ అవుతుంది
                         bottom: 45 + _horizOffset.dy, 
                         child: GestureDetector(
-                          onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
+                          onTap: _pickHorizontalAd,
                           onPanUpdate: (details) {
                             setState(() {
                               _horizOffset += details.delta;
@@ -813,8 +784,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: screenWidth - 145, // 🔥 స్క్రీన్ పూర్తి అంచు వరకు వెడల్పు
-                                height: 95, 
+                                width: screenWidth - 155, // 🔥 వెడల్పు తగ్గించబడింది, స్క్రీన్ అంచు వరకు ఉంటుంది
+                                height: 110, // 🔥 ఎత్తు పెంచబడింది
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -836,16 +807,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         color: Colors.black54,
                                         child: const Text("Horizontal Ad Bar", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 5, right: 10,
-                                      child: Container(
-                                        color: Colors.black54,
-                                        child: IconButton(
-                                          icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
-                                          onPressed: _pickHorizontalAd,
-                                        ),
                                       ),
                                     ),
                                   ],
@@ -887,9 +848,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
-            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ - అడ్డు యాడ్‌కి సరిగ్గా పైన, కెమెరా విజువల్స్ తెరపై కనిపించేలా ఉంచబడ్డాయి (Font Size 7)
+            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ - నిలువు మరియు అడ్డు యాడ్స్ కలిసే మూలన (L-Shape Angle Corner) ఉంచబడ్డాయి (Font Size 7)
             Positioned(
-              bottom: 145, 
+              bottom: 160, 
               left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
