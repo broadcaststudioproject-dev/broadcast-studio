@@ -69,7 +69,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
   
-  // 🔥 ఇమేజ్ మూవ్‌మెంట్, జూమ్, మరియు రొటేషన్ కోసం వేరియబుల్స్ (ట్రాన్స్‌ఫార్మ్ కంట్రోలర్స్)
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
   Offset _vertOffset = Offset.zero;
@@ -680,10 +679,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: adLayerColor,
                   child: Stack(
                     children: [
-                      // కెమెరా వ్యూ బ్యాక్‌గ్రౌండ్‌లో రన్ అవుతుంది
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్ చేయడానికి (GestureDetector + Transform)
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్
                       Positioned(
                         left: 20 + _vertOffset.dx,
                         top: 50 + _vertOffset.dy,
@@ -739,7 +737,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్ చేయడానికి (GestureDetector + Transform)
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్
                       Positioned(
                         left: 180 + _horizOffset.dx,
                         bottom: 60 + _horizOffset.dy,
@@ -896,7 +894,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, singles: Colors.blue),
+                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue), // 🔥 ఎర్రర్ ఇక్కడ సవరించబడింది
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
                         _buildControlButton(
