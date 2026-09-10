@@ -636,6 +636,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    double screenWidth = MediaQuery.of(context).size.width;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
@@ -702,7 +703,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - జూమ్, డ్రాగ్ మరియు రొటేట్ (కొలతలు: 120x330)
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - ఎడమ వైపు టాప్‌లో ఉంటుంది (120x300)
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
@@ -727,7 +728,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               },
                               child: Container(
                                 width: 120,
-                                height: 330,
+                                height: 300,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -748,7 +749,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         color: Colors.black54,
-                                        child: const Text("120x330 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
+                                        child: const Text("120x300 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
                                       ),
                                     ),
                                     Positioned(
@@ -769,9 +770,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - స్క్రీన్ ఎడమ అంచు నుండి ప్రారంభం మరియు సైజ్ (550x110)
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - నిలువు యాడ్ పక్కనుండి ప్రారంభమై స్క్రీన్ పూర్తి అంచు (Right Edge) వరకు విస్తరిస్తుంది
                       Positioned(
-                        left: 0 + _horizOffset.dx, // 🔥 స్క్రీన్ అంచుకు వచ్చేలా left: 0
+                        left: 135 + _horizOffset.dx, // 🔥 నిలువు యాడ్ వెడల్పు (120) దాటిన తర్వాత పక్క నుండి స్టార్ట్ అవుతుంది
                         bottom: 45 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
@@ -793,8 +794,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 550, // 🔥 వెడల్పు
-                                height: 110, // 🔥 ఎత్తు
+                                width: screenWidth - 140, // 🔥 స్క్రీన్ ముగింపు అంచు (Right Edge) వరకు పూర్తిగా వెడల్పు ఉంటుంది
+                                height: 95, // 🔥 తగిన ఎత్తు
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -811,15 +812,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                             ),
                                           ),
                                     Positioned(
-                                      bottom: 2, left: 2,
+                                      bottom: 2, left: 5,
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         color: Colors.black54,
-                                        child: const Text("550x110 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
+                                        child: const Text("Horizontal Ad Bar", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
                                       ),
                                     ),
                                     Positioned(
-                                      top: 5, right: 5,
+                                      top: 5, right: 10,
                                       child: Container(
                                         color: Colors.black54,
                                         child: IconButton(
@@ -867,9 +868,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
-            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ - సరిగ్గా అడ్డు (Horizontal) యాడ్‌కి పైన కనిపించేలా పొజిషన్ మార్చబడింది (Font Size 7)
+            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ - నిలువు యాడ్ కింద, అడ్డు యాడ్‌కి పైన స్పష్టంగా కనిపించేలా సెట్ చేయబడింది (Font Size 7)
             Positioned(
-              bottom: 160, // 🔥 అడ్డు యాడ్ పైన ఉండేలా సెట్ చేయబడింది
+              bottom: 145, 
               left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
