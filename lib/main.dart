@@ -703,7 +703,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - సైజు పెంచబడింది (140x420), రొటేట్ బటన్స్ తొలగించబడ్డాయి (నేరుగా ట్యాప్ చేస్తే గ్యాలరీ ఓపెన్ అవుతుంది)
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - సైజు (140x420)
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
@@ -727,8 +727,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 140, // 🔥 వెడల్పు పెంచబడింది
-                                height: 420, // 🔥 ఎత్తు బ్రేకింగ్ న్యూస్ వరకు పెంచబడింది
+                                width: 140,
+                                height: 420,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -762,7 +762,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                       // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - వెడల్పు తగ్గించబడి, ఎత్తు పెంచబడింది (Width: screenWidth - 155, Height: 110)
                       Positioned(
-                        left: 150 + _horizOffset.dx, // 🔥 నిలువు యాడ్ పక్క నుండి స్టార్ట్ అవుతుంది
+                        left: 150 + _horizOffset.dx,
                         bottom: 45 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: _pickHorizontalAd,
@@ -784,8 +784,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: screenWidth - 155, // 🔥 వెడల్పు తగ్గించబడింది, స్క్రీన్ అంచు వరకు ఉంటుంది
-                                height: 110, // 🔥 ఎత్తు పెంచబడింది
+                                width: screenWidth - 155,
+                                height: 110,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -850,8 +850,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ - నిలువు మరియు అడ్డు యాడ్స్ కలిసే మూలన (L-Shape Angle Corner) ఉంచబడ్డాయి (Font Size 7)
             Positioned(
-              bottom: 160, 
-              left: 15, 
+              bottom: 158, // 🔥 అడ్డు యాడ్ (110 + 45) పైకి సరిగ్గా మూలన ఉండేలా సెట్ చేయబడింది
+              left: 152,  // 🔥 నిలువు యాడ్ (140) పక్కన ఖాళీ మూలన ఉండేలా సెట్ చేయబడింది
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
