@@ -52,6 +52,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isIpCameraActive = false;
   bool isLiveBroadcasting = false;
   bool isAnimatedAdsMode = false; 
+  bool isAutoTimerActive = false; // 🔥 ఆటో టైమర్ కోసం వేరియబుల్
   bool isVideoAdPlaying = false; 
 
   double _currentZoomLevel = 1.0;
@@ -99,6 +100,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController newsCtrl = TextEditingController();
 
   Timer? _newsTimer;
+  Timer? _lBandAutoTimer; 
+  Timer? _autoOffTimer;
 
   @override
   void initState() {
@@ -139,6 +142,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
+    _lBandAutoTimer?.cancel();
+    _autoOffTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
@@ -278,6 +283,33 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
     } catch (e) {
       debugPrint("News Error: $e");
+    }
+  }
+
+  // 🔥 ఆటో టైమర్ లాజిక్ (ప్రతి 15 నిమిషాలకు ఒకసారి యాడ్స్ 1 నిమిషం ఆన్ అయ్యేలా)
+  void _toggleAutoTimerAds() {
+    setState(() { 
+      isAutoTimerActive = !isAutoTimerActive; 
+    });
+
+    if (isAutoTimerActive) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Auto Timer Active: ప్రతి 15 నిమిషాలకు యాడ్స్ 1 నిమిషం ప్రదర్శించబడతాయి!"), backgroundColor: Colors.green));
+      
+      _lBandAutoTimer = Timer.periodic(const Duration(minutes: 15), (timer) {
+        if (!mounted) return;
+        setState(() { isAnimatedAdsMode = true; }); 
+
+        _autoOffTimer = Timer(const Duration(minutes: 1), () {
+          if (mounted) { 
+            setState(() { isAnimatedAdsMode = false; }); 
+          }
+        });
+      });
+    } else {
+      _lBandAutoTimer?.cancel();
+      _autoOffTimer?.cancel();
+      setState(() { isAnimatedAdsMode = false; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Auto Timer Deactivated!"), backgroundColor: Colors.orange));
     }
   }
 
@@ -760,7 +792,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - వెడల్పు తగ్గించబడి, ఎత్తు పెంచబడింది (Width: screenWidth - 155, Height: 110)
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - ఎత్తు కొంచెం తగ్గించబడింది (Height: 90)
                       Positioned(
                         left: 150 + _horizOffset.dx,
                         bottom: 45 + _horizOffset.dy, 
@@ -785,7 +817,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               },
                               child: Container(
                                 width: screenWidth - 155,
-                                height: 110,
+                                height: 90, // 🔥 ఎత్తు కొంచెం తగ్గించబడింది
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -850,8 +882,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ - నిలువు మరియు అడ్డు యాడ్స్ కలిసే మూలన (L-Shape Angle Corner) ఉంచబడ్డాయి (Font Size 7)
             Positioned(
-              bottom: 158, // 🔥 అడ్డు యాడ్ (110 + 45) పైకి సరిగ్గా మూలన ఉండేలా సెట్ చేయబడింది
-              left: 152,  // 🔥 నిలువు యాడ్ (140) పక్కన ఖాళీ మూలన ఉండేలా సెట్ చేయబడింది
+              bottom: 140, 
+              left: 152, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -938,11 +970,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                        // 🔥 ఆటో టైమర్ / యాడ్స్ బటన్ (దీన్ని ఆన్ చేసినప్పుడే యాడ్స్ స్క్రీన్‌పై కనిపిస్తాయి)
                         _buildControlButton(
-                          isAnimatedAdsMode ? Icons.fullscreen : Icons.animation, 
-                          isAnimatedAdsMode ? "Ads Off" : "GIF/JPEG Ads", 
-                          () { setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; }); }, 
-                          Colors.amber,
+                          isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
+                          isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
+                          _toggleAutoTimerAds, 
+                          isAnimatedAdsMode ? Colors.greenAccent : Colors.amber,
                         ),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
