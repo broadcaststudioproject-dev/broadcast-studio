@@ -129,7 +129,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       controller?.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      _initCamera();
+      if (!isIpCameraActive) {
+        _initCamera();
+      }
     }
   }
 
@@ -155,23 +157,25 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await [Permission.camera, Permission.microphone, Permission.storage].request();
   }
 
-  void _initCamera() async {
-    if (cameras.isEmpty) return;
+  Future<void> _initCamera() async {
+    if (cameras.isEmpty || isIpCameraActive) return;
     try {
       if (controller != null) {
         await controller!.dispose();
+        controller = null;
       }
-      controller = CameraController(
+      final camController = CameraController(
         cameras[currentCameraIndex],
         ResolutionPreset.max,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
-      await controller!.initialize();
-      _minZoomLevel = await controller!.getMinZoomLevel();
-      _maxZoomLevel = await controller!.getMaxZoomLevel();
-      _currentZoomLevel = _minZoomLevel;
+      controller = camController;
+      await camController.initialize();
       if (!mounted) return;
+      _minZoomLevel = await camController.getMinZoomLevel();
+      _maxZoomLevel = await camController.getMaxZoomLevel();
+      _currentZoomLevel = _minZoomLevel;
       setState(() {});
     } catch (e) {
       debugPrint("Camera Init Error: $e");
@@ -182,7 +186,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (isIpCameraActive || isVideoAdPlaying) return; 
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
-    _initCamera();
+    await _initCamera();
   }
 
   void _toggleIpCamera() {
@@ -279,7 +283,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null) {
+    if (image != null && mounted) {
       setState(() {
         verticalAnimatedAdPath = image.path;
         _vertScale = 1.0;
@@ -287,17 +291,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         _vertOffset = Offset.zero;
       });
     }
+    if (!isIpCameraActive) {
+      await _initCamera();
+    }
   }
 
   Future<void> _pickHorizontalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null) {
+    if (image != null && mounted) {
       setState(() {
         horizontalAnimatedAdPath = image.path;
         _horizScale = 1.0;
         _horizRotation = 0.0;
         _horizOffset = Offset.zero;
       });
+    }
+    if (!isIpCameraActive) {
+      await _initCamera();
     }
   }
 
@@ -339,6 +349,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 setDialogState(() {
                                   videoAdsList[index] = video.path;
                                 });
+                              }
+                              if (!isIpCameraActive) {
+                                await _initCamera();
                               }
                             },
                           ),
@@ -480,6 +493,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             if (image != null) {
                               setDialogState(() { channelLogoPath = image.path; });
                             }
+                            if (!isIpCameraActive) {
+                              await _initCamera();
+                            }
                           },
                           icon: const Icon(Icons.upload_file, size: 14),
                           label: const Text("Upload", style: TextStyle(fontSize: 10)),
@@ -510,6 +526,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                             if (image != null) {
                               setDialogState(() { newsBadgeImagePath = image.path; });
+                            }
+                            if (!isIpCameraActive) {
+                              await _initCamera();
                             }
                           },
                           icon: const Icon(Icons.image, size: 14),
@@ -683,7 +702,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - జూమ్, డ్రాగ్ మరియు రొటేట్
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - కొలతలు (120x320) డిస్‌ప్లే అవుతాయి
                       Positioned(
                         left: 20 + _vertOffset.dx,
                         top: 40 + _vertOffset.dy,
@@ -710,39 +729,52 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 width: 120,
                                 height: 320,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
-                                child: verticalAnimatedAdPath.isNotEmpty
-                                    ? Stack(
-                                        children: [
-                                          Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity),
-                                          Positioned(
-                                            top: 5, right: 5,
-                                            child: IconButton(
-                                              icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
-                                              onPressed: _pickVerticalAd,
+                                child: Stack(
+                                  children: [
+                                    verticalAnimatedAdPath.isNotEmpty
+                                        ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                        : const Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26),
+                                                SizedBox(height: 5),
+                                                Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                              ],
                                             ),
                                           ),
-                                        ],
-                                      )
-                                    : const Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26),
-                                            SizedBox(height: 5),
-                                            Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                                          ],
+                                    // నిలువు కొలతలు డిస్‌ప్లే
+                                    Positioned(
+                                      bottom: 2, left: 2,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                        color: Colors.black54,
+                                        child: const Text("120x320 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                    // ఎప్పుడూ కనిపించే రీఫ్రెష్ బటన్
+                                    Positioned(
+                                      top: 5, right: 5,
+                                      child: Container(
+                                        color: Colors.black54,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
+                                          onPressed: _pickVerticalAd,
                                         ),
                                       ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - బ్రేకింగ్ న్యూస్ ప్యానెల్‌కి పైభాగంలో పర్ఫెక్ట్ సైజ్‌లో ఉంటుంది
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - సైజు పెంచబడింది (440x85) & కొలతలు డిస్‌ప్లే అవుతాయి
                       Positioned(
-                        left: 160 + _horizOffset.dx,
-                        bottom: 52 + _horizOffset.dy, // 🔥 బ్రేకింగ్ న్యూస్ కవర్ కాకుండా పైకి సరిచేయబడింది
+                        left: 150 + _horizOffset.dx,
+                        bottom: 50 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
                           onPanUpdate: (details) {
@@ -763,32 +795,45 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 380, // 🔥 తగిన వెడల్పు
-                                height: 75, // 🔥 తగిన ఎత్తు (బ్రేకింగ్ న్యూస్ కవర్ కాదు)
+                                width: 440, // 🔥 పెంచబడిన వెడల్పు
+                                height: 85, // 🔥 పెంచబడిన ఎత్తు
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
-                                child: horizontalAnimatedAdPath.isNotEmpty
-                                    ? Stack(
-                                        children: [
-                                          Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity),
-                                          Positioned(
-                                            top: 2, right: 2,
-                                            child: IconButton(
-                                              icon: const Icon(Icons.refresh, color: Colors.red, size: 18),
-                                              onPressed: _pickHorizontalAd,
+                                child: Stack(
+                                  children: [
+                                    horizontalAnimatedAdPath.isNotEmpty
+                                        ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                        : const Center(
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
+                                                SizedBox(width: 6),
+                                                Text("TAP TO UPLOAD HORIZONTAL AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                              ],
                                             ),
                                           ),
-                                        ],
-                                      )
-                                    : const Center(
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
-                                            SizedBox(width: 6),
-                                            Text("TAP TO UPLOAD HORIZONTAL AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                          ],
+                                    // అడ్డు కొలతలు డిస్‌ప్లే
+                                    Positioned(
+                                      bottom: 2, left: 2,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                        color: Colors.black54,
+                                        child: const Text("440x85 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                    // ఎప్పుడూ కనిపించే రీఫ్రెష్ బటన్
+                                    Positioned(
+                                      top: 2, right: 2,
+                                      child: Container(
+                                        color: Colors.black54,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.refresh, color: Colors.red, size: 18),
+                                          onPressed: _pickHorizontalAd,
                                         ),
                                       ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -826,17 +871,34 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
+            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (యాడ్స్‌కి పైభాగంలో / Top Layer లో ఉండేలా అమర్చబడింది & Font Size 7)
             Positioned(
               bottom: 65, 
               left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (watermarkText.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 5, left: 2), child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold, fontSize: 13.0))),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), color: Colors.red, child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0))),
-                  const SizedBox(height: 4), 
-                  Container(color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14.0))),
-                  Container(color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2), child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 12.0))),
+                  if (watermarkText.isNotEmpty) 
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2, left: 2), 
+                      child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.bold, fontSize: 7.0))
+                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
+                    color: Colors.red, 
+                    child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 7.0))
+                  ),
+                  const SizedBox(height: 2), 
+                  Container(
+                    color: Colors.white, 
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
+                    child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 7.0))
+                  ),
+                  Container(
+                    color: Colors.red, 
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), 
+                    child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 7.0))
+                  ),
                 ],
               ),
             ),
