@@ -51,7 +51,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isLandscape = false;
   bool isIpCameraActive = false;
   bool isLiveBroadcasting = false;
-  bool isAnimatedAdsMode = false; // యానిమేటెడ్ యాడ్స్ లేయర్ ఆన్/ఆఫ్ కోసం
+  bool isAnimatedAdsMode = false; 
   bool isVideoAdPlaying = false; 
 
   double _currentZoomLevel = 1.0;
@@ -66,14 +66,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Color adLayerColor = const Color(0xFF111111);
   
-  // విడిగా నిలువు (Vertical) మరియు అడ్డు (Horizontal) JPEG/GIF యాడ్స్ పాత్‌లు
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
   
-  double verticalAdWidth = 130.0;
-  double landscapeVerticalWidth = 180.0;
-  double horizontalAdHeight = 110.0;
-  double landscapeHorizontalHeight = 90.0;
+  // 🔥 ఇమేజ్ మూవ్‌మెంట్, జూమ్, మరియు రొటేషన్ కోసం వేరియబుల్స్ (ట్రాన్స్‌ఫార్మ్ కంట్రోలర్స్)
+  double _vertScale = 1.0;
+  double _vertRotation = 0.0;
+  Offset _vertOffset = Offset.zero;
+
+  double _horizScale = 1.0;
+  double _horizRotation = 0.0;
+  Offset _horizOffset = Offset.zero;
 
   final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
 
@@ -273,22 +276,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // గ్యాలరీ నుండి వర్టికల్ యాడ్ సెలెక్ట్ చేసుకునే ఫంక్షన్
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null) {
       setState(() {
         verticalAnimatedAdPath = image.path;
+        _vertScale = 1.0;
+        _vertRotation = 0.0;
+        _vertOffset = Offset.zero;
       });
     }
   }
 
-  // గ్యాలరీ నుండి హారిజాంటల్ యాడ్ సెలెక్ట్ చేసుకునే ఫంక్షన్
   Future<void> _pickHorizontalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null) {
       setState(() {
         horizontalAnimatedAdPath = image.path;
+        _horizScale = 1.0;
+        _horizRotation = 0.0;
+        _horizOffset = Offset.zero;
       });
     }
   }
@@ -609,8 +616,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    double currentVerticalWidth = isScreenLandscape ? landscapeVerticalWidth : verticalAdWidth;
-    double currentHorizontalHeight = isScreenLandscape ? landscapeHorizontalHeight : horizontalAdHeight;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
@@ -675,64 +680,114 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: adLayerColor,
                   child: Stack(
                     children: [
-                      // కెమెరా వ్యూ (యాడ్స్ మధ్యలో పర్ఫెక్ట్‌గా ఫిట్ అవుతుంది)
+                      // కెమెరా వ్యూ బ్యాక్‌గ్రౌండ్‌లో రన్ అవుతుంది
+                      Positioned.fill(child: cameraWidget),
+
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్ చేయడానికి (GestureDetector + Transform)
                       Positioned(
-                        top: 0, 
-                        left: currentVerticalWidth, 
-                        right: 0, 
-                        bottom: currentHorizontalHeight,
-                        child: cameraWidget,
-                      ),
-                      // 🔥 1. నిలువు (Vertical) యానిమేటెడ్ GIF/JPEG Ad - స్పేస్‌పై ట్యాప్ చేస్తే గ్యాలరీ ఓపెన్ అవుతుంది & జూమ్ చేసుకోవచ్చు
-                      Positioned(
-                        left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
+                        left: 20 + _vertOffset.dx,
+                        top: 50 + _vertOffset.dy,
                         child: GestureDetector(
-                          onTap: _pickVerticalAd, // స్పేస్‌పై నొక్కితే గ్యాలరీ నుండి అప్లోడ్ అవుతుంది
-                          child: InteractiveViewer(
-                            panEnabled: true,
-                            scaleEnabled: true,
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: Container(
-                              decoration: BoxDecoration(border: Border.all(color: Colors.amber.withOpacity(0.5))),
-                              child: Center(
+                          onTap: verticalAnimatedAdPath.isEmpty ? _pickVerticalAd : null,
+                          onPanUpdate: (details) {
+                            setState(() {
+                              _vertOffset += details.delta;
+                            });
+                          },
+                          child: Transform(
+                            transform: Matrix4.identity()
+                              ..scale(_vertScale)
+                              ..rotateZ(_vertRotation),
+                            alignment: Alignment.center,
+                            child: GestureDetector(
+                              onScaleUpdate: (details) {
+                                setState(() {
+                                  _vertScale = (_vertScale * details.scale).clamp(0.3, 4.0);
+                                  _vertRotation += details.rotation;
+                                });
+                              },
+                              child: Container(
+                                width: 140,
+                                height: 350,
+                                decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: verticalAnimatedAdPath.isNotEmpty
-                                    ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                    : const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                    ? Stack(
                                         children: [
-                                          Icon(Icons.add_photo_alternate, color: Colors.amber, size: 30),
-                                          SizedBox(height: 5),
-                                          Text("TAP TO UPLOAD\nVERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold)),
+                                          Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity),
+                                          Positioned(
+                                            top: 5, right: 5,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
+                                              onPressed: _pickVerticalAd,
+                                            ),
+                                          ),
                                         ],
+                                      )
+                                    : const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 30),
+                                            SizedBox(height: 5),
+                                            Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
                                       ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      // 🔥 2. అడ్డు (Horizontal) యానిమేటెడ్ GIF/JPEG Ad - స్పేస్‌పై ట్యాప్ చేస్తే గ్యాలరీ ఓపెన్ అవుతుంది & జూమ్ చేసుకోవచ్చు
+
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్ చేయడానికి (GestureDetector + Transform)
                       Positioned(
-                        left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
+                        left: 180 + _horizOffset.dx,
+                        bottom: 60 + _horizOffset.dy,
                         child: GestureDetector(
-                          onTap: _pickHorizontalAd, // స్పేస్‌పై నొక్కితే గ్యాలరీ నుండి అప్లోడ్ అవుతుంది
-                          child: InteractiveViewer(
-                            panEnabled: true,
-                            scaleEnabled: true,
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: Container(
-                              decoration: BoxDecoration(border: Border.all(color: Colors.amber.withOpacity(0.5))),
-                              child: Center(
+                          onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
+                          onPanUpdate: (details) {
+                            setState(() {
+                              _horizOffset += details.delta;
+                            });
+                          },
+                          child: Transform(
+                            transform: Matrix4.identity()
+                              ..scale(_horizScale)
+                              ..rotateZ(_horizRotation),
+                            alignment: Alignment.center,
+                            child: GestureDetector(
+                              onScaleUpdate: (details) {
+                                setState(() {
+                                  _horizScale = (_horizScale * details.scale).clamp(0.3, 4.0);
+                                  _horizRotation += details.rotation;
+                                });
+                              },
+                              child: Container(
+                                width: 450,
+                                height: 100,
+                                decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: horizontalAnimatedAdPath.isNotEmpty
-                                    ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                    : const Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                    ? Stack(
                                         children: [
-                                          Icon(Icons.add_photo_alternate, color: Colors.amber, size: 24),
-                                          SizedBox(width: 8),
-                                          Text("TAP TO UPLOAD HORIZONTAL AD (GIF/JPEG)", style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity),
+                                          Positioned(
+                                            top: 5, right: 5,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
+                                              onPressed: _pickHorizontalAd,
+                                            ),
+                                          ),
                                         ],
+                                      )
+                                    : const Center(
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 24),
+                                            SizedBox(width: 8),
+                                            Text("TAP TO UPLOAD HORIZONTAL AD", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
                                       ),
                               ),
                             ),
@@ -772,8 +827,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
 
             Positioned(
-              bottom: isAnimatedAdsMode ? currentHorizontalHeight + 15 : 65, 
-              left: isAnimatedAdsMode ? currentVerticalWidth + 15 : 15, 
+              bottom: 65, 
+              left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -841,10 +896,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
+                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, singles: Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                        // 🔥 GIF/JPEG యాడ్స్ బటన్ (దీన్ని ఆన్ చేయగానే స్క్రీన్‌పై యాడ్స్ స్పేస్ ప్రత్యక్షమవుతుంది)
                         _buildControlButton(
                           isAnimatedAdsMode ? Icons.fullscreen : Icons.animation, 
                           isAnimatedAdsMode ? "Ads Off" : "GIF/JPEG Ads", 
