@@ -273,103 +273,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 యానిమేటెడ్ JPEG & GIF యాడ్స్ మేనేజర్ డైలాగ్ (నిలువు మరియు అడ్డు వేర్వేరుగా)
-  void _showAnimatedAdsManagerDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            bool isLandscapeMode = MediaQuery.of(context).orientation == Orientation.landscape;
-            double curVWidth = isLandscapeMode ? landscapeVerticalWidth : verticalAdWidth;
-            double curHHeight = isLandscapeMode ? landscapeHorizontalHeight : horizontalAdHeight;
+  // గ్యాలరీ నుండి వర్టికల్ యాడ్ సెలెక్ట్ చేసుకునే ఫంక్షన్
+  Future<void> _pickVerticalAd() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+    if (image != null) {
+      setState(() {
+        verticalAnimatedAdPath = image.path;
+      });
+    }
+  }
 
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: const Text("Animated GIF/JPEG Ads Manager", style: TextStyle(color: Colors.white, fontSize: 14)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("1. నిలువు (Vertical GIF/JPEG) Ad:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Expanded(child: Text(verticalAnimatedAdPath.isEmpty ? "ఫైల్ లేదు" : "వర్టికల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, minimumSize: const Size(80, 30)),
-                          onPressed: () async {
-                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                            if (image != null) {
-                              setDialogState(() { verticalAnimatedAdPath = image.path; });
-                            }
-                          },
-                          icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload V", style: TextStyle(fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                    Text("వెడల్పు: ${curVWidth.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    Slider(
-                      value: curVWidth, min: 80, max: 300, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (isLandscapeMode) { landscapeVerticalWidth = val; } else { verticalAdWidth = val; }
-                        });
-                        setState(() {});
-                      },
-                    ),
-
-                    const Divider(color: Colors.white24, height: 20),
-
-                    const Text("2. అడ్డు (Horizontal GIF/JPEG) Ad:", style: TextStyle(color: Colors.yellow, fontSize: 12)),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Expanded(child: Text(horizontalAnimatedAdPath.isEmpty ? "ఫైల్ లేదు" : "హారిజాంటల్ అటాచ్ అయింది", style: const TextStyle(color: Colors.white70, fontSize: 10))),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, minimumSize: const Size(80, 30)),
-                          onPressed: () async {
-                            final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                            if (image != null) {
-                              setDialogState(() { horizontalAnimatedAdPath = image.path; });
-                            }
-                          },
-                          icon: const Icon(Icons.upload, size: 14),
-                          label: const Text("Upload H", style: TextStyle(fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                    Text("ఎత్తు: ${curHHeight.toInt()} px", style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    Slider(
-                      value: curHHeight, min: 60, max: 220, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (isLandscapeMode) { landscapeHorizontalHeight = val; } else { horizontalAdHeight = val; }
-                        });
-                        setState(() {});
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  onPressed: () {
-                    setState(() { isAnimatedAdsMode = true; });
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Apply Ads", style: TextStyle(color: Colors.white)),
-                ),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-              ],
-            );
-          },
-        );
-      },
-    );
+  // గ్యాలరీ నుండి హారిజాంటల్ యాడ్ సెలెక్ట్ చేసుకునే ఫంక్షన్
+  Future<void> _pickHorizontalAd() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+    if (image != null) {
+      setState(() {
+        horizontalAnimatedAdPath = image.path;
+      });
+    }
   }
 
   void _showAdsManagerDialog() {
@@ -762,33 +683,59 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         bottom: currentHorizontalHeight,
                         child: cameraWidget,
                       ),
-                      // 🔥 1. నిలువు (Vertical) యానిమేటెడ్ GIF/JPEG Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ చేసుకోవచ్చు
+                      // 🔥 1. నిలువు (Vertical) యానిమేటెడ్ GIF/JPEG Ad - స్పేస్‌పై ట్యాప్ చేస్తే గ్యాలరీ ఓపెన్ అవుతుంది & జూమ్ చేసుకోవచ్చు
                       Positioned(
                         left: 0, top: 0, bottom: 0, width: currentVerticalWidth,
-                        child: InteractiveViewer(
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          minScale: 0.5,
-                          maxScale: 4.0,
-                          child: Center(
-                            child: verticalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                : const Text("VERTICAL AD", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 10)),
+                        child: GestureDetector(
+                          onTap: _pickVerticalAd, // స్పేస్‌పై నొక్కితే గ్యాలరీ నుండి అప్లోడ్ అవుతుంది
+                          child: InteractiveViewer(
+                            panEnabled: true,
+                            scaleEnabled: true,
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: Container(
+                              decoration: BoxDecoration(border: Border.all(color: Colors.amber.withOpacity(0.5))),
+                              child: Center(
+                                child: verticalAnimatedAdPath.isNotEmpty
+                                    ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                    : const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.add_photo_alternate, color: Colors.amber, size: 30),
+                                          SizedBox(height: 5),
+                                          Text("TAP TO UPLOAD\nVERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                      // 🔥 2. అడ్డు (Horizontal) యానిమేటెడ్ GIF/JPEG Ad - చేతి వేళ్లతో జూమ్ మరియు డ్రాగ్ చేసుకోవచ్చు
+                      // 🔥 2. అడ్డు (Horizontal) యానిమేటెడ్ GIF/JPEG Ad - స్పేస్‌పై ట్యాప్ చేస్తే గ్యాలరీ ఓపెన్ అవుతుంది & జూమ్ చేసుకోవచ్చు
                       Positioned(
                         left: 0, right: 0, bottom: 0, height: currentHorizontalHeight,
-                        child: InteractiveViewer(
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          minScale: 0.5,
-                          maxScale: 4.0,
-                          child: Center(
-                            child: horizontalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                : const Text("HORIZONTAL AD", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold, fontSize: 11)),
+                        child: GestureDetector(
+                          onTap: _pickHorizontalAd, // స్పేస్‌పై నొక్కితే గ్యాలరీ నుండి అప్లోడ్ అవుతుంది
+                          child: InteractiveViewer(
+                            panEnabled: true,
+                            scaleEnabled: true,
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: Container(
+                              decoration: BoxDecoration(border: Border.all(color: Colors.amber.withOpacity(0.5))),
+                              child: Center(
+                                child: horizontalAnimatedAdPath.isNotEmpty
+                                    ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                    : const Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.add_photo_alternate, color: Colors.amber, size: 24),
+                                          SizedBox(width: 8),
+                                          Text("TAP TO UPLOAD HORIZONTAL AD (GIF/JPEG)", style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -897,11 +844,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                        // 🔥 యానిమేటెడ్ యాడ్స్ సెట్టింగ్స్ బటన్
+                        // 🔥 GIF/JPEG యాడ్స్ బటన్ (దీన్ని ఆన్ చేయగానే స్క్రీన్‌పై యాడ్స్ స్పేస్ ప్రత్యక్షమవుతుంది)
                         _buildControlButton(
                           isAnimatedAdsMode ? Icons.fullscreen : Icons.animation, 
                           isAnimatedAdsMode ? "Ads Off" : "GIF/JPEG Ads", 
-                          () { setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; }); if(isAnimatedAdsMode) _showAnimatedAdsManagerDialog(); }, 
+                          () { setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; }); }, 
                           Colors.amber,
                         ),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
