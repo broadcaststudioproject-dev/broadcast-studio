@@ -69,6 +69,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
   
+  // ట్రాన్స్‌ఫార్మ్ వేరియబుల్స్
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
   Offset _vertOffset = Offset.zero;
@@ -125,8 +126,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (controller == null || !controller!.value.isInitialized) return;
-    if (state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       controller?.dispose();
     } else if (state == AppLifecycleState.resumed) {
       _initCamera();
@@ -158,7 +158,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _initCamera() async {
     if (cameras.isEmpty) return;
     try {
-      await controller?.dispose();
+      if (controller != null) {
+        await controller!.dispose();
+      }
       controller = CameraController(
         cameras[currentCameraIndex],
         ResolutionPreset.max,
@@ -624,7 +626,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   _baseScale = _currentZoomLevel;
                 },
                 onScaleUpdate: (details) async {
-                  if (controller == null) return;
+                  if (controller == null || !controller!.value.isInitialized) return;
                   double zoom = _baseScale * details.scale;
                   if (zoom < _minZoomLevel) zoom = _minZoomLevel;
                   if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
@@ -681,10 +683,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - జూమ్, డ్రాగ్ మరియు రొటేట్
                       Positioned(
                         left: 20 + _vertOffset.dx,
-                        top: 50 + _vertOffset.dy,
+                        top: 40 + _vertOffset.dy,
                         child: GestureDetector(
                           onTap: verticalAnimatedAdPath.isEmpty ? _pickVerticalAd : null,
                           onPanUpdate: (details) {
@@ -705,8 +707,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 140,
-                                height: 350,
+                                width: 120,
+                                height: 320,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: verticalAnimatedAdPath.isNotEmpty
                                     ? Stack(
@@ -725,9 +727,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 30),
+                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26),
                                             SizedBox(height: 5),
-                                            Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                            Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                                           ],
                                         ),
                                       ),
@@ -737,10 +739,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - టూ-ఫింగర్ జూమ్, డ్రాగ్ మరియు రొటేట్
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - బ్రేకింగ్ న్యూస్ ప్యానెల్‌కి పైభాగంలో పర్ఫెక్ట్ సైజ్‌లో ఉంటుంది
                       Positioned(
-                        left: 180 + _horizOffset.dx,
-                        bottom: 60 + _horizOffset.dy,
+                        left: 160 + _horizOffset.dx,
+                        bottom: 52 + _horizOffset.dy, // 🔥 బ్రేకింగ్ న్యూస్ కవర్ కాకుండా పైకి సరిచేయబడింది
                         child: GestureDetector(
                           onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
                           onPanUpdate: (details) {
@@ -761,17 +763,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 450,
-                                height: 100,
+                                width: 380, // 🔥 తగిన వెడల్పు
+                                height: 75, // 🔥 తగిన ఎత్తు (బ్రేకింగ్ న్యూస్ కవర్ కాదు)
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: horizontalAnimatedAdPath.isNotEmpty
                                     ? Stack(
                                         children: [
                                           Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity),
                                           Positioned(
-                                            top: 5, right: 5,
+                                            top: 2, right: 2,
                                             child: IconButton(
-                                              icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
+                                              icon: const Icon(Icons.refresh, color: Colors.red, size: 18),
                                               onPressed: _pickHorizontalAd,
                                             ),
                                           ),
@@ -781,9 +783,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                         child: Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 24),
-                                            SizedBox(width: 8),
-                                            Text("TAP TO UPLOAD HORIZONTAL AD", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
+                                            SizedBox(width: 6),
+                                            Text("TAP TO UPLOAD HORIZONTAL AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                                           ],
                                         ),
                                       ),
@@ -894,7 +896,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue), // 🔥 ఎర్రర్ ఇక్కడ సవరించబడింది
+                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
                         _buildControlButton(
