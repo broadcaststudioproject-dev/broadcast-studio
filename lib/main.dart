@@ -702,10 +702,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - కొలతలు (120x320) డిస్‌ప్లే అవుతాయి
+                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - జూమ్, డ్రాగ్ మరియు రొటేట్ (కొలతలు: 120x350)
                       Positioned(
                         left: 20 + _vertOffset.dx,
-                        top: 40 + _vertOffset.dy,
+                        top: 20 + _vertOffset.dy,
                         child: GestureDetector(
                           onTap: verticalAnimatedAdPath.isEmpty ? _pickVerticalAd : null,
                           onPanUpdate: (details) {
@@ -727,7 +727,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               },
                               child: Container(
                                 width: 120,
-                                height: 320,
+                                height: 350,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -749,7 +749,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         color: Colors.black54,
-                                        child: const Text("120x320 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
+                                        child: const Text("120x350 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
                                       ),
                                     ),
                                     // ఎప్పుడూ కనిపించే రీఫ్రెష్ బటన్
@@ -771,10 +771,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - సైజు పెంచబడింది (440x85) & కొలతలు డిస్‌ప్లే అవుతాయి
+                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - వెడల్పు మరియు ఎత్తు మరింత పెంచబడింది (550x120), కొలతలు డిస్‌ప్లే అవుతాయి
                       Positioned(
                         left: 150 + _horizOffset.dx,
-                        bottom: 50 + _horizOffset.dy, 
+                        bottom: 45 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
                           onPanUpdate: (details) {
@@ -795,8 +795,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 });
                               },
                               child: Container(
-                                width: 440, // 🔥 పెంచబడిన వెడల్పు
-                                height: 85, // 🔥 పెంచబడిన ఎత్తు
+                                width: 550, // 🔥 పెంచబడిన వెడల్పు
+                                height: 120, // 🔥 పెంచబడిన ఎత్తు
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: Stack(
                                   children: [
@@ -818,16 +818,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                         color: Colors.black54,
-                                        child: const Text("440x85 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
+                                        child: const Text("550x120 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
                                       ),
                                     ),
                                     // ఎప్పుడూ కనిపించే రీఫ్రెష్ బటన్
                                     Positioned(
-                                      top: 2, right: 2,
+                                      top: 5, right: 5,
                                       child: Container(
                                         color: Colors.black54,
                                         child: IconButton(
-                                          icon: const Icon(Icons.refresh, color: Colors.red, size: 18),
+                                          icon: const Icon(Icons.refresh, color: Colors.red, size: 20),
                                           onPressed: _pickHorizontalAd,
                                         ),
                                       ),
@@ -871,9 +871,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
-            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (యాడ్స్‌కి పైభాగంలో / Top Layer లో ఉండేలా అమర్చబడింది & Font Size 7)
+            // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (అన్నింటికంటే పైన / Top Layer లో ఉండేలా యాడ్స్ తర్వాత ఉంచబడ్డాయి & Font Size 7)
             Positioned(
-              bottom: 65, 
+              bottom: 60, 
               left: 15, 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -881,22 +881,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   if (watermarkText.isNotEmpty) 
                     Padding(
                       padding: const EdgeInsets.only(bottom: 2, left: 2), 
-                      child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.bold, fontSize: 7.0))
+                      child: Text(watermarkText, style: TextStyle(color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.bold, fontSize: 7.0))
                     ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), 
                     color: Colors.red, 
                     child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 7.0))
                   ),
-                  const SizedBox(height: 2), 
+                  const SizedBox(height: 1), 
                   Container(
                     color: Colors.white, 
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), 
                     child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 7.0))
                   ),
                   Container(
                     color: Colors.red, 
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), 
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), 
                     child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 7.0))
                   ),
                 ],
