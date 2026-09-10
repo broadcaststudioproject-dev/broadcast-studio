@@ -292,7 +292,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // 🔥 న్యూస్ బులెటిన్ వీడియో ప్లేయర్ మేనేజ్‌మెంట్
   void _startBulletinVideo(String url) {
     _bulletinVideoController?.stopRendererScanning();
     _bulletinVideoController?.dispose();
@@ -799,7 +798,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            // 🔥 న్యూస్ బులెటిన్ మోడ్ (సగం కెమెరా, సగం వార్తల వీడియో విజువల్స్ & పెద్ద హెడ్డింగ్ టైటిల్ బ్యానర్)
+            // 🔥 న్యూస్ బులెటిన్ మోడ్ (వాటర్ మార్క్ & రిపోర్టర్ డీటెయిల్స్ బ్రేకింగ్ న్యూస్‌కి పైన ఎడమ మూలన పర్ఫెక్ట్‌గా అమర్చబడ్డాయి)
             if (isNewsBulletinMode)
               Positioned.fill(
                 child: Container(
@@ -828,17 +827,32 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (ఒకవైపు కెమెరా/రిపోర్టర్, మరోవైపు వార్తల వీడియో)
+                      // స్ప్లిట్ స్క్రీన్
                       Expanded(
-                        child: Row(
-                          children: [
-                            Expanded(child: cameraWidget),
-                            Expanded(
-                              child: _bulletinVideoController != null
-                                  ? VlcPlayer(controller: _bulletinVideoController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))
-                                  : const Center(child: CircularProgressIndicator(color: Colors.red)),
-                            ),
-                          ],
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 52.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(child: cameraWidget),
+                                    // 🔥 బులెటిన్ మోడ్‌లో బ్రేకింగ్ న్యూస్‌కి పైన ఎడమ మూలన వాటర్ మార్క్ మరియు రిపోర్టర్ వివరాలు
+                                    Positioned(
+                                      bottom: 12,
+                                      left: 12,
+                                      child: detailsWidget,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: _bulletinVideoController != null
+                                    ? VlcPlayer(controller: _bulletinVideoController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))
+                                    : const Center(child: CircularProgressIndicator(color: Colors.red)),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -983,12 +997,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
-            // వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (యాడ్స్ ఆన్‌లో ఉన్నప్పుడు L-Shape మూలన, లేకపోతే బ్రేకింగ్ న్యూస్‌కి పైన left side)
-            Positioned(
-              bottom: isAnimatedAdsMode ? 140 : 55, 
-              left: isAnimatedAdsMode ? 152 : 15, 
-              child: detailsWidget,
-            ),
+            // వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (యాడ్స్ మోడ్‌లో L-Shape మూలన, సాధారణ మోడ్‌లో ఎడమ అడుగున)
+            if (!isNewsBulletinMode)
+              Positioned(
+                bottom: isAnimatedAdsMode ? 140 : 55, 
+                left: isAnimatedAdsMode ? 152 : 15, 
+                child: detailsWidget,
+              ),
             
             // బ్రేకింగ్ న్యూస్ ప్యానెల్
             Positioned(
@@ -1048,7 +1063,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                        // 🔥 న్యూస్ బులెటిన్ మోడ్ బటన్
                         _buildControlButton(
                           isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
                           isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
@@ -1087,4 +1101,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
