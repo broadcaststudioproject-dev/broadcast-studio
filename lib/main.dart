@@ -35,6 +35,13 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
+// 📰 వార్తల బులెటిన్ డేటా మోడల్
+class NewsBulletinItem {
+  final String title;
+  final String videoPathOrUrl;
+  NewsBulletinItem({required this.title, required this.videoPathOrUrl});
+}
+
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -45,6 +52,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
+  VlcPlayerController? _bulletinVideoController;
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -54,6 +62,25 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isAnimatedAdsMode = false; 
   bool isAutoTimerActive = false; 
   bool isVideoAdPlaying = false; 
+  
+  // 🔥 నాన్‌స్టాప్ న్యూస్ బులెటిన్ మోడ్ వేరియబుల్స్
+  bool isNewsBulletinMode = false;
+  int currentNewsIndex = 0;
+  
+  final List<NewsBulletinItem> newsBulletinList = [
+    NewsBulletinItem(
+      title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!",
+      videoPathOrUrl: "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4",
+    ),
+    NewsBulletinItem(
+      title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!",
+      videoPathOrUrl: "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4",
+    ),
+    NewsBulletinItem(
+      title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!",
+      videoPathOrUrl: "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4",
+    ),
+  ];
 
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
@@ -146,6 +173,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
+    _bulletinVideoController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     rtmpUrlController.dispose();
@@ -261,6 +289,51 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       isVideoAdPlaying = false;
       _videoAdVlcController = null;
+    });
+  }
+
+  // 🔥 న్యూస్ బులెటిన్ వీడియో ప్లేయర్ మేనేజ్‌మెంట్
+  void _startBulletinVideo(String url) {
+    _bulletinVideoController?.stopRendererScanning();
+    _bulletinVideoController?.dispose();
+    _bulletinVideoController = VlcPlayerController.network(
+      url,
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(1000),
+        ]),
+      ),
+    );
+  }
+
+  void _toggleNewsBulletinMode() {
+    setState(() {
+      isNewsBulletinMode = !isNewsBulletinMode;
+      if (isNewsBulletinMode) {
+        _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Non-Stop News Bulletin మోడ్ ఆన్ చేయబడింది!"), backgroundColor: Colors.green));
+      } else {
+        _bulletinVideoController?.stopRendererScanning();
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("News Bulletin మోడ్ ఆఫ్ చేయబడింది!"), backgroundColor: Colors.orange));
+      }
+    });
+  }
+
+  void _nextNewsItem() {
+    setState(() {
+      currentNewsIndex = (currentNewsIndex + 1) % newsBulletinList.length;
+      _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+    });
+  }
+
+  void _prevNewsItem() {
+    setState(() {
+      currentNewsIndex = (currentNewsIndex - 1 + newsBulletinList.length) % newsBulletinList.length;
+      _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
     });
   }
 
@@ -693,7 +766,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ విడ్జెట్ (Font Size 7)
     Widget detailsWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -727,7 +799,53 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            if (isVideoAdPlaying && _videoAdVlcController != null)
+            // 🔥 న్యూస్ బులెటిన్ మోడ్ (సగం కెమెరా, సగం వార్తల వీడియో విజువల్స్ & పెద్ద హెడ్డింగ్ టైటిల్ బ్యానర్)
+            if (isNewsBulletinMode)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black,
+                  child: Column(
+                    children: [
+                      // స్క్రీన్ పైభాగంలో పెద్ద అక్షరాలతో హెడ్డింగ్ బ్యానర్
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                        color: Colors.red.shade900,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18), onPressed: _prevNewsItem),
+                            Expanded(
+                              child: Text(
+                                newsBulletinList[currentNewsIndex].title,
+                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
+                          ],
+                        ),
+                      ),
+                      // స్ప్లిట్ స్క్రీన్ (ఒకవైపు కెమెరా/రిపోర్టర్, మరోవైపు వార్తల వీడియో)
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(child: cameraWidget),
+                            Expanded(
+                              child: _bulletinVideoController != null
+                                  ? VlcPlayer(controller: _bulletinVideoController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))
+                                  : const Center(child: CircularProgressIndicator(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (isVideoAdPlaying && _videoAdVlcController != null)
               Positioned.fill(
                 child: Container(
                   color: Colors.black,
@@ -748,21 +866,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // 🔥 1. నిలువు (Vertical) GIF/JPEG Ad - సైజు (140x420)
+                      // నిలువు యాడ్
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
                         child: GestureDetector(
                           onTap: _pickVerticalAd,
-                          onPanUpdate: (details) {
-                            setState(() {
-                              _vertOffset += details.delta;
-                            });
-                          },
+                          onPanUpdate: (details) { setState(() { _vertOffset += details.delta; }); },
                           child: Transform(
-                            transform: Matrix4.identity()
-                              ..scale(_vertScale)
-                              ..rotateZ(_vertRotation),
+                            transform: Matrix4.identity()..scale(_vertScale)..rotateZ(_vertRotation),
                             alignment: Alignment.center,
                             child: GestureDetector(
                               onScaleUpdate: (details) {
@@ -789,14 +901,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                               ],
                                             ),
                                           ),
-                                    Positioned(
-                                      bottom: 2, left: 2,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                        color: Colors.black54,
-                                        child: const Text("140x420 px", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -805,21 +909,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // 🔥 2. అడ్డు (Horizontal) GIF/JPEG Ad - ఎత్తు 90
+                      // అడ్డు యాడ్
                       Positioned(
                         left: 150 + _horizOffset.dx,
                         bottom: 45 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: _pickHorizontalAd,
-                          onPanUpdate: (details) {
-                            setState(() {
-                              _horizOffset += details.delta;
-                            });
-                          },
+                          onPanUpdate: (details) { setState(() { _horizOffset += details.delta; }); },
                           child: Transform(
-                            transform: Matrix4.identity()
-                              ..scale(_horizScale)
-                              ..rotateZ(_horizRotation),
+                            transform: Matrix4.identity()..scale(_horizScale)..rotateZ(_horizRotation),
                             alignment: Alignment.center,
                             child: GestureDetector(
                               onScaleUpdate: (details) {
@@ -846,14 +944,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                               ],
                                             ),
                                           ),
-                                    Positioned(
-                                      bottom: 2, left: 5,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                        color: Colors.black54,
-                                        child: const Text("Horizontal Ad Bar", style: TextStyle(color: Colors.amber, fontSize: 8, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -893,8 +983,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
-            // 🔥 షరతు: Ads ఆన్ చేసినప్పుడు (isAnimatedAdsMode == true) వాటర్ మార్క్ & డీటెయిల్స్ యాడ్స్ మూలన (L-Shape Angle Corner) కనిపిస్తాయి.
-            // యాడ్స్ ఆఫ్ చేసినప్పుడు బ్రేకింగ్ న్యూస్ ప్యానెల్‌కి పైభాగంలో స్క్రీన్ ఎడమ వైపు మూలన కనిపిస్తాయి.
+            // వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (యాడ్స్ ఆన్‌లో ఉన్నప్పుడు L-Shape మూలన, లేకపోతే బ్రేకింగ్ న్యూస్‌కి పైన left side)
             Positioned(
               bottom: isAnimatedAdsMode ? 140 : 55, 
               left: isAnimatedAdsMode ? 152 : 15, 
@@ -959,6 +1048,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                        // 🔥 న్యూస్ బులెటిన్ మోడ్ బటన్
+                        _buildControlButton(
+                          isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
+                          isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
+                          _toggleNewsBulletinMode, 
+                          isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
+                        ),
                         _buildControlButton(
                           isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
                           isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
@@ -991,3 +1087,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
