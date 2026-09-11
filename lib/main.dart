@@ -67,9 +67,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   int currentNewsIndex = 0;
   
   final List<NewsBulletinItem> newsBulletinList = [
+    NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!", mediaPath: "", isVideo: true),
     NewsBulletinItem(title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!", mediaPath: "", isVideo: true),
     NewsBulletinItem(title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!", mediaPath: "", isVideo: true),
-    NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!", mediaPath: "", isVideo: true),
   ];
 
   double _currentZoomLevel = 1.0;
@@ -107,13 +107,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String reporterName = "JANAMPALLY VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
+  String topHeadlineText = "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!";
 
   TextEditingController rtmpUrlController = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
-  TextEditingController newsCtrl = TextEditingController();
+  TextEditingController headlineCtrl = TextEditingController();
 
   Timer? _newsTimer;
 
@@ -125,7 +126,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
-    newsCtrl.text = breakingNewsText;
+    headlineCtrl.text = topHeadlineText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
     rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
@@ -167,7 +168,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     locCtrl.dispose();
     nameCtrl.dispose();
     roleCtrl.dispose();
-    newsCtrl.dispose();
+    headlineCtrl.dispose();
     super.dispose();
   }
 
@@ -297,6 +298,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _nextNewsItem() {
     setState(() {
       currentNewsIndex = (currentNewsIndex + 1) % newsBulletinList.length;
+      topHeadlineText = newsBulletinList[currentNewsIndex].title;
       if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
         _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
       } else {
@@ -309,6 +311,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _prevNewsItem() {
     setState(() {
       currentNewsIndex = (currentNewsIndex - 1 + newsBulletinList.length) % newsBulletinList.length;
+      topHeadlineText = newsBulletinList[currentNewsIndex].title;
       if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
         _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
       } else {
@@ -568,7 +571,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో (JPEG/GIF) & బ్యాడ్జ్ ఎడిట్", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో & హెడ్‌లైన్ ఎడిట్", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -579,7 +582,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         if (image != null) setDialogState(() { channelLogoPath = image.path; });
                       },
                       icon: const Icon(Icons.upload),
-                      label: const Text("ఛానల్ లోగో అప్లోడ్ చేయి (JPEG/GIF)"),
+                      label: const Text("ఛానల్ లోగో (JPEG/GIF) అప్లోడ్ చేయి"),
                     ),
                     const SizedBox(height: 10),
                     const Text("లోగో సైజ్:", style: TextStyle(color: Colors.white54, fontSize: 11)),
@@ -590,6 +593,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         setState(() { logoWidth = val; logoHeight = val; });
                       },
                     ),
+                    TextField(controller: headlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "టాప్ హెడ్‌లైన్ టెక్స్ట్")),
                     TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్")),
                     TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్")),
                     TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
@@ -601,6 +605,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
+                      topHeadlineText = headlineCtrl.text;
                       watermarkText = watermarkCtrl.text;
                       locationText = locCtrl.text;
                       reporterName = nameCtrl.text;
@@ -670,7 +675,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 🔥 రిపోర్టర్ బ్యాడ్జ్ & డీటెయిల్స్ (ఎడమ వైపు)
+    // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (సరిగ్గా బ్రేకింగ్ న్యూస్‌కు పైన యాంగిల్‌లో)
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -700,9 +705,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    // 🔥 విజువల్ స్క్రీన్ లోపల కుడి మూలన ఉండే లోగో విడ్జెట్ (బ్రేకింగ్ న్యూస్‌కు పైన సరిగ్గా కూర్చునేలా అడ్జస్ట్ చేయబడింది)
+    // 🔥 కుడి వైపు గ్యాలరీ వీడియో ఫ్రేమ్‌లో టాప్ హెడ్‌లైన్ బ్యానర్ కింద సరిగ్గా యాంగిల్‌లో ఉండే ఛానల్ లోగో
     Widget visualScreenLogoWidget = Positioned(
-      bottom: 15, right: 15, 
+      top: 15, right: 15, 
       child: channelLogoPath.isNotEmpty
           ? SizedBox(
               width: logoWidth,
@@ -728,7 +733,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // 🔥 టాప్ హెడ్‌లైన్ రెడ్ బ్యానర్ (ఓవర్‌లాప్ అవ్వకుండా సరిగ్గా అమర్చబడింది)
+                      // 🔥 టాప్ హెడ్‌లైన్ బ్యానర్ (కట్ అవ్వకుండా సేఫ్ ఏరియాలో పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా)
                       SafeArea(
                         bottom: false,
                         child: Container(
@@ -741,7 +746,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18), onPressed: _prevNewsItem),
                               Expanded(
                                 child: Text(
-                                  newsBulletinList[currentNewsIndex].title,
+                                  topHeadlineText,
                                   style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
@@ -757,7 +762,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ),
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు మీడియా)
+                      // స్ప్లిట్ స్క్రీన్
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 85.0), 
@@ -772,7 +777,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   ],
                                 ),
                               ),
-                              // కుడి వైపు వీడియో/ఇమేజ్ + ఛానెల్ లోగో
+                              // కుడి వైపు వీడియో/ఇమేజ్ + లోగో (టాప్ యాంగిల్‌లో)
                               Expanded(
                                 child: Stack(
                                   children: [
@@ -939,7 +944,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 కింద ఉండే డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (Font Size 16 & Bold)
+            // 🔥 డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (పైన్ బ్రేకింగ్ బార్ + కింద నిరంతరం కదిలే లైవ్ స్క్రోలర్ Marquee)
             Positioned(
               bottom: 2, 
               left: 2, 
