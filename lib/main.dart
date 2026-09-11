@@ -82,8 +82,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Color adLayerColor = const Color(0xFF111111);
   
-  String verticalAnimatedAdPath = "";
-  String horizontalAnimatedAdPath = "";
+  String verticalAnimatedAdPath = ""; // JPEG / GIF support
+  String horizontalAnimatedAdPath = ""; // JPEG / GIF support
   
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
