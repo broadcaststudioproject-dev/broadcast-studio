@@ -299,6 +299,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       currentNewsIndex = (currentNewsIndex + 1) % newsBulletinList.length;
       topHeadlineText = newsBulletinList[currentNewsIndex].title;
+      headlineCtrl.text = topHeadlineText;
       if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
         _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
       } else {
@@ -312,6 +313,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       currentNewsIndex = (currentNewsIndex - 1 + newsBulletinList.length) % newsBulletinList.length;
       topHeadlineText = newsBulletinList[currentNewsIndex].title;
+      headlineCtrl.text = topHeadlineText;
       if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
         _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
       } else {
@@ -675,7 +677,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (సరిగ్గా బ్రేకింగ్ న్యూస్‌కు పైన యాంగిల్‌లో)
+    // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (సరిగ్గా బ్రేకింగ్ న్యూస్‌కు పైన ఎడమ వైపు)
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -734,32 +736,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Column(
                     children: [
                       // 🔥 టాప్ హెడ్‌లైన్ బ్యానర్ (కట్ అవ్వకుండా సేఫ్ ఏరియాలో పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా)
-                      SafeArea(
-                        bottom: false,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                          color: Colors.red.shade900,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18), onPressed: _prevNewsItem),
-                              Expanded(
-                                child: Text(
-                                  topHeadlineText,
-                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                ),
+                      Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 24),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                        color: Colors.red.shade900,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18), onPressed: _prevNewsItem),
+                            Expanded(
+                              child: Text(
+                                topHeadlineText,
+                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.video_call, color: Colors.amberAccent, size: 26),
-                                tooltip: "గ్యాలరీ నుండి MP4/JPEG/GIF ఎంచుకోండి",
-                                onPressed: _pickBulletinMedia,
-                              ),
-                              IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
-                            ],
-                          ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.video_call, color: Colors.amberAccent, size: 26),
+                              tooltip: "గ్యాలరీ నుండి MP4/JPEG/GIF ఎంచుకోండి",
+                              onPressed: _pickBulletinMedia,
+                            ),
+                            IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
+                          ],
                         ),
                       ),
                       // స్ప్లిట్ స్క్రీన్
@@ -1067,3 +1067,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
