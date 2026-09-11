@@ -272,7 +272,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; });
   }
 
-  // గ్యాలరీ నుండి JPEG లేదా GIF ఇమేజ్ ఎంచుకోవడానికి (Vertical Ad)
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -280,7 +279,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // గ్యాలరీ నుండి JPEG లేదా GIF ఇమేజ్ ఎంచుకోవడానికి (Horizontal Ad)
   Future<void> _pickHorizontalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -575,7 +573,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             width: 140, height: 420,
                             decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                             child: verticalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill) // JPEG / GIF Support
+                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)
                                 : const Center(child: Text("JPEG/GIF AD\n(Tap to Pick)", style: TextStyle(color: Colors.white, fontSize: 10), textAlign: TextAlign.center)),
                           ),
                         ),
@@ -588,7 +586,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             width: screenWidth - 155, height: 90, 
                             decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                             child: horizontalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill) // JPEG / GIF Support
+                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)
                                 : const Center(child: Text("JPEG/GIF AD (Tap to Pick)", style: TextStyle(color: Colors.white, fontSize: 10))),
                           ),
                         ),
