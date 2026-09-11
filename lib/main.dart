@@ -70,15 +70,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final List<NewsBulletinItem> newsBulletinList = [
     NewsBulletinItem(
       title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!",
-      videoPathOrUrl: "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4",
+      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // 🔥 మరింత వేగంగా లోడ్ అయ్యే స్టాండర్డ్ లింక్
     ),
     NewsBulletinItem(
       title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!",
-      videoPathOrUrl: "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4",
+      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
     ),
     NewsBulletinItem(
       title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!",
-      videoPathOrUrl: "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4",
+      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     ),
   ];
 
@@ -105,7 +105,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   double _horizRotation = 0.0;
   Offset _horizOffset = Offset.zero;
 
-  final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://www.quirksmode.org/html5/videos/big_buck_bunny.mp4" : "");
+  final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" : "");
 
   String channelLogoPath = "";
   double logoWidth = 70.0;
@@ -292,19 +292,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // 🔥 బఫరింగ్ తగ్గించడానికి మరియు ఫాస్ట్‌గా లోడ్ అవ్వడానికి ఆప్టిమైజ్ చేసిన VLC ఆప్షన్స్
   void _startBulletinVideo(String url) {
     _bulletinVideoController?.stopRendererScanning();
     _bulletinVideoController?.dispose();
-    _bulletinVideoController = VlcPlayerController.network(
-      url,
-      hwAcc: HwAcc.full,
-      autoPlay: true,
-      options: VlcPlayerOptions(
-        advanced: VlcAdvancedOptions([
-          VlcAdvancedOptions.networkCaching(1000),
-        ]),
-      ),
-    );
+    
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      _bulletinVideoController = VlcPlayerController.network(
+        url,
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+        options: VlcPlayerOptions(
+          advanced: VlcAdvancedOptions([
+            VlcAdvancedOptions.networkCaching(1500),
+          ]),
+        ),
+      );
+    } else {
+      _bulletinVideoController = VlcPlayerController.file(
+        File(url),
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+      );
+    }
+    setState(() {});
   }
 
   void _toggleNewsBulletinMode() {
@@ -798,14 +809,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            // 🔥 న్యూస్ బులెటిన్ మోడ్ (వాటర్ మార్క్ & రిపోర్టర్ డీటెయిల్స్ బ్రేకింగ్ న్యూస్‌కి పైన ఎడమ మూలన పర్ఫెక్ట్‌గా అమర్చబడ్డాయి)
+            // 🔥 న్యూస్ బులెటిన్ మోడ్ (సగం కెమెరా, సగం వీడియో ప్లేయర్ పర్ఫెక్ట్‌గా ఫిట్ చేయబడింది)
             if (isNewsBulletinMode)
               Positioned.fill(
                 child: Container(
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // స్క్రీన్ పైభాగంలో పెద్ద అక్షరాలతో హెడ్డింగ్ బ్యానర్
+                      // స్క్రీన్ పైభాగంలో హెడ్డింగ్ బ్యానర్
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
@@ -827,20 +838,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్
+                      // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు వీడియో ప్లేయర్)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 52.0),
+                          padding: const EdgeInsets.only(bottom: 50.0), // బ్రేకింగ్ న్యూస్ కోసం స్పేస్
                           child: Row(
                             children: [
                               Expanded(
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    // 🔥 బులెటిన్ మోడ్‌లో బ్రేకింగ్ న్యూస్‌కి పైన ఎడమ మూలన వాటర్ మార్క్ మరియు రిపోర్టర్ వివరాలు
                                     Positioned(
-                                      bottom: 12,
-                                      left: 12,
+                                      bottom: 10,
+                                      left: 10,
                                       child: detailsWidget,
                                     ),
                                   ],
@@ -848,8 +858,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                               Expanded(
                                 child: _bulletinVideoController != null
-                                    ? VlcPlayer(controller: _bulletinVideoController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))
-                                    : const Center(child: CircularProgressIndicator(color: Colors.red)),
+                                    ? VlcPlayer(
+                                        controller: _bulletinVideoController!,
+                                        aspectRatio: 16 / 9,
+                                        placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                      )
+                                    : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.red))),
                               ),
                             ],
                           ),
@@ -997,7 +1011,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
             ),
 
-            // వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (యాడ్స్ మోడ్‌లో L-Shape మూలన, సాధారణ మోడ్‌లో ఎడమ అడుగున)
+            // వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్
             if (!isNewsBulletinMode)
               Positioned(
                 bottom: isAnimatedAdsMode ? 140 : 55, 
