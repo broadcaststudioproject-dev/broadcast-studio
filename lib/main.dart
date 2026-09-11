@@ -49,13 +49,15 @@ class StudioScreen extends StatefulWidget {
 
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   CameraController? controller;
+  VlcPlayerController? _vlcViewController;
+  VlcPlayerController? _videoAdVlcController; 
   VlcPlayerController? _bulletinVideoController;
-  VlcPlayerController? _videoAdVlcController;
   
   bool hideControls = false;
   int currentCameraIndex = 0;
   bool isLandscape = false;
   bool isIpCameraActive = false;
+  bool isLiveBroadcasting = false;
   bool isAnimatedAdsMode = false; 
   bool isVideoAdPlaying = false; 
   
@@ -68,21 +70,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!", videoPathOrUrl: ""),
   ];
 
-  final ImagePicker _picker = ImagePicker();
+  double _currentZoomLevel = 1.0;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 8.0;
+  double _baseScale = 1.0;
+
+  String ipCameraUrl = ""; 
+  TextEditingController ipController = TextEditingController();
   TextEditingController qrDataController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   Color adLayerColor = const Color(0xFF111111);
   String verticalAnimatedAdPath = ""; // JPEG / GIF support
   String horizontalAnimatedAdPath = ""; // JPEG / GIF support
-  
-  Offset _vertOffset = Offset.zero;
-  Offset _horizOffset = Offset.zero;
 
   final List<String> videoAdsList = List.generate(10, (index) => "");
 
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
+  String newsBadgeImagePath = ""; 
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -90,10 +97,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String reporterRole = "SPECIAL CORRESPONDENT";
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
 
+  TextEditingController rtmpUrlController = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
+  TextEditingController newsCtrl = TextEditingController();
 
   Timer? _newsTimer;
 
@@ -105,7 +114,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
+    newsCtrl.text = breakingNewsText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
+    rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -124,13 +135,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     controller?.dispose();
-    _bulletinVideoController?.dispose();
+    _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
+    _bulletinVideoController?.dispose();
+    ipController.dispose();
     qrDataController.dispose();
+    rtmpUrlController.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
     roleCtrl.dispose();
+    newsCtrl.dispose();
     super.dispose();
   }
 
@@ -154,6 +169,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
+      _minZoomLevel = await camController.getMinZoomLevel();
+      _maxZoomLevel = await camController.getMaxZoomLevel();
+      _currentZoomLevel = _minZoomLevel;
       setState(() {});
     } catch (e) {
       debugPrint("Camera Init Error: $e");
@@ -167,6 +185,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await _initCamera();
   }
 
+  void _toggleIpCamera() {
+    if (isIpCameraActive) {
+      _vlcViewController?.stopRendererScanning();
+      _vlcViewController?.dispose();
+      setState(() { isIpCameraActive = false; });
+      _initCamera();
+    } else {
+      if (ipCameraUrl.isEmpty) {
+        _showIpInputDialog();
+        return;
+      }
+      controller?.dispose();
+      _vlcViewController = VlcPlayerController.network(
+        ipCameraUrl,
+        hwAcc: HwAcc.full,
+        autoPlay: true,
+      );
+      setState(() { isIpCameraActive = true; });
+    }
+  }
+
   void _startBulletinVideo(String path) {
     if (path.isEmpty) return;
     _bulletinVideoController?.stopRendererScanning();
@@ -176,11 +215,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       File(path),
       hwAcc: HwAcc.full,
       autoPlay: true,
-      options: VlcPlayerOptions(
-        advanced: VlcAdvancedOptions([
-          VlcAdvancedOptions.networkCaching(500),
-        ]),
-      ),
     );
     setState(() {});
   }
@@ -391,6 +425,62 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  void _showIpInputDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("IP / Stream Link సెట్టింగ్స్", style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: ipController,
+            style: const TextStyle(color: Colors.yellow),
+            decoration: const InputDecoration(labelText: "RTSP / HTTP లింక్", labelStyle: TextStyle(color: Colors.white54)),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () {
+                setState(() { ipCameraUrl = ipController.text; });
+                Navigator.pop(context);
+              },
+              child: const Text("Save", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showMultiStreamDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("డైరెక్ట్ RTMP / Restream లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
+          content: TextField(
+            controller: rtmpUrlController,
+            style: const TextStyle(color: Colors.yellow, fontSize: 12),
+            decoration: const InputDecoration(labelText: "RTMP Server URL & Stream Key", labelStyle: TextStyle(color: Colors.white54)),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
+              onPressed: () {
+                setState(() { isLiveBroadcasting = !isLiveBroadcasting; });
+                Navigator.pop(context);
+              },
+              child: Text(isLiveBroadcasting ? "Stop Live" : "Start Live", style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -455,9 +545,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
 
-    Widget cameraWidget = controller != null && controller!.value.isInitialized 
-        ? CameraPreview(controller!)
-        : const Center(child: CircularProgressIndicator(color: Colors.white));
+    Widget cameraWidget = isIpCameraActive && _vlcViewController != null
+        ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
+        : (controller != null && controller!.value.isInitialized 
+            ? CameraPreview(controller!)
+            : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
     Widget detailsWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,7 +660,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
                       Positioned(
-                        left: 10 + _vertOffset.dx, top: 10 + _vertOffset.dy,
+                        left: 10, top: 10,
                         child: GestureDetector(
                           onTap: _pickVerticalAd,
                           child: Container(
@@ -581,7 +673,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
                       Positioned(
-                        left: 150 + _horizOffset.dx, bottom: 45 + _horizOffset.dy, 
+                        left: 150, bottom: 45, 
                         child: GestureDetector(
                           onTap: _pickHorizontalAd,
                           child: Container(
@@ -642,9 +734,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
                       children: [
                         _buildControlButton(Icons.flip_camera_android, "Camera", _switchCamera, Colors.white),
+                        _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
                         _buildControlButton(Icons.edit, "Edit Studio", _showEditDialog, Colors.blue),
+                        _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
+                        _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
                         _buildControlButton(Icons.newspaper, isNewsBulletinMode ? "Exit Bulletin" : "Bulletin", _toggleNewsBulletinMode, Colors.pinkAccent),
                         _buildControlButton(Icons.timer, "Ads Mode", _toggleAutoTimerAds, Colors.amber),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
