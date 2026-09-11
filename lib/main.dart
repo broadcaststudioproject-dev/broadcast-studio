@@ -82,8 +82,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Color adLayerColor = const Color(0xFF111111);
   
-  String verticalAnimatedAdPath = ""; // JPEG / GIF support
-  String horizontalAnimatedAdPath = ""; // JPEG / GIF support
+  String verticalAnimatedAdPath = "";
+  String horizontalAnimatedAdPath = "";
   
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
@@ -235,12 +235,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       File(path),
       hwAcc: HwAcc.full,
       autoPlay: true,
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(1000),
+        ]),
+      ),
     );
     setState(() {});
   }
 
-  void _playVideoAd(String path) {
-    if (path.isEmpty) {
+  void _playVideoAd(String videoPath) {
+    if (videoPath.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా గ్యాలరీ నుండి వీడియో ఎంచుకోండి!"), backgroundColor: Colors.red));
       return;
     }
@@ -248,9 +253,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _videoAdVlcController?.dispose();
 
     _videoAdVlcController = VlcPlayerController.file(
-      File(path),
+      File(videoPath),
       hwAcc: HwAcc.full,
       autoPlay: true,
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(1000),
+        ]),
+      ),
     );
     setState(() {
       isVideoAdPlaying = true;
@@ -272,6 +282,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (newsBulletinList[currentNewsIndex].videoPathOrUrl.isNotEmpty) {
           _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
         }
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("News Bulletin మోడ్ ఆన్ చేయబడింది! గ్యాలరీ నుండి వీడియో ఎంచుకోండి."), backgroundColor: Colors.green));
       } else {
         _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
@@ -309,9 +320,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (video != null && mounted) {
       setState(() {
         newsBulletinList[currentNewsIndex].videoPathOrUrl = video.path;
+        _startBulletinVideo(video.path);
       });
-      _startBulletinVideo(video.path);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో విజయవంతంగా లోడ్ అయింది!"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ నుండి వీడియో విజయవంతంగా అటాచ్ చేయబడింది!"), backgroundColor: Colors.green));
     }
   }
 
@@ -385,18 +396,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           const SizedBox(width: 5),
                           Expanded(
                             child: Text(
-                              videoAdsList[index].isEmpty ? "వీడియో లేదు" : "అటాచ్ చేయబడింది",
+                              videoAdsList[index].isEmpty ? "వీడియో ఎంచుకోలేదు" : "వీడియో అటాచ్ అయింది",
                               style: const TextStyle(color: Colors.yellow, fontSize: 11),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.video_library, color: Colors.cyan, size: 22),
+                            tooltip: "గ్యాలరీ నుండి వీడియో సెలెక్ట్ చేయి",
                             onPressed: () async {
                               final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
                               if (video != null) {
-                                setDialogState(() { videoAdsList[index] = video.path; });
-                                setState(() { videoAdsList[index] = video.path; });
+                                setDialogState(() {
+                                  videoAdsList[index] = video.path;
+                                });
+                                setState(() {
+                                  videoAdsList[index] = video.path;
+                                });
                               }
                             },
                           ),
@@ -663,6 +679,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ),
                             IconButton(
                               icon: const Icon(Icons.video_call, color: Colors.amberAccent, size: 26),
+                              tooltip: "గ్యాలరీ నుండి వీడియో ఎంచుకోండి",
                               onPressed: _pickBulletinVideo,
                             ),
                             IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
@@ -729,8 +746,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Stack(
                     children: [
                       Positioned.fill(child: cameraWidget),
-
-                      // నిలువు JPEG/GIF యాడ్ (Drag & Scale సపోర్ట్)
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
@@ -752,15 +767,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 height: 420,
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: verticalAnimatedAdPath.isNotEmpty
-                                    ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)
-                                    : const Center(child: Text("VERTICAL AD\n(Tap to Pick JPEG/GIF)", style: TextStyle(color: Colors.white, fontSize: 9), textAlign: TextAlign.center)),
+                                    ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                    : const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 28),
+                                            SizedBox(height: 5),
+                                            Text("TAP TO UPLOAD JPEG/GIF AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
                         ),
                       ),
-
-                      // అడ్డు JPEG/GIF యాడ్ (Drag & Scale సపోర్ట్)
                       Positioned(
                         left: 150 + _horizOffset.dx,
                         bottom: 45 + _horizOffset.dy, 
@@ -782,8 +804,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 height: 90, 
                                 decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                                 child: horizontalAnimatedAdPath.isNotEmpty
-                                    ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)
-                                    : const Center(child: Text("HORIZONTAL AD (Tap to Pick JPEG/GIF)", style: TextStyle(color: Colors.white, fontSize: 9), textAlign: TextAlign.center)),
+                                    ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                    : const Center(
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
+                                            SizedBox(width: 6),
+                                            Text("TAP TO UPLOAD JPEG/GIF AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
@@ -800,32 +831,72 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: FloatingActionButton.extended(
                   backgroundColor: Colors.red,
                   onPressed: _stopVideoAd,
-                  label: const Text("Close Ad", style: TextStyle(color: Colors.white)),
-                  icon: const Icon(Icons.close),
+                  label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)),
+                  icon: const Icon(Icons.close, color: Colors.white),
                 ),
               ),
 
             Positioned(
               top: 30, right: 30, 
               child: channelLogoPath.isNotEmpty
-                  ? SizedBox(width: logoWidth, height: logoHeight, child: Image.file(File(channelLogoPath), fit: BoxFit.contain))
-                  : Container(padding: const EdgeInsets.all(8), color: Colors.blue[900], child: const Text("SS YATRA TV", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                  ? SizedBox(
+                      width: logoWidth,
+                      height: logoHeight,
+                      child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(8), 
+                      color: Colors.blue[900]?.withOpacity(0.8), 
+                      child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
             ),
 
             if (!isNewsBulletinMode)
-              Positioned(bottom: isAnimatedAdsMode ? 140 : 55, left: 15, child: detailsWidget),
+              Positioned(
+                bottom: isAnimatedAdsMode ? 140 : 55, 
+                left: isAnimatedAdsMode ? 152 : 15, 
+                child: detailsWidget,
+              ),
             
             Positioned(
-              bottom: 5, left: 5, right: 5, 
-              child: Container(
-                height: 42, 
-                decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber, width: 1.5)),
-                child: Row(
-                  children: [
-                    Container(width: 125, color: Colors.yellow.shade800, alignment: Alignment.center, child: const Text("BREAKING", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
-                    Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))),
-                  ],
-                ),
+              bottom: 5, 
+              left: 5, 
+              right: 5, 
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 42, 
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade900,
+                      border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 125,
+                          height: double.infinity,
+                          color: Colors.yellow.shade800,
+                          alignment: Alignment.center,
+                          child: newsBadgeImagePath.isNotEmpty
+                              ? Image.file(File(newsBadgeImagePath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                              : const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            child: Marquee(
+                              text: breakingNewsText, 
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
+                              blankSpace: 100.0, 
+                              velocity: 40.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -844,8 +915,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                        _buildControlButton(Icons.newspaper, isNewsBulletinMode ? "Exit Bulletin" : "Bulletin", _toggleNewsBulletinMode, Colors.pinkAccent),
-                        _buildControlButton(Icons.timer, "Ads Mode", _toggleAutoTimerAds, Colors.amber),
+                        _buildControlButton(
+                          isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
+                          isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
+                          _toggleNewsBulletinMode, 
+                          isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
+                        ),
+                        _buildControlButton(
+                          isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
+                          isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
+                          _toggleAutoTimerAds, 
+                          isAnimatedAdsMode ? Colors.greenAccent : Colors.amber,
+                        ),
                         _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ],
                     ),
@@ -872,3 +953,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
