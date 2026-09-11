@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:video_player/video_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -49,15 +49,13 @@ class StudioScreen extends StatefulWidget {
 
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   CameraController? controller;
-  VlcPlayerController? _vlcViewController;
-  VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _bulletinVideoController;
+  VideoPlayerController? _bulletinVideoController;
+  VideoPlayerController? _videoAdVideoController;
   
   bool hideControls = false;
   int currentCameraIndex = 0;
   bool isLandscape = false;
   bool isIpCameraActive = false;
-  bool isLiveBroadcasting = false;
   bool isAnimatedAdsMode = false; 
   bool isVideoAdPlaying = false; 
   
@@ -70,26 +68,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!", videoPathOrUrl: ""),
   ];
 
-  double _currentZoomLevel = 1.0;
-  double _minZoomLevel = 1.0;
-  double _maxZoomLevel = 8.0;
-  double _baseScale = 1.0;
-
-  String ipCameraUrl = ""; 
-  TextEditingController ipController = TextEditingController();
-  TextEditingController qrDataController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  TextEditingController qrDataController = TextEditingController();
 
   Color adLayerColor = const Color(0xFF111111);
-  String verticalAnimatedAdPath = "";
-  String horizontalAnimatedAdPath = "";
+  String verticalAnimatedAdPath = ""; // JPEG / GIF support
+  String horizontalAnimatedAdPath = ""; // JPEG / GIF support
   
-  double _vertScale = 1.0;
-  double _vertRotation = 0.0;
   Offset _vertOffset = Offset.zero;
-
-  double _horizScale = 1.0;
-  double _horizRotation = 0.0;
   Offset _horizOffset = Offset.zero;
 
   final List<String> videoAdsList = List.generate(10, (index) => "");
@@ -97,7 +83,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
-  String newsBadgeImagePath = ""; 
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -105,12 +90,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String reporterRole = "SPECIAL CORRESPONDENT";
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
 
-  TextEditingController rtmpUrlController = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
-  TextEditingController newsCtrl = TextEditingController();
 
   Timer? _newsTimer;
 
@@ -122,9 +105,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
-    newsCtrl.text = breakingNewsText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
-    rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -143,17 +124,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     controller?.dispose();
-    _vlcViewController?.dispose();
-    _videoAdVlcController?.dispose();
     _bulletinVideoController?.dispose();
-    ipController.dispose();
+    _videoAdVideoController?.dispose();
     qrDataController.dispose();
-    rtmpUrlController.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
     roleCtrl.dispose();
-    newsCtrl.dispose();
     super.dispose();
   }
 
@@ -177,9 +154,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
-      _minZoomLevel = await camController.getMinZoomLevel();
-      _maxZoomLevel = await camController.getMaxZoomLevel();
-      _currentZoomLevel = _minZoomLevel;
       setState(() {});
     } catch (e) {
       debugPrint("Camera Init Error: $e");
@@ -193,53 +167,36 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await _initCamera();
   }
 
-  void _toggleIpCamera() {
-    setState(() { isIpCameraActive = !isIpCameraActive; });
-    if (!isIpCameraActive) _initCamera();
-  }
-
-  // గ్యాలరీ నుండి లోకల్ MP4 వీడియో ప్లేయర్ (VLC)
-  void _startBulletinVideo(String path) {
+  Future<void> _startBulletinVideo(String path) async {
     if (path.isEmpty) return;
-    _bulletinVideoController?.stopRendererScanning();
-    _bulletinVideoController?.dispose();
+    await _bulletinVideoController?.dispose();
     
-    _bulletinVideoController = VlcPlayerController.file(
-      File(path),
-      hwAcc: HwAcc.full,
-      autoPlay: true,
-      options: VlcPlayerOptions(
-        advanced: VlcAdvancedOptions([
-          VlcAdvancedOptions.networkCaching(500),
-        ]),
-      ),
-    );
-    setState(() {});
+    _bulletinVideoController = VideoPlayerController.file(File(path))
+      ..initialize().then((_) {
+        setState(() {});
+        _bulletinVideoController?.play();
+        _bulletinVideoController?.setLooping(true);
+      });
   }
 
-  void _playVideoAd(String path) {
+  Future<void> _playVideoAd(String path) async {
     if (path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా గ్యాలరీ నుండి వీడియో ఎంచుకోండి!"), backgroundColor: Colors.red));
       return;
     }
-    _videoAdVlcController?.stopRendererScanning();
-    _videoAdVlcController?.dispose();
-
-    _videoAdVlcController = VlcPlayerController.file(
-      File(path),
-      hwAcc: HwAcc.full,
-      autoPlay: true,
-    );
-    setState(() {
-      isVideoAdPlaying = true;
-    });
+    await _videoAdVideoController?.dispose();
+    _videoAdVideoController = VideoPlayerController.file(File(path))
+      ..initialize().then((_) {
+        setState(() { isVideoAdPlaying = true; });
+        _videoAdVideoController?.play();
+        _videoAdVideoController?.setLooping(true);
+      });
   }
 
   void _stopVideoAd() {
-    _videoAdVlcController?.stopRendererScanning();
+    _videoAdVideoController?.pause();
     setState(() {
       isVideoAdPlaying = false;
-      _videoAdVlcController = null;
     });
   }
 
@@ -251,7 +208,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
         }
       } else {
-        _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
         _bulletinVideoController = null;
       }
@@ -288,7 +244,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       setState(() {
         newsBulletinList[currentNewsIndex].videoPathOrUrl = video.path;
       });
-      _startBulletinVideo(video.path);
+      await _startBulletinVideo(video.path);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో విజయవంతంగా లోడ్ అయింది!"), backgroundColor: Colors.green));
     }
   }
@@ -316,6 +272,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; });
   }
 
+  // గ్యాలరీ నుండి JPEG లేదా GIF ఇమేజ్ ఎంచుకోవడానికి (Vertical Ad)
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -323,6 +280,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // గ్యాలరీ నుండి JPEG లేదా GIF ఇమేజ్ ఎంచుకోవడానికి (Horizontal Ad)
   Future<void> _pickHorizontalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -485,7 +443,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
 
     Widget cameraWidget = controller != null && controller!.value.isInitialized 
@@ -554,11 +511,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 ),
                               ),
                               Expanded(
-                                child: _bulletinVideoController != null
-                                    ? VlcPlayer(
-                                        controller: _bulletinVideoController!,
-                                        aspectRatio: 16 / 9,
-                                        placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                child: _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                    ? SizedBox.expand(
+                                        child: FittedBox(
+                                          fit: BoxFit.cover,
+                                          child: SizedBox(
+                                            width: _bulletinVideoController!.value.size.width,
+                                            height: _bulletinVideoController!.value.size.height,
+                                            child: VideoPlayer(_bulletinVideoController!),
+                                          ),
+                                        ),
                                       )
                                     : Container(
                                         color: Colors.black, 
@@ -580,14 +542,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               )
-            else if (isVideoAdPlaying && _videoAdVlcController != null)
+            else if (isVideoAdPlaying && _videoAdVideoController != null && _videoAdVideoController!.value.isInitialized)
               Positioned.fill(
                 child: Container(
                   color: Colors.black,
-                  child: VlcPlayer(
-                    controller: _videoAdVlcController!,
-                    aspectRatio: 16 / 9,
-                    placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _videoAdVideoController!.value.size.width,
+                        height: _videoAdVideoController!.value.size.height,
+                        child: VideoPlayer(_videoAdVideoController!),
+                      ),
+                    ),
                   ),
                 ),
               )
@@ -608,8 +575,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             width: 140, height: 420,
                             decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                             child: verticalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)
-                                : const Center(child: Text("JPEG/GIF AD", style: TextStyle(color: Colors.white, fontSize: 10))),
+                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill) // JPEG / GIF Support
+                                : const Center(child: Text("JPEG/GIF AD\n(Tap to Pick)", style: TextStyle(color: Colors.white, fontSize: 10), textAlign: TextAlign.center)),
                           ),
                         ),
                       ),
@@ -621,8 +588,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             width: screenWidth - 155, height: 90, 
                             decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
                             child: horizontalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)
-                                : const Center(child: Text("JPEG/GIF AD", style: TextStyle(color: Colors.white, fontSize: 10))),
+                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill) // JPEG / GIF Support
+                                : const Center(child: Text("JPEG/GIF AD (Tap to Pick)", style: TextStyle(color: Colors.white, fontSize: 10))),
                           ),
                         ),
                       ),
@@ -706,4 +673,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
