@@ -35,7 +35,7 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// 📰 వార్తల బులెటిన్ డేటా మోడల్ (JPEG / MP4 సపోర్ట్)
+// 📰 వార్తల బులెటిన్ డేటా మోడల్ (JPEG, GIF & HD MP4 సపోర్ట్)
 class NewsBulletinItem {
   final String title;
   final String videoPathOrUrl;
@@ -246,7 +246,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 HD వీడియో యాడ్ ప్లేయర్ (MP4 ఫార్మాట్ సపోర్ట్)
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
@@ -292,7 +291,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // 🔥 HD బులెటిన్ వీడియో ప్లేయర్ (MP4 ఫార్మాట్ హై-క్వాలిటీ సపోర్ట్)
   void _startBulletinVideo(String url) {
     _bulletinVideoController?.stopRendererScanning();
     _bulletinVideoController?.dispose();
@@ -384,7 +382,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 గ్యాలరీ నుండి JPEG / GIF ఇమేజ్ సెలెక్ట్ చేసుకోవడానికి
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -1111,7 +1108,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 24, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 24)),
+          CircleAlias(radius: 24, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 24)),
           const SizedBox(height: 5),
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
         ],
