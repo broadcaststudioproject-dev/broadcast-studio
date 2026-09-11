@@ -1108,7 +1108,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAlias(radius: 24, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 24)),
+          CircleAvatar(radius: 24, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 24)),
           const SizedBox(height: 5),
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
         ],
