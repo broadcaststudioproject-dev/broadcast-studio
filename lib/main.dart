@@ -35,10 +35,10 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// 📰 వార్తల బులెటిన్ డేటా మోడల్ (JPEG, GIF & HD MP4 సపోర్ట్)
+// 📰 వార్తల బులెటిన్ డేటా మోడల్
 class NewsBulletinItem {
   final String title;
-  final String videoPathOrUrl;
+  String videoPathOrUrl;
   NewsBulletinItem({required this.title, required this.videoPathOrUrl});
 }
 
@@ -69,15 +69,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final List<NewsBulletinItem> newsBulletinList = [
     NewsBulletinItem(
       title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!",
-      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      videoPathOrUrl: "",
     ),
     NewsBulletinItem(
       title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!",
-      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+      videoPathOrUrl: "",
     ),
     NewsBulletinItem(
       title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!",
-      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      videoPathOrUrl: "",
     ),
   ];
 
@@ -104,7 +104,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   double _horizRotation = 0.0;
   Offset _horizOffset = Offset.zero;
 
-  final List<String> videoAdsList = List.generate(10, (index) => index == 0 ? "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" : "");
+  final List<String> videoAdsList = List.generate(10, (index) => "");
 
   String channelLogoPath = "";
   double logoWidth = 70.0;
@@ -246,36 +246,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  void _playVideoAd(String videoUrl) {
-    if (videoUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
+  // గ్యాలరీ నుండి వీడియో యాడ్ ప్లేయర్
+  void _playVideoAd(String videoPath) {
+    if (videoPath.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా గ్యాలరీ నుండి వీడియో ఎంచుకోండి!"), backgroundColor: Colors.red));
       return;
     }
 
     _videoAdVlcController?.stopRendererScanning();
     _videoAdVlcController?.dispose();
 
-    final VlcPlayerOptions options = VlcPlayerOptions(
-      advanced: VlcAdvancedOptions([
-        VlcAdvancedOptions.networkCaching(2000),
-      ]),
+    _videoAdVlcController = VlcPlayerController.file(
+      File(videoPath),
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(1000),
+        ]),
+      ),
     );
-
-    if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-      _videoAdVlcController = VlcPlayerController.network(
-        videoUrl,
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-        options: options,
-      );
-    } else {
-      _videoAdVlcController = VlcPlayerController.file(
-        File(videoUrl),
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-        options: options,
-      );
-    }
 
     setState(() {
       isVideoAdPlaying = true;
@@ -291,31 +281,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  void _startBulletinVideo(String url) {
+  // గ్యాలరీ నుండి HD MP4 బులెటిన్ వీడియో ప్లేయర్
+  void _startBulletinVideo(String path) {
+    if (path.isEmpty) return;
     _bulletinVideoController?.stopRendererScanning();
     _bulletinVideoController?.dispose();
     
-    final VlcPlayerOptions hdOptions = VlcPlayerOptions(
-      advanced: VlcAdvancedOptions([
-        VlcAdvancedOptions.networkCaching(1500),
-      ]),
+    _bulletinVideoController = VlcPlayerController.file(
+      File(path),
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(1000),
+        ]),
+      ),
     );
-
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      _bulletinVideoController = VlcPlayerController.network(
-        url,
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-        options: hdOptions,
-      );
-    } else {
-      _bulletinVideoController = VlcPlayerController.file(
-        File(url),
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-        options: hdOptions,
-      );
-    }
     setState(() {});
   }
 
@@ -323,8 +304,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       isNewsBulletinMode = !isNewsBulletinMode;
       if (isNewsBulletinMode) {
-        _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("HD Non-Stop News Bulletin మోడ్ ఆన్ చేయబడింది!"), backgroundColor: Colors.green));
+        if (newsBulletinList[currentNewsIndex].videoPathOrUrl.isNotEmpty) {
+          _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+        }
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("News Bulletin మోడ్ ఆన్ చేయబడింది! గ్యాలరీ నుండి వీడియో ఎంచుకోండి."), backgroundColor: Colors.green));
       } else {
         _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
@@ -337,15 +320,37 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _nextNewsItem() {
     setState(() {
       currentNewsIndex = (currentNewsIndex + 1) % newsBulletinList.length;
-      _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+      if (newsBulletinList[currentNewsIndex].videoPathOrUrl.isNotEmpty) {
+        _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+      } else {
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
+      }
     });
   }
 
   void _prevNewsItem() {
     setState(() {
       currentNewsIndex = (currentNewsIndex - 1 + newsBulletinList.length) % newsBulletinList.length;
-      _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+      if (newsBulletinList[currentNewsIndex].videoPathOrUrl.isNotEmpty) {
+        _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
+      } else {
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
+      }
     });
+  }
+
+  // గ్యాలరీ నుండి HD MP4 వీడియో సెలెక్ట్ చేసుకోవడానికి
+  Future<void> _pickBulletinVideo() async {
+    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+    if (video != null && mounted) {
+      setState(() {
+        newsBulletinList[currentNewsIndex].videoPathOrUrl = video.path;
+        _startBulletinVideo(video.path);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ నుండి వీడియో విజయవంతంగా అటాచ్ చేయబడింది!"), backgroundColor: Colors.green));
+    }
   }
 
   Future<void> _fetchBreakingNews() async {
@@ -412,6 +417,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // గ్యాలరీ నుండి వీడియో యాడ్స్ మేనేజర్
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
@@ -420,14 +426,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("10 ఫుల్ హెచ్‌డి MP4 వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              title: const Text("గ్యాలరీ HD MP4 వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 15)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: 10,
                   itemBuilder: (context, index) {
-                    TextEditingController adCtrl = TextEditingController(text: videoAdsList[index]);
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: Row(
@@ -435,24 +440,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           Text("Ad ${index + 1}:", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 5),
                           Expanded(
-                            child: TextField(
-                              controller: adCtrl,
+                            child: Text(
+                              videoAdsList[index].isEmpty ? "వీడియో ఎంచుకోలేదు" : "వీడియో అటాచ్ అయింది",
                               style: const TextStyle(color: Colors.yellow, fontSize: 11),
-                              decoration: const InputDecoration(hintText: "డైరెక్ట్ MP4 లింక్ లేదా గ్యాలరీ పాత్", hintStyle: TextStyle(color: Colors.white38)),
-                              onChanged: (val) { videoAdsList[index] = val; },
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.video_library, color: Colors.cyan, size: 20),
+                            icon: const Icon(Icons.video_library, color: Colors.cyan, size: 22),
+                            tooltip: "గ్యాలరీ నుండి వీడియో సెలెక్ట్ చేయి",
                             onPressed: () async {
                               final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
                               if (video != null) {
                                 setDialogState(() {
                                   videoAdsList[index] = video.path;
                                 });
-                              }
-                              if (!isIpCameraActive) {
-                                await _initCamera();
+                                setState(() {
+                                  videoAdsList[index] = video.path;
+                                });
                               }
                             },
                           ),
@@ -810,17 +815,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            // 🔥 HD నాన్‌స్టాప్ న్యూస్ బులెటిన్ మోడ్ (JPEG & MP4 సపోర్ట్)
+            // 🔥 HD నాన్‌స్టాప్ న్యూస్ బులెటిన్ మోడ్ (గ్యాలరీ వీడియో పిక్కర్ సపోర్ట్)
             if (isNewsBulletinMode)
               Positioned.fill(
                 child: Container(
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // స్క్రీన్ పైభాగంలో హెడ్డింగ్ బ్యానర్
+                      // స్క్రీన్ పైభాగంలో హెడ్డింగ్ బ్యానర్ & గ్యాలరీ వీడియో అప్లోడ్ బటన్
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
                         color: Colors.red.shade900,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -835,11 +840,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            // గ్యాలరీ నుండి MP4 వీడియో అటాచ్ చేసే బటన్
+                            IconButton(
+                              icon: const Icon(Icons.video_call, color: Colors.amberAccent, size: 26),
+                              tooltip: "గ్యాలరీ నుండి వీడియో ఎంచుకోండి",
+                              onPressed: _pickBulletinVideo,
+                            ),
                             IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు HD MP4 వీడియో ప్లేయర్)
+                      // స్ప్లిట్ స్క్రీన్
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 50.0),
@@ -864,7 +875,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                         aspectRatio: 16 / 9,
                                         placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
                                       )
-                                    : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.red))),
+                                    : Container(
+                                        color: Colors.black, 
+                                        child: Center(
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                            onPressed: _pickBulletinVideo,
+                                            icon: const Icon(Icons.video_library),
+                                            label: const Text("గ్యాలరీ నుండి MP4 ఎంచుకోండి"),
+                                          ),
+                                        ),
+                                      ),
                               ),
                             ],
                           ),
