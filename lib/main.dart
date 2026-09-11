@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:video_player/video_player.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -49,8 +49,9 @@ class StudioScreen extends StatefulWidget {
 
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   CameraController? controller;
-  VideoPlayerController? _bulletinVideoController;
-  VideoPlayerController? _videoAdVideoController;
+  VlcPlayerController? _vlcViewController;
+  VlcPlayerController? _videoAdVlcController; 
+  VlcPlayerController? _bulletinVideoController;
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -142,8 +143,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     controller?.dispose();
+    _vlcViewController?.dispose();
+    _videoAdVlcController?.dispose();
     _bulletinVideoController?.dispose();
-    _videoAdVideoController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     rtmpUrlController.dispose();
@@ -196,36 +198,48 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (!isIpCameraActive) _initCamera();
   }
 
-  // బులెటిన్ వీడియో ప్లేయర్ (VideoPlayer లింక్)
-  Future<void> _startBulletinVideo(String path) async {
+  // గ్యాలరీ నుండి లోకల్ MP4 వీడియో ప్లేయర్ (VLC)
+  void _startBulletinVideo(String path) {
     if (path.isEmpty) return;
-    await _bulletinVideoController?.dispose();
+    _bulletinVideoController?.stopRendererScanning();
+    _bulletinVideoController?.dispose();
     
-    _bulletinVideoController = VideoPlayerController.file(File(path))
-      ..initialize().then((_) {
-        setState(() {});
-        _bulletinVideoController?.play();
-        _bulletinVideoController?.setLooping(true);
-      });
+    _bulletinVideoController = VlcPlayerController.file(
+      File(path),
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(500),
+        ]),
+      ),
+    );
+    setState(() {});
   }
 
-  Future<void> _playVideoAd(String path) async {
+  void _playVideoAd(String path) {
     if (path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా గ్యాలరీ నుండి వీడియో ఎంచుకోండి!"), backgroundColor: Colors.red));
       return;
     }
-    await _videoAdVideoController?.dispose();
-    _videoAdVideoController = VideoPlayerController.file(File(path))
-      ..initialize().then((_) {
-        setState(() { isVideoAdPlaying = true; });
-        _videoAdVideoController?.play();
-      });
+    _videoAdVlcController?.stopRendererScanning();
+    _videoAdVlcController?.dispose();
+
+    _videoAdVlcController = VlcPlayerController.file(
+      File(path),
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+    );
+    setState(() {
+      isVideoAdPlaying = true;
+    });
   }
 
   void _stopVideoAd() {
-    _videoAdVideoController?.pause();
+    _videoAdVlcController?.stopRendererScanning();
     setState(() {
       isVideoAdPlaying = false;
+      _videoAdVlcController = null;
     });
   }
 
@@ -237,6 +251,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
         }
       } else {
+        _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
         _bulletinVideoController = null;
       }
@@ -273,8 +288,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       setState(() {
         newsBulletinList[currentNewsIndex].videoPathOrUrl = video.path;
       });
-      await _startBulletinVideo(video.path);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో വിജയవంతంగా లోడ్ అయింది!"), backgroundColor: Colors.green));
+      _startBulletinVideo(video.path);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో విజయవంతంగా లోడ్ అయింది!"), backgroundColor: Colors.green));
     }
   }
 
@@ -539,10 +554,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 ),
                               ),
                               Expanded(
-                                child: _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                                    ? AspectRatio(
-                                        aspectRatio: _bulletinVideoController!.value.aspectRatio,
-                                        child: VideoPlayer(_bulletinVideoController!),
+                                child: _bulletinVideoController != null
+                                    ? VlcPlayer(
+                                        controller: _bulletinVideoController!,
+                                        aspectRatio: 16 / 9,
+                                        placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
                                       )
                                     : Container(
                                         color: Colors.black, 
@@ -564,15 +580,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               )
-            else if (isVideoAdPlaying && _videoAdVideoController != null && _videoAdVideoController!.value.isInitialized)
+            else if (isVideoAdPlaying && _videoAdVlcController != null)
               Positioned.fill(
                 child: Container(
                   color: Colors.black,
-                  child: Center(
-                    child: AspectRatio(
-                      aspectRatio: _videoAdVideoController!.value.aspectRatio,
-                      child: VideoPlayer(_videoAdVideoController!),
-                    ),
+                  child: VlcPlayer(
+                    controller: _videoAdVlcController!,
+                    aspectRatio: 16 / 9,
+                    placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
                   ),
                 ),
               )
@@ -691,3 +706,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
