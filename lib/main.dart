@@ -35,7 +35,7 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// 📰 వార్తల బులెటిన్ డేటా మోడల్
+// 📰 వార్తల బులెటిన్ డేటా మోడల్ (JPEG / MP4 సపోర్ట్)
 class NewsBulletinItem {
   final String title;
   final String videoPathOrUrl;
@@ -63,14 +63,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isAutoTimerActive = false; 
   bool isVideoAdPlaying = false; 
   
-  // 🔥 నాన్‌స్టాప్ న్యూస్ బులెటిన్ మోడ్ వేరియబుల్స్
   bool isNewsBulletinMode = false;
   int currentNewsIndex = 0;
   
   final List<NewsBulletinItem> newsBulletinList = [
     NewsBulletinItem(
       title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!",
-      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // 🔥 మరింత వేగంగా లోడ్ అయ్యే స్టాండర్డ్ లింక్
+      videoPathOrUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
     ),
     NewsBulletinItem(
       title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!",
@@ -247,6 +246,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔥 HD వీడియో యాడ్ ప్లేయర్ (MP4 ఫార్మాట్ సపోర్ట్)
   void _playVideoAd(String videoUrl) {
     if (videoUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ స్లాట్‌లో వీడియో యాడ్ లేదు!"), backgroundColor: Colors.red));
@@ -292,27 +292,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // 🔥 బఫరింగ్ తగ్గించడానికి మరియు ఫాస్ట్‌గా లోడ్ అవ్వడానికి ఆప్టిమైజ్ చేసిన VLC ఆప్షన్స్
+  // 🔥 HD బులెటిన్ వీడియో ప్లేయర్ (MP4 ఫార్మాట్ హై-క్వాలిటీ సపోర్ట్)
   void _startBulletinVideo(String url) {
     _bulletinVideoController?.stopRendererScanning();
     _bulletinVideoController?.dispose();
     
+    final VlcPlayerOptions hdOptions = VlcPlayerOptions(
+      advanced: VlcAdvancedOptions([
+        VlcAdvancedOptions.networkCaching(1500),
+      ]),
+    );
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
       _bulletinVideoController = VlcPlayerController.network(
         url,
         hwAcc: HwAcc.full,
         autoPlay: true,
-        options: VlcPlayerOptions(
-          advanced: VlcAdvancedOptions([
-            VlcAdvancedOptions.networkCaching(1500),
-          ]),
-        ),
+        options: hdOptions,
       );
     } else {
       _bulletinVideoController = VlcPlayerController.file(
         File(url),
         hwAcc: HwAcc.full,
         autoPlay: true,
+        options: hdOptions,
       );
     }
     setState(() {});
@@ -323,7 +326,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       isNewsBulletinMode = !isNewsBulletinMode;
       if (isNewsBulletinMode) {
         _startBulletinVideo(newsBulletinList[currentNewsIndex].videoPathOrUrl);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Non-Stop News Bulletin మోడ్ ఆన్ చేయబడింది!"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("HD Non-Stop News Bulletin మోడ్ ఆన్ చేయబడింది!"), backgroundColor: Colors.green));
       } else {
         _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
@@ -375,12 +378,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
 
     if (isAnimatedAdsMode) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GIF/JPEG యాడ్స్ ఆన్ చేయబడ్డాయి!"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("JPEG/GIF యాడ్స్ ఆన్ చేయబడ్డాయి!"), backgroundColor: Colors.green));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GIF/JPEG యాడ్స్ ఆఫ్ చేయబడ్డాయి!"), backgroundColor: Colors.orange));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("JPEG/GIF యాడ్స్ ఆఫ్ చేయబడ్డాయి!"), backgroundColor: Colors.orange));
     }
   }
 
+  // 🔥 గ్యాలరీ నుండి JPEG / GIF ఇమేజ్ సెలెక్ట్ చేసుకోవడానికి
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -419,7 +423,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("10 ఫుల్ హెచ్‌డి వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
+              title: const Text("10 ఫుల్ హెచ్‌డి MP4 వీడియో యాడ్స్ మేనేజర్", style: TextStyle(color: Colors.white, fontSize: 16)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -809,7 +813,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         onTap: () { setState(() { hideControls = !hideControls; }); },
         child: Stack(
           children: [
-            // 🔥 న్యూస్ బులెటిన్ మోడ్ (సగం కెమెరా, సగం వీడియో ప్లేయర్ పర్ఫెక్ట్‌గా ఫిట్ చేయబడింది)
+            // 🔥 HD నాన్‌స్టాప్ న్యూస్ బులెటిన్ మోడ్ (JPEG & MP4 సపోర్ట్)
             if (isNewsBulletinMode)
               Positioned.fill(
                 child: Container(
@@ -838,10 +842,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు వీడియో ప్లేయర్)
+                      // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు HD MP4 వీడియో ప్లేయర్)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 50.0), // బ్రేకింగ్ న్యూస్ కోసం స్పేస్
+                          padding: const EdgeInsets.only(bottom: 50.0),
                           child: Row(
                             children: [
                               Expanded(
@@ -894,7 +898,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     children: [
                       Positioned.fill(child: cameraWidget),
 
-                      // నిలువు యాడ్
+                      // నిలువు JPEG/GIF యాడ్
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
@@ -925,7 +929,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                               children: [
                                                 Icon(Icons.add_photo_alternate, color: Colors.amber, size: 28),
                                                 SizedBox(height: 5),
-                                                Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                                Text("TAP TO UPLOAD JPEG/GIF AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
                                               ],
                                             ),
                                           ),
@@ -937,7 +941,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
 
-                      // అడ్డు యాడ్
+                      // అడ్డు JPEG/GIF యాడ్
                       Positioned(
                         left: 150 + _horizOffset.dx,
                         bottom: 45 + _horizOffset.dy, 
@@ -968,7 +972,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                               children: [
                                                 Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
                                                 SizedBox(width: 6),
-                                                Text("TAP TO UPLOAD HORIZONTAL AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                Text("TAP TO UPLOAD JPEG/GIF AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                                               ],
                                             ),
                                           ),
@@ -1072,7 +1076,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       children: [
                         _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                        _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
+                        _buildControlButton(Icons.video_library, "HD Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
                         _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
