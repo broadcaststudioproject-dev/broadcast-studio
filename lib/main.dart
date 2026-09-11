@@ -670,7 +670,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా ఎడమ వైపు కెమెరా క్రింద కనిపించే రిపోర్టర్ బ్యాడ్జ్ & డీటెయిల్స్
+    // 🔥 రిపోర్టర్ బ్యాడ్జ్ & డీటెయిల్స్ (ఎడమ వైపు)
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -700,9 +700,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా కుడి వైపు విజువల్ స్క్రీన్ లోపల, బ్రేకింగ్ న్యూస్‌కు పైన ఉండే లోగో విడ్జెట్
+    // 🔥 విజువల్ స్క్రీన్ లోపల కుడి మూలన ఉండే లోగో విడ్జెట్ (బ్రేకింగ్ న్యూస్‌కు పైన సరిగ్గా కూర్చునేలా అడ్జస్ట్ చేయబడింది)
     Widget visualScreenLogoWidget = Positioned(
-      bottom: 52, right: 15, 
+      bottom: 15, right: 15, 
       child: channelLogoPath.isNotEmpty
           ? SizedBox(
               width: logoWidth,
@@ -728,36 +728,39 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా టాప్ హెడ్‌లైన్ రెడ్ బ్యానర్
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                        color: Colors.red.shade900,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18), onPressed: _prevNewsItem),
-                            Expanded(
-                              child: Text(
-                                newsBulletinList[currentNewsIndex].title,
-                                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
+                      // 🔥 టాప్ హెడ్‌లైన్ రెడ్ బ్యానర్ (ఓవర్‌లాప్ అవ్వకుండా సరిగ్గా అమర్చబడింది)
+                      SafeArea(
+                        bottom: false,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                          color: Colors.red.shade900,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18), onPressed: _prevNewsItem),
+                              Expanded(
+                                child: Text(
+                                  newsBulletinList[currentNewsIndex].title,
+                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.video_call, color: Colors.amberAccent, size: 26),
-                              tooltip: "గ్యాలరీ నుండి MP4/JPEG/GIF ఎంచుకోండి",
-                              onPressed: _pickBulletinMedia,
-                            ),
-                            IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
-                          ],
+                              IconButton(
+                                icon: const Icon(Icons.video_call, color: Colors.amberAccent, size: 26),
+                                tooltip: "గ్యాలరీ నుండి MP4/JPEG/GIF ఎంచుకోండి",
+                                onPressed: _pickBulletinMedia,
+                              ),
+                              IconButton(icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18), onPressed: _nextNewsItem),
+                            ],
+                          ),
                         ),
                       ),
                       // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు మీడియా)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 90.0), // డ్యూయల్ బ్రేకింగ్ న్యూస్ బార్స్ కోసం స్పేస్
+                          padding: const EdgeInsets.only(bottom: 85.0), 
                           child: Row(
                             children: [
                               // ఎడమ వైపు కెమెరా + రిపోర్టర్ బ్యాడ్జ్
@@ -936,17 +939,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా కింద ఉండే డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (Font Size 16 & Bold)
+            // 🔥 కింద ఉండే డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (Font Size 16 & Bold)
             Positioned(
-              bottom: 5, 
-              left: 5, 
-              right: 5, 
+              bottom: 2, 
+              left: 2, 
+              right: 2, 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // మొదటి బ్రేకింగ్ బార్ (హెడ్‌లైన్ / బ్రేకింగ్ టెక్స్ట్)
                   Container(
-                    height: 40, 
+                    height: 38, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
                       border: Border.all(color: Colors.amber.shade400, width: 1.5),
@@ -954,7 +956,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: Row(
                       children: [
                         Container(
-                          width: 125,
+                          width: 110,
                           height: double.infinity,
                           color: Colors.yellow.shade800,
                           alignment: Alignment.center,
@@ -965,7 +967,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             padding: const EdgeInsets.symmetric(horizontal: 10.0),
                             child: Text(
                               "హైదరాబాద్ లో భారీ వర్షాలు... లోతట్టు ప్రాంతాల ప్రజలు అప్రమత్తం!",
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), // 🔥 Size 16 & Bold
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -973,10 +975,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  // రెండవ లైవ్ స్క్రోలింగ్ మార్క్యూ బార్
+                  const SizedBox(height: 1),
                   Container(
-                    height: 38, 
+                    height: 36, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
                       border: Border.all(color: Colors.amber.shade400, width: 1.5),
@@ -984,11 +985,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: Row(
                       children: [
                         Container(
-                          width: 40,
+                          width: 35,
                           height: double.infinity,
                           color: Colors.white,
                           alignment: Alignment.center,
-                          child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 16),
+                          child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 14),
                         ),
                         Expanded(
                           child: Padding(
