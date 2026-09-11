@@ -97,7 +97,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final List<String> videoAdsList = List.generate(10, (index) => "");
 
-  String channelLogoPath = ""; // JPEG / GIF support for Logo
+  String channelLogoPath = ""; 
   double logoWidth = 70.0;
   double logoHeight = 70.0;
   String newsBadgeImagePath = ""; 
@@ -670,21 +670,39 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    Widget detailsWidget = Column(
+    // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా ఎడమ వైపు కెమెరా క్రింద కనిపించే రిపోర్టర్ బ్యాడ్జ్ & డీటెయిల్స్
+    Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (watermarkText.isNotEmpty) 
-          Text(watermarkText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 7.0)),
-        Container(color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 7.0))),
-        const SizedBox(height: 1), 
-        Container(color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 7.0))),
-        Container(color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontSize: 7.0))),
+          Container(
+            color: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Text(watermarkText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)),
+          ),
+        Container(
+          color: Colors.red.shade700, 
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), 
+          child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)),
+        ),
+        const SizedBox(height: 2), 
+        Container(
+          color: Colors.white, 
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+          child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13.0)),
+        ),
+        Container(
+          color: Colors.red.shade700, 
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), 
+          child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)),
+        ),
       ],
     );
 
-    // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా విజువల్ స్క్రీన్ లోపల, బ్రేకింగ్ న్యూస్‌కు పైన ఉండే లోగో విడ్జెట్
+    // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా కుడి వైపు విజువల్ స్క్రీన్ లోపల, బ్రేకింగ్ న్యూస్‌కు పైన ఉండే లోగో విడ్జెట్
     Widget visualScreenLogoWidget = Positioned(
-      bottom: 52, right: 15, // బ్రేకింగ్ న్యూస్ ప్యానెల్‌కు పైన, కుడి మూలన
+      bottom: 52, right: 15, 
       child: channelLogoPath.isNotEmpty
           ? SizedBox(
               width: logoWidth,
@@ -692,8 +710,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
             )
           : Container(
-              padding: const EdgeInsets.all(8), 
-              color: Colors.blue[900]?.withOpacity(0.8), 
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+              color: Colors.blue[900]?.withOpacity(0.9), 
               child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
             ),
     );
@@ -710,9 +728,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
+                      // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా టాప్ హెడ్‌లైన్ రెడ్ బ్యానర్
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                         color: Colors.red.shade900,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -721,7 +740,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             Expanded(
                               child: Text(
                                 newsBulletinList[currentNewsIndex].title,
-                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                               ),
@@ -735,19 +754,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
+                      // స్ప్లిట్ స్క్రీన్ (ఎడమ వైపు కెమెరా, కుడి వైపు మీడియా)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 50.0),
+                          padding: const EdgeInsets.only(bottom: 90.0), // డ్యూయల్ బ్రేకింగ్ న్యూస్ బార్స్ కోసం స్పేస్
                           child: Row(
                             children: [
+                              // ఎడమ వైపు కెమెరా + రిపోర్టర్ బ్యాడ్జ్
                               Expanded(
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    Positioned(bottom: 10, left: 10, child: detailsWidget),
+                                    Positioned(bottom: 15, left: 15, child: reporterBadgeWidget),
                                   ],
                                 ),
                               ),
+                              // కుడి వైపు వీడియో/ఇమేజ్ + ఛానెల్ లోగో
                               Expanded(
                                 child: Stack(
                                   children: [
@@ -777,7 +799,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                               ),
                                             ),
                                     ),
-                                    // 🔥 విజువల్ స్క్రీన్ లోపల కుడి మూలన లోగో
                                     visualScreenLogoWidget,
                                   ],
                                 ),
@@ -806,7 +827,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: Stack(
                   children: [
                     Positioned.fill(child: cameraWidget),
-                    visualScreenLogoWidget, // సాధారణ లైవ్ మోడ్‌లోనూ విజువల్ స్క్రీన్ లోపల లోగో
+                    visualScreenLogoWidget,
                   ],
                 ),
               )
@@ -912,10 +933,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               Positioned(
                 bottom: isAnimatedAdsMode ? 140 : 55, 
                 left: isAnimatedAdsMode ? 152 : 15, 
-                child: detailsWidget,
+                child: reporterBadgeWidget,
               ),
             
-            // 🔥 బ్రేకింగ్ న్యూస్ ప్యానెల్ (ఫాంట్ సైజ్ 16 మరియు బోల్డ్)
+            // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా కింద ఉండే డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (Font Size 16 & Bold)
             Positioned(
               bottom: 5, 
               left: 5, 
@@ -923,8 +944,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // మొదటి బ్రేకింగ్ బార్ (హెడ్‌లైన్ / బ్రేకింగ్ టెక్స్ట్)
                   Container(
-                    height: 42, 
+                    height: 40, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
                       border: Border.all(color: Colors.amber.shade400, width: 1.5),
@@ -936,16 +958,44 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           height: double.infinity,
                           color: Colors.yellow.shade800,
                           alignment: Alignment.center,
-                          child: newsBadgeImagePath.isNotEmpty
-                              ? Image.file(File(newsBadgeImagePath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                              : const Text("BREAKING", style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                          child: const Text("బ్రేకింగ్:", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            child: Text(
+                              "హైదరాబాద్ లో భారీ వర్షాలు... లోతట్టు ప్రాంతాల ప్రజలు అప్రమత్తం!",
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), // 🔥 Size 16 & Bold
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  // రెండవ లైవ్ స్క్రోలింగ్ మార్క్యూ బార్
+                  Container(
+                    height: 38, 
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade900,
+                      border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: double.infinity,
+                          color: Colors.white,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 16),
                         ),
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10.0),
                             child: Marquee(
                               text: breakingNewsText, 
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), // 🔥 Size 16 & Bold
+                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), 
                               blankSpace: 100.0, 
                               velocity: 40.0,
                             ),
