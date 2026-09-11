@@ -37,8 +37,8 @@ class PocketPCRApp extends StatelessWidget {
 
 class NewsBulletinItem {
   final String title;
-  String mediaPath; // MP4 వీడియో లేదా JPEG/GIF ఇమేజ్ పాత్ కోసం
-  bool isVideo; // ఇది వీడియోనా లేదా ఇమేజ్నా అని గుర్తించడానికి
+  String mediaPath; 
+  bool isVideo; 
 
   NewsBulletinItem({required this.title, required this.mediaPath, this.isVideo = true});
 }
@@ -97,7 +97,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final List<String> videoAdsList = List.generate(10, (index) => "");
 
-  String channelLogoPath = "";
+  String channelLogoPath = ""; // JPEG / GIF support for Logo
   double logoWidth = 70.0;
   double logoHeight = 70.0;
   String newsBadgeImagePath = ""; 
@@ -286,7 +286,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
           _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
         }
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("News Bulletin మోడ్ ఆన్ చేయబడింది! గ్యాలరీ నుండి MP4/JPEG/GIF ఎంచుకోండి."), backgroundColor: Colors.green));
       } else {
         _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
@@ -319,7 +318,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // గ్యాలరీ నుండి MP4 వీడియో లేదా JPEG/GIF ఇమేజ్ సెలెక్ట్ చేసుకోవడానికి (Universal Media Picker)
   Future<void> _pickBulletinMedia() async {
     showModalBottomSheet(
       context: context,
@@ -340,7 +338,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       newsBulletinList[currentNewsIndex].isVideo = true;
                       _startBulletinMedia(video.path, true);
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ నుండి వీడియో అటాచ్ చేయబడింది!"), backgroundColor: Colors.green));
                   }
                 },
               ),
@@ -357,7 +354,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       _bulletinVideoController?.dispose();
                       _bulletinVideoController = null;
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ నుండి ఇమేజ్ (JPEG/GIF) అటాచ్ చేయబడింది!"), backgroundColor: Colors.green));
                   }
                 },
               ),
@@ -438,23 +434,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           const SizedBox(width: 5),
                           Expanded(
                             child: Text(
-                              videoAdsList[index].isEmpty ? "మీడియా ఎంచుకోలేదు" : "ఫైల్ అటాచ్ అయింది",
+                              videoAdsList[index].isEmpty ? "మీడియా లేదు" : "ఫైల్ అటాచ్ అయింది",
                               style: const TextStyle(color: Colors.yellow, fontSize: 11),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.video_library, color: Colors.cyan, size: 22),
-                            tooltip: "గ్యాలరీ నుండి ఫైల్ సెలెక్ట్ చేయి",
                             onPressed: () async {
                               final XFile? media = await _picker.pickVideo(source: ImageSource.gallery);
                               if (media != null) {
-                                setDialogState(() {
-                                  videoAdsList[index] = media.path;
-                                });
-                                setState(() {
-                                  videoAdsList[index] = media.path;
-                                });
+                                setDialogState(() { videoAdsList[index] = media.path; });
+                                setState(() { videoAdsList[index] = media.path; });
                               }
                             },
                           ),
@@ -577,18 +568,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో & బ్యాడ్జ్ ఎడిట్", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో (JPEG/GIF) & బ్యాడ్జ్ ఎడిట్", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                        final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                         if (image != null) setDialogState(() { channelLogoPath = image.path; });
                       },
                       icon: const Icon(Icons.upload),
-                      label: const Text("ఛానల్ లోగో అప్లోడ్ చేయి"),
+                      label: const Text("ఛానల్ లోగో అప్లోడ్ చేయి (JPEG/GIF)"),
                     ),
                     const SizedBox(height: 10),
                     const Text("లోగో సైజ్:", style: TextStyle(color: Colors.white54, fontSize: 11)),
@@ -691,6 +682,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
+    // 🔥 రిఫరెన్స్ ఇమేజ్ లాగా విజువల్ స్క్రీన్ లోపల, బ్రేకింగ్ న్యూస్‌కు పైన ఉండే లోగో విడ్జెట్
+    Widget visualScreenLogoWidget = Positioned(
+      bottom: 52, right: 15, // బ్రేకింగ్ న్యూస్ ప్యానెల్‌కు పైన, కుడి మూలన
+      child: channelLogoPath.isNotEmpty
+          ? SizedBox(
+              width: logoWidth,
+              height: logoHeight,
+              child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+            )
+          : Container(
+              padding: const EdgeInsets.all(8), 
+              color: Colors.blue[900]?.withOpacity(0.8), 
+              child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
@@ -742,30 +749,38 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 ),
                               ),
                               Expanded(
-                                child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
-                                    ? (newsBulletinList[currentNewsIndex].isVideo && _bulletinVideoController != null
-                                        ? VlcPlayer(
-                                            controller: _bulletinVideoController!,
-                                            aspectRatio: 16 / 9,
-                                            placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                                          )
-                                        : Image.file(
-                                            File(newsBulletinList[currentNewsIndex].mediaPath),
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            height: double.infinity,
-                                          ))
-                                    : Container(
-                                        color: Colors.black, 
-                                        child: Center(
-                                          child: ElevatedButton.icon(
-                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                                            onPressed: _pickBulletinMedia,
-                                            icon: const Icon(Icons.perm_media),
-                                            label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
-                                          ),
-                                        ),
-                                      ),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
+                                          ? (newsBulletinList[currentNewsIndex].isVideo && _bulletinVideoController != null
+                                              ? VlcPlayer(
+                                                  controller: _bulletinVideoController!,
+                                                  aspectRatio: 16 / 9,
+                                                  placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                                )
+                                              : Image.file(
+                                                  File(newsBulletinList[currentNewsIndex].mediaPath),
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                ))
+                                          : Container(
+                                              color: Colors.black, 
+                                              child: Center(
+                                                child: ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                                  onPressed: _pickBulletinMedia,
+                                                  icon: const Icon(Icons.perm_media),
+                                                  label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                    // 🔥 విజువల్ స్క్రీన్ లోపల కుడి మూలన లోగో
+                                    visualScreenLogoWidget,
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -787,7 +802,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               )
             else if (!isAnimatedAdsMode)
-              Positioned.fill(child: cameraWidget)
+              Positioned.fill(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: cameraWidget),
+                    visualScreenLogoWidget, // సాధారణ లైవ్ మోడ్‌లోనూ విజువల్ స్క్రీన్ లోపల లోగో
+                  ],
+                ),
+              )
             else
               Positioned.fill(
                 child: Container(
@@ -795,6 +817,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Stack(
                     children: [
                       Positioned.fill(child: cameraWidget),
+                      visualScreenLogoWidget,
                       Positioned(
                         left: 10 + _vertOffset.dx,
                         top: 10 + _vertOffset.dy,
@@ -885,21 +908,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
 
-            Positioned(
-              top: 30, right: 30, 
-              child: channelLogoPath.isNotEmpty
-                  ? SizedBox(
-                      width: logoWidth,
-                      height: logoHeight,
-                      child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
-                    )
-                  : Container(
-                      padding: const EdgeInsets.all(8), 
-                      color: Colors.blue[900]?.withOpacity(0.8), 
-                      child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    ),
-            ),
-
             if (!isNewsBulletinMode)
               Positioned(
                 bottom: isAnimatedAdsMode ? 140 : 55, 
@@ -907,6 +915,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: detailsWidget,
               ),
             
+            // 🔥 బ్రేకింగ్ న్యూస్ ప్యానెల్ (ఫాంట్ సైజ్ 16 మరియు బోల్డ్)
             Positioned(
               bottom: 5, 
               left: 5, 
@@ -936,7 +945,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             padding: const EdgeInsets.symmetric(horizontal: 10.0),
                             child: Marquee(
                               text: breakingNewsText, 
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), // 🔥 Size 16 & Bold
                               blankSpace: 100.0, 
                               velocity: 40.0,
                             ),
