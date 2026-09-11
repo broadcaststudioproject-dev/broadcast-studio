@@ -81,8 +81,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final ImagePicker _picker = ImagePicker();
 
   Color adLayerColor = const Color(0xFF111111);
-  String verticalAnimatedAdPath = ""; // JPEG / GIF support
-  String horizontalAnimatedAdPath = ""; // JPEG / GIF support
+  
+  String verticalAnimatedAdPath = "";
+  String horizontalAnimatedAdPath = "";
+  
+  double _vertScale = 1.0;
+  double _vertRotation = 0.0;
+  Offset _vertOffset = Offset.zero;
+
+  double _horizScale = 1.0;
+  double _horizRotation = 0.0;
+  Offset _horizOffset = Offset.zero;
 
   final List<String> videoAdsList = List.generate(10, (index) => "");
 
@@ -128,6 +137,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      controller?.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      if (!isIpCameraActive) {
+        _initCamera();
+      }
+    }
   }
 
   @override
@@ -321,14 +341,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
-      setState(() { verticalAnimatedAdPath = image.path; });
+      setState(() {
+        verticalAnimatedAdPath = image.path;
+        _vertScale = 1.0;
+        _vertRotation = 0.0;
+        _vertOffset = Offset.zero;
+      });
     }
   }
 
   Future<void> _pickHorizontalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
-      setState(() { horizontalAnimatedAdPath = image.path; });
+      setState(() {
+        horizontalAnimatedAdPath = image.path;
+        _horizScale = 1.0;
+        _horizRotation = 0.0;
+        _horizOffset = Offset.zero;
+      });
     }
   }
 
@@ -502,6 +532,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       icon: const Icon(Icons.upload),
                       label: const Text("ఛానల్ లోగో అప్లోడ్ చేయి"),
                     ),
+                    const SizedBox(height: 10),
+                    const Text("లోగో సైజ్:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Slider(
+                      value: logoWidth, min: 40, max: 150, activeColor: Colors.blue,
+                      onChanged: (val) {
+                        setDialogState(() { logoWidth = val; logoHeight = val; });
+                        setState(() { logoWidth = val; logoHeight = val; });
+                      },
+                    ),
                     TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్")),
                     TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్")),
                     TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
@@ -543,12 +582,43 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
-            ? CameraPreview(controller!)
+            ? GestureDetector(
+                onScaleStart: (details) {
+                  _baseScale = _currentZoomLevel;
+                },
+                onScaleUpdate: (details) async {
+                  if (controller == null || !controller!.value.isInitialized) return;
+                  double zoom = _baseScale * details.scale;
+                  if (zoom < _minZoomLevel) zoom = _minZoomLevel;
+                  if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+                  setState(() { _currentZoomLevel = zoom; });
+                  await controller?.setZoomLevel(zoom);
+                },
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    var cameraValue = controller!.value;
+                    return ClipRect(
+                      child: OverflowBox(
+                        alignment: Alignment.center,
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: isScreenLandscape ? constraints.maxHeight * cameraValue.aspectRatio : constraints.maxWidth,
+                            height: isScreenLandscape ? constraints.maxHeight : constraints.maxWidth / cameraValue.aspectRatio,
+                            child: CameraPreview(controller!),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
     Widget detailsWidget = Column(
@@ -659,29 +729,63 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Stack(
                     children: [
                       Positioned.fill(child: cameraWidget),
+
+                      // నిలువు JPEG/GIF యాడ్ (Drag & Scale సపోర్ట్)
                       Positioned(
-                        left: 10, top: 10,
+                        left: 10 + _vertOffset.dx,
+                        top: 10 + _vertOffset.dy,
                         child: GestureDetector(
                           onTap: _pickVerticalAd,
-                          child: Container(
-                            width: 140, height: 420,
-                            decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
-                            child: verticalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)
-                                : const Center(child: Text("JPEG/GIF AD\n(Tap to Pick)", style: TextStyle(color: Colors.white, fontSize: 10), textAlign: TextAlign.center)),
+                          onPanUpdate: (details) { setState(() { _vertOffset += details.delta; }); },
+                          child: Transform(
+                            transform: Matrix4.identity()..scale(_vertScale)..rotateZ(_vertRotation),
+                            alignment: Alignment.center,
+                            child: GestureDetector(
+                              onScaleUpdate: (details) {
+                                setState(() {
+                                  _vertScale = (_vertScale * details.scale).clamp(0.3, 4.0);
+                                  _vertRotation += details.rotation;
+                                });
+                              },
+                              child: Container(
+                                width: 140,
+                                height: 420,
+                                decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
+                                child: verticalAnimatedAdPath.isNotEmpty
+                                    ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)
+                                    : const Center(child: Text("VERTICAL AD\n(Tap to Pick JPEG/GIF)", style: TextStyle(color: Colors.white, fontSize: 9), textAlign: TextAlign.center)),
+                              ),
+                            ),
                           ),
                         ),
                       ),
+
+                      // అడ్డు JPEG/GIF యాడ్ (Drag & Scale సపోర్ట్)
                       Positioned(
-                        left: 150, bottom: 45, 
+                        left: 150 + _horizOffset.dx,
+                        bottom: 45 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: _pickHorizontalAd,
-                          child: Container(
-                            width: screenWidth - 155, height: 90, 
-                            decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
-                            child: horizontalAnimatedAdPath.isNotEmpty
-                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)
-                                : const Center(child: Text("JPEG/GIF AD (Tap to Pick)", style: TextStyle(color: Colors.white, fontSize: 10))),
+                          onPanUpdate: (details) { setState(() { _horizOffset += details.delta; }); },
+                          child: Transform(
+                            transform: Matrix4.identity()..scale(_horizScale)..rotateZ(_horizRotation),
+                            alignment: Alignment.center,
+                            child: GestureDetector(
+                              onScaleUpdate: (details) {
+                                setState(() {
+                                  _horizScale = (_horizScale * details.scale).clamp(0.3, 4.0);
+                                  _horizRotation += details.rotation;
+                                });
+                              },
+                              child: Container(
+                                width: screenWidth - 155,
+                                height: 90, 
+                                decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
+                                child: horizontalAnimatedAdPath.isNotEmpty
+                                    ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)
+                                    : const Center(child: Text("HORIZONTAL AD (Tap to Pick JPEG/GIF)", style: TextStyle(color: Colors.white, fontSize: 9), textAlign: TextAlign.center)),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -733,11 +837,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: Wrap(
                       alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
                       children: [
-                        _buildControlButton(Icons.flip_camera_android, "Camera", _switchCamera, Colors.white),
+                        _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                         _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
                         _buildControlButton(Icons.video_library, "Video Ads", _showAdsManagerDialog, Colors.amberAccent),
                         _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                        _buildControlButton(Icons.edit, "Edit Studio", _showEditDialog, Colors.blue),
+                        _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                         _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
                         _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
                         _buildControlButton(Icons.newspaper, isNewsBulletinMode ? "Exit Bulletin" : "Bulletin", _toggleNewsBulletinMode, Colors.pinkAccent),
