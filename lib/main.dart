@@ -761,7 +761,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // టాప్ హెడ్‌లైన్ బ్యానర్
                       Container(
                         width: double.infinity,
                         margin: EdgeInsets.zero,
@@ -795,14 +794,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 42.0), 
+                          padding: const EdgeInsets.only(bottom: 40.0), 
                           child: Row(
                             children: [
                               Expanded(
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    Positioned(bottom: 12, left: 12, child: reporterBadgeWidget),
+                                    Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
                                   ],
                                 ),
                               ),
@@ -972,7 +971,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 స్క్రీన్ అడుగు భాగంలో స్క్రోలింగ్ న్యూస్ + JPEG/GIF మీడియా సెలెక్షన్ బటన్ కలిగిన మార్క్యూ బార్
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -1003,11 +1001,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
                     ),
-                    // 🔥 స్క్రోలింగ్ న్యూస్ బార్ లోనే JPEG/GIF మీడియా అప్లోడ్ చేసుకునే ప్రత్యేక బటన్
+                    // 🔥 InkWell తో onPressed సరిగ్గా సెట్ చేయబడిన మీడియా అప్లోడ్ బటన్
                     Material(
                       color: Colors.amber.shade700,
                       child: InkWell(
-                        onPress: _pickBulletinMedia,
+                        onPressed: _pickBulletinMedia, // 🔥 Fixed `onPress` to `onPressed`
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           child: Row(
