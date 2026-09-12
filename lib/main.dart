@@ -109,7 +109,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   String topHeadlineText = "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!";
 
-  // YouTube / Restream Multi-Live Controllers
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController restreamKeyController = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
@@ -541,7 +540,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 YouTube & Restream Multi-Live డైలాగ్ బాక్స్
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -794,16 +792,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
+                      // స్ప్లిట్ స్క్రీన్ (కింద రెండు వరుసల బ్రేకింగ్ న్యూస్ కోసం 45px స్పేసింగ్ సరిపోతుంది)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 76.0), 
+                          padding: const EdgeInsets.only(bottom: 45.0), 
                           child: Row(
                             children: [
                               Expanded(
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
+                                    Positioned(bottom: 8, left: 8, child: reporterBadgeWidget),
                                   ],
                                 ),
                               ),
@@ -973,6 +972,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
+            // 🔥 రెండు వరుసల బ్రేకింగ్ న్యూస్ ప్యానెల్ (పై వరుస తొలగించబడి, కేవలం రెండు లైన్ల లైవ్ స్క్రోలర్ మాత్రమే)
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -980,27 +980,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // మొదటి వరుస (బ్రేకింగ్ హెడ్‌లైన్ బార్)
                   Container(
-                    height: 35, 
+                    height: 22, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
-                      border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                      border: Border.all(color: Colors.amber.shade400, width: 1.2),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 110,
+                          width: 90,
                           height: double.infinity,
                           color: Colors.yellow.shade800,
                           alignment: Alignment.center,
-                          child: const Text("బ్రేకింగ్:", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: const Text("బ్రేకింగ్:", style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
                         ),
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
                             child: Text(
                               "హైదరాబాద్ లో భారీ వర్షాలు... లోతట్టు ప్రాంతాల ప్రజలు అప్రమత్తం!",
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), 
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1009,27 +1010,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                   ),
                   const SizedBox(height: 1),
+                  // రెండవ వరుస (లైవ్ స్క్రోలింగ్ మార్క్యూ బార్)
                   Container(
-                    height: 35, 
+                    height: 22, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
-                      border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                      border: Border.all(color: Colors.amber.shade400, width: 1.2),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 35,
+                          width: 30,
                           height: double.infinity,
                           color: Colors.white,
                           alignment: Alignment.center,
-                          child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 14),
+                          child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 12),
                         ),
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
                             child: Marquee(
                               text: breakingNewsText, 
-                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), 
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), 
                               blankSpace: 100.0, 
                               velocity: 40.0,
                             ),
