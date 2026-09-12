@@ -792,7 +792,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (కింద రెండు వరుసల మార్క్యూ కోసం 48px స్పేసింగ్)
+                      // స్ప్లిట్ స్క్రీన్ (కింద రెండు వరుసల మార్క్యూ కోసం సరిగ్గా 48px స్పేసింగ్)
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 48.0), 
@@ -972,7 +972,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 రెండు వరుసలలో కేవలం లైవ్ స్క్రోలింగ్ మార్క్యూ లైన్స్ మాత్రమే (పై బ్రేకింగ్ వరుస తొలగించబడింది)
+            // 🔥 కేవలం రెండు వరుసలలో లైవ్ స్క్రోలింగ్ మార్క్యూ లైన్స్ మాత్రమే (పై బ్రేకింగ్ వరుస పూర్తిగా తొలగించబడింది)
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -980,7 +980,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // మొదటి వరుస (లైవ్ స్క్రోలర్ మార్క్యూ 1)
                   Container(
                     height: 22, 
                     decoration: BoxDecoration(
@@ -1011,7 +1010,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     ),
                   ),
                   const SizedBox(height: 1),
-                  // రెండవ వరుస (లైవ్ స్క్రోలర్ మార్క్యూ 2)
                   Container(
                     height: 22, 
                     decoration: BoxDecoration(
