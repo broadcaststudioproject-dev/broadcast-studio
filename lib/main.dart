@@ -677,7 +677,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 🔥 వాటర్ మార్క్ మరియు రిపోర్టర్ డీటెయిల్స్ (సరిగ్గా బ్రేకింగ్ న్యూస్‌కు పైన ఎడమ వైపు)
+    // 🔥 రిపోర్టర్ బ్యాడ్జ్ & డీటెయిల్స్ (బ్రేకింగ్ న్యూస్‌కు పైన సరిగ్గా కూర్చునేలా అడ్జస్ట్ చేయబడింది)
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -735,11 +735,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // 🔥 టాప్ హెడ్‌లైన్ బ్యానర్ (కట్ అవ్వకుండా సేఫ్ ఏరియాలో పర్ఫెక్ట్‌గా ఫిట్ అయ్యేలా)
+                      // 🔥 టాప్ హెడ్‌లైన్ బ్యానర్ (సరిగ్గా స్క్రీన్ పైభాగానికి అతుక్కుని ఉండేలా జీరో మార్జిన్)
                       Container(
                         width: double.infinity,
-                        margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 24),
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                        margin: EdgeInsets.zero,
+                        padding: EdgeInsets.only(
+                          top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 6,
+                          bottom: 8,
+                          left: 15,
+                          right: 15,
+                        ),
                         color: Colors.red.shade900,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -762,10 +767,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్
+                      // స్ప్లిట్ స్క్రీన్ (కింద బ్రేకింగ్ న్యూస్ ప్యానెల్ కవర్ అవ్వకుండా పర్ఫెక్ట్ హైట్)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 85.0), 
+                          padding: const EdgeInsets.only(bottom: 76.0), 
                           child: Row(
                             children: [
                               // ఎడమ వైపు కెమెరా + రిపోర్టర్ బ్యాడ్జ్
@@ -773,11 +778,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    Positioned(bottom: 15, left: 15, child: reporterBadgeWidget),
+                                    Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
                                   ],
                                 ),
                               ),
-                              // కుడి వైపు వీడియో/ఇమేజ్ + లోగో (టాప్ యాంగిల్‌లో)
+                              // కుడి వైపు వీడియో/ఇమేజ్ + లోగో
                               Expanded(
                                 child: Stack(
                                   children: [
@@ -944,16 +949,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (పైన్ బ్రేకింగ్ బార్ + కింద నిరంతరం కదిలే లైవ్ స్క్రోలర్ Marquee)
+            // 🔥 డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (స్క్రీన్ అడుగు భాగంలో పర్ఫెక్ట్‌గా ఫిక్స్ చేయబడింది)
             Positioned(
-              bottom: 2, 
-              left: 2, 
-              right: 2, 
+              bottom: 0, 
+              left: 0, 
+              right: 0, 
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    height: 38, 
+                    height: 35, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
                       border: Border.all(color: Colors.amber.shade400, width: 1.5),
@@ -982,7 +987,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                   const SizedBox(height: 1),
                   Container(
-                    height: 36, 
+                    height: 35, 
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
                       border: Border.all(color: Colors.amber.shade400, width: 1.5),
@@ -1067,4 +1072,3 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
