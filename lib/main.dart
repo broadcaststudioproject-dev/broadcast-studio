@@ -86,6 +86,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
+  String breakingNewsImagePath = ""; // 🔥 బ్రేకింగ్ న్యూస్ JPEG/GIF ఇమేజ్ పాత్
   
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
@@ -100,7 +101,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String channelLogoPath = ""; 
   double logoWidth = 70.0;
   double logoHeight = 70.0;
-  String newsBadgeImagePath = ""; 
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA"; 
@@ -372,6 +372,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 బ్రేకింగ్ న్యూస్ RSS ఫెచ్ మరియు "0s Trend:" వంటి అవాంఛిత టెక్స్ట్ క్లీనింగ్
   Future<void> _fetchBreakingNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -380,7 +381,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         final items = document.findAllElements('item');
         List<String> titles = [];
         for (var item in items.take(20)) {
-          titles.add(item.findElements('title').first.innerText);
+          String rawTitle = item.findElements('title').first.innerText;
+          // అనవసరమైన ప్రిఫిక్స్ లేదా ట్రెండ్ టెక్స్ట్ తొలగించడం
+          rawTitle = rawTitle.replaceAll(RegExp(r'^[0-9]+[smh]\s*Trend:\s*', caseSensitive: false), '');
+          titles.add(rawTitle);
         }
         if (titles.isNotEmpty && mounted) {
           setState(() { breakingNewsText = titles.join("   ♦   "); });
@@ -395,26 +399,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; });
   }
 
-  Future<void> _pickVerticalAd() async {
+  Future<void> _pickBreakingNewsImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
       setState(() {
-        verticalAnimatedAdPath = image.path;
-        _vertScale = 1.0;
-        _vertRotation = 0.0;
-        _vertOffset = Offset.zero;
-      });
-    }
-  }
-
-  Future<void> _pickHorizontalAd() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null && mounted) {
-      setState(() {
-        horizontalAnimatedAdPath = image.path;
-        _horizScale = 1.0;
-        _horizRotation = 0.0;
-        _horizOffset = Offset.zero;
+        breakingNewsImagePath = image.path;
       });
     }
   }
@@ -601,7 +590,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో & హెడ్‌లైన్ ఎడిట్", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో & బ్రేకింగ్ న్యూస్ సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -613,6 +602,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       },
                       icon: const Icon(Icons.upload),
                       label: const Text("ఛానల్ లోగో (JPEG/GIF) అప్లోడ్ చేయి"),
+                    ),
+                    const SizedBox(height: 10),
+                    // 🔥 బ్రేకింగ్ న్యూస్ JPEG / GIF అప్లోడ్ బటన్
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800),
+                      onPressed: () async {
+                        final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                        if (image != null) {
+                          setDialogState(() { breakingNewsImagePath = image.path; });
+                          setState(() { breakingNewsImagePath = image.path; });
+                        }
+                      },
+                      icon: const Icon(Icons.image, color: Colors.black),
+                      label: const Text("బ్రేకింగ్ న్యూస్ JPEG/GIF అప్లోడ్ చేయి", style: TextStyle(color: Colors.black)),
                     ),
                     const SizedBox(height: 10),
                     const Text("లోగో సైజ్:", style: TextStyle(color: Colors.white54, fontSize: 11)),
@@ -794,7 +797,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 40.0), 
+                          padding: const EdgeInsets.only(bottom: 45.0), 
                           child: Row(
                             children: [
                               Expanded(
@@ -913,7 +916,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ),
                       Positioned(
                         left: 150 + _horizOffset.dx,
-                        bottom: 45 + _horizOffset.dy, 
+                        bottom: 50 + _horizOffset.dy, 
                         child: GestureDetector(
                           onTap: _pickHorizontalAd,
                           onPanUpdate: (details) { setState(() { _horizOffset += details.delta; }); },
@@ -966,31 +969,40 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
             if (!isNewsBulletinMode)
               Positioned(
-                bottom: isAnimatedAdsMode ? 140 : 45, 
+                bottom: isAnimatedAdsMode ? 145 : 50, 
                 left: isAnimatedAdsMode ? 152 : 15, 
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 ఎటువంటి ఎర్రర్స్ రాకుండా GestureDetector తో సరిగ్గా సవరించబడిన మీడియా బటన్
+            // 🔥 బ్రేకింగ్ న్యూస్ స్క్రోలింగ్ బార్ మరియు దాని చివరన స్పష్టంగా ఉండే మీడియా బటన్
             Positioned(
               bottom: 0, 
               left: 0, 
               right: 0, 
               child: Container(
-                height: 40, 
+                height: 45, 
                 decoration: BoxDecoration(
                   color: Colors.red.shade900,
                   border: Border.all(color: Colors.amber.shade400, width: 1.5),
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 45,
-                      height: double.infinity,
-                      color: Colors.white,
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 16),
-                    ),
+                    // అప్లోడ్ చేసిన బ్రేకింగ్ న్యూస్ JPEG/GIF ఇమేజ్ ఉంటే ఇక్కడ చూపబడుతుంది
+                    if (breakingNewsImagePath.isNotEmpty)
+                      Container(
+                        width: 45,
+                        height: double.infinity,
+                        color: Colors.black,
+                        child: Image.file(File(breakingNewsImagePath), fit: BoxFit.cover),
+                      )
+                    else
+                      Container(
+                        width: 45,
+                        height: double.infinity,
+                        color: Colors.white,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 16),
+                      ),
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10.0),
@@ -1003,11 +1015,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       ),
                     ),
                     GestureDetector(
-                      onTap: _pickBulletinMedia, // 🔥సవరించబడింది
+                      onTap: _pickBulletinMedia,
                       child: Container(
                         color: Colors.amber.shade700,
                         height: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         alignment: Alignment.center,
                         child: const Row(
                           children: [
