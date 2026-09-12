@@ -971,7 +971,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 Fixed: ఆన్ ప్రెస్ ఎర్రర్ పూర్తిగా తొలగించబడిన మీడియా బటన్ మరియు మార్క్యూ బార్
+            // 🔥 ఎటువంటి ఎర్రర్స్ రాకుండా GestureDetector తో సరిగ్గా సవరించబడిన మీడియా బటన్
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -1002,19 +1002,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
                     ),
-                    Material(
-                      color: Colors.amber.shade700,
-                      child: InkWell(
-                        onPressed: _pickBulletinMedia, // 🔥 సవరించబడింది (onPress బదులుగా onPressed)
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          child: Row(
-                            children: [
-                              Icon(Icons.perm_media, color: Colors.black, size: 18),
-                              SizedBox(width: 4),
-                              Text("MEDIA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
-                          ),
+                    GestureDetector(
+                      onTap: _pickBulletinMedia, // 🔥సవరించబడింది
+                      child: Container(
+                        color: Colors.amber.shade700,
+                        height: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        alignment: Alignment.center,
+                        child: const Row(
+                          children: [
+                            Icon(Icons.perm_media, color: Colors.black, size: 18),
+                            SizedBox(width: 4),
+                            Text("MEDIA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
                         ),
                       ),
                     ),
