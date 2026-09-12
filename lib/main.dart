@@ -761,11 +761,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // 🔥 టాప్ హెడ్‌లైన్ బ్యానర్ (హెడ్‌లైన్స్ మార్చుకునే ఆప్షన్‌తో)
+                      // టాప్ హెడ్‌లైన్ బ్యానర్
                       Container(
                         width: double.infinity,
-                        margin: EdgeInsets.only(top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 24),
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                        margin: EdgeInsets.zero,
+                        padding: EdgeInsets.only(
+                          top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 6,
+                          bottom: 8,
+                          left: 15,
+                          right: 15,
+                        ),
                         color: Colors.red.shade900,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -788,17 +793,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (కింద సింగిల్ మార్క్యూ కోసం 40px స్పేస్)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 40.0), 
+                          padding: const EdgeInsets.only(bottom: 42.0), 
                           child: Row(
                             children: [
                               Expanded(
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
+                                    Positioned(bottom: 12, left: 12, child: reporterBadgeWidget),
                                   ],
                                 ),
                               ),
@@ -968,13 +972,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 కేవలం ఒకే ఒక పెద్ద వరుసలో (Size 16, Bold) నిరంతరం కదిలే లైవ్ స్క్రోలింగ్ మార్క్యూ లైన్
+            // 🔥 స్క్రీన్ అడుగు భాగంలో స్క్రోలింగ్ న్యూస్ + JPEG/GIF మీడియా సెలెక్షన్ బటన్ కలిగిన మార్క్యూ బార్
             Positioned(
               bottom: 0, 
               left: 0, 
               right: 0, 
               child: Container(
-                height: 38, 
+                height: 40, 
                 decoration: BoxDecoration(
                   color: Colors.red.shade900,
                   border: Border.all(color: Colors.amber.shade400, width: 1.5),
@@ -996,6 +1000,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
                           blankSpace: 100.0, 
                           velocity: 40.0,
+                        ),
+                      ),
+                    ),
+                    // 🔥 స్క్రోలింగ్ న్యూస్ బార్ లోనే JPEG/GIF మీడియా అప్లోడ్ చేసుకునే ప్రత్యేక బటన్
+                    Material(
+                      color: Colors.amber.shade700,
+                      child: InkWell(
+                        onPress: _pickBulletinMedia,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          child: Row(
+                            children: [
+                              Icon(Icons.perm_media, color: Colors.black, size: 18),
+                              SizedBox(width: 4),
+                              Text("MEDIA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
