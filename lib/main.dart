@@ -792,10 +792,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (కింద రెండు వరుసల బ్రేకింగ్ న్యూస్ కోసం 45px స్పేసింగ్ సరిపోతుంది)
+                      // స్ప్లిట్ స్క్రీన్ (కింద రెండు వరుసల మార్క్యూ కోసం 48px స్పేసింగ్)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 45.0), 
+                          padding: const EdgeInsets.only(bottom: 48.0), 
                           child: Row(
                             children: [
                               Expanded(
@@ -972,7 +972,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 రెండు వరుసల బ్రేకింగ్ న్యూస్ ప్యానెల్ (పై వరుస తొలగించబడి, కేవలం రెండు లైన్ల లైవ్ స్క్రోలర్ మాత్రమే)
+            // 🔥 రెండు వరుసలలో కేవలం లైవ్ స్క్రోలింగ్ మార్క్యూ లైన్స్ మాత్రమే (పై బ్రేకింగ్ వరుస తొలగించబడింది)
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -980,37 +980,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // మొదటి వరుస (బ్రేకింగ్ హెడ్‌లైన్ బార్)
-                  Container(
-                    height: 22, 
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade900,
-                      border: Border.all(color: Colors.amber.shade400, width: 1.2),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 90,
-                          height: double.infinity,
-                          color: Colors.yellow.shade800,
-                          alignment: Alignment.center,
-                          child: const Text("బ్రేకింగ్:", style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Text(
-                              "హైదరాబాద్ లో భారీ వర్షాలు... లోతట్టు ప్రాంతాల ప్రజలు అప్రమత్తం!",
-                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), 
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  // రెండవ వరుస (లైవ్ స్క్రోలింగ్ మార్క్యూ బార్)
+                  // మొదటి వరుస (లైవ్ స్క్రోలర్ మార్క్యూ 1)
                   Container(
                     height: 22, 
                     decoration: BoxDecoration(
@@ -1034,6 +1004,37 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), 
                               blankSpace: 100.0, 
                               velocity: 40.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  // రెండవ వరుస (లైవ్ స్క్రోలర్ మార్క్యూ 2)
+                  Container(
+                    height: 22, 
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade900,
+                      border: Border.all(color: Colors.amber.shade400, width: 1.2),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 30,
+                          height: double.infinity,
+                          color: Colors.yellow.shade800,
+                          alignment: Alignment.center,
+                          child: const Icon(Icons.fiber_manual_record, color: Colors.black, size: 12),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Marquee(
+                              text: breakingNewsText, 
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), 
+                              blankSpace: 100.0, 
+                              velocity: 45.0,
                             ),
                           ),
                         ),
