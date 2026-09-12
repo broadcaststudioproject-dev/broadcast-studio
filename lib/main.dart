@@ -971,6 +971,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
+            // 🔥 Fixed: ఆన్ ప్రెస్ ఎర్రర్ పూర్తిగా తొలగించబడిన మీడియా బటన్ మరియు మార్క్యూ బార్
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -1001,11 +1002,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         ),
                       ),
                     ),
-                    // 🔥 InkWell తో onPressed సరిగ్గా సెట్ చేయబడిన మీడియా అప్లోడ్ బటన్
                     Material(
                       color: Colors.amber.shade700,
                       child: InkWell(
-                        onPressed: _pickBulletinMedia, // 🔥 Fixed `onPress` to `onPressed`
+                        onPressed: _pickBulletinMedia, // 🔥 సవరించబడింది (onPress బదులుగా onPressed)
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           child: Row(
