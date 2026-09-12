@@ -109,7 +109,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   String topHeadlineText = "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!";
 
-  TextEditingController rtmpUrlController = TextEditingController();
+  // YouTube / Restream Multi-Live Controllers
+  TextEditingController youtubeUrlController = TextEditingController();
+  TextEditingController restreamKeyController = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
@@ -128,7 +130,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.text = reporterRole;
     headlineCtrl.text = topHeadlineText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
-    rtmpUrlController.text = "rtmp://live.restream.io/live/your_stream_key_here";
+    youtubeUrlController.text = "https://www.youtube.com/watch?v=your_live_stream_id";
+    restreamKeyController.text = "rtmp://live.restream.io/live/your_stream_key_here";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -163,7 +166,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bulletinVideoController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
-    rtmpUrlController.dispose();
+    youtubeUrlController.dispose();
+    restreamKeyController.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
@@ -537,17 +541,37 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 YouTube & Restream Multi-Live డైలాగ్ బాక్స్
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: const Text("డైరెక్ట్ RTMP / Restream లైవ్ సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
-          content: TextField(
-            controller: rtmpUrlController,
-            style: const TextStyle(color: Colors.yellow, fontSize: 12),
-            decoration: const InputDecoration(labelText: "RTMP Server URL & Stream Key", labelStyle: TextStyle(color: Colors.white54)),
+          title: const Text("YouTube & Restream Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: youtubeUrlController,
+                  style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                  decoration: const InputDecoration(
+                    labelText: "YouTube Live Stream / RTMP URL",
+                    labelStyle: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: restreamKeyController,
+                  style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                  decoration: const InputDecoration(
+                    labelText: "Restream / Custom Stream Key",
+                    labelStyle: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
@@ -556,8 +580,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               onPressed: () {
                 setState(() { isLiveBroadcasting = !isLiveBroadcasting; });
                 Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(isLiveBroadcasting ? "Multi-Live బ్రాడ్‌కాస్ట్ ప్రారంభమైంది!" : "Multi-Live ఆపివేయబడింది!"),
+                    backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red,
+                  ),
+                );
               },
-              child: Text(isLiveBroadcasting ? "Stop Live" : "Start Live", style: const TextStyle(color: Colors.white)),
+              child: Text(isLiveBroadcasting ? "Stop Live" : "Start Multi-Live", style: const TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -677,7 +707,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 🔥 రిపోర్టర్ బ్యాడ్జ్ & డీటెయిల్స్ (బ్రేకింగ్ న్యూస్‌కు పైన సరిగ్గా కూర్చునేలా అడ్జస్ట్ చేయబడింది)
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -707,7 +736,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    // 🔥 కుడి వైపు గ్యాలరీ వీడియో ఫ్రేమ్‌లో టాప్ హెడ్‌లైన్ బ్యానర్ కింద సరిగ్గా యాంగిల్‌లో ఉండే ఛానల్ లోగో
     Widget visualScreenLogoWidget = Positioned(
       top: 15, right: 15, 
       child: channelLogoPath.isNotEmpty
@@ -735,7 +763,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: Colors.black,
                   child: Column(
                     children: [
-                      // 🔥 టాప్ హెడ్‌లైన్ బ్యానర్ (సరిగ్గా స్క్రీన్ పైభాగానికి అతుక్కుని ఉండేలా జీరో మార్జిన్)
                       Container(
                         width: double.infinity,
                         margin: EdgeInsets.zero,
@@ -767,13 +794,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ],
                         ),
                       ),
-                      // స్ప్లిట్ స్క్రీన్ (కింద బ్రేకింగ్ న్యూస్ ప్యానెల్ కవర్ అవ్వకుండా పర్ఫెక్ట్ హైట్)
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 76.0), 
                           child: Row(
                             children: [
-                              // ఎడమ వైపు కెమెరా + రిపోర్టర్ బ్యాడ్జ్
                               Expanded(
                                 child: Stack(
                                   children: [
@@ -782,7 +807,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   ],
                                 ),
                               ),
-                              // కుడి వైపు వీడియో/ఇమేజ్ + లోగో
                               Expanded(
                                 child: Stack(
                                   children: [
@@ -949,7 +973,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 డ్యూయల్ బ్రేకింగ్ న్యూస్ ప్యానెల్ (స్క్రీన్ అడుగు భాగంలో పర్ఫెక్ట్‌గా ఫిక్స్ చేయబడింది)
             Positioned(
               bottom: 0, 
               left: 0, 
