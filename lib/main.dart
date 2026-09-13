@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart'; // Android Intent కోసమ్
+import 'package:open_file/open_file.dart'; // 🔥 ఫోన్ ఇన్‌బిల్ట్ ప్లేయర్ కోసం
 
 List<CameraDescription> cameras = [];
 
@@ -118,7 +118,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController headlineCtrl = TextEditingController();
 
   Timer? _newsTimer;
-  static const platform = MethodChannel('com.ssyatratv.pcr/inbuilt_player');
 
   @override
   void initState() {
@@ -232,19 +231,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 ఫోన్ ఇన్‌బిల్ట్ వీడియో ప్లేయర్ ఓపెన్ చేయడానికి నేటివ్ మెథడ్
-  Future<void> _openVideoWithInbuiltPlayer(String path) async {
-    if (path.isEmpty) return;
-    try {
-      await platform.invokeMethod('playVideo', {'path': path});
-    } catch (e) {
-      debugPrint("Inbuilt Player Error: $e");
-      // ఒకవేళ ఫెయిల్ అయితే ప్రాంప్ట్ చూపించు
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ఇన్‌బిల్ట్ ప్లేయర్ ఓపెన్ కాలేదు!"), backgroundColor: Colors.red),
-        );
-      }
+  // 🔥 ఫోన్ లోని ఇన్‌బిల్ట్ వీడియో ప్లేయర్ ద్వారా వీడియో ఓపెన్ చేయడానికి
+  void _openVideoWithInbuiltPlayer(String path) {
+    if (path.isNotEmpty) {
+      OpenFile.open(path);
     }
   }
 
@@ -283,6 +273,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       isNewsBulletinMode = !isNewsBulletinMode;
       hideControls = true; 
+      if (isNewsBulletinMode) {
+        if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && !newsBulletinList[currentNewsIndex].isVideo) {
+          // ఇమేజ్ అయితే ఇమేజ్‌గా చూపిస్తుంది
+        }
+      }
     });
   }
 
@@ -305,6 +300,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       newsBulletinList[currentNewsIndex].mediaPath = video.path;
                       newsBulletinList[currentNewsIndex].isVideo = true;
                     });
+                    // వీడియో సెలెక్ట్ చేయగానే ఇన్‌బిల్ట్ ప్లేయర్‌లో ఓపెన్ అవుతుంది
                     _openVideoWithInbuiltPlayer(video.path);
                   }
                 },
@@ -334,7 +330,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
       setState(() {
-        breakingNewsLogoPath = image.path; 
+        breakingNewsLogoPath = image.path; // మార్చే వరకు పర్మినెంట్‌గా ఉంటుంది
       });
     }
   }
@@ -416,7 +412,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       currentNewsIndex = newsBulletinList.isNotEmpty ? 0 : 0;
                                     }
                                   });
-                                  setDialogState(() {}); 
+                                  setDialogState(() {});
                                 },
                               ),
                             );
