@@ -8,7 +8,7 @@ import 'package:xml/xml.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
-import 'package:video_player/video_player.dart'; // 🔥 ఇన్‌బిల్ట్ స్టాండర్డ్ వీడియో ప్లేయర్
+import 'package:video_player/video_player.dart'; // గ్యాలరీ వీడియోల కోసం ఇన్‌బిల్ట్ ప్లేయర్
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -54,9 +54,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VideoPlayerController? _bulletinVideoController; // 🔥 విజువల్ ఫీడ్ కోసం ఇన్‌బిల్ట్ ప్లేయర్ కంట్రోలర్
+  VideoPlayerController? _bulletinVideoController; 
   
   bool hideControls = false;
+  bool showVideoControls = true; // విజువల్ ఫీడ్ వీడియో కంట్రోల్స్ హైడ్/షో కోసం
   int currentCameraIndex = 0;
   bool isLandscape = false;
   bool isIpCameraActive = false;
@@ -233,7 +234,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 ఇన్‌బిల్ట్ video_player ద్వారా విజువల్ ఫీడ్ వీడియో ప్లే చేసే ఫంక్షన్
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
@@ -287,6 +287,34 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
           _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
         }
+      } else {
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
+      }
+    });
+  }
+
+  void _nextNewsItem() {
+    setState(() {
+      currentNewsIndex = (currentNewsIndex + 1) % newsBulletinList.length;
+      topHeadlineText = newsBulletinList[currentNewsIndex].title;
+      headlineCtrl.text = topHeadlineText;
+      if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
+        _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
+      } else {
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
+      }
+    });
+  }
+
+  void _prevNewsItem() {
+    setState(() {
+      currentNewsIndex = (currentNewsIndex - 1 + newsBulletinList.length) % newsBulletinList.length;
+      topHeadlineText = newsBulletinList[currentNewsIndex].title;
+      headlineCtrl.text = topHeadlineText;
+      if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
+        _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
       } else {
         _bulletinVideoController?.dispose();
         _bulletinVideoController = null;
@@ -874,51 +902,103 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: Stack(
-                                          children: [
-                                            Positioned.fill(
-                                              child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
-                                                  ? (!newsBulletinList[currentNewsIndex].isVideo
-                                                      ? Image.file(
-                                                          File(newsBulletinList[currentNewsIndex].mediaPath),
-                                                          fit: BoxFit.cover,
-                                                          width: double.infinity,
-                                                          height: double.infinity,
-                                                        )
-                                                      : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                                                          ? FittedBox(
-                                                              fit: BoxFit.cover,
-                                                              child: SizedBox(
-                                                                width: _bulletinVideoController!.value.size.width,
-                                                                height: _bulletinVideoController!.value.size.height,
-                                                                child: VideoPlayer(_bulletinVideoController!),
-                                                              ),
-                                                            )
-                                                          : Container(
-                                                              color: Colors.black,
-                                                              child: const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                                                            )))
-                                                  : Container(
-                                                      color: Colors.black, 
-                                                      child: Center(
-                                                        child: ElevatedButton.icon(
-                                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                                                          onPressed: _pickBulletinMedia,
-                                                          icon: const Icon(Icons.perm_media),
-                                                          label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          showVideoControls = !showVideoControls;
+                                        });
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
+                                                    ? (!newsBulletinList[currentNewsIndex].isVideo
+                                                        ? Image.file(
+                                                            File(newsBulletinList[currentNewsIndex].mediaPath),
+                                                            fit: BoxFit.cover,
+                                                            width: double.infinity,
+                                                            height: double.infinity,
+                                                          )
+                                                        : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                                            ? FittedBox(
+                                                                fit: BoxFit.cover,
+                                                                child: SizedBox(
+                                                                  width: _bulletinVideoController!.value.size.width,
+                                                                  height: _bulletinVideoController!.value.size.height,
+                                                                  child: VideoPlayer(_bulletinVideoController!),
+                                                                ),
+                                                              )
+                                                            : Container(
+                                                                color: Colors.black,
+                                                                child: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                                              )))
+                                                    : Container(
+                                                        color: Colors.black, 
+                                                        child: Center(
+                                                          child: ElevatedButton.icon(
+                                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                                            onPressed: _pickBulletinMedia,
+                                                            icon: const Icon(Icons.perm_media),
+                                                            label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
+                                                          ),
                                                         ),
                                                       ),
+                                              ),
+                                              visualScreenLogoWidget,
+                                              
+                                              // 🔥 విజువల్ ఫీడ్ వీడియో కంట్రోల్స్ (Next, Prev, Pause/Play - ట్యాప్ చేస్తే హైడ్/షో అవుతాయి)
+                                              if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
+                                                Positioned(
+                                                  bottom: 10,
+                                                  left: 0,
+                                                  right: 0,
+                                                  child: Container(
+                                                    color: Colors.black54,
+                                                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24),
+                                                          onPressed: _prevNewsItem,
+                                                          tooltip: "Previous",
+                                                        ),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            _bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                                                            color: Colors.amber,
+                                                            size: 28,
+                                                          ),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              if (_bulletinVideoController != null) {
+                                                                if (_bulletinVideoController!.value.isPlaying) {
+                                                                  _bulletinVideoController!.pause();
+                                                                } else {
+                                                                  _bulletinVideoController!.play();
+                                                                }
+                                                              }
+                                                            });
+                                                          },
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(Icons.skip_next, color: Colors.white, size: 24),
+                                                          onPressed: _nextNewsItem,
+                                                          tooltip: "Next",
+                                                        ),
+                                                      ],
                                                     ),
-                                            ),
-                                            visualScreenLogoWidget,
-                                          ],
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
