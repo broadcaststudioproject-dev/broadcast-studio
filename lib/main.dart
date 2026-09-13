@@ -53,7 +53,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _bulletinVideoController; // 🔥 విజువల్ ఫీడ్ వీడియో ప్లేయర్
+  VlcPlayerController? _bulletinVideoController; 
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -232,7 +232,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 విజువల్ ఫీడ్ కోసం VLC ప్లేయర్‌తో వీడియో ప్లే చేసే ఫంక్షన్
+  // 🔥 విజువల్ ఫీడ్ లో వీడియో లోడింగ్ సమస్య రాకుండా HwAcc.auto తో సవరించబడిన ప్లేయర్ లాజిక్
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
@@ -243,12 +243,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         File(path),
         autoInitialize: true,
         autoPlay: true,
-        hwAcc: HwAcc.full,
-        options: VlcPlayerOptions(
-          advanced: VlcAdvancedOptions([
-            VlcAdvancedOptions.networkCaching(1000),
-          ]),
-        ),
+        hwAcc: HwAcc.auto, // లోడింగ్ ఫ్రీజ్ కాకుండా ఆటో హార్డ్‌వేర్ యాక్సిలరేషన్
       );
 
       _bulletinVideoController?.addOnInitListener(() {
@@ -324,7 +319,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       newsBulletinList[currentNewsIndex].mediaPath = video.path;
                       newsBulletinList[currentNewsIndex].isVideo = true;
                     });
-                    _startBulletinMedia(video.path, true); // 🔥 యాప్‌లోనే వీడియో ప్లే అవుతుంది
+                    _startBulletinMedia(video.path, true);
                   }
                 },
               ),
