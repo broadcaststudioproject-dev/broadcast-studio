@@ -8,6 +8,7 @@ import 'package:xml/xml.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:video_player/video_player.dart'; // 🔥 ఇన్‌బిల్ట్ స్టాండర్డ్ వీడియో ప్లేయర్
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -53,7 +54,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _bulletinVideoController; // 🔥 విజువల్ ఫీడ్ కోసం VLC ప్లేయర్
+  VideoPlayerController? _bulletinVideoController; // 🔥 విజువల్ ఫీడ్ కోసం ఇన్‌బిల్ట్ ప్లేయర్ కంట్రోలర్
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -232,23 +233,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 విజువల్ ఫీడ్ లో వీడియో లోడింగ్ సమస్య రాకుండా VlcPlayerController.file ఉపయోగించి ప్లే చేసేలా సెట్ చేయబడింది
+  // 🔥 ఇన్‌బిల్ట్ video_player ద్వారా విజువల్ ఫీడ్ వీడియో ప్లే చేసే ఫంక్షన్
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
-      _bulletinVideoController?.stopRendererScanning();
       _bulletinVideoController?.dispose();
-      
-      _bulletinVideoController = VlcPlayerController.file(
-        File(path),
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-        options: VlcPlayerOptions(
-          advanced: VlcAdvancedOptions([
-            VlcAdvancedOptions.networkCaching(1000),
-          ]),
-        ),
-      );
+      _bulletinVideoController = VideoPlayerController.file(File(path))
+        ..initialize().then((_) {
+          setState(() {});
+          _bulletinVideoController?.play();
+          _bulletinVideoController?.setLooping(true);
+        });
     }
     setState(() {});
   }
@@ -293,7 +288,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
         }
       } else {
-        _bulletinVideoController?.stopRendererScanning();
         _bulletinVideoController?.dispose();
         _bulletinVideoController = null;
       }
@@ -333,7 +327,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     setState(() {
                       newsBulletinList[currentNewsIndex].mediaPath = image.path;
                       newsBulletinList[currentNewsIndex].isVideo = false;
-                      _bulletinVideoController?.stopRendererScanning();
                       _bulletinVideoController?.dispose();
                       _bulletinVideoController = null;
                     });
@@ -421,7 +414,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   if (newsBulletinList[index].mediaPath.isNotEmpty && newsBulletinList[index].isVideo) {
                                     _startBulletinMedia(newsBulletinList[index].mediaPath, true);
                                   } else {
-                                    _bulletinVideoController?.stopRendererScanning();
                                     _bulletinVideoController?.dispose();
                                     _bulletinVideoController = null;
                                   }
@@ -900,11 +892,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                                           width: double.infinity,
                                                           height: double.infinity,
                                                         )
-                                                      : (_bulletinVideoController != null
-                                                          ? VlcPlayer(
-                                                              controller: _bulletinVideoController!,
-                                                              aspectRatio: 16 / 9,
-                                                              placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                                      : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                                          ? FittedBox(
+                                                              fit: BoxFit.cover,
+                                                              child: SizedBox(
+                                                                width: _bulletinVideoController!.value.size.width,
+                                                                height: _bulletinVideoController!.value.size.height,
+                                                                child: VideoPlayer(_bulletinVideoController!),
+                                                              ),
                                                             )
                                                           : Container(
                                                               color: Colors.black,
