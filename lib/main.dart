@@ -10,7 +10,6 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:open_file/open_file.dart'; // 🔥 ఫోన్ ఇన్‌బిల్ట్ ప్లేయర్ కోసం
 
 List<CameraDescription> cameras = [];
 
@@ -54,6 +53,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
+  VlcPlayerController? _bulletinVideoController; // 🔥 విజువల్ ఫీడ్ వీడియో ప్లేయర్
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -162,6 +162,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
+    _bulletinVideoController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     youtubeUrlController.dispose();
@@ -231,11 +232,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 ఫోన్ లోని ఇన్‌బిల్ట్ వీడియో ప్లేయర్ ద్వారా వీడియో ఓపెన్ చేయడానికి
-  void _openVideoWithInbuiltPlayer(String path) {
-    if (path.isNotEmpty) {
-      OpenFile.open(path);
+  // 🔥 విజువల్ ఫీడ్ కోసం VLC ప్లేయర్‌తో వీడియో ప్లే చేసే ఫంక్షన్
+  void _startBulletinMedia(String path, bool isVideo) {
+    if (path.isEmpty) return;
+    if (isVideo) {
+      _bulletinVideoController?.stopRendererScanning();
+      _bulletinVideoController?.dispose();
+      
+      _bulletinVideoController = VlcPlayerController.file(
+        File(path),
+        autoInitialize: true,
+        autoPlay: true,
+        hwAcc: HwAcc.full,
+        options: VlcPlayerOptions(
+          advanced: VlcAdvancedOptions([
+            VlcAdvancedOptions.networkCaching(1000),
+          ]),
+        ),
+      );
+
+      _bulletinVideoController?.addOnInitListener(() {
+        _bulletinVideoController?.play();
+      });
     }
+    setState(() {});
   }
 
   void _playVideoAd(String videoPath) {
@@ -274,9 +294,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       isNewsBulletinMode = !isNewsBulletinMode;
       hideControls = true; 
       if (isNewsBulletinMode) {
-        if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && !newsBulletinList[currentNewsIndex].isVideo) {
-          // ఇమేజ్ అయితే ఇమేజ్‌గా చూపిస్తుంది
+        if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
+          _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
         }
+      } else {
+        _bulletinVideoController?.stopRendererScanning();
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
       }
     });
   }
@@ -300,8 +324,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       newsBulletinList[currentNewsIndex].mediaPath = video.path;
                       newsBulletinList[currentNewsIndex].isVideo = true;
                     });
-                    // వీడియో సెలెక్ట్ చేయగానే ఇన్‌బిల్ట్ ప్లేయర్‌లో ఓపెన్ అవుతుంది
-                    _openVideoWithInbuiltPlayer(video.path);
+                    _startBulletinMedia(video.path, true); // 🔥 యాప్‌లోనే వీడియో ప్లే అవుతుంది
                   }
                 },
               ),
@@ -315,6 +338,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     setState(() {
                       newsBulletinList[currentNewsIndex].mediaPath = image.path;
                       newsBulletinList[currentNewsIndex].isVideo = false;
+                      _bulletinVideoController?.dispose();
+                      _bulletinVideoController = null;
                     });
                   }
                 },
@@ -330,7 +355,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
       setState(() {
-        breakingNewsLogoPath = image.path; // మార్చే వరకు పర్మినెంట్‌గా ఉంటుంది
+        breakingNewsLogoPath = image.path; 
       });
     }
   }
@@ -373,7 +398,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             });
                             newTitleCtrl.clear();
                             Navigator.pop(context);
-                            _openVideoWithInbuiltPlayer(media.path);
+                            _startBulletinMedia(media.path, true);
                           }
                         },
                         icon: const Icon(Icons.video_library, color: Colors.black),
@@ -398,7 +423,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   topHeadlineText = newsBulletinList[index].title;
                                   headlineCtrl.text = topHeadlineText;
                                   if (newsBulletinList[index].mediaPath.isNotEmpty && newsBulletinList[index].isVideo) {
-                                    _openVideoWithInbuiltPlayer(newsBulletinList[index].mediaPath);
+                                    _startBulletinMedia(newsBulletinList[index].mediaPath, true);
+                                  } else {
+                                    _bulletinVideoController?.dispose();
+                                    _bulletinVideoController = null;
                                   }
                                 });
                                 Navigator.pop(context);
@@ -412,7 +440,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       currentNewsIndex = newsBulletinList.isNotEmpty ? 0 : 0;
                                     }
                                   });
-                                  setDialogState(() {});
+                                  setDialogState(() {}); 
                                 },
                               ),
                             );
@@ -875,22 +903,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                                           width: double.infinity,
                                                           height: double.infinity,
                                                         )
-                                                      : GestureDetector(
-                                                          onTap: () => _openVideoWithInbuiltPlayer(newsBulletinList[currentNewsIndex].mediaPath),
-                                                          child: Container(
-                                                            color: Colors.black87,
-                                                            child: const Center(
-                                                              child: Column(
-                                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                                children: [
-                                                                  Icon(Icons.play_circle_fill, color: Colors.amber, size: 50),
-                                                                  SizedBox(height: 8),
-                                                                  Text("Tap to play video in Inbuilt Player", style: TextStyle(color: Colors.white, fontSize: 11)),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ))
+                                                      : (_bulletinVideoController != null
+                                                          ? VlcPlayer(
+                                                              controller: _bulletinVideoController!,
+                                                              aspectRatio: 16 / 9,
+                                                              placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                                            )
+                                                          : Container(
+                                                              color: Colors.black,
+                                                              child: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                                            )))
                                                   : Container(
                                                       color: Colors.black, 
                                                       child: Center(
