@@ -53,7 +53,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _bulletinVideoController; 
+  VlcPlayerController? _bulletinVideoController; // 🔥 విజువల్ ఫీడ్ కోసం VLC ప్లేయర్
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -232,24 +232,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 లోడింగ్ సమస్య రాకుండా Uri.file ఉపయోగించి వీడియో ప్లే చేసేలా సవరించబడిన ఫంక్షన్
+  // 🔥 విజువల్ ఫీడ్ లో వీడియో లోడింగ్ సమస్య రాకుండా VlcPlayerController.file ఉపయోగించి ప్లే చేసేలా సెట్ చేయబడింది
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
       _bulletinVideoController?.stopRendererScanning();
       _bulletinVideoController?.dispose();
       
-      String fileUri = Uri.file(path).toString();
-      _bulletinVideoController = VlcPlayerController.network(
-        fileUri,
-        autoInitialize: true,
+      _bulletinVideoController = VlcPlayerController.file(
+        File(path),
+        hwAcc: HwAcc.full,
         autoPlay: true,
-        hwAcc: HwAcc.auto,
+        options: VlcPlayerOptions(
+          advanced: VlcAdvancedOptions([
+            VlcAdvancedOptions.networkCaching(1000),
+          ]),
+        ),
       );
-
-      _bulletinVideoController?.addOnInitListener(() {
-        _bulletinVideoController?.play();
-      });
     }
     setState(() {});
   }
@@ -334,6 +333,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     setState(() {
                       newsBulletinList[currentNewsIndex].mediaPath = image.path;
                       newsBulletinList[currentNewsIndex].isVideo = false;
+                      _bulletinVideoController?.stopRendererScanning();
                       _bulletinVideoController?.dispose();
                       _bulletinVideoController = null;
                     });
@@ -421,6 +421,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   if (newsBulletinList[index].mediaPath.isNotEmpty && newsBulletinList[index].isVideo) {
                                     _startBulletinMedia(newsBulletinList[index].mediaPath, true);
                                   } else {
+                                    _bulletinVideoController?.stopRendererScanning();
                                     _bulletinVideoController?.dispose();
                                     _bulletinVideoController = null;
                                   }
