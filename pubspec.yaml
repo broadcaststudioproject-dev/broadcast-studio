@@ -15,10 +15,12 @@ dependencies:
   http: ^1.2.0
   xml: ^6.5.0
   flutter_vlc_player: ^7.4.1
+  video_player: ^2.8.2  # 🔥 ఈ లైన్‌ను తప్పకుండా యాడ్ చేయండి
   qr_flutter: ^4.1.0
   image_picker: ^1.0.7
   path_provider: ^2.0.15
   geolocator: ^13.0.0
+
 
 flutter:
   uses-material-design: true
