@@ -232,6 +232,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔥 గ్యాలరీ నుండి ఎంచుకున్న వీడియో సక్రమంగా ప్లే కావడానికి ఇనిషియలైజ్ మరియు ప్లే లాజిక్ సవరించబడింది
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
@@ -240,16 +241,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       
       _bulletinVideoController = VlcPlayerController.file(
         File(path),
-        hwAcc: HwAcc.full,
+        autoInitialize: true,
         autoPlay: true,
+        hwAcc: HwAcc.full,
         options: VlcPlayerOptions(
           advanced: VlcAdvancedOptions([
             VlcAdvancedOptions.networkCaching(1000),
           ]),
         ),
       );
+
+      _bulletinVideoController?.addOnInitListener(() {
+        _bulletinVideoController?.play();
+      });
     }
-    setState(() {});
+    setState({});
   }
 
   void _playVideoAd(String videoPath) {
@@ -349,7 +355,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
       setState(() {
-        breakingNewsLogoPath = image.path; // ఒకసారి అప్లోడ్ చేస్తే మార్చే వరకు అలాగే ఉంటుంది
+        breakingNewsLogoPath = image.path; 
       });
     }
   }
