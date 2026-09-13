@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:open_file/open_file.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -53,7 +54,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
-  VlcPlayerController? _bulletinVideoController;
   
   bool hideControls = false;
   int currentCameraIndex = 0;
@@ -162,7 +162,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
-    _bulletinVideoController?.dispose();
     ipController.dispose();
     qrDataController.dispose();
     youtubeUrlController.dispose();
@@ -232,30 +231,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 గ్యాలరీ నుండి ఎంచుకున్న వీడియో సక్రమంగా ప్లే కావడానికి ఇనిషియలైజ్ మరియు ప్లే లాజిక్ సవరించబడింది
-  void _startBulletinMedia(String path, bool isVideo) {
-    if (path.isEmpty) return;
-    if (isVideo) {
-      _bulletinVideoController?.stopRendererScanning();
-      _bulletinVideoController?.dispose();
-      
-      _bulletinVideoController = VlcPlayerController.file(
-        File(path),
-        autoInitialize: true,
-        autoPlay: true,
-        hwAcc: HwAcc.full,
-        options: VlcPlayerOptions(
-          advanced: VlcAdvancedOptions([
-            VlcAdvancedOptions.networkCaching(1000),
-          ]),
-        ),
-      );
-
-      _bulletinVideoController?.addOnInitListener(() {
-        _bulletinVideoController?.play();
-      });
+  void _openVideoWithInbuiltPlayer(String path) {
+    if (path.isNotEmpty) {
+      OpenFile.open(path);
     }
-    setState({});
   }
 
   void _playVideoAd(String videoPath) {
@@ -293,15 +272,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() {
       isNewsBulletinMode = !isNewsBulletinMode;
       hideControls = true; 
-      if (isNewsBulletinMode) {
-        if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
-          _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
-        }
-      } else {
-        _bulletinVideoController?.stopRendererScanning();
-        _bulletinVideoController?.dispose();
-        _bulletinVideoController = null;
-      }
     });
   }
 
@@ -323,8 +293,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     setState(() {
                       newsBulletinList[currentNewsIndex].mediaPath = video.path;
                       newsBulletinList[currentNewsIndex].isVideo = true;
-                      _startBulletinMedia(video.path, true);
                     });
+                    _openVideoWithInbuiltPlayer(video.path);
                   }
                 },
               ),
@@ -338,8 +308,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     setState(() {
                       newsBulletinList[currentNewsIndex].mediaPath = image.path;
                       newsBulletinList[currentNewsIndex].isVideo = false;
-                      _bulletinVideoController?.dispose();
-                      _bulletinVideoController = null;
                     });
                   }
                 },
@@ -395,10 +363,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               currentNewsIndex = newsBulletinList.length - 1;
                               topHeadlineText = newsBulletinList[currentNewsIndex].title;
                               headlineCtrl.text = topHeadlineText;
-                              _startBulletinMedia(media.path, true);
                             });
                             newTitleCtrl.clear();
                             Navigator.pop(context);
+                            _openVideoWithInbuiltPlayer(media.path);
                           }
                         },
                         icon: const Icon(Icons.video_library, color: Colors.black),
@@ -423,7 +391,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   topHeadlineText = newsBulletinList[index].title;
                                   headlineCtrl.text = topHeadlineText;
                                   if (newsBulletinList[index].mediaPath.isNotEmpty && newsBulletinList[index].isVideo) {
-                                    _startBulletinMedia(newsBulletinList[index].mediaPath, true);
+                                    _openVideoWithInbuiltPlayer(newsBulletinList[index].mediaPath);
                                   }
                                 });
                                 Navigator.pop(context);
@@ -437,7 +405,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       currentNewsIndex = newsBulletinList.isNotEmpty ? 0 : 0;
                                     }
                                   });
-                                  setDialogState(() {});
+                                  setDialogState(() {}); // 🔥 ఎర్రర్ రాని విధంగా సవరించబడింది
                                 },
                               ),
                             );
@@ -893,17 +861,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                           children: [
                                             Positioned.fill(
                                               child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
-                                                  ? (newsBulletinList[currentNewsIndex].isVideo && _bulletinVideoController != null
-                                                      ? VlcPlayer(
-                                                          controller: _bulletinVideoController!,
-                                                          aspectRatio: 16 / 9,
-                                                          placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                                                        )
-                                                      : Image.file(
+                                                  ? (!newsBulletinList[currentNewsIndex].isVideo
+                                                      ? Image.file(
                                                           File(newsBulletinList[currentNewsIndex].mediaPath),
                                                           fit: BoxFit.cover,
                                                           width: double.infinity,
                                                           height: double.infinity,
+                                                        )
+                                                      : GestureDetector(
+                                                          onTap: () => _openVideoWithInbuiltPlayer(newsBulletinList[currentNewsIndex].mediaPath),
+                                                          child: Container(
+                                                            color: Colors.black87,
+                                                            child: const Center(
+                                                              child: Column(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+                                                                  Icon(Icons.play_circle_fill, color: Colors.amber, size: 50),
+                                                                  SizedBox(height: 8),
+                                                                  Text("Tap to play video in Inbuilt Player", style: TextStyle(color: Colors.white, fontSize: 11)),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ))
                                                   : Container(
                                                       color: Colors.black, 
