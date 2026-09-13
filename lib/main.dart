@@ -65,9 +65,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   bool isNewsBulletinMode = false;
   int currentNewsIndex = 0;
-  
-  int _secondsElapsed = 0;
-  Timer? _liveTimer;
 
   final List<NewsBulletinItem> newsBulletinList = [
     NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!", mediaPath: "", isVideo: true),
@@ -141,12 +138,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _initCamera();
     _requestPermissions();
     _fetchBreakingNews(); 
-    
-    _liveTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _secondsElapsed++;
-      });
-    });
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
@@ -168,7 +159,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
-    _liveTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
@@ -183,13 +173,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.dispose();
     headlineCtrl.dispose();
     super.dispose();
-  }
-
-  String _formatTime(int seconds) {
-    int hrs = seconds ~/ 3600;
-    int mins = (seconds % 3600) ~/ 60;
-    int secs = seconds % 60;
-    return "${hrs.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
   }
 
   Future<void> _requestPermissions() async {
@@ -300,11 +283,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // 🔥 బులెటిన్ మోడ్ ఆన్ చేయగానే ఆటోమేటిక్‌గా కంట్రోల్స్ హైడ్ అయ్యేలా (hideControls = true) మార్చబడింది
   void _toggleNewsBulletinMode() {
     setState(() {
       isNewsBulletinMode = !isNewsBulletinMode;
-      hideControls = true; // బటన్స్ అన్నీ ఆటోమేటిక్‌గా హైడ్ అవుతాయి
+      hideControls = true; 
       if (isNewsBulletinMode) {
         if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
           _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
@@ -367,7 +349,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
       setState(() {
-        breakingNewsLogoPath = image.path;
+        breakingNewsLogoPath = image.path; // ఒకసారి అప్లోడ్ చేస్తే మార్చే వరకు అలాగే ఉంటుంది
       });
     }
   }
@@ -887,14 +869,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                           children: [
                                             Positioned.fill(child: cameraWidget),
                                             Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
-                                            Positioned(
-                                              top: 8, left: 8,
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                color: Colors.red,
-                                                child: const Text("🔴 LIVE REPORTER", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                              ),
-                                            ),
                                           ],
                                         ),
                                       ),
@@ -938,14 +912,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                                     ),
                                             ),
                                             visualScreenLogoWidget,
-                                            Positioned(
-                                              top: 8, left: 8,
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                color: Colors.blue.shade800,
-                                                child: const Text("📺 VISUAL FEED", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                              ),
-                                            ),
                                           ],
                                         ),
                                       ),
@@ -1057,25 +1023,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 ],
                               ),
                             ),
-            ),
-          ),
-
-          Positioned(
-            top: 15, left: 15,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.red.shade900,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.amber, width: 1),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.fiber_manual_record, color: Colors.amber, size: 12),
-                  const SizedBox(width: 5),
-                  Text("ON-AIR: ${_formatTime(_secondsElapsed)}", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                ],
-              ),
             ),
           ),
 
