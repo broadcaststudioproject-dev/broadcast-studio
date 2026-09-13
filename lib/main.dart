@@ -86,7 +86,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
-  String breakingNewsImagePath = ""; 
+  String breakingNewsLogoPath = ""; // 🔥 బ్రేకింగ్ న్యూస్ లోగో (JPEG/GIF) పాత్
   
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
@@ -372,6 +372,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔥 బ్రేకింగ్ న్యూస్ లోగో ఎంచుకోవడానికి ఫంక్షన్
+  Future<void> _pickBreakingNewsLogo() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+    if (image != null && mounted) {
+      setState(() {
+        breakingNewsLogoPath = image.path;
+      });
+    }
+  }
+
   Future<void> _fetchBreakingNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -397,7 +407,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; });
   }
 
-  // 🔥 ఇక్కడ మిస్సైన _pickVerticalAd మరియు _pickHorizontalAd ఫంక్షన్లు చేర్చబడ్డాయి
   Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
@@ -604,7 +613,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో & బ్రేకింగ్ న్యూస్ సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో & సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -618,27 +627,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       label: const Text("ఛానల్ లోగో (JPEG/GIF) అప్లోడ్ చేయి"),
                     ),
                     const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800),
-                      onPressed: () async {
-                        final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                        if (image != null) {
-                          setDialogState(() { breakingNewsImagePath = image.path; });
-                          setState(() { breakingNewsImagePath = image.path; });
-                        }
-                      },
-                      icon: const Icon(Icons.image, color: Colors.black),
-                      label: const Text("బ్రేకింగ్ న్యూస్ JPEG/GIF అప్లోడ్ చేయి", style: TextStyle(color: Colors.black)),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text("లోగో సైజ్:", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    Slider(
-                      value: logoWidth, min: 40, max: 150, activeColor: Colors.blue,
-                      onChanged: (val) {
-                        setDialogState(() { logoWidth = val; logoHeight = val; });
-                        setState(() { logoWidth = val; logoHeight = val; });
-                      },
-                    ),
                     TextField(controller: headlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "టాప్ హెడ్‌లైన్ టెక్స్ట్")),
                     TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్")),
                     TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్")),
@@ -987,6 +975,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
+            // 🔥 బ్రేకింగ్ న్యూస్ స్క్రోలింగ్ బార్ (ఎడమ వైపు లోగో అప్లోడ్ చేసుకునే వెసులుబాటు & కుడి వైపు బటన్ తొలగింపు)
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -999,21 +988,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
                 child: Row(
                   children: [
-                    if (breakingNewsImagePath.isNotEmpty)
-                      Container(
+                    GestureDetector(
+                      onTap: _pickBreakingNewsLogo,
+                      child: Container(
                         width: 45,
                         height: double.infinity,
                         color: Colors.black,
-                        child: Image.file(File(breakingNewsImagePath), fit: BoxFit.cover),
-                      )
-                    else
-                      Container(
-                        width: 45,
-                        height: double.infinity,
-                        color: Colors.white,
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 16),
+                        child: breakingNewsLogoPath.isNotEmpty
+                            ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                            : const Center(
+                                child: Icon(Icons.newspaper, color: Colors.amber, size: 22),
+                              ),
                       ),
+                    ),
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10.0),
@@ -1022,22 +1009,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
                           blankSpace: 100.0, 
                           velocity: 40.0,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _pickBulletinMedia,
-                      child: Container(
-                        color: Colors.amber.shade700,
-                        height: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        alignment: Alignment.center,
-                        child: const Row(
-                          children: [
-                            Icon(Icons.perm_media, color: Colors.black, size: 18),
-                            SizedBox(width: 4),
-                            Text("MEDIA", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-                          ],
                         ),
                       ),
                     ),
