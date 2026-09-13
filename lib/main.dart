@@ -232,18 +232,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 విజువల్ ఫీడ్ లో వీడియో లోడింగ్ సమస్య రాకుండా HwAcc.auto తో సవరించబడిన ప్లేయర్ లాజిక్
+  // 🔥 లోడింగ్ సమస్య రాకుండా Uri.file ఉపయోగించి వీడియో ప్లే చేసేలా సవరించబడిన ఫంక్షన్
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
       _bulletinVideoController?.stopRendererScanning();
       _bulletinVideoController?.dispose();
       
-      _bulletinVideoController = VlcPlayerController.file(
-        File(path),
+      String fileUri = Uri.file(path).toString();
+      _bulletinVideoController = VlcPlayerController.network(
+        fileUri,
         autoInitialize: true,
         autoPlay: true,
-        hwAcc: HwAcc.auto, // లోడింగ్ ఫ్రీజ్ కాకుండా ఆటో హార్డ్‌వేర్ యాక్సిలరేషన్
+        hwAcc: HwAcc.auto,
       );
 
       _bulletinVideoController?.addOnInitListener(() {
