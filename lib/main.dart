@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:open_file/open_file.dart';
+import 'package:flutter/foundation.dart'; // Android Intent కోసమ్
 
 List<CameraDescription> cameras = [];
 
@@ -118,6 +118,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController headlineCtrl = TextEditingController();
 
   Timer? _newsTimer;
+  static const platform = MethodChannel('com.ssyatratv.pcr/inbuilt_player');
 
   @override
   void initState() {
@@ -231,9 +232,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  void _openVideoWithInbuiltPlayer(String path) {
-    if (path.isNotEmpty) {
-      OpenFile.open(path);
+  // 🔥 ఫోన్ ఇన్‌బిల్ట్ వీడియో ప్లేయర్ ఓపెన్ చేయడానికి నేటివ్ మెథడ్
+  Future<void> _openVideoWithInbuiltPlayer(String path) async {
+    if (path.isEmpty) return;
+    try {
+      await platform.invokeMethod('playVideo', {'path': path});
+    } catch (e) {
+      debugPrint("Inbuilt Player Error: $e");
+      // ఒకవేళ ఫెయిల్ అయితే ప్రాంప్ట్ చూపించు
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ఇన్‌బిల్ట్ ప్లేయర్ ఓపెన్ కాలేదు!"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -405,7 +416,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                       currentNewsIndex = newsBulletinList.isNotEmpty ? 0 : 0;
                                     }
                                   });
-                                  setDialogState(() {}); // 🔥 ఎర్రర్ రాని విధంగా సవరించబడింది
+                                  setDialogState(() {}); 
                                 },
                               ),
                             );
