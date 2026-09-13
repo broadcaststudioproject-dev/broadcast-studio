@@ -86,7 +86,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
-  String breakingNewsImagePath = ""; // 🔥 బ్రేకింగ్ న్యూస్ JPEG/GIF ఇమేజ్ పాత్
+  String breakingNewsImagePath = ""; 
   
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
@@ -372,7 +372,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 బ్రేకింగ్ న్యూస్ RSS ఫెచ్ మరియు "0s Trend:" వంటి అవాంఛిత టెక్స్ట్ క్లీనింగ్
   Future<void> _fetchBreakingNews() async {
     try {
       final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
@@ -382,7 +381,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         List<String> titles = [];
         for (var item in items.take(20)) {
           String rawTitle = item.findElements('title').first.innerText;
-          // అనవసరమైన ప్రిఫిక్స్ లేదా ట్రెండ్ టెక్స్ట్ తొలగించడం
           rawTitle = rawTitle.replaceAll(RegExp(r'^[0-9]+[smh]\s*Trend:\s*', caseSensitive: false), '');
           titles.add(rawTitle);
         }
@@ -399,11 +397,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; });
   }
 
-  Future<void> _pickBreakingNewsImage() async {
+  // 🔥 ఇక్కడ మిస్సైన _pickVerticalAd మరియు _pickHorizontalAd ఫంక్షన్లు చేర్చబడ్డాయి
+  Future<void> _pickVerticalAd() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     if (image != null && mounted) {
       setState(() {
-        breakingNewsImagePath = image.path;
+        verticalAnimatedAdPath = image.path;
+        _vertScale = 1.0;
+        _vertRotation = 0.0;
+        _vertOffset = Offset.zero;
+      });
+    }
+  }
+
+  Future<void> _pickHorizontalAd() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+    if (image != null && mounted) {
+      setState(() {
+        horizontalAnimatedAdPath = image.path;
+        _horizScale = 1.0;
+        _horizRotation = 0.0;
+        _horizOffset = Offset.zero;
       });
     }
   }
@@ -604,7 +618,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       label: const Text("ఛానల్ లోగో (JPEG/GIF) అప్లోడ్ చేయి"),
                     ),
                     const SizedBox(height: 10),
-                    // 🔥 బ్రేకింగ్ న్యూస్ JPEG / GIF అప్లోడ్ బటన్
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade800),
                       onPressed: () async {
@@ -974,7 +987,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: reporterBadgeWidget,
               ),
             
-            // 🔥 బ్రేకింగ్ న్యూస్ స్క్రోలింగ్ బార్ మరియు దాని చివరన స్పష్టంగా ఉండే మీడియా బటన్
             Positioned(
               bottom: 0, 
               left: 0, 
@@ -987,7 +999,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
                 child: Row(
                   children: [
-                    // అప్లోడ్ చేసిన బ్రేకింగ్ న్యూస్ JPEG/GIF ఇమేజ్ ఉంటే ఇక్కడ చూపబడుతుంది
                     if (breakingNewsImagePath.isNotEmpty)
                       Container(
                         width: 45,
