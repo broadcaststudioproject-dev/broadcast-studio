@@ -66,7 +66,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isNewsBulletinMode = false;
   int currentNewsIndex = 0;
   
-  // 🔥 ఆన్-ఎయిర్ లైవ్ టైమర్ వేరియబుల్స్
   int _secondsElapsed = 0;
   Timer? _liveTimer;
 
@@ -143,7 +142,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _requestPermissions();
     _fetchBreakingNews(); 
     
-    // లైవ్ ఆన్-ఎయిర్ టైమర్ ప్రారంభం
     _liveTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _secondsElapsed++;
@@ -302,9 +300,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // 🔥 బులెటిన్ మోడ్ ఆన్ చేయగానే ఆటోమేటిక్‌గా కంట్రోల్స్ హైడ్ అయ్యేలా (hideControls = true) మార్చబడింది
   void _toggleNewsBulletinMode() {
     setState(() {
       isNewsBulletinMode = !isNewsBulletinMode;
+      hideControls = true; // బటన్స్ అన్నీ ఆటోమేటిక్‌గా హైడ్ అవుతాయి
       if (isNewsBulletinMode) {
         if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty && newsBulletinList[currentNewsIndex].isVideo) {
           _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
@@ -372,7 +372,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔥 న్యూస్ బులెటిన్ మేనేజర్ డైలాగ్ (కొత్త న్యూస్ యాడ్ చేయడానికి, మార్చడానికి)
   void _showBulletinManagerDialog() {
     TextEditingController newTitleCtrl = TextEditingController();
     showDialog(
@@ -876,7 +875,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               padding: const EdgeInsets.only(bottom: 55.0, left: 6, right: 6, top: 6), 
                               child: Row(
                                 children: [
-                                  // 🔥 1. రిపోర్టర్ కెమెరా కోసం అద్భుతమైన అందమైన ఫ్రేమ్ (Reporter Frame)
                                   Expanded(
                                     child: Container(
                                       decoration: BoxDecoration(
@@ -903,7 +901,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     ),
                                   ),
                                   const SizedBox(width: 6),
-                                  // 🔥 2. గ్యాలరీ విజువల్స్ కోసం అద్భుతమైన అందమైన ఫ్రేమ్ (Gallery Visual Frame)
                                   Expanded(
                                     child: Container(
                                       decoration: BoxDecoration(
@@ -1063,7 +1060,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           ),
 
-          // 🔥 ఇంటెలిజెంట్ ఆన్-ఎయిర్ లైవ్ టైమర్ బ్యాడ్జ్ (ప్రొఫెషనల్ టచ్)
           Positioned(
             top: 15, left: 15,
             child: Container(
@@ -1101,7 +1097,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: reporterBadgeWidget,
             ),
           
-          // 🔥 బ్రేకింగ్ న్యూస్ బార్ (హైట్ 55, టెక్స్ట్ సైజ్ 20)
           Positioned(
             bottom: 0, 
             left: 0, 
@@ -1164,7 +1159,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _toggleNewsBulletinMode, 
                         isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
                       ),
-                      // 🔥 కొత్తగా జోడించబడిన న్యూస్ బులెటిన్ మేనేజర్ బటన్ (Add/Edit)
                       _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
                       _buildControlButton(
                         isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
