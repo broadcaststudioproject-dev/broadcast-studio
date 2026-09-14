@@ -150,7 +150,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _requestPermissions();
     _fetchBreakingNews(); 
 
-    // 🔥 టాప్ హెడ్‌లైన్స్ ఆటోమేటిక్‌గా మార్చే టైమర్ (ప్రతి 5 సెకన్లకు ఒకసారి)
+    // 🔥 టాప్ హెడ్‌లైన్స్ ఆటోమేటిక్‌గా మార్చే టైమర్
     _headlineRotationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (customHeadlines.isNotEmpty) {
         setState(() {
@@ -429,7 +429,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           if (media != null && newTitleCtrl.text.isNotEmpty) {
                             setState(() {
                               newsBulletinList.add(NewsBulletinItem(title: newTitleCtrl.text, mediaPath: media.path, isVideo: true));
-                              customHeadlines.add(newTitleCtrl.text); // ఆటోమేటిక్ రొటేషన్ లిస్ట్‌కి యాడ్ అవుతుంది
+                              customHeadlines.add(newTitleCtrl.text);
                               currentNewsIndex = newsBulletinList.length - 1;
                               topHeadlineText = newsBulletinList[currentNewsIndex].title;
                               headlineCtrl.text = topHeadlineText;
@@ -903,7 +903,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         children: [
           Positioned.fill(
             child: GestureDetector(
-              onTap: () { setState(() { hideControls = !hideControls; }); },
+              behavior: HitTestBehavior.opaque,
+              onTap: () { 
+                setState(() { 
+                  hideControls = !hideControls; 
+                }); 
+              },
               child: isNewsBulletinMode
                   ? Container(
                       color: Colors.black,
@@ -1079,7 +1084,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 children: [
                                   Positioned.fill(child: cameraWidget),
                                   visualScreenLogoWidget,
-                                  // 🔥 యాడ్ అప్లోడ్ ట్యాప్ సమస్య పరిష్కారానికి HitTestBehavior.opaque జోడించబడింది
                                   Positioned(
                                     left: 10 + _vertOffset.dx,
                                     top: 10 + _vertOffset.dy,
@@ -1221,36 +1225,48 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           ),
 
+          // 🔥 కంట్రోల్స్ కనిపించినప్పుడు బ్యాక్‌గ్రౌండ్ పై ట్యాప్ చేస్తే కంట్రోల్స్ మాయమయ్యేలా (hideControls = true) సవరించబడిన లేయర్
           if (!hideControls)
             Positioned.fill(
-              child: Container(
-                color: Colors.black54,
-                child: Center(
-                  child: Wrap(
-                    alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
-                    children: [
-                      _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                      _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                      _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
-                      _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                      _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
-                      _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                      _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                      _buildControlButton(
-                        isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
-                        isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
-                        _toggleNewsBulletinMode, 
-                        isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  setState(() {
+                    hideControls = true; // స్క్రీన్ పై ఎక్కడైనా ట్యాప్ చేస్తే ఆప్షన్స్ మాయమవుతాయి
+                  });
+                },
+                child: Container(
+                  color: Colors.black54,
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {}, // బటన్స్‌పై ట్యాప్ చేసినప్పుడు క్లోజ్ కాకుండా ఆపడానికి
+                      child: Wrap(
+                        alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
+                        children: [
+                          _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                          _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                          _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
+                          _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
+                          _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
+                          _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
+                          _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                          _buildControlButton(
+                            isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
+                            isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
+                            _toggleNewsBulletinMode, 
+                            isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
+                          ),
+                          _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
+                          _buildControlButton(
+                            isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
+                            isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
+                            _toggleAutoTimerAds, 
+                            isAnimatedAdsMode ? Colors.greenAccent : Colors.amber,
+                          ),
+                          _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                        ],
                       ),
-                      _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
-                      _buildControlButton(
-                        isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
-                        isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
-                        _toggleAutoTimerAds, 
-                        isAnimatedAdsMode ? Colors.greenAccent : Colors.amber,
-                      ),
-                      _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                    ],
+                    ),
                   ),
                 ),
               ),
