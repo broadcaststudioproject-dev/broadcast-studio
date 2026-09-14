@@ -74,6 +74,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     NewsBulletinItem(title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!", mediaPath: "", isVideo: true),
   ];
 
+  // 🔥 ఆటోమేటిక్‌గా మారే టాప్ హెడ్‌లైన్స్ లిస్ట్
+  List<String> customHeadlines = [
+    "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!",
+    "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!",
+    "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!"
+  ];
+  int _headlineIndex = 0;
+  Timer? _headlineRotationTimer;
+
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
   double _maxZoomLevel = 8.0;
@@ -141,6 +150,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _requestPermissions();
     _fetchBreakingNews(); 
 
+    // 🔥 టాప్ హెడ్‌లైన్స్ ఆటోమేటిక్‌గా మార్చే టైమర్ (ప్రతి 5 సెకన్లకు ఒకసారి)
+    _headlineRotationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (customHeadlines.isNotEmpty) {
+        setState(() {
+          _headlineIndex = (_headlineIndex + 1) % customHeadlines.length;
+          topHeadlineText = customHeadlines[_headlineIndex];
+        });
+      }
+    });
+
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
     });
@@ -161,6 +180,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
+    _headlineRotationTimer?.cancel();
     controller?.dispose();
     _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
@@ -409,6 +429,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           if (media != null && newTitleCtrl.text.isNotEmpty) {
                             setState(() {
                               newsBulletinList.add(NewsBulletinItem(title: newTitleCtrl.text, mediaPath: media.path, isVideo: true));
+                              customHeadlines.add(newTitleCtrl.text); // ఆటోమేటిక్ రొటేషన్ లిస్ట్‌కి యాడ్ అవుతుంది
                               currentNewsIndex = newsBulletinList.length - 1;
                               topHeadlineText = newsBulletinList[currentNewsIndex].title;
                               headlineCtrl.text = topHeadlineText;
@@ -709,7 +730,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("ఛానల్ లోగో & సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("ఛానల్ లోగో & హెడ్‌లైన్ సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -723,7 +744,35 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       label: const Text("ఛానల్ లోగో (JPEG/GIF) అప్లోడ్ చేయి"),
                     ),
                     const SizedBox(height: 10),
-                    TextField(controller: headlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "టాప్ హెడ్‌లైన్ టెక్స్ట్")),
+                    TextField(
+                      controller: headlineCtrl,
+                      style: const TextStyle(color: Colors.yellow),
+                      decoration: const InputDecoration(labelText: "కొత్త హెడ్‌లైన్ టైప్ చేయండి"),
+                      onSubmitted: (val) {
+                        if (val.trim().isNotEmpty) {
+                          setState(() {
+                            customHeadlines.add(val.trim());
+                            topHeadlineText = val.trim();
+                          });
+                          setDialogState(() {});
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 5),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                      onPressed: () {
+                        if (headlineCtrl.text.trim().isNotEmpty) {
+                          setState(() {
+                            customHeadlines.add(headlineCtrl.text.trim());
+                            topHeadlineText = headlineCtrl.text.trim();
+                          });
+                          headlineCtrl.clear();
+                          setDialogState(() {});
+                        }
+                      },
+                      child: const Text("హెడ్‌లైన్ జాబితాకు జోడించు", style: TextStyle(color: Colors.black)),
+                    ),
                     TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్")),
                     TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్")),
                     TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
@@ -735,7 +784,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      topHeadlineText = headlineCtrl.text;
                       watermarkText = watermarkCtrl.text;
                       locationText = locCtrl.text;
                       reporterName = nameCtrl.text;
@@ -953,7 +1001,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                               ),
                                               visualScreenLogoWidget,
                                               
-                                              // 🔥 విజువల్ ఫీడ్ వీడియో కంట్రోల్స్ (Next, Prev, Pause/Play - ట్యాప్ చేస్తే హైడ్/షో అవుతాయి)
                                               if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
                                                 Positioned(
                                                   bottom: 10,
@@ -1032,6 +1079,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 children: [
                                   Positioned.fill(child: cameraWidget),
                                   visualScreenLogoWidget,
+                                  // 🔥 యాడ్ అప్లోడ్ ట్యాప్ సమస్య పరిష్కారానికి HitTestBehavior.opaque జోడించబడింది
                                   Positioned(
                                     left: 10 + _vertOffset.dx,
                                     top: 10 + _vertOffset.dy,
@@ -1223,240 +1271,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
         ],
       ),
-    );import 'package:flutter/material.dart';
-import 'dart:async';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Ad & Headline App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const HomeScreen(),
     );
-  }
-}
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  // టాప్ హెడ్లైన్స్ జాబితా
-  final List<String> _headlines = [
-    "ప్రధాన వార్త 1: ఇక్కడ మీ తాజా వార్తలు ప్రదర్శించబడతాయి.",
-    "ప్రధాన వార్త 2: ఆటోమేటిక్‌గా హెడ్లైన్స్ మారుతుంటాయి.",
-    "ప్రధాన వార్త 3: కొత్త హెడ్లైన్లను సులభంగా జోడించవచ్చు."
-  ];
-  
-  int _currentHeadlineIndex = 0;
-  Timer? _headlineTimer;
-  bool _isControlsOn = false; // కంట్రోల్స్ ఆన్/ఆఫ్ స్టేటస్
-
-  final TextEditingController _headlineController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _startHeadlineTimer();
-  }
-
-  // ఆటోమేటిక్ హెడ్లైన్స్ రొటేషన్ ట్రిగ్గర్
-  void _startHeadlineTimer() {
-    _headlineTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      setState(() {
-        if (_headlines.isNotEmpty) {
-          _currentHeadlineIndex = (_currentHeadlineIndex + 1) % _headlines.length;
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _headlineTimer?.cancel();
-    _headlineController.dispose();
-    super.dispose();
-  }
-
-  // కొత్త హెడ్లైన్ జోడించడానికి
-  void _addHeadline(String text) {
-    if (text.trim().isNotEmpty) {
-      setState(() {
-        _headlines.add(text.trim());
-        _headlineController.clear();
-      });
-    }
-  }
-
-  // గ్యాలరీ ఓపెన్ చేసే ఫంక్షన్
-  void _openGalleryForAd() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("గ్యాలరీ విజయవంతంగా ఓపెన్ అయింది! యాడ్ ఎంచుకోండి.")),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('డైనమిక్ హెడ్లైన్స్ & యాడ్ అప్లోడ్'),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- టాప్ హెడ్లైన్స్ సెక్షన్ ---
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "టాప్ హెడ్లైన్స్:",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
-                  ),
-                  const SizedBox(height: 8),
-                  // ఆటోమేటిక్ గా మారే హెడ్లైన్ టెక్స్ట్
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    child: Text(
-                      _headlines.isNotEmpty ? _headlines[_currentHeadlineIndex] : "హెడ్లైన్స్ ఏవీ లేవు",
-                      key: ValueKey<int>(_currentHeadlineIndex),
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // హెడ్లైన్ ఎంటర్ చేయడానికి టెక్స్ట్ ఫీల్డ్ & యాడ్ బటన్
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _headlineController,
-                          decoration: const InputDecoration(
-                            hintText: 'కొత్త హెడ్లైన్ ఎంటర్ చేయండి...',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          onSubmitted: (value) => _addHeadline(value),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () => _addHeadline(_headlineController.text),
-                        child: const Text('జోడించు'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // --- యాడ్ అప్లోడ్ బాక్స్ సెక్షన్ ---
-            const Text(
-              "యాడ్ అప్లోడ్ సెక్షన్:",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            // కంట్రోల్స్ టోగుల్ చేయడానికి స్విచ్ (టెస్టింగ్ కోసం)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("కంట్రోల్స్ మోడ్:"),
-                Switch(
-                  value: _isControlsOn,
-                  onChanged: (val) {
-                    setState(() {
-                      _isControlsOn = val;
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // స్టాక్ లో ట్యాప్ బ్లాకింగ్ సమస్యను సరిదిద్దడానికి IgnorePointer వాడబడింది
-            SizedBox(
-              height: 200,
-              child: Stack(
-                children: [
-                  // యాడ్ బాక్స్ (ట్యాప్ చేయగానే గ్యాలరీ ఓపెన్ అవుతుంది)
-                  Positioned.fill(
-                    child: Material(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: _openGalleryForAd,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.blue, width: 2, style: BorderStyle.dashed),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.cloud_upload, size: 48, color: Colors.blue),
-                              SizedBox(height: 10),
-                              Text(
-                                "TAP TO UPLOAD JPEG/GIF AD",
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // బ్లాకింగ్ లేయర్ ట్యాప్‌లను అడ్డుకోకుండా IgnorePointer ఉపయోగించబడింది
-                  if (_isControlsOn)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        ignoring: true, 
-                        child: Container(
-                          color: Colors.black.withOpacity(0.3),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            "కంట్రోల్స్ ఆన్ లో ఉన్నాయి (ట్యాప్స్ బ్లాక్ కావు)",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
   }
 }
