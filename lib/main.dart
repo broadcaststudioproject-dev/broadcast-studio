@@ -429,7 +429,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           if (media != null && newTitleCtrl.text.isNotEmpty) {
                             setState(() {
                               newsBulletinList.add(NewsBulletinItem(title: newTitleCtrl.text, mediaPath: media.path, isVideo: true));
-                              customHeadlines.add(newTitleCtrl.text);
+                              customHeadlines.add(newTitleCtrl.text); // ఆటోమేటిక్ రొటేషన్‌కి న్యూస్ హెడ్‌లైన్ యాడ్ అవుతుంది
                               currentNewsIndex = newsBulletinList.length - 1;
                               topHeadlineText = newsBulletinList[currentNewsIndex].title;
                               headlineCtrl.text = topHeadlineText;
@@ -897,381 +897,398 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
     );
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () { 
-                setState(() { 
-                  hideControls = !hideControls; 
-                }); 
-              },
-              child: isNewsBulletinMode
-                  ? Container(
-                      color: Colors.black,
-                      child: Column(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            margin: EdgeInsets.zero,
-                            padding: EdgeInsets.only(
-                              top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 8,
-                              bottom: 12,
-                              left: 15,
-                              right: 15,
+    // 🔥 డైరెక్ట్ ఎగ్జిట్ కాకుండా బ్యాక్ (Back) వెళ్లేందుకు WillPopScope వాడబడింది
+    return WillPopScope(
+      onWillPop: () async {
+        if (isNewsBulletinMode) {
+          setState(() {
+            isNewsBulletinMode = false;
+            hideControls = false;
+          });
+          return false; // యాప్ నుండి ఎగ్జిట్ కాకుండా బులెటిన్ మోడ్ నుండి బయటకు వస్తుంది
+        } else if (!hideControls) {
+          setState(() {
+            hideControls = true; // కంట్రోల్స్ ఓపెన్ ఉంటే ముందు వాటిని హైడ్ చేస్తుంది
+          });
+          return false;
+        }
+        return true; // అన్ని మోడ్స్ క్లోజ్ అయ్యాక మాత్రమే యాప్ బ్యాక్‌గ్రౌండ్‌కి వెళ్తుంది
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () { 
+                  setState(() { 
+                    hideControls = !hideControls; 
+                  }); 
+                },
+                child: isNewsBulletinMode
+                    ? Container(
+                        color: Colors.black,
+                        child: Column(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              margin: EdgeInsets.zero,
+                              padding: EdgeInsets.only(
+                                top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 8,
+                                bottom: 12,
+                                left: 15,
+                                right: 15,
+                              ),
+                              color: Colors.red.shade900,
+                              child: Text(
+                                topHeadlineText,
+                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                              ),
                             ),
-                            color: Colors.red.shade900,
-                            child: Text(
-                              topHeadlineText,
-                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                            ),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 55.0, left: 6, right: 6, top: 6), 
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.amberAccent, width: 2.5),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
-                                        child: Stack(
-                                          children: [
-                                            Positioned.fill(child: cameraWidget),
-                                            Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          showVideoControls = !showVideoControls;
-                                        });
-                                      },
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 55.0, left: 6, right: 6, top: 6), 
+                                child: Row(
+                                  children: [
+                                    Expanded(
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                          border: Border.all(color: Colors.amberAccent, width: 2.5),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(6),
                                           child: Stack(
                                             children: [
-                                              Positioned.fill(
-                                                child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
-                                                    ? (!newsBulletinList[currentNewsIndex].isVideo
-                                                        ? Image.file(
-                                                            File(newsBulletinList[currentNewsIndex].mediaPath),
-                                                            fit: BoxFit.cover,
-                                                            width: double.infinity,
-                                                            height: double.infinity,
-                                                          )
-                                                        : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                                                            ? FittedBox(
-                                                                fit: BoxFit.cover,
-                                                                child: SizedBox(
-                                                                  width: _bulletinVideoController!.value.size.width,
-                                                                  height: _bulletinVideoController!.value.size.height,
-                                                                  child: VideoPlayer(_bulletinVideoController!),
-                                                                ),
-                                                              )
-                                                            : Container(
-                                                                color: Colors.black,
-                                                                child: const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                                                              )))
-                                                    : Container(
-                                                        color: Colors.black, 
-                                                        child: Center(
-                                                          child: ElevatedButton.icon(
-                                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                                                            onPressed: _pickBulletinMedia,
-                                                            icon: const Icon(Icons.perm_media),
-                                                            label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
-                                                          ),
-                                                        ),
-                                                      ),
-                                              ),
-                                              visualScreenLogoWidget,
-                                              
-                                              if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
-                                                Positioned(
-                                                  bottom: 10,
-                                                  left: 0,
-                                                  right: 0,
-                                                  child: Container(
-                                                    color: Colors.black54,
-                                                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                                    child: Row(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        IconButton(
-                                                          icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24),
-                                                          onPressed: _prevNewsItem,
-                                                          tooltip: "Previous",
-                                                        ),
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            _bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                                                            color: Colors.amber,
-                                                            size: 28,
-                                                          ),
-                                                          onPressed: () {
-                                                            setState(() {
-                                                              if (_bulletinVideoController != null) {
-                                                                if (_bulletinVideoController!.value.isPlaying) {
-                                                                  _bulletinVideoController!.pause();
-                                                                } else {
-                                                                  _bulletinVideoController!.play();
-                                                                }
-                                                              }
-                                                            });
-                                                          },
-                                                        ),
-                                                        IconButton(
-                                                          icon: const Icon(Icons.skip_next, color: Colors.white, size: 24),
-                                                          onPressed: _nextNewsItem,
-                                                          tooltip: "Next",
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
+                                              Positioned.fill(child: cameraWidget),
+                                              Positioned(bottom: 10, left: 10, child: reporterBadgeWidget),
                                             ],
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            showVideoControls = !showVideoControls;
+                                          });
+                                        },
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.cyanAccent, width: 2.5),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: Stack(
+                                              children: [
+                                                Positioned.fill(
+                                                  child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
+                                                      ? (!newsBulletinList[currentNewsIndex].isVideo
+                                                          ? Image.file(
+                                                              File(newsBulletinList[currentNewsIndex].mediaPath),
+                                                              fit: BoxFit.cover,
+                                                              width: double.infinity,
+                                                              height: double.infinity,
+                                                            )
+                                                          : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                                              ? FittedBox(
+                                                                  fit: BoxFit.cover,
+                                                                  child: SizedBox(
+                                                                    width: _bulletinVideoController!.value.size.width,
+                                                                    height: _bulletinVideoController!.value.size.height,
+                                                                    child: VideoPlayer(_bulletinVideoController!),
+                                                                  ),
+                                                                )
+                                                              : Container(
+                                                                  color: Colors.black,
+                                                                  child: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                                                )))
+                                                      : Container(
+                                                          color: Colors.black, 
+                                                          child: Center(
+                                                            child: ElevatedButton.icon(
+                                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                                                              onPressed: _pickBulletinMedia,
+                                                              icon: const Icon(Icons.perm_media),
+                                                              label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                ),
+                                                visualScreenLogoWidget,
+                                                
+                                                if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
+                                                  Positioned(
+                                                    bottom: 10,
+                                                    left: 0,
+                                                    right: 0,
+                                                    child: Container(
+                                                      color: Colors.black54,
+                                                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          IconButton(
+                                                            icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24),
+                                                            onPressed: _prevNewsItem,
+                                                            tooltip: "Previous",
+                                                          ),
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              _bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                                                              color: Colors.amber,
+                                                              size: 28,
+                                                            ),
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                if (_bulletinVideoController != null) {
+                                                                  if (_bulletinVideoController!.value.isPlaying) {
+                                                                    _bulletinVideoController!.pause();
+                                                                  } else {
+                                                                    _bulletinVideoController!.play();
+                                                                  }
+                                                                }
+                                                              });
+                                                            },
+                                                          ),
+                                                          IconButton(
+                                                            icon: const Icon(Icons.skip_next, color: Colors.white, size: 24),
+                                                            onPressed: _nextNewsItem,
+                                                            tooltip: "Next",
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : (isVideoAdPlaying && _videoAdVlcController != null)
-                      ? Container(
-                          color: Colors.black,
-                          child: VlcPlayer(
-                            controller: _videoAdVlcController!,
-                            aspectRatio: 16 / 9,
-                            placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                          ),
-                        )
-                      : (!isAnimatedAdsMode)
-                          ? Stack(
-                              children: [
-                                Positioned.fill(child: cameraWidget),
-                                visualScreenLogoWidget,
-                              ],
-                            )
-                          : Container(
-                              color: adLayerColor,
-                              child: Stack(
+                          ],
+                        ),
+                      )
+                    : (isVideoAdPlaying && _videoAdVlcController != null)
+                        ? Container(
+                            color: Colors.black,
+                            child: VlcPlayer(
+                              controller: _videoAdVlcController!,
+                              aspectRatio: 16 / 9,
+                              placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                            ),
+                          )
+                        : (!isAnimatedAdsMode)
+                            ? Stack(
                                 children: [
                                   Positioned.fill(child: cameraWidget),
                                   visualScreenLogoWidget,
-                                  Positioned(
-                                    left: 10 + _vertOffset.dx,
-                                    top: 10 + _vertOffset.dy,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: _pickVerticalAd,
-                                      onPanUpdate: (details) { setState(() { _vertOffset += details.delta; }); },
-                                      child: Transform(
-                                        transform: Matrix4.identity()..scale(_vertScale)..rotateZ(_vertRotation),
-                                        alignment: Alignment.center,
-                                        child: GestureDetector(
-                                          onScaleUpdate: (details) {
-                                            setState(() {
-                                              _vertScale = (_vertScale * details.scale).clamp(0.3, 4.0);
-                                              _vertRotation += details.rotation;
-                                            });
-                                          },
-                                          child: Container(
-                                            width: 140,
-                                            height: 420,
-                                            decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
-                                            child: verticalAnimatedAdPath.isNotEmpty
-                                                ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                                : const Center(
-                                                    child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        Icon(Icons.add_photo_alternate, color: Colors.amber, size: 28),
-                                                        SizedBox(height: 5),
-                                                        Text("TAP TO UPLOAD JPEG/GIF AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    left: 150 + _horizOffset.dx,
-                                    bottom: 60 + _horizOffset.dy, 
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: _pickHorizontalAd,
-                                      onPanUpdate: (details) { setState(() { _horizOffset += details.delta; }); },
-                                      child: Transform(
-                                        transform: Matrix4.identity()..scale(_horizScale)..rotateZ(_horizRotation),
-                                        alignment: Alignment.center,
-                                        child: GestureDetector(
-                                          onScaleUpdate: (details) {
-                                            setState(() {
-                                              _horizScale = (_horizScale * details.scale).clamp(0.3, 4.0);
-                                              _horizRotation += details.rotation;
-                                            });
-                                          },
-                                          child: Container(
-                                            width: screenWidth - 155,
-                                            height: 90, 
-                                            decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
-                                            child: horizontalAnimatedAdPath.isNotEmpty
-                                                ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
-                                                : const Center(
-                                                    child: Row(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      children: [
-                                                        Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
-                                                        SizedBox(width: 6),
-                                                        Text("TAP TO UPLOAD JPEG/GIF AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                                      ],
-                                                    ),
-                                                  ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                                 ],
+                              )
+                            : Container(
+                                color: adLayerColor,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(child: cameraWidget),
+                                    visualScreenLogoWidget,
+                                    Positioned(
+                                      left: 10 + _vertOffset.dx,
+                                      top: 10 + _vertOffset.dy,
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _pickVerticalAd,
+                                        onPanUpdate: (details) { setState(() { _vertOffset += details.delta; }); },
+                                        child: Transform(
+                                          transform: Matrix4.identity()..scale(_vertScale)..rotateZ(_vertRotation),
+                                          alignment: Alignment.center,
+                                          child: GestureDetector(
+                                            onScaleUpdate: (details) {
+                                              setState(() {
+                                                _vertScale = (_vertScale * details.scale).clamp(0.3, 4.0);
+                                                _vertRotation += details.rotation;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: 140,
+                                              height: 420,
+                                              decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
+                                              child: verticalAnimatedAdPath.isNotEmpty
+                                                  ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                                  : const Center(
+                                                      child: Column(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Icon(Icons.add_photo_alternate, color: Colors.amber, size: 28),
+                                                          SizedBox(height: 5),
+                                                          Text("TAP TO UPLOAD JPEG/GIF AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: 150 + _horizOffset.dx,
+                                      bottom: 60 + _horizOffset.dy, 
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _pickHorizontalAd,
+                                        onPanUpdate: (details) { setState(() { _horizOffset += details.delta; }); },
+                                        child: Transform(
+                                          transform: Matrix4.identity()..scale(_horizScale)..rotateZ(_horizRotation),
+                                          alignment: Alignment.center,
+                                          child: GestureDetector(
+                                            onScaleUpdate: (details) {
+                                              setState(() {
+                                                _horizScale = (_horizScale * details.scale).clamp(0.3, 4.0);
+                                                _horizRotation += details.rotation;
+                                              });
+                                            },
+                                            child: Container(
+                                              width: screenWidth - 155,
+                                              height: 90, 
+                                              decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 1.5)),
+                                              child: horizontalAnimatedAdPath.isNotEmpty
+                                                  ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)
+                                                  : const Center(
+                                                      child: Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20),
+                                                          SizedBox(width: 6),
+                                                          Text("TAP TO UPLOAD JPEG/GIF AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-            ),
-          ),
-
-          if (isVideoAdPlaying)
-            Positioned(
-              top: 40, right: 40,
-              child: FloatingActionButton.extended(
-                backgroundColor: Colors.red,
-                onPressed: _stopVideoAd,
-                label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)),
-                icon: const Icon(Icons.close, color: Colors.white),
               ),
             ),
 
-          if (!isNewsBulletinMode)
-            Positioned(
-              bottom: isAnimatedAdsMode ? 160 : 65, 
-              left: isAnimatedAdsMode ? 152 : 15, 
-              child: reporterBadgeWidget,
-            ),
-          
-          Positioned(
-            bottom: 0, 
-            left: 0, 
-            right: 0, 
-            child: Container(
-              height: 55, 
-              decoration: BoxDecoration(
-                color: Colors.red.shade900,
-                border: Border.all(color: Colors.amber.shade400, width: 1.5),
+            if (isVideoAdPlaying)
+              Positioned(
+                top: 40, right: 40,
+                child: FloatingActionButton.extended(
+                  backgroundColor: Colors.red,
+                  onPressed: _stopVideoAd,
+                  label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
               ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: _pickBreakingNewsLogo,
-                    child: Container(
-                      width: 55,
-                      height: double.infinity,
-                      color: Colors.black,
-                      child: breakingNewsLogoPath.isNotEmpty
-                          ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                          : const Center(
-                              child: Icon(Icons.newspaper, color: Colors.amber, size: 28),
-                            ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                      child: Marquee(
-                        text: breakingNewsText, 
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), 
-                        blankSpace: 100.0, 
-                        velocity: 40.0,
+
+            if (!isNewsBulletinMode)
+              Positioned(
+                bottom: isAnimatedAdsMode ? 160 : 65, 
+                left: isAnimatedAdsMode ? 152 : 15, 
+                child: reporterBadgeWidget,
+              ),
+            
+            Positioned(
+              bottom: 0, 
+              left: 0, 
+              right: 0, 
+              child: Container(
+                height: 55, 
+                decoration: BoxDecoration(
+                  color: Colors.red.shade900,
+                  border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickBreakingNewsLogo,
+                      child: Container(
+                        width: 55,
+                        height: double.infinity,
+                        color: Colors.black,
+                        child: breakingNewsLogoPath.isNotEmpty
+                            ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                            : const Center(
+                                child: Icon(Icons.newspaper, color: Colors.amber, size: 28),
+                              ),
                       ),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Marquee(
+                          text: breakingNewsText, 
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), 
+                          blankSpace: 100.0, 
+                          velocity: 40.0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // 🔥 కంట్రోల్స్ కనిపించినప్పుడు బ్యాక్‌గ్రౌండ్ పై ట్యాప్ చేస్తే కంట్రోల్స్ మాయమయ్యేలా (hideControls = true) సవరించబడిన లేయర్
-          if (!hideControls)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  setState(() {
-                    hideControls = true; // స్క్రీన్ పై ఎక్కడైనా ట్యాప్ చేస్తే ఆప్షన్స్ మాయమవుతాయి
-                  });
-                },
-                child: Container(
-                  color: Colors.black54,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: () {}, // బటన్స్‌పై ట్యాప్ చేసినప్పుడు క్లోజ్ కాకుండా ఆపడానికి
-                      child: Wrap(
-                        alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
-                        children: [
-                          _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                          _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                          _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
-                          _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                          _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
-                          _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                          _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                          _buildControlButton(
-                            isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
-                            isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
-                            _toggleNewsBulletinMode, 
-                            isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
-                          ),
-                          _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
-                          _buildControlButton(
-                            isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
-                            isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
-                            _toggleAutoTimerAds, 
-                            isAnimatedAdsMode ? Colors.greenAccent : Colors.amber,
-                          ),
-                          _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                        ],
+            if (!hideControls)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    setState(() {
+                      hideControls = true;
+                    });
+                  },
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () {}, 
+                        child: Wrap(
+                          alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
+                          children: [
+                            _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                            _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                            _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
+                            _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
+                            _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
+                            _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
+                            _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                            _buildControlButton(
+                              isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
+                              isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
+                              _toggleNewsBulletinMode, 
+                              isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent,
+                            ),
+                            _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
+                            _buildControlButton(
+                              isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, 
+                              isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", 
+                              _toggleAutoTimerAds, 
+                              isAnimatedAdsMode ? Colors.greenAccent : Colors.amber,
+                            ),
+                            _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
