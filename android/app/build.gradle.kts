@@ -14,6 +14,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // 🔥 RTMP ప్యాకేజీ ఫైల్ కాన్‌ఫ్లిక్ట్ రాకుండా ఇక్కడ ఎక్స్‌క్లూడ్ చేయబడింది
+    packaging {
+        resources.excludes.add("project.clj")
+    }
+
     defaultConfig {
         applicationId = "com.example.pocket_pcr_studio"
         minSdk = 24
