@@ -34,11 +34,14 @@ android {
 }
 
 configurations.all {
-    resolutionStrategy {
-        force("androidx.exifinterface:exifinterface:1.3.6")
-        force("androidx.annotation:annotation-experimental:1.3.0")
+    resolutionStrategy.eachDependency {
+        if (requested.group == "androidx.exifinterface" && requested.name == "exifinterface") {
+            useVersion("1.3.6")
+        }
+        if (requested.group == "androidx.annotation" && requested.name == "annotation-experimental") {
+            useVersion("1.3.0")
+        }
     }
-}
 
 flutter {
     source = "../.."
