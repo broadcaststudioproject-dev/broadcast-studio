@@ -42,6 +42,7 @@ configurations.all {
             useVersion("1.3.0")
         }
     }
+}
 
 flutter {
     source = "../.."
