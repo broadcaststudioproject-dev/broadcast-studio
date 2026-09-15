@@ -11,28 +11,27 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-      
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
-          
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          
+
       - name: Clean Project Cache
         run: flutter clean
-          
+
       - name: Install Dependencies
         run: flutter pub get
-        
-      - name: Build APK
-  run: flutter build apk --debug --android-skip-build-dependency-validation
 
-        
+      - name: Build APK
+        run: flutter build apk --debug --android-skip-build-dependency-validation
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
