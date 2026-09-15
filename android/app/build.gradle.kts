@@ -33,10 +33,10 @@ android {
     }
 }
 
-// 🔥 Exifinterface వెర్షన్ కాన్‌ఫ్లిక్ట్ రాకుండా ఇక్కడ ఫోర్స్ చేయబడింది
 configurations.all {
     resolutionStrategy {
         force("androidx.exifinterface:exifinterface:1.3.6")
+        force("androidx.annotation:annotation-experimental:1.3.0")
     }
 }
 
