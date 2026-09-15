@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.pocket_pcr_studio"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
