@@ -20,7 +20,7 @@ dependencies:
   image_picker: ^1.0.7
   path_provider: ^2.0.15
   geolocator: ^13.0.0
-  rtmp_broadcaster: ^0.1.2  # 🔥 RTMP లైవ్ స్ట్రీమింగ్ కోసం ఈ ప్యాకేజీ జోడించబడింది
+  rtmp_broadcaster: ^3.1.1  # 🔥 సరిదిద్దబడిన వెర్షన్
 
 flutter:
   uses-material-design: true
