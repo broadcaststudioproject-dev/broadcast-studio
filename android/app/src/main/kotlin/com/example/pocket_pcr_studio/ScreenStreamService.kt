@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.MediaCodec
@@ -13,6 +14,7 @@ import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.os.IBinder
 import android.view.Surface
 
@@ -39,13 +41,26 @@ class ScreenStreamService : Service() {
             .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ రన్నింగ్‌లో ఉంది...")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .build()
-        startForeground(1, notification)
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+            } else {
+                startForeground(1, notification)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         if (resultCode == Activity.RESULT_OK && data != null && rtmpUrl != null) {
             val projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
             mediaProjection = projectionManager.getMediaProjection(resultCode, data)
             
-            startStreaming(rtmpUrl)
+            try {
+                startStreaming(rtmpUrl)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         return START_NOT_STICKY
@@ -89,8 +104,12 @@ class ScreenStreamService : Service() {
         super.onDestroy()
         isRunning = false
         virtualDisplay?.release()
-        mediaCodec?.stop()
-        mediaCodec?.release()
+        try {
+            mediaCodec?.stop()
+            mediaCodec?.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         mediaProjection?.stop()
     }
 
