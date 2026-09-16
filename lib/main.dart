@@ -615,7 +615,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 if (controller == null || controller!.value.isInitialized != true) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("కెమెరా ఇంకా సిద్ధంగా లేదు. దయచేసి కొన్ని సెకన్లు ఆగండి!"), backgroundColor: Colors.red),
+                    const SnackBar(content: Text("కెమెరా లేదా వీడియో సోర్స్ ఇంకా సిద్ధంగా లేదు!"), backgroundColor: Colors.red),
                   );
                   return;
                 }
