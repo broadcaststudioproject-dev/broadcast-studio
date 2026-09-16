@@ -92,14 +92,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = "";
   String breakingNewsLogoPath = ""; 
-  
-  double _vertScale = 1.0;
-  double _vertRotation = 0.0;
-  Offset _vertOffset = Offset.zero;
-
-  double _horizScale = 1.0;
-  double _horizRotation = 0.0;
-  Offset _horizOffset = Offset.zero;
 
   final List<String> videoAdsList = List.generate(10, (index) => "");
 
@@ -622,6 +614,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
               onPressed: () async {
+                // 🔥 కెమెరా ఇనిషియలైజ్ అయిందో లేదో చెక్ చేసే సేఫ్టీ కోడ్
+                if (controller == null || controller!.value.isInitialized != true) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("కెమెరా ఇంకా సిద్ధంగా లేదు. దయచేసి కొన్ని సెకన్లు ఆగండి!"), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
                 Navigator.pop(context);
                 
                 String rtmpUrl = youtubeUrlController.text.trim();
@@ -1085,3 +1086,4 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
