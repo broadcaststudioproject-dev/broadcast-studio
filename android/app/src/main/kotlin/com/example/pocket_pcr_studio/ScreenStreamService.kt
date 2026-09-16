@@ -1,5 +1,6 @@
 package com.ssyatratv.pocket_pcr_studio
 
+import android.app.Activity
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -14,7 +15,6 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.IBinder
 import android.view.Surface
-import java.nio.ByteBuffer
 
 class ScreenStreamService : Service() {
     private var mediaProjection: MediaProjection? = null
@@ -54,7 +54,6 @@ class ScreenStreamService : Service() {
     private fun startStreaming(rtmpUrl: String) {
         isRunning = true
         
-        // 1. MediaCodec వీడియో ఎన్‌కోడర్ సెటప్
         val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, WIDTH, HEIGHT).apply {
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             setInteger(MediaFormat.KEY_BIT_RATE, BITRATE)
@@ -65,10 +64,8 @@ class ScreenStreamService : Service() {
         mediaCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC).apply {
             configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             val surface: Surface = createInputSurface()
-            prepare()
             start()
             
-            // 2. MediaProjection నుండి వచ్చే డిస్‌ప్లేను ఈ సర్ఫేస్‌కి కనెక్ట్ చేయడం
             virtualDisplay = mediaProjection?.createVirtualDisplay(
                 "ScreenStream",
                 WIDTH, HEIGHT, DPI,
@@ -76,8 +73,6 @@ class ScreenStreamService : Service() {
                 surface, null, null
             )
         }
-
-        // ఇక్కడ ఎన్‌కోడడ్ డేటాను (H.264 / AAC) RTMP లైబ్రరీ లేదా Socket ద్వారా RTMP URL కి పంపే లూప్ రన్ చేయాలి.
     }
 
     private fun createNotificationChannel() {
