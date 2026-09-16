@@ -82,11 +82,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   int _headlineIndex = 0;
   Timer? _headlineRotationTimer;
 
-  double _currentZoomLevel = 1.0;
-  double _minZoomLevel = 1.0;
-  double _maxZoomLevel = 8.0;
-  double _baseScale = 1.0;
-
   String ipCameraUrl = ""; 
   TextEditingController ipController = TextEditingController();
   TextEditingController qrDataController = TextEditingController();
@@ -139,8 +134,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.text = reporterRole;
     headlineCtrl.text = topHeadlineText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
-    
-    // Restream డీఫాల్ట్ RTMP URL మరియు కీ ప్లేస్‌హోల్డర్
     youtubeUrlController.text = "rtmp://bangalore.restream.io/live";
     restreamKeyController.text = "";
 
@@ -216,9 +209,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
-      _minZoomLevel = await camController.getMinZoomLevel();
-      _maxZoomLevel = await camController.getMaxZoomLevel();
-      _currentZoomLevel = _minZoomLevel;
       setState(() {});
     } catch (e) {
       debugPrint("Camera Init Error: $e");
@@ -475,30 +465,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; });
   }
 
-  Future<void> _pickVerticalAd() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null && mounted) {
-      setState(() {
-        verticalAnimatedAdPath = image.path;
-        _vertScale = 1.0;
-        _vertRotation = 0.0;
-        _vertOffset = Offset.zero;
-      });
-    }
-  }
-
-  Future<void> _pickHorizontalAd() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null && mounted) {
-      setState(() {
-        horizontalAnimatedAdPath = image.path;
-        _horizScale = 1.0;
-        _horizRotation = 0.0;
-        _horizOffset = Offset.zero;
-      });
-    }
-  }
-
   void _showAdsManagerDialog() {
     showDialog(
       context: context,
@@ -620,7 +586,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔥 Restream RTMP సర్వర్‌కు లైవ్ పంపే అసలైన కోడ్ (Offline సమస్య పరిష్కారం)
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -669,19 +634,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   return;
                 }
 
-                // URL మరియు Key ని సరిగ్గా కలపడం
                 String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
                 try {
                   if (!isLiveBroadcasting) {
-                    // RTMP సర్వర్‌కు లైవ్ బ్రాడ్‌కాస్ట్ ప్రారంభించు
                     await controller?.startVideoStreaming(fullRtmpUrl);
                     setState(() { isLiveBroadcasting = true; });
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Multi-Live బ్రాడ్‌కాస్ట్ విజయవంతంగా ప్రారంభమైంది! Restream లో లైవ్ చూడండి."), backgroundColor: Colors.green),
                     );
                   } else {
-                    // లైవ్ ఆపివేయి
                     await controller?.stopVideoStreaming();
                     setState(() { isLiveBroadcasting = false; });
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -787,41 +749,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    double screenWidth = MediaQuery.of(context).size.width;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
-        : (controller != null && controller!.value.isInitialized 
-            ? GestureDetector(
-                onScaleStart: (details) {
-                  _baseScale = _currentZoomLevel;
-                },
-                onScaleUpdate: (details) async {
-                  if (controller == null || !controller!.value.isInitialized) return;
-                  double zoom = _baseScale * details.scale;
-                  if (zoom < _minZoomLevel) zoom = _minZoomLevel;
-                  if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-                  setState(() { _currentZoomLevel = zoom; });
-                  await controller?.setZoomLevel(zoom);
-                },
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    var cameraValue = controller!.value;
-                    return ClipRect(
-                      child: OverflowBox(
-                        alignment: Alignment.center,
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: isScreenLandscape ? constraints.maxHeight * cameraValue.aspectRatio : constraints.maxWidth,
-                            height: isScreenLandscape ? constraints.maxHeight : constraints.maxWidth / cameraValue.aspectRatio,
-                            child: CameraPreview(controller!),
-                          ),
+        : (controller != null && (controller!.value.isInitialized == true)
+            ? LayoutBuilder(
+                builder: (context, constraints) {
+                  var cameraValue = controller!.value;
+                  return ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: isScreenLandscape ? constraints.maxHeight * cameraValue.aspectRatio : constraints.maxWidth,
+                          height: isScreenLandscape ? constraints.maxHeight : constraints.maxWidth / cameraValue.aspectRatio,
+                          child: CameraPreview(controller!),
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
@@ -1015,22 +963,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)),
                             ),
                           )
-                        : (!isAnimatedAdsMode)
-                            ? Stack(
-                                children: [
-                                  Positioned.fill(child: cameraWidget),
-                                  visualScreenLogoWidget,
-                                ],
-                              )
-                            : Container(
-                                color: adLayerColor,
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(child: cameraWidget),
-                                    visualScreenLogoWidget,
-                                  ],
-                                ),
-                              ),
+                        : Stack(
+                            children: [
+                              Positioned.fill(child: cameraWidget),
+                              visualScreenLogoWidget,
+                            ],
+                          ),
               ),
             ),
 
