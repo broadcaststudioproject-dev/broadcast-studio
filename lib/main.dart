@@ -59,6 +59,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isLiveBroadcasting = false;
   bool isAnimatedAdsMode = false; 
   bool isVideoAdPlaying = false; 
+  String cameraErrorMsg = ""; 
   
   bool isNewsBulletinMode = false;
   int currentNewsIndex = 0;
@@ -145,8 +146,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _initializeEverything() async {
-    await [Permission.camera, Permission.microphone, Permission.storage].request();
-    await _initCamera();
+    var cameraStatus = await Permission.camera.request();
+    var micStatus = await Permission.microphone.request();
+    await Permission.storage.request();
+
+    if (cameraStatus.isGranted && micStatus.isGranted) {
+      await _initCamera();
+    } else {
+      setState(() {
+        cameraErrorMsg = "కెమెరా లేదా మైక్రోఫోన్ పర్మిషన్ నిరాకరించబడింది!";
+      });
+    }
   }
 
   @override
@@ -181,29 +191,33 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
-  // 🔥 కెమెరా వేడెక్కకుండా మరియు క్రాష్ కాకుండా 'ResolutionPreset.medium' కు ఆప్టిమైజ్ చేయబడింది
   Future<void> _initCamera() async {
     if (isIpCameraActive) return;
     try {
+      setState(() { cameraErrorMsg = "కెమెరా లోడ్ అవుతోంది..."; });
+
+      cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        setState(() { cameraErrorMsg = "ఫోన్‌లో ఏ కెమెరా గుర్తించబడలేదు!"; });
+        return;
+      }
+
       if (controller != null) {
         await controller!.dispose();
         controller = null;
       }
-
-      cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-
       final camController = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.medium, 
+        ResolutionPreset.medium,
         enableAudio: true,
       );
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
-      setState(() {});
+      setState(() { cameraErrorMsg = ""; });
     } catch (e) {
       debugPrint("Camera Init Error: $e");
+      setState(() { cameraErrorMsg = "కెమెరా ఎర్రర్: $e"; });
     }
   }
 
@@ -771,7 +785,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   );
                 },
               )
-            : const Center(child: CircularProgressIndicator(color: Colors.white)));
+            : Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 10),
+                    Text(
+                      cameraErrorMsg.isEmpty ? "కెమెరా సిద్ధమవుతోంది..." : cameraErrorMsg,
+                      style: const TextStyle(color: Colors.yellow, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ));
 
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
