@@ -17,11 +17,6 @@ List<CameraDescription> cameras = [];
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  try {
-    cameras = await availableCameras();
-  } catch (e) {
-    debugPrint("Camera Error: $e");
-  }
   runApp(const PocketPCRApp());
 }
 
@@ -132,8 +127,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     
-    _initCamera();
-    _requestPermissions();
+    _initializeEverything();
     _fetchBreakingNews(); 
 
     _headlineRotationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -148,6 +142,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
     });
+  }
+
+  Future<void> _initializeEverything() async {
+    await [Permission.camera, Permission.microphone, Permission.storage].request();
+    await _initCamera();
   }
 
   @override
@@ -182,20 +181,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
-  Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone, Permission.storage].request();
-  }
-
   Future<void> _initCamera() async {
-    if (cameras.isEmpty || isIpCameraActive) return;
+    if (isIpCameraActive) return;
     try {
+      cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+
       if (controller != null) {
         await controller!.dispose();
         controller = null;
       }
       final camController = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max,
+        ResolutionPreset.medium,
         enableAudio: true,
       );
       controller = camController;
@@ -614,7 +612,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
               onPressed: () async {
-                // 🔥 కెమెరా ఇనిషియలైజ్ అయిందో లేదో చెక్ చేసే సేఫ్టీ కోడ్
                 if (controller == null || controller!.value.isInitialized != true) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
