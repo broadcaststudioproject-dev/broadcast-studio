@@ -139,8 +139,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.text = reporterRole;
     headlineCtrl.text = topHeadlineText;
     qrDataController.text = "https://ssyatratv.com/live-stream";
-    youtubeUrlController.text = "https://www.youtube.com/watch?v=your_live_stream_id";
-    restreamKeyController.text = "rtmp://live.restream.io/live/your_stream_key_here";
+    youtubeUrlController.text = "rtmp://bangalore.restream.io/live";
+    restreamKeyController.text = "";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -673,7 +673,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: const Text("YouTube & Restream Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
+          title: const Text("Restream & YouTube Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -682,7 +682,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   controller: youtubeUrlController,
                   style: const TextStyle(color: Colors.yellow, fontSize: 12),
                   decoration: const InputDecoration(
-                    labelText: "YouTube Live Stream / RTMP URL",
+                    labelText: "RTMP URL (ఉదా: rtmp://bangalore.restream.io/live)",
                     labelStyle: TextStyle(color: Colors.white54),
                   ),
                 ),
@@ -691,7 +691,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   controller: restreamKeyController,
                   style: const TextStyle(color: Colors.yellow, fontSize: 12),
                   decoration: const InputDecoration(
-                    labelText: "Restream / Custom Stream Key",
+                    labelText: "Stream Key",
                     labelStyle: TextStyle(color: Colors.white54),
                   ),
                 ),
@@ -702,15 +702,34 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
-              onPressed: () {
-                setState(() { isLiveBroadcasting = !isLiveBroadcasting; });
+              onPressed: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(isLiveBroadcasting ? "Multi-Live బ్రాడ్‌కాస్ట్ ప్రారంభమైంది!" : "Multi-Live ఆపివేయబడింది!"),
-                    backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red,
-                  ),
-                );
+                
+                String rtmpUrl = youtubeUrlController.text.trim();
+                String streamKey = restreamKeyController.text.trim();
+
+                if (rtmpUrl.isEmpty || streamKey.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("దయచేసి RTMP URL మరియు Stream Key సరిగ్గా ఇవ్వండి!"), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
+                String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
+
+                if (!isLiveBroadcasting) {
+                  await StreamServiceManager.startLiveStream(fullRtmpUrl);
+                  setState(() { isLiveBroadcasting = true; });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ప్రారంభమైంది! Restream లో లైవ్ చెక్ చేయండి."), backgroundColor: Colors.green),
+                  );
+                } else {
+                  await StreamServiceManager.stopLiveStream();
+                  setState(() { isLiveBroadcasting = false; });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ఆపివేయబడింది!"), backgroundColor: Colors.red),
+                  );
+                }
               },
               child: Text(isLiveBroadcasting ? "Stop Live" : "Start Multi-Live", style: const TextStyle(color: Colors.white)),
             ),
@@ -1262,7 +1281,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
                             _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                             _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                            _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                            _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
                             _buildControlButton(
                               isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, 
                               isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", 
@@ -1304,26 +1323,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-import 'package:flutter/services.dart';
 
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
 
-  // లైవ్ స్టార్ట్ చేయడానికి
   static Future<void> startLiveStream(String rtmpUrl) async {
     try {
       await platform.invokeMethod('startScreenStream', {'rtmpUrl': rtmpUrl});
     } on PlatformException catch (e) {
-      print("Failed to start stream: '${e.message}'.");
+      debugPrint("Failed to start stream: '${e.message}'.");
     }
   }
 
-  // లైవ్ ఆపడానికి
   static Future<void> stopLiveStream() async {
     try {
       await platform.invokeMethod('stopScreenStream');
     } on PlatformException catch (e) {
-      print("Failed to stop stream: '${e.message}'.");
+      debugPrint("Failed to stop stream: '${e.message}'.");
     }
   }
 }
