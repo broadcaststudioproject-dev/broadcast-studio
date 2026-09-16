@@ -181,19 +181,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
+  // 🔥 కెమెరా వేడెక్కకుండా మరియు క్రాష్ కాకుండా 'ResolutionPreset.medium' కు ఆప్టిమైజ్ చేయబడింది
   Future<void> _initCamera() async {
     if (isIpCameraActive) return;
     try {
-      cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-
       if (controller != null) {
         await controller!.dispose();
         controller = null;
       }
+
+      cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+
       final camController = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.medium,
+        ResolutionPreset.medium, 
         enableAudio: true,
       );
       controller = camController;
