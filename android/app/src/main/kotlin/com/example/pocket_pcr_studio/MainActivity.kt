@@ -1,4 +1,4 @@
-package com.ssyatratv.pocket_pcr_studio
+package com.example.pocket_pcr_studio
 
 import android.app.Activity
 import android.content.Intent
