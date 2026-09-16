@@ -1304,3 +1304,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+import 'package:flutter/services.dart';
+
+class StreamServiceManager {
+  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
+
+  // లైవ్ స్టార్ట్ చేయడానికి
+  static Future<void> startLiveStream(String rtmpUrl) async {
+    try {
+      await platform.invokeMethod('startScreenStream', {'rtmpUrl': rtmpUrl});
+    } on PlatformException catch (e) {
+      print("Failed to start stream: '${e.message}'.");
+    }
+  }
+
+  // లైవ్ ఆపడానికి
+  static Future<void> stopLiveStream() async {
+    try {
+      await platform.invokeMethod('stopScreenStream');
+    } on PlatformException catch (e) {
+      print("Failed to stop stream: '${e.message}'.");
+    }
+  }
+}
