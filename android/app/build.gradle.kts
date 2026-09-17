@@ -7,6 +7,7 @@ plugins {
 android {
     namespace = "com.example.pocket_pcr_studio"
     compileSdk = flutter.compileSdkVersion
+    ndkVersion = "28.2.13676358" // 👈 ఈ లైన్‌ని ఇక్కడ యాడ్ చేయాలి
 
     defaultConfig {
         applicationId = "com.example.pocket_pcr_studio"
@@ -16,6 +17,9 @@ android {
         versionName = flutter.versionName
         multiDexEnabled = true
     }
+    // మిగతా కోడ్ అలాగే ఉంటుంది...
+}
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
