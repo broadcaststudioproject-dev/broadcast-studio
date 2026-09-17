@@ -1,46 +1,304 @@
-name: Build Flutter APK
+name: Pocket PCR Studio - Android Build
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build Pocket PCR Studio APK
     runs-on: ubuntu-latest
 
     steps:
+
+      # ---------------------------------------------------------
+      # 1. CHECKOUT
+      # ---------------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------------
+      # 2. JAVA
+      # ---------------------------------------------------------
       - name: Set up Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: temurin
           java-version: '17'
+          cache: gradle
 
+      # ---------------------------------------------------------
+      # 3. FLUTTER
+      # ---------------------------------------------------------
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
-          channel: 'stable'
+          channel: stable
           cache: true
 
+      # ---------------------------------------------------------
+      # 4. SHOW ENVIRONMENT
+      # ---------------------------------------------------------
+      - name: Show Build Environment
+        run: |
+          echo "=================================================="
+          echo "POCKET PCR STUDIO BUILD ENVIRONMENT"
+          echo "=================================================="
+
+          echo ""
+          echo "Flutter:"
+          flutter --version
+
+          echo ""
+          echo "Dart:"
+          dart --version
+
+          echo ""
+          echo "Java:"
+          java -version
+
+          echo ""
+          echo "Flutter Doctor:"
+          flutter doctor -v
+
+          echo ""
+          echo "=================================================="
+
+      # ---------------------------------------------------------
+      # 5. VERIFY PROJECT
+      # ---------------------------------------------------------
+      - name: Verify Flutter Project
+        run: |
+          echo "Checking Flutter project..."
+
+          test -f pubspec.yaml
+          test -d lib
+          test -d android
+
+          echo ""
+          echo "pubspec.yaml: FOUND"
+          echo "lib/: FOUND"
+          echo "android/: FOUND"
+
+          echo ""
+          echo "Android files:"
+          find android -maxdepth 3 -type f | sort | head -200
+
+      # ---------------------------------------------------------
+      # 6. PRINT IMPORTANT ANDROID FILES
+      # ---------------------------------------------------------
+      - name: Inspect Android Gradle Project
+        run: |
+          echo "=================================================="
+          echo "ANDROID GRADLE PROJECT INSPECTION"
+          echo "=================================================="
+
+          echo ""
+          echo "----- android/settings.gradle -----"
+          if [ -f android/settings.gradle ]; then
+            sed -n '1,300p' android/settings.gradle
+          else
+            echo "ERROR: android/settings.gradle NOT FOUND"
+            exit 1
+          fi
+
+          echo ""
+          echo "----- android/build.gradle -----"
+          if [ -f android/build.gradle ]; then
+            sed -n '1,300p' android/build.gradle
+          else
+            echo "ERROR: android/build.gradle NOT FOUND"
+            exit 1
+          fi
+
+          echo ""
+          echo "----- android/app/build.gradle -----"
+          if [ -f android/app/build.gradle ]; then
+            sed -n '1,350p' android/app/build.gradle
+          else
+            echo "ERROR: android/app/build.gradle NOT FOUND"
+            exit 1
+          fi
+
+          echo ""
+          echo "----- android/gradle.properties -----"
+          if [ -f android/gradle.properties ]; then
+            cat android/gradle.properties
+          fi
+
+          echo ""
+          echo "----- gradle-wrapper.properties -----"
+          if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
+            cat android/gradle/wrapper/gradle-wrapper.properties
+          fi
+
+      # ---------------------------------------------------------
+      # 7. DO NOT REGENERATE ANDROID
+      # ---------------------------------------------------------
+      - name: Verify Android Platform Files
+        run: |
+          echo "=================================================="
+          echo "VERIFYING EXISTING ANDROID PLATFORM"
+          echo "=================================================="
+
+          echo ""
+          echo "IMPORTANT:"
+          echo "Existing android/ directory will NOT be regenerated."
+          echo "Custom Camera/JNI configuration will be preserved."
+
+          test -f android/settings.gradle
+          test -f android/build.gradle
+          test -f android/app/build.gradle
+          test -f android/gradlew
+
+          echo ""
+          echo "All required Android Gradle files are present."
+
+      # ---------------------------------------------------------
+      # 8. FLUTTER CLEAN
+      # ---------------------------------------------------------
       - name: Clean Project Cache
-        run: flutter clean
+        run: |
+          echo "Cleaning Flutter project..."
 
+          flutter clean
+
+          rm -rf build
+          rm -rf .dart_tool
+
+          echo "Clean completed."
+
+      # ---------------------------------------------------------
+      # 9. GET DEPENDENCIES
+      # ---------------------------------------------------------
       - name: Install Dependencies
-        run: flutter pub get
+        run: |
+          echo "Installing Flutter dependencies..."
 
-      - name: Regenerate Android Platform Files
-        run: flutter create . --platforms=android
+          flutter pub get
 
+          echo ""
+          echo "Dependencies installed."
+
+      # ---------------------------------------------------------
+      # 10. CHECK FLUTTER PROJECT
+      # ---------------------------------------------------------
+      - name: Analyze Flutter Project
+        run: |
+          echo "Running Flutter analyze..."
+
+          flutter analyze --no-fatal-infos
+
+      # ---------------------------------------------------------
+      # 11. CHECK ANDROID TOOLCHAIN
+      # ---------------------------------------------------------
+      - name: Check Android Toolchain
+        run: |
+          echo "=================================================="
+          echo "ANDROID TOOLCHAIN"
+          echo "=================================================="
+
+          flutter doctor --android-licenses || true
+          flutter doctor -v
+
+      # ---------------------------------------------------------
+      # 12. GRADLE VERSION
+      # ---------------------------------------------------------
+      - name: Check Gradle
+        working-directory: android
+        run: |
+          echo "Gradle wrapper information:"
+          ./gradlew --version
+
+      # ---------------------------------------------------------
+      # 13. GRADLE PROJECT VALIDATION
+      # ---------------------------------------------------------
+      - name: Validate Gradle Project
+        working-directory: android
+        run: |
+          echo "=================================================="
+          echo "GRADLE PROJECT VALIDATION"
+          echo "=================================================="
+
+          ./gradlew tasks --stacktrace --no-daemon
+
+      # ---------------------------------------------------------
+      # 14. BUILD APK
+      # ---------------------------------------------------------
       - name: Build APK
-        run: flutter build apk --debug --android-skip-build-dependency-validation
+        run: |
+          echo "=================================================="
+          echo "BUILDING POCKET PCR STUDIO APK"
+          echo "=================================================="
 
+          flutter build apk \
+            --debug \
+            --android-skip-build-dependency-validation \
+            --verbose
+
+      # ---------------------------------------------------------
+      # 15. CHECK APK
+      # ---------------------------------------------------------
+      - name: Verify APK
+        run: |
+          echo "=================================================="
+          echo "APK OUTPUT"
+          echo "=================================================="
+
+          if [ -f build/app/outputs/flutter-apk/app-debug.apk ]; then
+            echo ""
+            echo "SUCCESS: APK FOUND"
+            echo ""
+
+            ls -lh build/app/outputs/flutter-apk/app-debug.apk
+
+            echo ""
+            file build/app/outputs/flutter-apk/app-debug.apk
+
+          else
+            echo ""
+            echo "ERROR: APK NOT FOUND"
+            echo ""
+
+            find build -type f | sort | head -200
+
+            exit 1
+          fi
+
+      # ---------------------------------------------------------
+      # 16. UPLOAD APK
+      # ---------------------------------------------------------
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: pocket-pcr-studio-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+      # ---------------------------------------------------------
+      # 17. BUILD SUMMARY
+      # ---------------------------------------------------------
+      - name: Build Summary
+        if: success()
+        run: |
+          echo "=================================================="
+          echo "       POCKET PCR STUDIO BUILD SUCCESS"
+          echo "=================================================="
+          echo ""
+          echo "APK:"
+          echo "build/app/outputs/flutter-apk/app-debug.apk"
+          echo ""
+          echo "Artifact:"
+          echo "pocket-pcr-studio-debug-apk"
+          echo ""
+          echo "=================================================="
