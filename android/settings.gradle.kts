@@ -17,13 +17,11 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()
-        maven {
-            url = java.net.URI("https://jitpack.io")
-        }
+        maven { url = java.net.URI("https://jitpack.io") }
     }
 }
 
