@@ -47,3 +47,6 @@ configurations.all {
 flutter {
     source = "../.."
 }
+dependencies {
+    implementation("io.github.pedroSG94.RootEncoder:rtmp:2.3.0")
+}
