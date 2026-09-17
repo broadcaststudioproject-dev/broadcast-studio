@@ -25,10 +25,8 @@ jobs:
 
       - name: Install Java 17 Manually
         run: |
-          echo "Installing Java 17..."
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk
-          java -version
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -36,31 +34,18 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Official Android Template & Configure Dependencies
+      - name: Restore Clean Android Platform
         run: |
-          echo "Generating official Flutter Android template..."
           flutter create . --platforms=android
 
-          echo "Adding JitPack repository to android/settings.gradle..."
-          sed -i "/repositories {/a \        maven { url 'https://jitpack.io' }" android/settings.gradle
-
-          echo "Enabling MultiDex and adding RTMP dependency to android/app/build.gradle..."
-          sed -i '/defaultConfig {/a \        multiDexEnabled true' android/app/build.gradle
-
-          echo "" >> android/app/build.gradle
-          echo "dependencies {" >> android/app/build.gradle
-          echo "    implementation 'io.github.pedroSG94.RootEncoder:rtmp:2.3.0'" >> android/app/build.gradle
-          echo "    implementation 'androidx.multidex:multidex:2.0.1'" >> android/app/build.gradle
-          echo "}" >> android/app/build.gradle
-
-      - name: Clean and Get Dependencies
+      - name: Install Dependencies
         run: |
           flutter clean
           flutter pub get
 
       - name: Build APK
         run: |
-          flutter build apk --debug --verbose
+          flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
