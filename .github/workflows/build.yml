@@ -22,75 +22,152 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------------------------------
-      # 1. Checkout
-      # --------------------------------------------------
+
+      # ==================================================
+      # 1. CHECKOUT SOURCE CODE
+      # ==================================================
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # --------------------------------------------------
-      # 2. Java 17
-      # --------------------------------------------------
-      - name: Set up Java
+
+      # ==================================================
+      # 2. SETUP JAVA 17
+      # ==================================================
+      - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
 
-      # --------------------------------------------------
-      # 3. Flutter
-      # --------------------------------------------------
+
+      # ==================================================
+      # 3. SETUP FLUTTER
+      # ==================================================
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # --------------------------------------------------
-      # 4. Flutter Version
-      # --------------------------------------------------
-      - name: Check Flutter Environment
+
+      # ==================================================
+      # 4. SHOW BUILD ENVIRONMENT
+      # ==================================================
+      - name: Check Build Environment
         run: |
+          echo "=============================================="
+          echo "POCKET PCR STUDIO BUILD ENVIRONMENT"
+          echo "=============================================="
+
           flutter --version
           dart --version
           java -version
 
-      # --------------------------------------------------
-      # 5. Flutter Dependencies
-      # --------------------------------------------------
+          echo ""
+          echo "Flutter Doctor"
+          flutter doctor -v
+
+          echo "=============================================="
+
+
+      # ==================================================
+      # 5. VERIFY PROJECT
+      # ==================================================
+      - name: Verify Flutter Project
+        run: |
+          if [ ! -f "pubspec.yaml" ]; then
+            echo "ERROR: pubspec.yaml not found."
+            exit 1
+          fi
+
+          if [ ! -d "android" ]; then
+            echo "ERROR: android directory not found."
+            exit 1
+          fi
+
+          echo "Flutter project detected successfully."
+
+
+      # ==================================================
+      # 6. GET FLUTTER DEPENDENCIES
+      # ==================================================
       - name: Get Flutter Dependencies
+        run: |
+          flutter pub get
+
+
+      # ==================================================
+      # 7. FLUTTER ANALYZE
+      # ==================================================
+      - name: Analyze Flutter Project
+        run: |
+          flutter analyze
+
+
+      # ==================================================
+      # 8. CLEAN BUILD
+      # ==================================================
+      - name: Clean Flutter Build
         run: |
           flutter clean
           flutter pub get
 
-      # --------------------------------------------------
-      # 6. Analyze Project
-      # --------------------------------------------------
-      - name: Flutter Analyze
-        run: |
-          flutter analyze
 
-      # --------------------------------------------------
-      # 7. Build Debug APK
-      # --------------------------------------------------
+      # ==================================================
+      # 9. BUILD DEBUG APK
+      # ==================================================
       - name: Build Debug APK
         run: |
-          flutter build apk --debug --verbose
+          flutter build apk \
+            --debug \
+            --verbose
 
-      # --------------------------------------------------
-      # 8. Rename APK
-      # --------------------------------------------------
-      - name: Prepare APK
+
+      # ==================================================
+      # 10. VERIFY APK
+      # ==================================================
+      - name: Verify APK
+        run: |
+          APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"
+
+          if [ ! -f "$APK_PATH" ]; then
+            echo "ERROR: APK was not generated."
+            exit 1
+          fi
+
+          echo ""
+          echo "=============================================="
+          echo "APK BUILD SUCCESSFUL"
+          echo "=============================================="
+
+          ls -lh "$APK_PATH"
+
+          echo ""
+          echo "APK SHA256:"
+          sha256sum "$APK_PATH"
+
+          echo "=============================================="
+
+
+      # ==================================================
+      # 11. COPY APK TO RELEASE DIRECTORY
+      # ==================================================
+      - name: Prepare APK Artifact
         run: |
           mkdir -p release
-          cp build/app/outputs/flutter-apk/app-debug.apk \
-             release/pocket-pcr-studio-debug.apk
 
-      # --------------------------------------------------
-      # 9. Upload APK
-      # --------------------------------------------------
-      - name: Upload APK
+          cp \
+            build/app/outputs/flutter-apk/app-debug.apk \
+            release/pocket-pcr-studio-debug.apk
+
+          ls -lh release/
+
+
+      # ==================================================
+      # 12. UPLOAD APK TO GITHUB ACTIONS
+      # ==================================================
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: pocket-pcr-studio-debug-apk
