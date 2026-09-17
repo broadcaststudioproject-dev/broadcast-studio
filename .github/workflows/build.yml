@@ -1,19 +1,21 @@
-name: Build Pocket PCR Studio APK
+name: Build Flutter APK
 
 on:
   push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -21,7 +23,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.x'
           channel: 'stable'
+          cache: true
 
       - name: Clean Project Cache
         run: flutter clean
@@ -29,11 +33,14 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Regenerate Android Platform Files
+        run: flutter create . --platforms=android
+
       - name: Build APK
         run: flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: PocketPCRStudio-Debug-APK
+          name: app-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
