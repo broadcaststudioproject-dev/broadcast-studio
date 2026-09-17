@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Java 17 Manually
         run: |
-          echo "Installing Java 17 via apt to avoid setup-java bug..."
+          echo "Installing Java 17 via apt..."
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk
           java -version
@@ -36,18 +36,58 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Fresh Android Template & Add Dependencies
+      - name: Generate Fresh Android Template & Write Clean Build Gradle
         run: |
+          echo "Generating standard Flutter Android template..."
           flutter create . --platforms=android
-          
-          # Enable multidex
-          sed -i '/defaultConfig {/a \        multiDexEnabled true' android/app/build.gradle
-          
-          # Add required dependencies safely
-          echo "dependencies {" >> android/app/build.gradle
-          echo "    implementation 'io.github.pedroSG94.RootEncoder:rtmp:2.3.0'" >> android/app/build.gradle
-          echo "    implementation 'androidx.multidex:multidex:2.0.1'" >> android/app/build.gradle
-          echo "}" >> android/app/build.gradle
+
+          echo "Writing clean and supported android/app/build.gradle..."
+          cat << 'EOF' > android/app/build.gradle
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-plugin-loader"
+          }
+
+          android {
+              namespace "com.example.pocket_pcr_studio"
+              compileSdkVersion flutter.compileSdkVersion
+              compileSdk flutter.compileSdkVersion
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+
+              kotlinOptions {
+                  jvmTarget = '1.8'
+              }
+
+              defaultConfig {
+                  applicationId "com.example.pocket_pcr_studio"
+                  minSdk 24
+                  targetSdk flutter.targetSdkVersion
+                  versionCode flutter.versionCode.toInteger()
+                  versionName flutter.versionName
+                  multiDexEnabled true
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
+
+          flutter {
+              source = "../.."
+          }
+
+          dependencies {
+              implementation 'io.github.pedroSG94.RootEncoder:rtmp:2.3.0'
+              implementation 'androidx.multidex:multidex:2.0.1'
+          }
+          EOF
 
       - name: Clean and Get Dependencies
         run: |
