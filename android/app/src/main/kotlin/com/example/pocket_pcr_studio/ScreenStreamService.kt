@@ -10,7 +10,6 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import com.pedro.library.rtmp.RtmpDisplay
-import com.pedro.encoder.input.video.CameraHelper
 
 class ScreenStreamService : Service() {
     private var rtmpDisplay: RtmpDisplay? = null
@@ -38,24 +37,21 @@ class ScreenStreamService : Service() {
         }
 
         if (resultCode == Activity.RESULT_OK && data != null && rtmpUrl != null) {
-            rtmpDisplay = RtmpDisplay(baseContext, true, object : com.pedro.common.ConnectChecker {
-                override fun onConnectionSuccess() {
-                    // లైవ్ కనెక్ట్ అయినప్పుడు
-                }
-                override fun onConnectionFailed(reason: String) {
-                    // కనెక్షన్ ఫెయిల్ అయినప్పుడు
-                }
-                override fun onDisconnect() {
-                    // డిస్‌కనెక్ట్ అయినప్పుడు
-                }
-                override fun onAuthError() {}
-                override fun onAuthSuccess() {}
-            })
+            try {
+                rtmpDisplay = RtmpDisplay(baseContext, true, object : com.pedro.common.ConnectChecker {
+                    override fun onConnectionSuccess() {}
+                    override fun onConnectionFailed(reason: String) {}
+                    override fun onDisconnect() {}
+                    override fun onAuthError() {}
+                    override fun onAuthSuccess() {}
+                })
 
-            if (rtmpDisplay!!.prepareAudio() && rtmpDisplay!!.prepareVideo(1280, 720, 30, 2000 * 1024, false, 0)) {
-                rtmpDisplay!!.startStream(rtmpUrl)
-                rtmpDisplay!!.setScreenResolution(1280, 720)
-                rtmpDisplay!!.startStream(resultCode, data)
+                if (rtmpDisplay!!.prepareAudio() && rtmpDisplay!!.prepareVideo(1280, 720, 30, 2000 * 1024, false, 0)) {
+                    rtmpDisplay!!.startStream(rtmpUrl)
+                    rtmpDisplay!!.startStream(resultCode, data)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
@@ -74,7 +70,11 @@ class ScreenStreamService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        rtmpDisplay?.stopStream()
+        try {
+            rtmpDisplay?.stopStream()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
