@@ -22,14 +22,14 @@ kotlinOptions {
     }
 
     defaultConfig {
-        applicationId = "com.example.pocket_pcr_studio"
-        minSdk = 24
-        targetSdk = 36
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-
-        multiDexEnabled = true
-    }
+    applicationId = "com.example.pocket_pcr_studio"
+    minSdk = 24 // (RootEncoder కోసం ఇది 24 లేదా అంతకంటే ఎక్కువగా ఉండాలి)
+    targetSdk = flutter.targetSdkVersion
+    versionCode = flutter.versionCode.toInt()
+    versionName = flutter.versionName
+    
+    multiDexEnabled = true // 👈 దీన్ని ఇక్కడ పేస్ట్ చేయాలి
+}
 
     buildTypes {
         release {
