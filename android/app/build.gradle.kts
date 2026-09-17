@@ -6,29 +6,25 @@ plugins {
 
 android {
     namespace = "com.example.pocket_pcr_studio"
-    compileSdk = 36
-    ndkVersion = flutter.ndkVersion
-
-    compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-kotlinOptions {
-    jvmTarget = "1.8"
-}
-
-    packaging {
-        resources.excludes.add("project.clj")
-    }
+    compileSdk = flutter.compileSdkVersion
 
     defaultConfig {
-    applicationId = "com.example.pocket_pcr_studio"
-    minSdk = 24
-    targetSdk = flutter.targetSdkVersion
-    versionCode = flutter.versionCode.toInt()
-    versionName = flutter.versionName
-    multiDexEnabled = true
-}
+        applicationId = "com.example.pocket_pcr_studio"
+        minSdk = 24
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode.toInt()
+        versionName = flutter.versionName
+        multiDexEnabled = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 
     buildTypes {
         release {
@@ -42,7 +38,7 @@ configurations.all {
         if (requested.group == "androidx.exifinterface" && requested.name == "exifinterface") {
             useVersion("1.3.6")
         }
-        if (requested.group == "androidx.annotation" && requested.name == "annotation-experimental") {
+        if (requested.group == "androidx.annotation" && requested.name == "annotation") {
             useVersion("1.3.0")
         }
     }
@@ -51,6 +47,8 @@ configurations.all {
 flutter {
     source = "../.."
 }
+
 dependencies {
     implementation("io.github.pedroSG94.RootEncoder:rtmp:2.3.0")
+    implementation("androidx.multidex:multidex:2.0.1")
 }
