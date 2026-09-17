@@ -7,28 +7,13 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.hardware.display.DisplayManager
-import android.hardware.display.VirtualDisplay
-import android.media.MediaCodec
-import android.media.MediaCodecInfo
-import android.media.MediaFormat
-import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.IBinder
-import android.view.Surface
+import com.pedro.library.rtmp.RtmpDisplay
+import com.pedro.encoder.input.video.CameraHelper
 
 class ScreenStreamService : Service() {
-    private var mediaProjection: MediaProjection? = null
-    private var virtualDisplay: VirtualDisplay? = null
-    private var mediaCodec: MediaCodec? = null
-    private var isRunning = false
-
-    private val WIDTH = 1280
-    private val HEIGHT = 720
-    private val DPI = 1
-    private val BITRATE = 2000000 // 2 Mbps
-    private val FPS = 30
+    private var rtmpDisplay: RtmpDisplay? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val resultCode = intent?.getIntExtra("RESULT_CODE", Activity.RESULT_CANCELED) ?: Activity.RESULT_CANCELED
@@ -53,41 +38,28 @@ class ScreenStreamService : Service() {
         }
 
         if (resultCode == Activity.RESULT_OK && data != null && rtmpUrl != null) {
-            val projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            mediaProjection = projectionManager.getMediaProjection(resultCode, data)
-            
-            try {
-                startStreaming(rtmpUrl)
-            } catch (e: Exception) {
-                e.printStackTrace()
+            rtmpDisplay = RtmpDisplay(baseContext, true, object : com.pedro.common.ConnectChecker {
+                override fun onConnectionSuccess() {
+                    // లైవ్ కనెక్ట్ అయినప్పుడు
+                }
+                override fun onConnectionFailed(reason: String) {
+                    // కనెక్షన్ ఫెయిల్ అయినప్పుడు
+                }
+                override fun onDisconnect() {
+                    // డిస్‌కనెక్ట్ అయినప్పుడు
+                }
+                override fun onAuthError() {}
+                override fun onAuthSuccess() {}
+            })
+
+            if (rtmpDisplay!!.prepareAudio() && rtmpDisplay!!.prepareVideo(1280, 720, 30, 2000 * 1024, false, 0)) {
+                rtmpDisplay!!.startStream(rtmpUrl)
+                rtmpDisplay!!.setScreenResolution(1280, 720)
+                rtmpDisplay!!.startStream(resultCode, data)
             }
         }
 
         return START_NOT_STICKY
-    }
-
-    private fun startStreaming(rtmpUrl: String) {
-        isRunning = true
-        
-        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, WIDTH, HEIGHT).apply {
-            setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
-            setInteger(MediaFormat.KEY_BIT_RATE, BITRATE)
-            setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
-            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 2)
-        }
-
-        mediaCodec = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC).apply {
-            configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-            val surface: Surface = createInputSurface()
-            start()
-            
-            virtualDisplay = mediaProjection?.createVirtualDisplay(
-                "ScreenStream",
-                WIDTH, HEIGHT, DPI,
-                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                surface, null, null
-            )
-        }
     }
 
     private fun createNotificationChannel() {
@@ -102,15 +74,7 @@ class ScreenStreamService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        isRunning = false
-        virtualDisplay?.release()
-        try {
-            mediaCodec?.stop()
-            mediaCodec?.release()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        mediaProjection?.stop()
+        rtmpDisplay?.stopStream()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
