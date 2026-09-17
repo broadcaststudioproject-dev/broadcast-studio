@@ -46,43 +46,76 @@ jobs:
           cache: true
 
       # ---------------------------------------------------------
-      # 4. SHOW ENVIRONMENT
+      # 4. GENERATE SUPPORTED ANDROID PROJECT TEMPLATE
       # ---------------------------------------------------------
-      - name: Show Build Environment
+      - name: Generate Fresh Android Project
         run: |
-          echo "=================================================="
-          echo "POCKET PCR STUDIO BUILD ENVIRONMENT"
-          echo "=================================================="
-          flutter --version
-          dart --version
-          java -version
-
-      # ---------------------------------------------------------
-      # 5. GENERATE & ENSURE ANDROID PLATFORM FILES
-      # ---------------------------------------------------------
-      - name: Generate Android Platform Files
-        run: |
-          echo "Ensuring Android platform files exist..."
+          echo "Generating standard Flutter Android template..."
           flutter create . --platforms=android
 
       # ---------------------------------------------------------
-      # 6. FLUTTER CLEAN
+      # 5. INJECT CUSTOM BUILD.GRADLE WITH RTMP DEPENDENCY
       # ---------------------------------------------------------
-      - name: Clean Project Cache
+      - name: Configure Android App Build Gradle
         run: |
-          flutter clean
-          rm -rf build
-          rm -rf .dart_tool
+          echo "Injecting custom build.gradle configurations..."
+          cat << 'EOF' > android/app/build.gradle
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+              id "dev.flutter.flutter-plugin-loader"
+          }
+
+          android {
+              namespace "com.example.pocket_pcr_studio"
+              compileSdk flutter.compileSdkVersion
+              ndkVersion "28.2.13676358"
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+
+              kotlinOptions {
+                  jvmTarget = '1.8'
+              }
+
+              defaultConfig {
+                  applicationId "com.example.pocket_pcr_studio"
+                  minSdk 24
+                  targetSdk flutter.targetSdkVersion
+                  versionCode flutter.versionCode.toInteger()
+                  versionName flutter.versionName
+                  multiDexEnabled true
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
+
+          flutter {
+              source = "../.."
+          }
+
+          dependencies {
+              implementation 'io.github.pedroSG94.RootEncoder:rtmp:2.3.0'
+              implementation 'androidx.multidex:multidex:2.0.1'
+          }
+          EOF
 
       # ---------------------------------------------------------
-      # 7. GET DEPENDENCIES
+      # 6. CLEAN & GET DEPENDENCIES
       # ---------------------------------------------------------
       - name: Install Dependencies
         run: |
+          flutter clean
           flutter pub get
 
       # ---------------------------------------------------------
-      # 8. BUILD APK
+      # 7. BUILD APK
       # ---------------------------------------------------------
       - name: Build APK
         run: |
@@ -92,11 +125,10 @@ jobs:
 
           flutter build apk \
             --debug \
-            --android-skip-build-dependency-validation \
             --verbose
 
       # ---------------------------------------------------------
-      # 9. UPLOAD APK
+      # 8. UPLOAD APK
       # ---------------------------------------------------------
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -106,7 +138,7 @@ jobs:
           if-no-files-found: error
 
       # ---------------------------------------------------------
-      # 10. BUILD SUMMARY
+      # 9. BUILD SUMMARY
       # ---------------------------------------------------------
       - name: Build Summary
         if: success()
