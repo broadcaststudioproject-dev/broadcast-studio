@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+
   pull_request:
     branches:
       - main
       - master
+
   workflow_dispatch:
 
 permissions:
@@ -20,131 +22,78 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      # ---------------------------------------------------------
-      # 1. CHECKOUT
-      # ---------------------------------------------------------
+      # --------------------------------------------------
+      # 1. Checkout
+      # --------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------
-      # 2. JAVA
-      # ---------------------------------------------------------
+      # --------------------------------------------------
+      # 2. Java 17
+      # --------------------------------------------------
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      # ---------------------------------------------------------
-      # 3. FLUTTER
-      # ---------------------------------------------------------
+      # --------------------------------------------------
+      # 3. Flutter
+      # --------------------------------------------------
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # ---------------------------------------------------------
-      # 4. GENERATE SUPPORTED ANDROID PROJECT TEMPLATE
-      # ---------------------------------------------------------
-      - name: Generate Fresh Android Project
+      # --------------------------------------------------
+      # 4. Flutter Version
+      # --------------------------------------------------
+      - name: Check Flutter Environment
         run: |
-          echo "Generating standard Flutter Android template..."
-          flutter create . --platforms=android
+          flutter --version
+          dart --version
+          java -version
 
-      # ---------------------------------------------------------
-      # 5. INJECT CUSTOM BUILD.GRADLE WITH RTMP DEPENDENCY
-      # ---------------------------------------------------------
-      - name: Configure Android App Build Gradle
-        run: |
-          echo "Injecting custom build.gradle configurations..."
-          cat << 'EOF' > android/app/build.gradle
-          plugins {
-              id "com.android.application"
-              id "kotlin-android"
-              id "dev.flutter.flutter-plugin-loader"
-          }
-
-          android {
-              namespace "com.example.pocket_pcr_studio"
-              compileSdk flutter.compileSdkVersion
-              ndkVersion "28.2.13676358"
-
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_1_8
-                  targetCompatibility JavaVersion.VERSION_1_8
-              }
-
-              kotlinOptions {
-                  jvmTarget = '1.8'
-              }
-
-              defaultConfig {
-                  applicationId "com.example.pocket_pcr_studio"
-                  minSdk 24
-                  targetSdk flutter.targetSdkVersion
-                  versionCode flutter.versionCode.toInteger()
-                  versionName flutter.versionName
-                  multiDexEnabled true
-              }
-
-              buildTypes {
-                  release {
-                      signingConfig signingConfigs.debug
-                  }
-              }
-          }
-
-          flutter {
-              source = "../.."
-          }
-
-          dependencies {
-              implementation 'io.github.pedroSG94.RootEncoder:rtmp:2.3.0'
-              implementation 'androidx.multidex:multidex:2.0.1'
-          }
-          EOF
-
-      # ---------------------------------------------------------
-      # 6. CLEAN & GET DEPENDENCIES
-      # ---------------------------------------------------------
-      - name: Install Dependencies
+      # --------------------------------------------------
+      # 5. Flutter Dependencies
+      # --------------------------------------------------
+      - name: Get Flutter Dependencies
         run: |
           flutter clean
           flutter pub get
 
-      # ---------------------------------------------------------
-      # 7. BUILD APK
-      # ---------------------------------------------------------
-      - name: Build APK
+      # --------------------------------------------------
+      # 6. Analyze Project
+      # --------------------------------------------------
+      - name: Flutter Analyze
         run: |
-          echo "=================================================="
-          echo "BUILDING POCKET PCR STUDIO APK"
-          echo "=================================================="
+          flutter analyze
 
-          flutter build apk \
-            --debug \
-            --verbose
+      # --------------------------------------------------
+      # 7. Build Debug APK
+      # --------------------------------------------------
+      - name: Build Debug APK
+        run: |
+          flutter build apk --debug --verbose
 
-      # ---------------------------------------------------------
-      # 8. UPLOAD APK
-      # ---------------------------------------------------------
+      # --------------------------------------------------
+      # 8. Rename APK
+      # --------------------------------------------------
+      - name: Prepare APK
+        run: |
+          mkdir -p release
+          cp build/app/outputs/flutter-apk/app-debug.apk \
+             release/pocket-pcr-studio-debug.apk
+
+      # --------------------------------------------------
+      # 9. Upload APK
+      # --------------------------------------------------
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: pocket-pcr-studio-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: release/pocket-pcr-studio-debug.apk
           if-no-files-found: error
-
-      # ---------------------------------------------------------
-      # 9. BUILD SUMMARY
-      # ---------------------------------------------------------
-      - name: Build Summary
-        if: success()
-        run: |
-          echo "=================================================="
-          echo "       POCKET PCR STUDIO BUILD SUCCESS"
-          echo "=================================================="
-          echo "APK: build/app/outputs/flutter-apk/app-debug.apk"
-          echo "=================================================="
+          retention-days: 30
