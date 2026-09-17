@@ -1,13 +1,13 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("dev.flutter.flutter-gradle-plugin")
+    id("dev.flutter.flutter-plugin-loader")
 }
 
 android {
     namespace = "com.example.pocket_pcr_studio"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "28.2.13676358" // 👈 ఈ లైన్‌ని ఇక్కడ యాడ్ చేయాలి
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId = "com.example.pocket_pcr_studio"
@@ -17,9 +17,6 @@ android {
         versionName = flutter.versionName
         multiDexEnabled = true
     }
-    // మిగతా కోడ్ అలాగే ఉంటుంది...
-}
-
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -56,3 +53,4 @@ dependencies {
     implementation("io.github.pedroSG94.RootEncoder:rtmp:2.3.0")
     implementation("androidx.multidex:multidex:2.0.1")
 }
+
