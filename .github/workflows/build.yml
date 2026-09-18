@@ -34,7 +34,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Hard Reset Android Folder and Update SDK to 36
+      - name: Hard Reset Android Folder and Update App SDK
         run: |
           echo "Deleting old and corrupted android folder..."
           rm -rf android
@@ -46,14 +46,24 @@ jobs:
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
 
-          echo "Updating SDK versions in build.gradle.kts to 36..."
-          sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle.kts
-          sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle.kts
+          echo "Updating App SDK to 34..."
+          sed -i 's/flutter.compileSdkVersion/34/g' android/app/build.gradle.kts || true
+          sed -i 's/flutter.targetSdkVersion/34/g' android/app/build.gradle.kts || true
 
       - name: Install Dependencies
         run: |
           flutter clean
           flutter pub get
+
+      - name: Patch Plugin SDK Versions
+        run: |
+          echo "Patching 3rd party plugins (like rtmp_broadcaster) to use compileSdk 34..."
+          find ~/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion 33/compileSdkVersion 34/g' {} + || true
+          find ~/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk 33/compileSdk 34/g' {} + || true
+          find /opt/hostedtoolcache/ -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion 33/compileSdkVersion 34/g' {} + || true
+          find /opt/hostedtoolcache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk 33/compileSdk 34/g' {} + || true
+          find ~/.pub-cache/ -name "build.gradle.kts" -type f -exec sed -i 's/compileSdk = 33/compileSdk = 34/g' {} + || true
+          find /opt/hostedtoolcache/ -name "build.gradle.kts" -type f -exec sed -i 's/compileSdk = 33/compileSdk = 34/g' {} + || true
 
       - name: Build APK
         run: |
