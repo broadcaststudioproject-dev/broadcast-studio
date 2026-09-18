@@ -34,13 +34,17 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Hard Reset Android Folder
+      - name: Hard Reset Android Folder and Enable Jetifier
         run: |
           echo "Deleting old and corrupted android folder..."
           rm -rf android
           
           echo "Creating 100% fresh android platform..."
           flutter create . --platforms=android
+
+          echo "Enabling AndroidX and Jetifier to fix manifest conflicts..."
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
 
       - name: Install Dependencies
         run: |
