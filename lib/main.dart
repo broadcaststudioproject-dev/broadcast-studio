@@ -843,7 +843,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
 
-    // === Camera Aspect Ratio Fix ===
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -862,7 +861,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: ClipRect(
                   child: SizedBox.expand(
                     child: FittedBox(
-                      fit: BoxFit.cover, // Ensures the camera fills the space without stretching the face
+                      fit: BoxFit.cover, 
                       child: SizedBox(
                         width: 1000,
                         height: 1000 / (isScreenLandscape 
@@ -934,7 +933,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         return true;
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.black, // Dark background
         body: Stack(
           children: [
             Positioned.fill(
@@ -1024,64 +1023,84 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ),
                           ],
                         )
-                        // TV Channel Portrait View Layout
+                        // === New TV Channel Portrait View Layout with Borders ===
                         : Column(
                             children: [
+                              SizedBox(height: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top + 10 : 35),
                               Expanded(
-                                flex: 5,
+                                flex: 12,
                                 child: Container(
-                                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 20),
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(child: cameraWidget),
-                                      Positioned(top: 15, left: 15, child: visualScreenLogoWidget),
-                                    ],
+                                  margin: const EdgeInsets.symmetric(horizontal: 14),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.redAccent, width: 4.0), // Red border
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(child: cameraWidget),
+                                        Positioned(top: 15, left: 15, child: visualScreenLogoWidget),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                              Container(
-                                width: double.infinity,
-                                color: Colors.yellowAccent.shade700,
-                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 15.0),
                                 child: Text(
                                   topHeadlineText,
-                                  style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    color: Colors.yellowAccent, // Yellow text
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.3,
+                                  ),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
                                 ),
                               ),
                               Expanded(
-                                flex: 4,
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
-                                          ? (!newsBulletinList[currentNewsIndex].isVideo
-                                              ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                                              : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                                                  ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
-                                                  : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
-                                          : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
-                                    ),
-                                    if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
-                                      Positioned(
-                                        bottom: 60, left: 0, right: 0,
-                                        child: Container(
-                                          color: Colors.black54, padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              IconButton(icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24), onPressed: _prevNewsItem),
-                                              IconButton(icon: Icon(_bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.amber, size: 28), onPressed: () { setState(() { if (_bulletinVideoController != null) { if (_bulletinVideoController!.value.isPlaying) _bulletinVideoController!.pause(); else _bulletinVideoController!.play(); } }); }),
-                                              IconButton(icon: const Icon(Icons.skip_next, color: Colors.white, size: 24), onPressed: _nextNewsItem),
-                                            ],
-                                          ),
+                                flex: 10,
+                                child: Container(
+                                  margin: const EdgeInsets.only(left: 14, right: 14, bottom: 65),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.cyanAccent, width: 4.0), // Blue border
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
+                                              ? (!newsBulletinList[currentNewsIndex].isVideo
+                                                  ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                                  : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                                      ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
+                                                      : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
+                                              : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
                                         ),
-                                      ),
-                                  ],
+                                        if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
+                                          Positioned(
+                                            bottom: 10, left: 0, right: 0,
+                                            child: Container(
+                                              color: Colors.black54, padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  IconButton(icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24), onPressed: _prevNewsItem),
+                                                  IconButton(icon: Icon(_bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.amber, size: 28), onPressed: () { setState(() { if (_bulletinVideoController != null) { if (_bulletinVideoController!.value.isPlaying) _bulletinVideoController!.pause(); else _bulletinVideoController!.play(); } }); }),
+                                                  IconButton(icon: const Icon(Icons.skip_next, color: Colors.white, size: 24), onPressed: _nextNewsItem),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 55),
                             ],
                           )
                       )
@@ -1337,3 +1356,4 @@ class StreamServiceManager {
     }
   }
 }
+
