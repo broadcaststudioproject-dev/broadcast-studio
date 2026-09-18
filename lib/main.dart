@@ -57,7 +57,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   VideoPlayerController? _bulletinVideoController; 
   
   bool hideControls = false;
-  bool showVideoControls = true; 
   int currentCameraIndex = 0;
   bool isLandscape = false;
   bool isIpCameraActive = false;
@@ -340,15 +339,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // === NEW: Hidden Magic Trigger for Live Stream ===
-  // ఈ ఫంక్షన్ కేవలం డబుల్ ట్యాప్ లేదా లోగో లాంగ్ ప్రెస్ చేసినప్పుడు మాత్రమే రన్ అవుతుంది.
+  // === MODIFIED: Hidden Magic Trigger - Now completely silent! ===
   Future<void> _toggleHiddenLiveStream() async {
     String rtmpUrl = youtubeUrlController.text.trim();
     String streamKey = restreamKeyController.text.trim();
 
     if (rtmpUrl.isEmpty || streamKey.isEmpty) {
+      // ఎర్రర్ వస్తే మాత్రమే చూపిస్తుంది, లేకపోతే సైలెంట్
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ముందుగా Multi-Live బటన్‌లో RTMP URL మరియు Stream Key సేవ్ చేయండి!"), backgroundColor: Colors.red),
+        const SnackBar(content: Text("ముందుగా Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి!"), backgroundColor: Colors.red),
       );
       return;
     }
@@ -359,21 +358,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
       if (success) {
         setState(() { isLiveBroadcasting = true; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("🔴 స్క్రీన్ బ్రాడ్‌కాస్ట్ ప్రారంభమైంది! (లైవ్ ఆన్)"), backgroundColor: Colors.green),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ఎర్రర్: ఆండ్రాయిడ్ సిస్టమ్ కోడ్ మిస్ అయ్యింది."), backgroundColor: Colors.red),
-        );
+        // పాత నోటిఫికేషన్ మెసేజ్ ఇక్కడ నుండి తొలగించబడింది
       }
     } else {
       bool success = await StreamServiceManager.stopLiveStream();
       if (success) {
         setState(() { isLiveBroadcasting = false; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("⏹ స్క్రీన్ బ్రాడ్‌కాస్ట్ ఆగిపోయింది! (లైవ్ ఆఫ్)"), backgroundColor: Colors.red),
-        );
+        // పాత నోటిఫికేషన్ మెసేజ్ ఇక్కడ నుండి తొలగించబడింది
       }
     }
   }
@@ -706,7 +697,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // === MODIFIED: Multi-Live Dialog now ONLY saves the settings, does NOT start Live ===
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -755,7 +745,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   return;
                 }
 
-                // కేవలం సెట్టింగ్స్ మాత్రమే సేవ్ అవుతాయి, లైవ్ స్టార్ట్ అవ్వదు.
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("✅ సెట్టింగ్స్ సేవ్ అయ్యాయి! (లైవ్ స్టార్ట్ చేయడానికి స్క్రీన్ పై డబుల్ ట్యాప్ చేయండి)"), backgroundColor: Colors.blue),
                 );
@@ -767,7 +756,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       },
     );
   }
-  // ===================================================================================
 
   void _showEditDialog() {
     showDialog(
@@ -925,7 +913,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    // Logo gets Long Press gesture to trigger Hidden Stream
     Widget visualScreenLogoWidget = GestureDetector(
       onLongPress: _toggleHiddenLiveStream,
       child: channelLogoPath.isNotEmpty
@@ -961,7 +948,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // Double Tap added to the main screen to trigger Hidden Stream
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -1005,41 +991,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
-                                      child: GestureDetector(
-                                        onTap: () { setState(() { showVideoControls = !showVideoControls; }); },
-                                        child: Container(
-                                          decoration: BoxDecoration(border: Border.all(color: Colors.cyanAccent, width: 2.5), borderRadius: BorderRadius.circular(8)),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(6),
-                                            child: Stack(
-                                              children: [
-                                                Positioned.fill(
-                                                  child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
-                                                      ? (!newsBulletinList[currentNewsIndex].isVideo
-                                                          ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
-                                                          : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                                                              ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
-                                                              : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
-                                                      : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
-                                                ),
-                                                Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
-                                                if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
-                                                  Positioned(
-                                                    bottom: 10, left: 0, right: 0,
-                                                    child: Container(
-                                                      color: Colors.black54, padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                                      child: Row(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          IconButton(icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24), onPressed: _prevNewsItem),
-                                                          IconButton(icon: Icon(_bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.amber, size: 28), onPressed: () { setState(() { if (_bulletinVideoController != null) { if (_bulletinVideoController!.value.isPlaying) _bulletinVideoController!.pause(); else _bulletinVideoController!.play(); } }); }),
-                                                          IconButton(icon: const Icon(Icons.skip_next, color: Colors.white, size: 24), onPressed: _nextNewsItem),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
+                                      // కంట్రోల్స్ పూర్తిగా తొలగించబడ్డాయి - కేవలం వీడియో ప్లే అవుతుంది
+                                      child: Container(
+                                        decoration: BoxDecoration(border: Border.all(color: Colors.cyanAccent, width: 2.5), borderRadius: BorderRadius.circular(8)),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
+                                                    ? (!newsBulletinList[currentNewsIndex].isVideo
+                                                        ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                                        : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                                            ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
+                                                            : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
+                                                    : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
+                                              ),
+                                              Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
+                                            ],
                                           ),
                                         ),
                                       ),
@@ -1088,6 +1057,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                               Expanded(
                                 flex: 10,
+                                // కంట్రోల్స్ పూర్తిగా తొలగించబడ్డాయి - ఆటో ప్లే మాత్రమే జరుగుతుంది
                                 child: Container(
                                   margin: const EdgeInsets.only(left: 14, right: 14, bottom: 65),
                                   decoration: BoxDecoration(
@@ -1107,21 +1077,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                                       : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
                                               : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
                                         ),
-                                        if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
-                                          Positioned(
-                                            bottom: 10, left: 0, right: 0,
-                                            child: Container(
-                                              color: Colors.black54, padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  IconButton(icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24), onPressed: _prevNewsItem),
-                                                  IconButton(icon: Icon(_bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.amber, size: 28), onPressed: () { setState(() { if (_bulletinVideoController != null) { if (_bulletinVideoController!.value.isPlaying) _bulletinVideoController!.pause(); else _bulletinVideoController!.play(); } }); }),
-                                                  IconButton(icon: const Icon(Icons.skip_next, color: Colors.white, size: 24), onPressed: _nextNewsItem),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
                                       ],
                                     ),
                                   ),
