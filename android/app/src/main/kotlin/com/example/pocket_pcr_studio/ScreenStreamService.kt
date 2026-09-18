@@ -32,23 +32,26 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
 
-            if (resultCode != -1 && data != null && url.isNotEmpty()) {
+            // కీ (url) లేకపోయినా రికార్డింగ్ కోసం పర్మిషన్ ఇస్తున్నాం
+            if (resultCode != -1 && data != null) {
                 startNotification()
                 
                 val display = rtmpDisplay 
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     if (display.prepareAudio() && display.prepareVideo()) {
-                        // 1. లైవ్ స్టార్ట్
-                        display.startStream(url)
                         
-                        // 2. గ్యాలరీలో (Movies ఫోల్డర్) రికార్డింగ్ సేవ్ చేయడానికి
+                        // 1. URL ఉంటేనే ఆన్‌లైన్ లైవ్ అవుతుంది
+                        if (url.isNotEmpty()) {
+                            display.startStream(url)
+                        }
+                        
+                        // 2. గ్యాలరీలో రికార్డింగ్ మాత్రం ఎప్పుడూ (ఆఫ్‌లైన్‌లో కూడా) అవుతుంది
                         try {
                             val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
                             if (!folder.exists()) {
                                 folder.mkdirs()
                             }
-                            // ఫైల్ పేరు ఉదాహరణకి: PCR_Live_168000000.mp4
                             val file = File(folder, "PCR_Live_${System.currentTimeMillis()}.mp4")
                             display.startRecord(file.absolutePath)
                         } catch (e: Exception) {
@@ -58,7 +61,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 }
             }
         } else if (action == "STOP_STREAM") {
-            // రికార్డింగ్ మరియు లైవ్ రెండూ ఆగిపోతాయి
             rtmpDisplay?.stopRecord()
             rtmpDisplay?.stopStream()
             stopForeground(true)
@@ -79,7 +81,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         }
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
-            .setContentText("🔴 Live & Recording is running...")
+            .setContentText("Background recording active...")
             .setSmallIcon(android.R.drawable.ic_media_play) 
             .build()
         startForeground(1, notification)
