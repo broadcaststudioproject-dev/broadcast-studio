@@ -34,7 +34,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Hard Reset Android Folder and Update SDK to 34
+      - name: Hard Reset Android Folder and Update SDK to 36
         run: |
           echo "Deleting old and corrupted android folder..."
           rm -rf android
@@ -46,9 +46,9 @@ jobs:
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
 
-          echo "Updating SDK versions in build.gradle.kts..."
-          sed -i 's/flutter.compileSdkVersion/34/g' android/app/build.gradle.kts
-          sed -i 's/flutter.targetSdkVersion/34/g' android/app/build.gradle.kts
+          echo "Updating SDK versions in build.gradle.kts to 36..."
+          sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle.kts
+          sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle.kts
 
       - name: Install Dependencies
         run: |
