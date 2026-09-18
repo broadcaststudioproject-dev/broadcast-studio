@@ -69,15 +69,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   int currentNewsIndex = 0;
 
   final List<NewsBulletinItem> newsBulletinList = [
-    NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!", mediaPath: "", isVideo: true),
-    NewsBulletinItem(title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!", mediaPath: "", isVideo: true),
-    NewsBulletinItem(title: "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!", mediaPath: "", isVideo: true),
+    NewsBulletinItem(title: "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!", mediaPath: "", isVideo: true),
+    NewsBulletinItem(title: "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో రగడ!", mediaPath: "", isVideo: true),
+    NewsBulletinItem(title: "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ నియామకం!", mediaPath: "", isVideo: true),
   ];
 
   List<String> customHeadlines = [
-    "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!",
-    "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ విజయ్‌కుమార్ నియామకం!",
-    "ఎర్రవలి ఫార్మ్‌హౌస్ ఘటనపై బీఆర్ఎస్ నేతల తీవ్ర ఆగ్రహం!"
+    "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!",
+    "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో రగడ!",
+    "సమగ్ర విచారణకు సీఎం రేవంత్ ఆదేశం.. ఐపీఎస్ నియామకం!"
   ];
   int _headlineIndex = 0;
   Timer? _headlineRotationTimer;
@@ -117,7 +117,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String reporterName = "JANAMPALLY VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
-  String topHeadlineText = "తెలంగాణలో పెరుగుతున్న పొలిటికల్ హీట్.. అసెంబ్లీలో శుద్ధి రగడ!";
+  String topHeadlineText = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
 
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController restreamKeyController = TextEditingController();
@@ -908,20 +908,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    Widget visualScreenLogoWidget = Positioned(
-      top: 15, right: 15, 
-      child: channelLogoPath.isNotEmpty
-          ? SizedBox(
-              width: logoWidth,
-              height: logoHeight,
-              child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
-            )
-          : Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
-              color: Colors.blue[900]?.withOpacity(0.9), 
-              child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            ),
-    );
+    Widget visualScreenLogoWidget = channelLogoPath.isNotEmpty
+        ? SizedBox(
+            width: logoWidth,
+            height: logoHeight,
+            child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+          )
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+            color: Colors.red[900]?.withOpacity(0.9), 
+            child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          );
 
     return WillPopScope(
       onWillPop: () async {
@@ -954,24 +951,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: isNewsBulletinMode
                     ? Container(
                         color: Colors.black,
-                        child: Column(
+                        child: isScreenLandscape 
+                        ? Column(
                           children: [
                             Container(
                               width: double.infinity,
                               margin: EdgeInsets.zero,
-                              padding: EdgeInsets.only(
-                                top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 8,
-                                bottom: 12,
-                                left: 15,
-                                right: 15,
-                              ),
+                              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 8, bottom: 12, left: 15, right: 15),
                               color: Colors.red.shade900,
-                              child: Text(
-                                topHeadlineText,
-                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                              ),
+                              child: Text(topHeadlineText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center, maxLines: 1),
                             ),
                             Expanded(
                               child: Padding(
@@ -980,10 +968,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   children: [
                                     Expanded(
                                       child: Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.amberAccent, width: 2.5),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
+                                        decoration: BoxDecoration(border: Border.all(color: Colors.amberAccent, width: 2.5), borderRadius: BorderRadius.circular(8)),
                                         child: ClipRRect(
                                           borderRadius: BorderRadius.circular(6),
                                           child: Stack(
@@ -998,16 +983,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            showVideoControls = !showVideoControls;
-                                          });
-                                        },
+                                        onTap: () { setState(() { showVideoControls = !showVideoControls; }); },
                                         child: Container(
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.cyanAccent, width: 2.5),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
+                                          decoration: BoxDecoration(border: Border.all(color: Colors.cyanAccent, width: 2.5), borderRadius: BorderRadius.circular(8)),
                                           child: ClipRRect(
                                             borderRadius: BorderRadius.circular(6),
                                             child: Stack(
@@ -1015,78 +993,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                                 Positioned.fill(
                                                   child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
                                                       ? (!newsBulletinList[currentNewsIndex].isVideo
-                                                          ? Image.file(
-                                                              File(newsBulletinList[currentNewsIndex].mediaPath),
-                                                              fit: BoxFit.cover,
-                                                              width: double.infinity,
-                                                              height: double.infinity,
-                                                            )
+                                                          ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
                                                           : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                                                              ? FittedBox(
-                                                                  fit: BoxFit.cover,
-                                                                  child: SizedBox(
-                                                                    width: _bulletinVideoController!.value.size.width,
-                                                                    height: _bulletinVideoController!.value.size.height,
-                                                                    child: VideoPlayer(_bulletinVideoController!),
-                                                                  ),
-                                                                )
-                                                              : Container(
-                                                                  color: Colors.black,
-                                                                  child: const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                                                                )))
-                                                      : Container(
-                                                          color: Colors.black, 
-                                                          child: Center(
-                                                            child: ElevatedButton.icon(
-                                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                                                              onPressed: _pickBulletinMedia,
-                                                              icon: const Icon(Icons.perm_media),
-                                                              label: const Text("గ్యాలరీ నుండి MP4 / JPEG / GIF ఎంచుకోండి"),
-                                                            ),
-                                                          ),
-                                                        ),
+                                                              ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
+                                                              : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
+                                                      : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
                                                 ),
-                                                visualScreenLogoWidget,
-                                                
+                                                Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
                                                 if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
                                                   Positioned(
-                                                    bottom: 10,
-                                                    left: 0,
-                                                    right: 0,
+                                                    bottom: 10, left: 0, right: 0,
                                                     child: Container(
-                                                      color: Colors.black54,
-                                                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                                      color: Colors.black54, padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                                                       child: Row(
                                                         mainAxisAlignment: MainAxisAlignment.center,
                                                         children: [
-                                                          IconButton(
-                                                            icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24),
-                                                            onPressed: _prevNewsItem,
-                                                            tooltip: "Previous",
-                                                          ),
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              _bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                                                              color: Colors.amber,
-                                                              size: 28,
-                                                            ),
-                                                            onPressed: () {
-                                                              setState(() {
-                                                                if (_bulletinVideoController != null) {
-                                                                  if (_bulletinVideoController!.value.isPlaying) {
-                                                                    _bulletinVideoController!.pause();
-                                                                  } else {
-                                                                    _bulletinVideoController!.play();
-                                                                  }
-                                                                }
-                                                              });
-                                                            },
-                                                          ),
-                                                          IconButton(
-                                                            icon: const Icon(Icons.skip_next, color: Colors.white, size: 24),
-                                                            onPressed: _nextNewsItem,
-                                                            tooltip: "Next",
-                                                          ),
+                                                          IconButton(icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24), onPressed: _prevNewsItem),
+                                                          IconButton(icon: Icon(_bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.amber, size: 28), onPressed: () { setState(() { if (_bulletinVideoController != null) { if (_bulletinVideoController!.value.isPlaying) _bulletinVideoController!.pause(); else _bulletinVideoController!.play(); } }); }),
+                                                          IconButton(icon: const Icon(Icons.skip_next, color: Colors.white, size: 24), onPressed: _nextNewsItem),
                                                         ],
                                                       ),
                                                     ),
@@ -1102,7 +1026,67 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                             ),
                           ],
-                        ),
+                        )
+                        // This is the new Portrait TV layout that perfectly matches your video!
+                        : Column(
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: Container(
+                                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : 20),
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(child: cameraWidget),
+                                      Positioned(top: 15, left: 15, child: visualScreenLogoWidget),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: double.infinity,
+                                color: Colors.yellowAccent.shade700,
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                child: Text(
+                                  topHeadlineText,
+                                  style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 4,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
+                                          ? (!newsBulletinList[currentNewsIndex].isVideo
+                                              ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                                              : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                                                  ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
+                                                  : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
+                                          : Container(color: Colors.black, child: Center(child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: _pickBulletinMedia, icon: const Icon(Icons.perm_media), label: const Text("గ్యాలరీ నుండి MP4 / JPEG ఎంచుకోండి")))),
+                                    ),
+                                    if (showVideoControls && newsBulletinList[currentNewsIndex].isVideo && newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty)
+                                      Positioned(
+                                        bottom: 60, left: 0, right: 0,
+                                        child: Container(
+                                          color: Colors.black54, padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              IconButton(icon: const Icon(Icons.skip_previous, color: Colors.white, size: 24), onPressed: _prevNewsItem),
+                                              IconButton(icon: Icon(_bulletinVideoController != null && _bulletinVideoController!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.amber, size: 28), onPressed: () { setState(() { if (_bulletinVideoController != null) { if (_bulletinVideoController!.value.isPlaying) _bulletinVideoController!.pause(); else _bulletinVideoController!.play(); } }); }),
+                                              IconButton(icon: const Icon(Icons.skip_next, color: Colors.white, size: 24), onPressed: _nextNewsItem),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 55),
+                            ],
+                          )
                       )
                     : (isVideoAdPlaying && _videoAdVlcController != null)
                         ? Container(
@@ -1117,7 +1101,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ? Stack(
                                 children: [
                                   Positioned.fill(child: cameraWidget),
-                                  visualScreenLogoWidget,
+                                  Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
                                 ],
                               )
                             : Container(
@@ -1125,7 +1109,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 child: Stack(
                                   children: [
                                     Positioned.fill(child: cameraWidget),
-                                    visualScreenLogoWidget,
+                                    Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
                                     Positioned(
                                       left: 10 + _vertOffset.dx,
                                       top: 10 + _vertOffset.dy,
