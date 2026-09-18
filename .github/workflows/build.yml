@@ -56,8 +56,15 @@ jobs:
           echo "Updating App SDK to 36..."
           sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle.kts || true
           sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle.kts || true
-          sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle || true
-          sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle || true
+          
+          echo "Adding Jitpack Repository..."
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url = uri("https:\/\/jitpack.io") }/g' android/settings.gradle.kts || true
+
+          echo "Adding Pedro RTMP Library Dependency..."
+          echo "" >> android/app/build.gradle.kts
+          echo "dependencies {" >> android/app/build.gradle.kts
+          echo "    implementation(\"com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2\")" >> android/app/build.gradle.kts
+          echo "}" >> android/app/build.gradle.kts
 
       - name: Install Dependencies
         run: |
