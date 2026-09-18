@@ -46,11 +46,9 @@ jobs:
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
 
-          echo "Updating compileSdk and targetSdk to 34 to fix plugin errors..."
-          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
-          sed -i 's/compileSdk flutter.compileSdkVersion/compileSdk 34/g' android/app/build.gradle
-          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/g' android/app/build.gradle
-          sed -i 's/targetSdk flutter.targetSdkVersion/targetSdk 34/g' android/app/build.gradle
+          echo "Updating SDK versions in build.gradle.kts..."
+          sed -i 's/flutter.compileSdkVersion/34/g' android/app/build.gradle.kts
+          sed -i 's/flutter.targetSdkVersion/34/g' android/app/build.gradle.kts
 
       - name: Install Dependencies
         run: |
