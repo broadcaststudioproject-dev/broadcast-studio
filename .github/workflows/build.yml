@@ -46,9 +46,11 @@ jobs:
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
 
-          echo "Updating App SDK to 34..."
-          sed -i 's/flutter.compileSdkVersion/34/g' android/app/build.gradle.kts || true
-          sed -i 's/flutter.targetSdkVersion/34/g' android/app/build.gradle.kts || true
+          echo "Updating App SDK to 36..."
+          sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle.kts || true
+          sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle.kts || true
+          sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle || true
+          sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle || true
 
       - name: Install Dependencies
         run: |
@@ -57,13 +59,11 @@ jobs:
 
       - name: Patch Plugin SDK Versions
         run: |
-          echo "Patching 3rd party plugins (like rtmp_broadcaster) to use compileSdk 34..."
-          find ~/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion 33/compileSdkVersion 34/g' {} + || true
-          find ~/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk 33/compileSdk 34/g' {} + || true
-          find /opt/hostedtoolcache/ -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion 33/compileSdkVersion 34/g' {} + || true
-          find /opt/hostedtoolcache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk 33/compileSdk 34/g' {} + || true
-          find ~/.pub-cache/ -name "build.gradle.kts" -type f -exec sed -i 's/compileSdk = 33/compileSdk = 34/g' {} + || true
-          find /opt/hostedtoolcache/ -name "build.gradle.kts" -type f -exec sed -i 's/compileSdk = 33/compileSdk = 34/g' {} + || true
+          echo "Patching 3rd party plugins to use compileSdk 36..."
+          find ~/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion 33/compileSdkVersion 36/g' {} + || true
+          find ~/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk 33/compileSdk 36/g' {} + || true
+          find /opt/hostedtoolcache/ -name "build.gradle" -type f -exec sed -i 's/compileSdkVersion 33/compileSdkVersion 36/g' {} + || true
+          find /opt/hostedtoolcache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk 33/compileSdk 36/g' {} + || true
 
       - name: Build APK
         run: |
