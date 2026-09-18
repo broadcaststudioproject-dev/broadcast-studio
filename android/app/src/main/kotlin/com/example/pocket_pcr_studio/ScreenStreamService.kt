@@ -1,81 +1,100 @@
 package com.example.pocket_pcr_studio
 
-import android.app.Activity
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
-import com.pedro.library.rtmp.RtmpDisplay
+import androidx.core.app.NotificationCompat
+import com.pedro.rtplibrary.rtmp.RtmpDisplay
+import com.pedro.common.ConnectChecker
 
-class ScreenStreamService : Service() {
+class ScreenStreamService : Service(), ConnectChecker {
+
     private var rtmpDisplay: RtmpDisplay? = null
+    private val channelId = "ScreenStreamChannel"
+
+    override fun onCreate() {
+        super.onCreate()
+        rtmpDisplay = RtmpDisplay(baseContext, true, this)
+        rtmpDisplay?.setReTries(10)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val resultCode = intent?.getIntExtra("RESULT_CODE", Activity.RESULT_CANCELED) ?: Activity.RESULT_CANCELED
-        val data = intent?.getParcelableExtra<Intent>("DATA")
-        val rtmpUrl = intent?.getStringExtra("RTMP_URL")
+        val action = intent?.action
+        if (action == "START_STREAM") {
+            val url = intent.getStringExtra("url") ?: ""
+            val resultCode = intent.getIntExtra("resultCode", -1)
+            val data = intent.getParcelableExtra<Intent>("data")
 
-        createNotificationChannel()
-        val notification: Notification = Notification.Builder(this, "screen_stream_channel")
-            .setContentTitle("Pocket PCR Studio")
-            .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ రన్నింగ్‌లో ఉంది...")
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
-            .build()
-
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-            } else {
-                startForeground(1, notification)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        if (resultCode == Activity.RESULT_OK && data != null && rtmpUrl != null) {
-            try {
-                rtmpDisplay = RtmpDisplay(baseContext, true, object : com.pedro.common.ConnectChecker {
-                    override fun onConnectionSuccess() {}
-                    override fun onConnectionFailed(reason: String) {}
-                    override fun onDisconnect() {}
-                    override fun onAuthError() {}
-                    override fun onAuthSuccess() {}
-                })
-
-                if (rtmpDisplay!!.prepareAudio() && rtmpDisplay!!.prepareVideo(1280, 720, 30, 2000 * 1024, false, 0)) {
-                    rtmpDisplay!!.startStream(rtmpUrl)
-                    rtmpDisplay!!.startStream(resultCode, data)
+            if (resultCode != -1 && data != null && url.isNotEmpty()) {
+                startNotification()
+                
+                // కంపైలేషన్ ఎర్రర్ రాకుండా లోకల్ వేరియబుల్ వాడుతున్నాం
+                val display = rtmpDisplay 
+                if (display != null) {
+                    display.setIntentResult(resultCode, data)
+                    // ఇక్కడ prepareAudio() మరియు prepareVideo() కు ఎర్రర్ రాదు
+                    if (display.prepareAudio() && display.prepareVideo()) {
+                        display.startStream(url)
+                    }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
+        } else if (action == "STOP_STREAM") {
+            // సేఫ్ కాల్ (?.) వాడుతున్నాం కాబట్టి ఇక్కడ ఎర్రర్ రాదు
+            rtmpDisplay?.stopStream()
+            stopForeground(true)
+            stopSelf()
         }
-
         return START_NOT_STICKY
     }
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            "screen_stream_channel",
-            "Screen Streaming Service",
-            NotificationManager.IMPORTANCE_LOW
-        )
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+    private fun startNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Screen Stream Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+        // ఇక్కడ మీ ఛానల్ పేరుకి తగ్గట్టు మార్చుకోవచ్చు
+        val notification: Notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Pocket PCR Studio")
+            .setContentText("Live streaming is active...")
+            .setSmallIcon(android.R.drawable.ic_media_play) 
+            .build()
+        startForeground(1, notification)
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            rtmpDisplay?.stopStream()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        rtmpDisplay?.stopStream()
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    // ConnectChecker ఇంటర్‌ఫేస్ మెథడ్స్
+    override fun onConnectionStartedRtp(rtpUrl: String) {}
+    
+    override fun onConnectionSuccessRtp() {}
+    
+    override fun onConnectionFailedRtp(reason: String) {
+        // ఇక్కడ కూడా సేఫ్ కాల్ (?.) వాడాలి
+        rtmpDisplay?.stopStream()
+    }
+    
+    override fun onNewBitrateRtp(bitrate: Long) {}
+    
+    override fun onDisconnectRtp() {}
+    
+    override fun onAuthErrorRtp() {}
+    
+    override fun onAuthSuccessRtp() {}
 }
