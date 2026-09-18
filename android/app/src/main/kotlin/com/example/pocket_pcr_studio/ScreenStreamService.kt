@@ -32,7 +32,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
 
-            // కీ (url) లేకపోయినా రికార్డింగ్ కోసం పర్మిషన్ ఇస్తున్నాం
             if (resultCode != -1 && data != null) {
                 startNotification()
                 
@@ -41,12 +40,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                     display.setIntentResult(resultCode, data)
                     if (display.prepareAudio() && display.prepareVideo()) {
                         
-                        // 1. URL ఉంటేనే ఆన్‌లైన్ లైవ్ అవుతుంది
                         if (url.isNotEmpty()) {
                             display.startStream(url)
                         }
                         
-                        // 2. గ్యాలరీలో రికార్డింగ్ మాత్రం ఎప్పుడూ (ఆఫ్‌లైన్‌లో కూడా) అవుతుంది
                         try {
                             val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
                             if (!folder.exists()) {
