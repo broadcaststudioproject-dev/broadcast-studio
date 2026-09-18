@@ -667,50 +667,86 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  ElevatedButton(
-  style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
-  onPressed: () async {
-    Navigator.pop(context); // ముందుగా పాపప్ క్లోజ్ అవుతుంది
-    
-    String rtmpUrl = youtubeUrlController.text.trim();
-    String streamKey = restreamKeyController.text.trim();
+  void _showMultiStreamDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("Restream & YouTube Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: youtubeUrlController,
+                  style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                  decoration: const InputDecoration(
+                    labelText: "RTMP URL (ఉదా: rtmp://bangalore.restream.io/live)",
+                    labelStyle: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: restreamKeyController,
+                  style: const TextStyle(color: Colors.yellow, fontSize: 12),
+                  decoration: const InputDecoration(
+                    labelText: "Stream Key",
+                    labelStyle: TextStyle(color: Colors.white54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                String rtmpUrl = youtubeUrlController.text.trim();
+                String streamKey = restreamKeyController.text.trim();
 
-    if (rtmpUrl.isEmpty || streamKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("దయచేసి RTMP URL మరియు Stream Key సరిగ్గా ఇవ్వండి!"), backgroundColor: Colors.red),
-      );
-      return;
-    }
+                if (rtmpUrl.isEmpty || streamKey.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("దయచేసి RTMP URL మరియు Stream Key సరిగ్గా ఇవ్వండి!"), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
 
-    String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
+                String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
-    if (!isLiveBroadcasting) {
-      // ఇక్కడ బటన్ రెస్పాన్స్ కోసం వెయిట్ చేస్తుంది
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-      
-      if (success) {
-        setState(() { isLiveBroadcasting = true; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ప్రారంభమైంది! Restream లో లైవ్ చెక్ చేయండి."), backgroundColor: Colors.green),
+                if (!isLiveBroadcasting) {
+                  bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+                  
+                  if (success) {
+                    setState(() { isLiveBroadcasting = true; });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ప్రారంభమైంది! Restream లో లైవ్ చెక్ చేయండి."), backgroundColor: Colors.green),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("ఎర్రర్: Android Native Code (MainActivity.kt) మిస్ అయ్యింది. దయచేసి దాన్ని యాడ్ చేయండి!"), backgroundColor: Colors.red),
+                    );
+                  }
+                } else {
+                  bool success = await StreamServiceManager.stopLiveStream();
+                  if (success) {
+                    setState(() { isLiveBroadcasting = false; });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ఆపివేయబడింది!"), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              child: Text(isLiveBroadcasting ? "Stop Live" : "Start Multi-Live", style: const TextStyle(color: Colors.white)),
+            ),
+          ],
         );
-      } else {
-        // కోడ్ మిస్ అయితే ఈ ఎర్రర్ చూపిస్తుంది
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ఎర్రర్: Android Native Code (MainActivity.kt) మిస్ అయ్యింది. దయచేసి దాన్ని యాడ్ చేయండి!"), backgroundColor: Colors.red),
-        );
-      }
-    } else {
-      bool success = await StreamServiceManager.stopLiveStream();
-      if (success) {
-        setState(() { isLiveBroadcasting = false; });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ఆపివేయబడింది!"), backgroundColor: Colors.red),
-        );
-      }
-    }
-  },
-  child: Text(isLiveBroadcasting ? "Stop Live" : "Start Multi-Live", style: const TextStyle(color: Colors.white)),
-)
+      },
+    );
+  }
 
   void _showEditDialog() {
     showDialog(
@@ -1306,7 +1342,7 @@ class StreamServiceManager {
       return true;
     } catch (e) {
       debugPrint("Failed to start stream: '$e'.");
-      return false; // కోడ్ లేకపోతే false పంపుతుంది
+      return false; 
     }
   }
 
