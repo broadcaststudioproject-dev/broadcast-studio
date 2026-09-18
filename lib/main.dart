@@ -340,6 +340,44 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // === NEW: Hidden Magic Trigger for Live Stream ===
+  Future<void> _toggleHiddenLiveStream() async {
+    String rtmpUrl = youtubeUrlController.text.trim();
+    String streamKey = restreamKeyController.text.trim();
+
+    if (rtmpUrl.isEmpty || streamKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("ముందుగా Multi-Live బటన్‌లో RTMP URL మరియు Stream Key ఎంటర్ చేయండి!"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
+
+    if (!isLiveBroadcasting) {
+      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+      if (success) {
+        setState(() { isLiveBroadcasting = true; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("🔴 స్క్రీన్ బ్రాడ్‌కాస్ట్ ప్రారంభమైంది! (లైవ్ ఆన్)"), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ఎర్రర్: ఆండ్రాయిడ్ సిస్టమ్ కోడ్ మిస్ అయ్యింది."), backgroundColor: Colors.red),
+        );
+      }
+    } else {
+      bool success = await StreamServiceManager.stopLiveStream();
+      if (success) {
+        setState(() { isLiveBroadcasting = false; });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("⏹ స్క్రీన్ బ్రాడ్‌కాస్ట్ ఆగిపోయింది! (లైవ్ ఆఫ్)"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+  // ===============================================
+
   Future<void> _pickBulletinMedia() async {
     showModalBottomSheet(
       context: context,
@@ -727,7 +765,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("ఎర్రర్: Android Native Code (MainActivity.kt) మిస్ అయ్యింది. దయచేసి దాన్ని యాడ్ చేయండి!"), backgroundColor: Colors.red),
+                      const SnackBar(content: Text("ఎర్రర్: Android Native Code మిస్ అయ్యింది."), backgroundColor: Colors.red),
                     );
                   }
                 } else {
@@ -904,17 +942,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    Widget visualScreenLogoWidget = channelLogoPath.isNotEmpty
-        ? SizedBox(
-            width: logoWidth,
-            height: logoHeight,
-            child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
-          )
-        : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
-            color: Colors.red[900]?.withOpacity(0.9), 
-            child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-          );
+    // === NEW: Logo gets Long Press gesture to trigger Hidden Stream ===
+    Widget visualScreenLogoWidget = GestureDetector(
+      onLongPress: _toggleHiddenLiveStream,
+      child: channelLogoPath.isNotEmpty
+          ? SizedBox(
+              width: logoWidth,
+              height: logoHeight,
+              child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high),
+            )
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+              color: Colors.red[900]?.withOpacity(0.9), 
+              child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+    );
 
     return WillPopScope(
       onWillPop: () async {
@@ -933,9 +975,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         return true;
       },
       child: Scaffold(
-        backgroundColor: Colors.black, // Dark background
+        backgroundColor: Colors.black,
         body: Stack(
           children: [
+            // === NEW: Double Tap added to the main screen to trigger Hidden Stream ===
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -944,6 +987,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     hideControls = !hideControls; 
                   }); 
                 },
+                onDoubleTap: _toggleHiddenLiveStream,
                 child: isNewsBulletinMode
                     ? Container(
                         color: Colors.black,
@@ -1023,7 +1067,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ),
                           ],
                         )
-                        // === New TV Channel Portrait View Layout with Borders ===
                         : Column(
                             children: [
                               SizedBox(height: MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top + 10 : 35),
@@ -1032,7 +1075,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 child: Container(
                                   margin: const EdgeInsets.symmetric(horizontal: 14),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.redAccent, width: 4.0), // Red border
+                                    border: Border.all(color: Colors.redAccent, width: 4.0),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: ClipRRect(
@@ -1051,7 +1094,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 child: Text(
                                   topHeadlineText,
                                   style: const TextStyle(
-                                    color: Colors.yellowAccent, // Yellow text
+                                    color: Colors.yellowAccent, 
                                     fontSize: 22,
                                     fontWeight: FontWeight.w900,
                                     height: 1.3,
@@ -1065,7 +1108,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 child: Container(
                                   margin: const EdgeInsets.only(left: 14, right: 14, bottom: 65),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.cyanAccent, width: 4.0), // Blue border
+                                    border: Border.all(color: Colors.cyanAccent, width: 4.0), 
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: ClipRRect(
@@ -1356,4 +1399,3 @@ class StreamServiceManager {
     }
   }
 }
-
