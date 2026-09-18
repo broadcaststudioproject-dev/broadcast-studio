@@ -10,9 +10,9 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
-import com.pedro.common.ConnectChecker
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
-class ScreenStreamService : Service(), ConnectChecker {
+class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
@@ -33,18 +33,15 @@ class ScreenStreamService : Service(), ConnectChecker {
             if (resultCode != -1 && data != null && url.isNotEmpty()) {
                 startNotification()
                 
-                // కంపైలేషన్ ఎర్రర్ రాకుండా లోకల్ వేరియబుల్ వాడుతున్నాం
                 val display = rtmpDisplay 
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
-                    // ఇక్కడ prepareAudio() మరియు prepareVideo() కు ఎర్రర్ రాదు
                     if (display.prepareAudio() && display.prepareVideo()) {
                         display.startStream(url)
                     }
                 }
             }
         } else if (action == "STOP_STREAM") {
-            // సేఫ్ కాల్ (?.) వాడుతున్నాం కాబట్టి ఇక్కడ ఎర్రర్ రాదు
             rtmpDisplay?.stopStream()
             stopForeground(true)
             stopSelf()
@@ -62,7 +59,6 @@ class ScreenStreamService : Service(), ConnectChecker {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
-        // ఇక్కడ మీ ఛానల్ పేరుకి తగ్గట్టు మార్చుకోవచ్చు
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
             .setContentText("Live streaming is active...")
@@ -80,21 +76,20 @@ class ScreenStreamService : Service(), ConnectChecker {
         rtmpDisplay?.stopStream()
     }
 
-    // ConnectChecker ఇంటర్‌ఫేస్ మెథడ్స్
-    override fun onConnectionStartedRtp(rtpUrl: String) {}
+    // ConnectCheckerRtmp ఇంటర్‌ఫేస్ మెథడ్స్
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
     
-    override fun onConnectionSuccessRtp() {}
+    override fun onConnectionSuccessRtmp() {}
     
-    override fun onConnectionFailedRtp(reason: String) {
-        // ఇక్కడ కూడా సేఫ్ కాల్ (?.) వాడాలి
+    override fun onConnectionFailedRtmp(reason: String) {
         rtmpDisplay?.stopStream()
     }
     
-    override fun onNewBitrateRtp(bitrate: Long) {}
+    override fun onNewBitrateRtmp(bitrate: Long) {}
     
-    override fun onDisconnectRtp() {}
+    override fun onDisconnectRtmp() {}
     
-    override fun onAuthErrorRtp() {}
+    override fun onAuthErrorRtmp() {}
     
-    override fun onAuthSuccessRtp() {}
+    override fun onAuthSuccessRtmp() {}
 }
