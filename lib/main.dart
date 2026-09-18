@@ -339,36 +339,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // === MODIFIED: Hidden Magic Trigger - Now completely silent! ===
   Future<void> _toggleHiddenLiveStream() async {
     String rtmpUrl = youtubeUrlController.text.trim();
     String streamKey = restreamKeyController.text.trim();
 
-    if (rtmpUrl.isEmpty || streamKey.isEmpty) {
-      // ఎర్రర్ వస్తే మాత్రమే చూపిస్తుంది, లేకపోతే సైలెంట్
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ముందుగా Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి!"), backgroundColor: Colors.red),
-      );
-      return;
+    String fullRtmpUrl = "";
+    if (rtmpUrl.isNotEmpty && streamKey.isNotEmpty) {
+      fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
     }
-
-    String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
     if (!isLiveBroadcasting) {
       bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
       if (success) {
         setState(() { isLiveBroadcasting = true; });
-        // పాత నోటిఫికేషన్ మెసేజ్ ఇక్కడ నుండి తొలగించబడింది
       }
     } else {
       bool success = await StreamServiceManager.stopLiveStream();
       if (success) {
         setState(() { isLiveBroadcasting = false; });
-        // పాత నోటిఫికేషన్ మెసేజ్ ఇక్కడ నుండి తొలగించబడింది
       }
     }
   }
-  // ===============================================
 
   Future<void> _pickBulletinMedia() async {
     showModalBottomSheet(
@@ -734,20 +725,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
               onPressed: () {
                 Navigator.pop(context);
-                
-                String rtmpUrl = youtubeUrlController.text.trim();
-                String streamKey = restreamKeyController.text.trim();
-
-                if (rtmpUrl.isEmpty || streamKey.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("దయచేసి RTMP URL మరియు Stream Key సరిగ్గా ఇవ్వండి!"), backgroundColor: Colors.red),
-                  );
-                  return;
-                }
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("✅ సెట్టింగ్స్ సేవ్ అయ్యాయి! (లైవ్ స్టార్ట్ చేయడానికి స్క్రీన్ పై డబుల్ ట్యాప్ చేయండి)"), backgroundColor: Colors.blue),
-                );
               },
               child: const Text("Save Live Settings", style: TextStyle(color: Colors.white)),
             ),
@@ -991,7 +968,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
-                                      // కంట్రోల్స్ పూర్తిగా తొలగించబడ్డాయి - కేవలం వీడియో ప్లే అవుతుంది
                                       child: Container(
                                         decoration: BoxDecoration(border: Border.all(color: Colors.cyanAccent, width: 2.5), borderRadius: BorderRadius.circular(8)),
                                         child: ClipRRect(
@@ -1057,7 +1033,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               ),
                               Expanded(
                                 flex: 10,
-                                // కంట్రోల్స్ పూర్తిగా తొలగించబడ్డాయి - ఆటో ప్లే మాత్రమే జరుగుతుంది
                                 child: Container(
                                   margin: const EdgeInsets.only(left: 14, right: 14, bottom: 65),
                                   decoration: BoxDecoration(
