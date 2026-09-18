@@ -34,13 +34,20 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Hard Reset Android Folder and Update App SDK
+      - name: Backup Custom Kotlin Code, Reset Android & Restore
         run: |
+          echo "Backing up custom Kotlin files..."
+          cp -r android/app/src/main/kotlin /tmp/kotlin_backup || true
+          
           echo "Deleting old and corrupted android folder..."
           rm -rf android
           
           echo "Creating 100% fresh android platform..."
           flutter create . --platforms=android
+
+          echo "Restoring custom Kotlin files..."
+          rm -rf android/app/src/main/kotlin
+          cp -r /tmp/kotlin_backup android/app/src/main/kotlin
 
           echo "Enabling AndroidX and Jetifier..."
           echo "android.useAndroidX=true" >> android/gradle.properties
