@@ -208,7 +208,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
       final camController = CameraController(
         cameras[currentCameraIndex],
-        ResolutionPreset.max,
+        ResolutionPreset.high,
         enableAudio: true,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
@@ -843,6 +843,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
 
+    // === Camera Aspect Ratio Fix ===
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
         ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
         : (controller != null && controller!.value.isInitialized 
@@ -858,23 +859,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   setState(() { _currentZoomLevel = zoom; });
                   await controller?.setZoomLevel(zoom);
                 },
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    var cameraValue = controller!.value;
-                    return ClipRect(
-                      child: OverflowBox(
-                        alignment: Alignment.center,
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: isScreenLandscape ? constraints.maxHeight * cameraValue.aspectRatio : constraints.maxWidth,
-                            height: isScreenLandscape ? constraints.maxHeight : constraints.maxWidth / cameraValue.aspectRatio,
-                            child: CameraPreview(controller!),
-                          ),
-                        ),
+                child: ClipRect(
+                  child: SizedBox.expand(
+                    child: FittedBox(
+                      fit: BoxFit.cover, // Ensures the camera fills the space without stretching the face
+                      child: SizedBox(
+                        width: 1000,
+                        height: 1000 / (isScreenLandscape 
+                            ? (controller!.value.aspectRatio < 1 ? 1.0 / controller!.value.aspectRatio : controller!.value.aspectRatio) 
+                            : (controller!.value.aspectRatio > 1 ? 1.0 / controller!.value.aspectRatio : controller!.value.aspectRatio)),
+                        child: CameraPreview(controller!),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               )
             : const Center(child: CircularProgressIndicator(color: Colors.white)));
@@ -1027,7 +1024,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ),
                           ],
                         )
-                        // This is the new Portrait TV layout that perfectly matches your video!
+                        // TV Channel Portrait View Layout
                         : Column(
                             children: [
                               Expanded(
