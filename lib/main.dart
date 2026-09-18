@@ -341,13 +341,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   // === NEW: Hidden Magic Trigger for Live Stream ===
+  // ఈ ఫంక్షన్ కేవలం డబుల్ ట్యాప్ లేదా లోగో లాంగ్ ప్రెస్ చేసినప్పుడు మాత్రమే రన్ అవుతుంది.
   Future<void> _toggleHiddenLiveStream() async {
     String rtmpUrl = youtubeUrlController.text.trim();
     String streamKey = restreamKeyController.text.trim();
 
     if (rtmpUrl.isEmpty || streamKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ముందుగా Multi-Live బటన్‌లో RTMP URL మరియు Stream Key ఎంటర్ చేయండి!"), backgroundColor: Colors.red),
+        const SnackBar(content: Text("ముందుగా Multi-Live బటన్‌లో RTMP URL మరియు Stream Key సేవ్ చేయండి!"), backgroundColor: Colors.red),
       );
       return;
     }
@@ -705,6 +706,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // === MODIFIED: Multi-Live Dialog now ONLY saves the settings, does NOT start Live ===
   void _showMultiStreamDialog() {
     showDialog(
       context: context,
@@ -739,8 +741,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: isLiveBroadcasting ? Colors.green : Colors.red),
-              onPressed: () async {
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              onPressed: () {
                 Navigator.pop(context);
                 
                 String rtmpUrl = youtubeUrlController.text.trim();
@@ -753,38 +755,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   return;
                 }
 
-                String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
-
-                if (!isLiveBroadcasting) {
-                  bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-                  
-                  if (success) {
-                    setState(() { isLiveBroadcasting = true; });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ప్రారంభమైంది! Restream లో లైవ్ చెక్ చేయండి."), backgroundColor: Colors.green),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("ఎర్రర్: Android Native Code మిస్ అయ్యింది."), backgroundColor: Colors.red),
-                    );
-                  }
-                } else {
-                  bool success = await StreamServiceManager.stopLiveStream();
-                  if (success) {
-                    setState(() { isLiveBroadcasting = false; });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("స్క్రీన్ బ్రాడ్‌కాస్ట్ ఆపివేయబడింది!"), backgroundColor: Colors.red),
-                    );
-                  }
-                }
+                // కేవలం సెట్టింగ్స్ మాత్రమే సేవ్ అవుతాయి, లైవ్ స్టార్ట్ అవ్వదు.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("✅ సెట్టింగ్స్ సేవ్ అయ్యాయి! (లైవ్ స్టార్ట్ చేయడానికి స్క్రీన్ పై డబుల్ ట్యాప్ చేయండి)"), backgroundColor: Colors.blue),
+                );
               },
-              child: Text(isLiveBroadcasting ? "Stop Live" : "Start Multi-Live", style: const TextStyle(color: Colors.white)),
+              child: const Text("Save Live Settings", style: TextStyle(color: Colors.white)),
             ),
           ],
         );
       },
     );
   }
+  // ===================================================================================
 
   void _showEditDialog() {
     showDialog(
@@ -942,7 +925,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    // === NEW: Logo gets Long Press gesture to trigger Hidden Stream ===
+    // Logo gets Long Press gesture to trigger Hidden Stream
     Widget visualScreenLogoWidget = GestureDetector(
       onLongPress: _toggleHiddenLiveStream,
       child: channelLogoPath.isNotEmpty
@@ -978,7 +961,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // === NEW: Double Tap added to the main screen to trigger Hidden Stream ===
+            // Double Tap added to the main screen to trigger Hidden Stream
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
