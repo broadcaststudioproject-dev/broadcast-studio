@@ -193,7 +193,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
-  // === NEW: Advanced Permissions for Android 13+ to stop crashes ===
   Future<void> _requestPermissions() async {
     await [
       Permission.camera, 
@@ -311,7 +310,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // === MODIFIED: Crash-Protected Multi-Video Picker ===
+  // === UPDATED: Safe Gallery Picker with Error Handling ===
   Future<void> _pickMultipleBulletinMedia() async {
     try {
       final List<XFile> pickedFiles = await _picker.pickMultipleMedia();
@@ -332,30 +331,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ));
           }
 
-          if (startPlayingIndex < newsBulletinList.length) {
-            currentNewsIndex = startPlayingIndex;
-            _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, newsBulletinList[currentNewsIndex].isVideo);
+          if (_bulletinVideoController == null || !_bulletinVideoController!.value.isPlaying) {
+            if (startPlayingIndex < newsBulletinList.length) {
+              currentNewsIndex = startPlayingIndex;
+              _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, newsBulletinList[currentNewsIndex].isVideo);
+            }
           }
         });
       }
     } catch (e) {
-      debugPrint("Multi Picker Error: $e");
-      // ఒకవేళ ఫోన్ మెమరీ తక్కువగా ఉండి క్రాష్ అయితే, సింగిల్ వీడియో మాత్రమే సెలెక్ట్ చేసే సేఫ్ ఆప్షన్ కు వెళ్తుంది.
-      try {
-        final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-        if (video != null && mounted) {
-          setState(() {
-            if (newsBulletinList.length == 1 && newsBulletinList[0].mediaPath.isEmpty) {
-              newsBulletinList.clear();
-            }
-            newsBulletinList.add(NewsBulletinItem(title: "కొత్త బులెటిన్ వీడియో", mediaPath: video.path, isVideo: true));
-            currentNewsIndex = newsBulletinList.length - 1;
-            _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
-          });
-        }
-      } catch (singleErr) {
-        debugPrint("Single Picker Error: $singleErr");
-      }
+      debugPrint("Gallery Picker Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("గ్యాలరీ ఫైల్స్ ఎంచుకోవడంలో చిన్న సమస్య వచ్చింది. దయచేసి మళ్లీ ప్రయత్నించండి."), 
+          backgroundColor: Colors.red
+        ),
+      );
     }
   }
 
@@ -419,11 +410,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _pickBreakingNewsLogo() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null && mounted) {
-      setState(() {
-        breakingNewsLogoPath = image.path; 
-      });
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+      if (image != null && mounted) {
+        setState(() {
+          breakingNewsLogoPath = image.path; 
+        });
+      }
+    } catch (e) {
+      debugPrint("Image Picker Error: $e");
     }
   }
 
@@ -562,17 +557,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _pickVerticalAd() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null && mounted) {
-      setState(() { verticalAnimatedAdPath = image.path; _vertScale = 1.0; _vertRotation = 0.0; _vertOffset = Offset.zero; });
-    }
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+      if (image != null && mounted) {
+        setState(() { verticalAnimatedAdPath = image.path; _vertScale = 1.0; _vertRotation = 0.0; _vertOffset = Offset.zero; });
+      }
+    } catch (e) {}
   }
 
   Future<void> _pickHorizontalAd() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if (image != null && mounted) {
-      setState(() { horizontalAnimatedAdPath = image.path; _horizScale = 1.0; _horizRotation = 0.0; _horizOffset = Offset.zero; });
-    }
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+      if (image != null && mounted) {
+        setState(() { horizontalAnimatedAdPath = image.path; _horizScale = 1.0; _horizRotation = 0.0; _horizOffset = Offset.zero; });
+      }
+    } catch (e) {}
   }
 
   void _showAdsManagerDialog() {
@@ -600,8 +599,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           IconButton(
                             icon: const Icon(Icons.video_library, color: Colors.cyan, size: 22),
                             onPressed: () async {
-                              final XFile? media = await _picker.pickVideo(source: ImageSource.gallery);
-                              if (media != null) { setDialogState(() { videoAdsList[index] = media.path; }); setState(() { videoAdsList[index] = media.path; }); }
+                              try {
+                                final XFile? media = await _picker.pickVideo(source: ImageSource.gallery);
+                                if (media != null) { setDialogState(() { videoAdsList[index] = media.path; }); setState(() { videoAdsList[index] = media.path; }); }
+                              } catch(e) {}
                             },
                           ),
                           ElevatedButton(
@@ -650,8 +651,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   children: [
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                        if (image != null) setDialogState(() { channelLogoPath = image.path; });
+                        try {
+                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                          if (image != null) setDialogState(() { channelLogoPath = image.path; });
+                        } catch(e) {}
                       },
                       icon: const Icon(Icons.upload),
                       label: const Text("ఛానల్ లోగో (JPEG/GIF) అప్లోడ్ చేయి"),
