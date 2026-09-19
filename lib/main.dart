@@ -193,8 +193,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
+  // === NEW: Advanced Permissions for Android 13+ to stop crashes ===
   Future<void> _requestPermissions() async {
-    await [Permission.camera, Permission.microphone, Permission.storage].request();
+    await [
+      Permission.camera, 
+      Permission.microphone, 
+      Permission.storage,
+      Permission.photos, 
+      Permission.videos,
+    ].request();
   }
 
   Future<void> _initCamera() async {
@@ -304,6 +311,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // === MODIFIED: Crash-Protected Multi-Video Picker ===
   Future<void> _pickMultipleBulletinMedia() async {
     try {
       final List<XFile> pickedFiles = await _picker.pickMultipleMedia();
@@ -318,7 +326,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             var file = pickedFiles[i];
             bool isVid = file.path.toLowerCase().endsWith('.mp4') || file.path.toLowerCase().endsWith('.mov') || file.path.toLowerCase().endsWith('.mkv');
             newsBulletinList.add(NewsBulletinItem(
-              title: "వీడియో అప్‌డేట్ ${newsBulletinList.length + 1}", 
+              title: "వార్తా అప్‌డేట్ ${newsBulletinList.length + 1}", 
               mediaPath: file.path, 
               isVideo: isVid
             ));
@@ -331,16 +339,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         });
       }
     } catch (e) {
-      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-      if (video != null && mounted) {
-        setState(() {
-          if (newsBulletinList.length == 1 && newsBulletinList[0].mediaPath.isEmpty) {
-            newsBulletinList.clear();
-          }
-          newsBulletinList.add(NewsBulletinItem(title: "కొత్త బులెటిన్ వీడియో", mediaPath: video.path, isVideo: true));
-          currentNewsIndex = newsBulletinList.length - 1;
-          _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
-        });
+      debugPrint("Multi Picker Error: $e");
+      // ఒకవేళ ఫోన్ మెమరీ తక్కువగా ఉండి క్రాష్ అయితే, సింగిల్ వీడియో మాత్రమే సెలెక్ట్ చేసే సేఫ్ ఆప్షన్ కు వెళ్తుంది.
+      try {
+        final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+        if (video != null && mounted) {
+          setState(() {
+            if (newsBulletinList.length == 1 && newsBulletinList[0].mediaPath.isEmpty) {
+              newsBulletinList.clear();
+            }
+            newsBulletinList.add(NewsBulletinItem(title: "కొత్త బులెటిన్ వీడియో", mediaPath: video.path, isVideo: true));
+            currentNewsIndex = newsBulletinList.length - 1;
+            _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
+          });
+        }
+      } catch (singleErr) {
+        debugPrint("Single Picker Error: $singleErr");
       }
     }
   }
@@ -450,8 +464,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   newsBulletinList.clear();
                                 }
                                 for (var media in medias) {
-                                  bool isVid = media.path.toLowerCase().endsWith('.mp4');
-                                  String fTitle = newTitleCtrl.text.isNotEmpty ? newTitleCtrl.text : "వీడియో అప్‌డేట్ ${newsBulletinList.length + 1}";
+                                  bool isVid = media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov');
+                                  String fTitle = newTitleCtrl.text.isNotEmpty ? newTitleCtrl.text : "వార్తా అప్‌డేట్ ${newsBulletinList.length + 1}";
                                   newsBulletinList.add(NewsBulletinItem(title: fTitle, mediaPath: media.path, isVideo: isVid));
                                 }
                                 if (_bulletinVideoController == null || !_bulletinVideoController!.value.isPlaying) {
@@ -460,7 +474,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 }
                               });
                             }
-                          } catch(e) {}
+                          } catch(e) {
+                             debugPrint("Multi Picker Error from Dialog: $e");
+                          }
                         },
                         icon: const Icon(Icons.video_library, color: Colors.black),
                         label: const Text("గ్యాలరీ నుండి వీడియోలు జోడించు", style: TextStyle(color: Colors.black, fontSize: 12)),
@@ -707,7 +723,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- HELPER METHODS FOR CLEAN UI LAYOUT ---
   Widget _buildBulletinMode(bool isScreenLandscape, Widget cameraWidget, Widget bottomVideoWidget, Widget reporterBadgeWidget, Widget visualScreenLogoWidget) {
     if (isScreenLandscape) {
       return Column(
