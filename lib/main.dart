@@ -387,14 +387,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  Future<void> _toggleHiddenLiveStream() async {
+    Future<void> _toggleHiddenLiveStream() async {
     String rtmpUrl = youtubeUrlController.text.trim();
     String streamKey = restreamKeyController.text.trim();
 
-    String fullRtmpUrl = "";
-    if (rtmpUrl.isNotEmpty && streamKey.isNotEmpty) {
-      fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
+    // === మార్పు చేసిన భాగం ===
+    if (rtmpUrl.isEmpty || streamKey.isEmpty) {
+      // కీ ఇవ్వకపోతే లైవ్ స్టార్ట్ చేయకుండా, ఆఫ్‌లైన్ రికార్డర్ వాడమని మెసేజ్ ఇస్తుంది
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("ఆఫ్‌లైన్ రికార్డింగ్ కోసం మీ ఫోన్ 'స్క్రీన్ రికార్డర్' వాడండి. లైవ్ వెళ్లాలంటే Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి."),
+          backgroundColor: Colors.blueAccent,
+        ),
+      );
+      return;
     }
+    // ===========================
+
+    String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
     if (!isLiveBroadcasting) {
       bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
@@ -406,6 +416,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (success) {
         setState(() { isLiveBroadcasting = false; });
       }
+    }
+  }
+
     }
   }
 
