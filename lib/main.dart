@@ -339,7 +339,25 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ ఫైల్స్ ఎంచుకోవడంలో సమస్య వచ్చింది. మళ్లీ ప్రయత్నించండి."), backgroundColor: Colors.red));
+      debugPrint("Multiple Picker Error: $e");
+      // Fallback for single video selection if device doesn't support multiple selection
+      try {
+        final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+        if (video != null && mounted) {
+          setState(() {
+            if (newsBulletinList.length == 1 && newsBulletinList[0].mediaPath.isEmpty) {
+              newsBulletinList.clear();
+            }
+            newsBulletinList.add(NewsBulletinItem(title: "కొత్త బులెటిన్ వీడియో", mediaPath: video.path, isVideo: true));
+            if (_bulletinVideoController == null || !_bulletinVideoController!.value.isPlaying) {
+              currentNewsIndex = newsBulletinList.length - 1;
+              _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, true);
+            }
+          });
+        }
+      } catch (fallbackErr) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ ఓపెన్ కావడంలో సమస్య వచ్చింది. సెట్టింగ్స్‌లో పర్మిషన్స్ చెక్ చేయండి."), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -413,7 +431,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
       if (image != null && mounted) {
-        setState(() { breakingNewsLogoPath = image.path; });
+        setState(() {
+          breakingNewsLogoPath = image.path; 
+        });
       }
     } catch (e) {
       debugPrint("Image Picker Error: $e");
@@ -464,7 +484,25 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 }
                               });
                             }
-                          } catch(e) { }
+                          } catch(e) {
+                             try {
+                                final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+                                if (video != null && mounted) {
+                                  setState(() {
+                                    if (newsBulletinList.length == 1 && newsBulletinList[0].mediaPath.isEmpty) {
+                                      newsBulletinList.clear();
+                                    }
+                                    bool isVid = video.path.toLowerCase().endsWith('.mp4') || video.path.toLowerCase().endsWith('.mov');
+                                    String fTitle = newTitleCtrl.text.isNotEmpty ? newTitleCtrl.text : "కొత్త బులెటిన్ వీడియో";
+                                    newsBulletinList.add(NewsBulletinItem(title: fTitle, mediaPath: video.path, isVideo: isVid));
+                                    if (_bulletinVideoController == null || !_bulletinVideoController!.value.isPlaying) {
+                                      currentNewsIndex = newsBulletinList.length - 1;
+                                      _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, newsBulletinList[currentNewsIndex].isVideo);
+                                    }
+                                  });
+                                }
+                             } catch(fallbackE) {}
+                          }
                         },
                         icon: const Icon(Icons.video_library, color: Colors.black),
                         label: const Text("గ్యాలరీ నుండి వీడియోలు జోడించు", style: TextStyle(color: Colors.black, fontSize: 12)),
@@ -514,7 +552,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               ),
-              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))],
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
+              ],
             );
           },
         );
@@ -811,7 +851,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Widget _buildNormalMode(bool isScreenLandscape, double screenWidth, Widget cameraWidget, Widget visualScreenLogoWidget) {
     if (isVideoAdPlaying && _videoAdVlcController != null) {
-      return Container(color: Colors.black, child: VlcPlayer(controller: _videoAdVlcController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber))));
+      // Ignore Pointer for Video Ad Player
+      return IgnorePointer(ignoring: true, child: Container(color: Colors.black, child: VlcPlayer(controller: _videoAdVlcController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))));
     }
     if (!isAnimatedAdsMode) {
       return Stack(children: [Positioned.fill(child: cameraWidget), Positioned(top: 15, right: 15, child: visualScreenLogoWidget)]);
@@ -859,7 +900,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double finalCamH = isScreenLandscape ? camH : camW;
 
     Widget cameraWidget = isIpCameraActive && _vlcViewController != null
-        ? VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)))
+        ? IgnorePointer(ignoring: true, child: VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))))
         : (controller != null && controller!.value.isInitialized 
             ? GestureDetector(
                 onScaleStart: (details) { _baseScale = _currentZoomLevel; },
@@ -899,14 +940,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           ? SizedBox(width: logoWidth, height: logoHeight, child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
           : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
 
+    // Ignore Pointer added here for Bulletin Video
     Widget bottomVideoWidget = newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
         ? (!newsBulletinList[currentNewsIndex].isVideo
-            ? Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+            ? IgnorePointer(ignoring: true, child: Image.file(File(newsBulletinList[currentNewsIndex].mediaPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity))
             : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                ? ClipRect(
-                    child: FittedBox(
-                      fit: BoxFit.cover, 
-                      child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)),
+                ? IgnorePointer(
+                    ignoring: true,
+                    child: ClipRect(
+                      child: FittedBox(
+                        fit: BoxFit.cover, 
+                        child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)),
+                      ),
                     ),
                   )
                 : Container(color: Colors.black, child: const Center(child: CircularProgressIndicator(color: Colors.amber)))))
@@ -930,11 +975,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           bottom: true,
           child: Stack(
             children: [
-              // 1. అట్టడుగున ఉండే బేసిక్ లేఅవుట్ (కెమెరా మరియు వీడియోలు)
+              // 1. Root Gesture Detector - Captures all taps correctly!
               Positioned.fill(
-                child: isNewsBulletinMode
-                    ? _buildBulletinMode(isScreenLandscape, cameraWidget, bottomVideoWidget, reporterBadgeWidget, visualScreenLogoWidget)
-                    : _buildNormalMode(isScreenLandscape, screenWidth, cameraWidget, visualScreenLogoWidget),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () { setState(() { hideControls = !hideControls; }); },
+                  onDoubleTap: _toggleHiddenLiveStream,
+                  onLongPress: _toggleHiddenLiveStream,
+                  child: isNewsBulletinMode
+                      ? _buildBulletinMode(isScreenLandscape, cameraWidget, bottomVideoWidget, reporterBadgeWidget, visualScreenLogoWidget)
+                      : _buildNormalMode(isScreenLandscape, screenWidth, cameraWidget, visualScreenLogoWidget),
+                ),
               ),
 
               if (isVideoAdPlaying)
@@ -952,46 +1003,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-              // === NEW: కంటికి కనిపించని టచ్ లేయర్ (మ్యాజిక్ ట్రిగ్గర్స్ కోసం) ===
-              if (hideControls)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () { setState(() { hideControls = false; }); },
-                    onDoubleTap: _toggleHiddenLiveStream,
-                    onLongPress: _toggleHiddenLiveStream, // ఎక్కడ లాంగ్ ప్రెస్ చేసినా లైవ్ స్టార్ట్ అవుతుంది
-                    child: Container(color: Colors.transparent),
-                  ),
-                ),
-
-              // 2. పైన కనిపించే కంట్రోల్స్ లేయర్ (బటన్స్)
+              // 2. Buttons layer
               if (!hideControls)
                 Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () { setState(() { hideControls = true; }); },
-                    child: Container(
-                      color: Colors.black54,
-                      child: Center(
-                        child: GestureDetector(
-                          onTap: () {}, 
-                          child: Wrap(
-                            alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
-                            children: [
-                              _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                              _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                              _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
-                              _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                              _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
-                              _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                              _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                              _buildControlButton(isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent),
-                              _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
-                              _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
-                              _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                            ],
-                          ),
-                        ),
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
+                        children: [
+                          _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                          _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                          _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
+                          _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
+                          _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
+                          _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
+                          _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                          _buildControlButton(isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent),
+                          _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
+                          _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
+                          _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                        ],
                       ),
                     ),
                   ),
