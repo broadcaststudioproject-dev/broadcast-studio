@@ -310,7 +310,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // === UPDATED: Safe Gallery Picker with Error Handling ===
   Future<void> _pickMultipleBulletinMedia() async {
     try {
       final List<XFile> pickedFiles = await _picker.pickMultipleMedia();
@@ -387,13 +386,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-    Future<void> _toggleHiddenLiveStream() async {
+  // === అప్‌డేట్ చేయబడిన ట్రిగ్గర్ (సిస్టమ్ స్క్రీన్ రికార్డర్ ఆఫ్‌లైన్ మెసేజ్) ===
+  Future<void> _toggleHiddenLiveStream() async {
     String rtmpUrl = youtubeUrlController.text.trim();
     String streamKey = restreamKeyController.text.trim();
 
-    // === మార్పు చేసిన భాగం ===
     if (rtmpUrl.isEmpty || streamKey.isEmpty) {
-      // కీ ఇవ్వకపోతే లైవ్ స్టార్ట్ చేయకుండా, ఆఫ్‌లైన్ రికార్డర్ వాడమని మెసేజ్ ఇస్తుంది
+      // ఆఫ్‌లైన్ రికార్డింగ్ గురించి యూజర్ కి మార్గనిర్దేశం చేసే మెసేజ్
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("ఆఫ్‌లైన్ రికార్డింగ్ కోసం మీ ఫోన్ 'స్క్రీన్ రికార్డర్' వాడండి. లైవ్ వెళ్లాలంటే Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి."),
@@ -402,7 +401,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
       return;
     }
-    // ===========================
 
     String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
@@ -416,9 +414,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (success) {
         setState(() { isLiveBroadcasting = false; });
       }
-    }
-  }
-
     }
   }
 
@@ -676,7 +671,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     TextField(
                       controller: headlineCtrl,
                       style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "కొత్త హెడ్‌లైన్ టైప్ చేయండి"),
+                      decoration: const InputDecoration(labelText: "కొత్త బ్రేకింగ్ హెడ్‌లైన్ టైప్ చేయండి"),
                       onSubmitted: (val) {
                         if (val.trim().isNotEmpty) {
                           setState(() {
