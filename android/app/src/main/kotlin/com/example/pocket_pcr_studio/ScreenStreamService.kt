@@ -19,7 +19,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
-    private var currentRecordPath: String? = null
+    // ఎర్రర్ రాకుండా ఇక్కడ ఖచ్చితమైన String సెట్ చేశాను
+    private var currentRecordPath: String = ""
 
     override fun onCreate() {
         super.onCreate()
@@ -55,8 +56,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             }
                             
                             val file = File(pcrFolder, "PCR_Live_${System.currentTimeMillis()}.mp4")
-                            currentRecordPath = file.absolutePath
-                            display.startRecord(currentRecordPath)
+                            val path = file.absolutePath
+                            currentRecordPath = path
+                            display.startRecord(path)
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
@@ -75,8 +77,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         rtmpDisplay?.stopRecord()
         rtmpDisplay?.stopStream()
         
-        currentRecordPath?.let { path ->
-            MediaScannerConnection.scanFile(baseContext, arrayOf(path), arrayOf("video/mp4"), null)
+        if (currentRecordPath.isNotEmpty()) {
+            MediaScannerConnection.scanFile(baseContext, arrayOf(currentRecordPath), arrayOf("video/mp4"), null)
         }
     }
 
