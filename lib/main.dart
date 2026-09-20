@@ -339,13 +339,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         });
       }
     } catch (e) {
-      debugPrint("Gallery Picker Error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("గ్యాలరీ ఫైల్స్ ఎంచుకోవడంలో చిన్న సమస్య వచ్చింది. దయచేసి మళ్లీ ప్రయత్నించండి."), 
-          backgroundColor: Colors.red
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ ఫైల్స్ ఎంచుకోవడంలో సమస్య వచ్చింది. మళ్లీ ప్రయత్నించండి."), backgroundColor: Colors.red));
     }
   }
 
@@ -386,13 +380,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // === అప్‌డేట్ చేయబడిన ట్రిగ్గర్ (సిస్టమ్ స్క్రీన్ రికార్డర్ ఆఫ్‌లైన్ మెసేజ్) ===
   Future<void> _toggleHiddenLiveStream() async {
     String rtmpUrl = youtubeUrlController.text.trim();
     String streamKey = restreamKeyController.text.trim();
 
     if (rtmpUrl.isEmpty || streamKey.isEmpty) {
-      // ఆఫ్‌లైన్ రికార్డింగ్ గురించి యూజర్ కి మార్గనిర్దేశం చేసే మెసేజ్
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("ఆఫ్‌లైన్ రికార్డింగ్ కోసం మీ ఫోన్ 'స్క్రీన్ రికార్డర్' వాడండి. లైవ్ వెళ్లాలంటే Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి."),
@@ -421,9 +413,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
       if (image != null && mounted) {
-        setState(() {
-          breakingNewsLogoPath = image.path; 
-        });
+        setState(() { breakingNewsLogoPath = image.path; });
       }
     } catch (e) {
       debugPrint("Image Picker Error: $e");
@@ -449,10 +439,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       TextField(
                         controller: newTitleCtrl,
                         style: const TextStyle(color: Colors.yellow),
-                        decoration: const InputDecoration(
-                          labelText: "సెలక్ట్ చేసిన వీడియోల టైటిల్",
-                          labelStyle: TextStyle(color: Colors.white54),
-                        ),
+                        decoration: const InputDecoration(labelText: "సెలక్ట్ చేసిన వీడియోల టైటిల్", labelStyle: TextStyle(color: Colors.white54)),
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton.icon(
@@ -477,9 +464,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 }
                               });
                             }
-                          } catch(e) {
-                             debugPrint("Multi Picker Error from Dialog: $e");
-                          }
+                          } catch(e) { }
                         },
                         icon: const Icon(Icons.video_library, color: Colors.black),
                         label: const Text("గ్యాలరీ నుండి వీడియోలు జోడించు", style: TextStyle(color: Colors.black, fontSize: 12)),
@@ -529,9 +514,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))),
-              ],
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))],
             );
           },
         );
@@ -641,7 +624,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _showMultiStreamDialog() {
-    showDialog(context: context, builder: (context) { return AlertDialog(backgroundColor: Colors.grey[900], title: const Text("Restream & YouTube Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: youtubeUrlController, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(labelText: "RTMP URL (ఉదా: rtmp://bangalore.restream.io/live)", labelStyle: TextStyle(color: Colors.white54))), const SizedBox(height: 10), TextField(controller: restreamKeyController, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(labelText: "Stream Key", labelStyle: TextStyle(color: Colors.white54)))])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సెట్టింగ్స్ సేవ్ అయ్యాయి!"), backgroundColor: Colors.blue)); }, child: const Text("Save Live Settings", style: TextStyle(color: Colors.white)))]);});
+    showDialog(context: context, builder: (context) { return AlertDialog(backgroundColor: Colors.grey[900], title: const Text("Restream & YouTube Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: youtubeUrlController, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(labelText: "RTMP URL (ఉదా: rtmp://bangalore.restream.io/live)", labelStyle: TextStyle(color: Colors.white54))), const SizedBox(height: 10), TextField(controller: restreamKeyController, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(labelText: "Stream Key", labelStyle: TextStyle(color: Colors.white54)))])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సెట్టింగ్స్ సేవ్ అయ్యాయి! (లైవ్ వెళ్లాలంటే స్క్రీన్ పై డబుల్ ట్యాప్ చేయండి)"), backgroundColor: Colors.blue)); }, child: const Text("Save Live Settings", style: TextStyle(color: Colors.white)))]);});
   }
 
   void _showEditDialog() {
@@ -674,9 +657,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       decoration: const InputDecoration(labelText: "కొత్త బ్రేకింగ్ హెడ్‌లైన్ టైప్ చేయండి"),
                       onSubmitted: (val) {
                         if (val.trim().isNotEmpty) {
-                          setState(() {
-                            customHeadlines.add(val.trim());
-                          });
+                          setState(() { customHeadlines.add(val.trim()); });
                           setDialogState(() {});
                         }
                       },
@@ -686,9 +667,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
                       onPressed: () {
                         if (headlineCtrl.text.trim().isNotEmpty) {
-                          setState(() {
-                            customHeadlines.add(headlineCtrl.text.trim());
-                          });
+                          setState(() { customHeadlines.add(headlineCtrl.text.trim()); });
                           headlineCtrl.clear();
                           setDialogState(() {});
                         }
@@ -916,12 +895,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ],
     );
 
-    Widget visualScreenLogoWidget = GestureDetector(
-      onLongPress: _toggleHiddenLiveStream,
-      child: channelLogoPath.isNotEmpty
+    Widget visualScreenLogoWidget = channelLogoPath.isNotEmpty
           ? SizedBox(width: logoWidth, height: logoHeight, child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-          : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-    );
+          : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
 
     Widget bottomVideoWidget = newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty
         ? (!newsBulletinList[currentNewsIndex].isVideo
@@ -938,8 +914,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     return WillPopScope(
       onWillPop: () async {
-        if (isNewsBulletinMode) { setState(() { isNewsBulletinMode = false; hideControls = false; }); return false; } 
-        else if (!hideControls) { setState(() { hideControls = true; }); return false; }
+        if (!hideControls) {
+          setState(() { hideControls = true; });
+          return false;
+        } else if (isNewsBulletinMode) { 
+          setState(() { isNewsBulletinMode = false; hideControls = false; }); 
+          return false; 
+        } 
         return true;
       },
       child: Scaffold(
@@ -949,15 +930,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           bottom: true,
           child: Stack(
             children: [
+              // 1. అట్టడుగున ఉండే బేసిక్ లేఅవుట్ (కెమెరా మరియు వీడియోలు)
               Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () { setState(() { hideControls = !hideControls; }); },
-                  onDoubleTap: _toggleHiddenLiveStream,
-                  child: isNewsBulletinMode
-                      ? _buildBulletinMode(isScreenLandscape, cameraWidget, bottomVideoWidget, reporterBadgeWidget, visualScreenLogoWidget)
-                      : _buildNormalMode(isScreenLandscape, screenWidth, cameraWidget, visualScreenLogoWidget),
-                ),
+                child: isNewsBulletinMode
+                    ? _buildBulletinMode(isScreenLandscape, cameraWidget, bottomVideoWidget, reporterBadgeWidget, visualScreenLogoWidget)
+                    : _buildNormalMode(isScreenLandscape, screenWidth, cameraWidget, visualScreenLogoWidget),
               ),
 
               if (isVideoAdPlaying)
@@ -975,26 +952,46 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
 
+              // === NEW: కంటికి కనిపించని టచ్ లేయర్ (మ్యాజిక్ ట్రిగ్గర్స్ కోసం) ===
+              if (hideControls)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () { setState(() { hideControls = false; }); },
+                    onDoubleTap: _toggleHiddenLiveStream,
+                    onLongPress: _toggleHiddenLiveStream, // ఎక్కడ లాంగ్ ప్రెస్ చేసినా లైవ్ స్టార్ట్ అవుతుంది
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+
+              // 2. పైన కనిపించే కంట్రోల్స్ లేయర్ (బటన్స్)
               if (!hideControls)
                 Positioned.fill(
-                  child: Container(
-                    color: Colors.black54,
-                    child: Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
-                        children: [
-                          _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                          _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                          _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
-                          _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                          _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
-                          _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                          _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                          _buildControlButton(isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent),
-                          _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
-                          _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
-                          _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                        ],
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () { setState(() { hideControls = true; }); },
+                    child: Container(
+                      color: Colors.black54,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {}, 
+                          child: Wrap(
+                            alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
+                            children: [
+                              _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                              _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
+                              _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
+                              _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
+                              _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
+                              _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
+                              _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                              _buildControlButton(isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent),
+                              _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
+                              _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
+                              _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
