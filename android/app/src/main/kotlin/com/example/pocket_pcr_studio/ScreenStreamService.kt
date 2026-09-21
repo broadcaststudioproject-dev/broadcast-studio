@@ -10,6 +10,9 @@ import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
@@ -19,17 +22,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
-    // ఎర్రర్ రాకుండా ఇక్కడ ఖచ్చితమైన String సెట్ చేశాను
     private var currentRecordPath: String = ""
+
+    // స్క్రీన్ మీద మెసేజ్ చూపించడానికి ఫంక్షన్
+    private fun showMessage(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(baseContext, message, Toast.LENGTH_LONG).show()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         rtmpDisplay = RtmpDisplay(baseContext, true, this)
-        rtmpDisplay?.setReTries(10)
+        rtmpDisplay?.setReTries(10) // కనెక్షన్ పోతే 10 సార్లు మళ్ళీ ట్రై చేస్తుంది
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val action = intent?.action
+        if (intent == null) return START_NOT_STICKY
+        val action = intent.action ?: return START_NOT_STICKY
+
         if (action == "START_STREAM") {
             val url = intent.getStringExtra("url") ?: ""
             val resultCode = intent.getIntExtra("resultCode", -1)
@@ -41,10 +52,13 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 val display = rtmpDisplay 
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
-                    if (display.prepareAudio() && display.prepareVideo()) {
+                    
+                    // వీడియో, ఆడియో కరెక్ట్ గా సిద్ధం అయితే..
+                    if (display.prepareAudio() && display.prepareVideo(1280, 720, 30, 2500 * 1024, 0)) {
                         
                         if (url.isNotEmpty()) {
                             display.startStream(url)
+                            showMessage("⏳ రిస్ట్రీమ్ కి కనెక్ట్ అవుతోంది... దయచేసి ఆగండి.")
                         }
                         
                         try {
@@ -56,12 +70,17 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             }
                             
                             val file = File(pcrFolder, "PCR_Live_${System.currentTimeMillis()}.mp4")
-                            val path = file.absolutePath
-                            currentRecordPath = path
-                            display.startRecord(path)
+                            val absolutePath = file.absolutePath ?: ""
+                            currentRecordPath = absolutePath
+                            
+                            if (absolutePath.isNotEmpty()) {
+                                display.startRecord(absolutePath)
+                            }
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
+                    } else {
+                        showMessage("❌ లైవ్ ప్రారంభించడంలో లోపం! రిజల్యూషన్ సపోర్ట్ చేయడం లేదు.")
                     }
                 }
             }
@@ -69,16 +88,26 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             stopAndSave()
             stopForeground(true)
             stopSelf()
+            showMessage("⏹️ లైవ్ ఆపబడింది.")
         }
         return START_NOT_STICKY
     }
     
     private fun stopAndSave() {
-        rtmpDisplay?.stopRecord()
-        rtmpDisplay?.stopStream()
+        try {
+            rtmpDisplay?.stopRecord()
+            rtmpDisplay?.stopStream()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         
-        if (currentRecordPath.isNotEmpty()) {
-            MediaScannerConnection.scanFile(baseContext, arrayOf(currentRecordPath), arrayOf("video/mp4"), null)
+        val pathToSave = currentRecordPath
+        if (pathToSave.isNotEmpty()) {
+            try {
+                MediaScannerConnection.scanFile(baseContext, arrayOf(pathToSave), arrayOf("video/mp4"), null)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -94,7 +123,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         }
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
-            .setContentText("Background Live & Recording active...")
+            .setContentText("Live Streaming is Active...")
             .setSmallIcon(android.R.drawable.ic_media_play) 
             .build()
         startForeground(1, notification)
@@ -109,13 +138,24 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         stopAndSave()
     }
 
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
-    override fun onConnectionSuccessRtmp() {}
+    // === ఇక్కడే అసలు మ్యాజిక్ ఉంది (మెసేజ్‌లు వస్తాయి) ===
+    override fun onConnectionStartedRtmp(rtmpUrl: String) { }
+    
+    override fun onConnectionSuccessRtmp() {
+        showMessage("✅ రిస్ట్రీమ్ లైవ్ కనెక్ట్ అయింది! సక్సెస్!")
+    }
+    
     override fun onConnectionFailedRtmp(reason: String) {
+        showMessage("❌ లైవ్ ఫెయిల్ అయింది: $reason")
         stopAndSave()
     }
+    
     override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() {}
-    override fun onAuthErrorRtmp() {}
+    override fun onDisconnectRtmp() {
+        showMessage("⚠️ కనెక్షన్ కట్ అయింది.")
+    }
+    override fun onAuthErrorRtmp() {
+        showMessage("❌ కీ (Key) తప్పుగా ఉంది. దయచేసి కరెక్ట్ కీ ఎంటర్ చేయండి.")
+    }
     override fun onAuthSuccessRtmp() {}
 }
