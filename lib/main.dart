@@ -9,7 +9,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:video_player/video_player.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
 List<CameraDescription> cameras = [];
@@ -52,14 +51,12 @@ class StudioScreen extends StatefulWidget {
 
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   CameraController? controller;
-  VlcPlayerController? _vlcViewController;
   VlcPlayerController? _videoAdVlcController; 
   VideoPlayerController? _bulletinVideoController; 
   
   bool hideControls = false;
   int currentCameraIndex = 0;
   bool isLandscape = false;
-  bool isIpCameraActive = false;
   bool isLiveBroadcasting = false;
   bool isAnimatedAdsMode = false; 
   bool isVideoAdPlaying = false; 
@@ -84,9 +81,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   double _maxZoomLevel = 8.0;
   double _baseScale = 1.0;
 
-  String ipCameraUrl = ""; 
-  TextEditingController ipController = TextEditingController();
-  TextEditingController qrDataController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   Color adLayerColor = const Color(0xFF111111);
@@ -136,7 +130,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     nameCtrl.text = reporterName;
     roleCtrl.text = reporterRole;
     headlineCtrl.text = "";
-    qrDataController.text = "https://ssyatratv.com/live-stream";
     youtubeUrlController.text = "rtmp://bangalore.restream.io/live";
     restreamKeyController.text = "";
 
@@ -164,9 +157,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
       controller?.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      if (!isIpCameraActive) {
-        _initCamera();
-      }
+      _initCamera();
     }
   }
 
@@ -176,13 +167,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _newsTimer?.cancel();
     _headlineRotationTimer?.cancel();
     controller?.dispose();
-    _vlcViewController?.dispose();
     _videoAdVlcController?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     topHeadlineNotifier.dispose();
-    ipController.dispose();
-    qrDataController.dispose();
     youtubeUrlController.dispose();
     restreamKeyController.dispose();
     watermarkCtrl.dispose();
@@ -204,7 +192,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _initCamera() async {
-    if (cameras.isEmpty || isIpCameraActive) return;
+    if (cameras.isEmpty) return;
     try {
       if (controller != null) {
         await controller!.dispose();
@@ -229,31 +217,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _switchCamera() async {
-    if (isIpCameraActive || isVideoAdPlaying) return; 
+    if (isVideoAdPlaying) return; 
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await _initCamera();
-  }
-
-  void _toggleIpCamera() {
-    if (isIpCameraActive) {
-      _vlcViewController?.stopRendererScanning();
-      _vlcViewController?.dispose();
-      setState(() { isIpCameraActive = false; });
-      _initCamera();
-    } else {
-      if (ipCameraUrl.isEmpty) {
-        _showIpInputDialog();
-        return;
-      }
-      controller?.dispose();
-      _vlcViewController = VlcPlayerController.network(
-        ipCameraUrl,
-        hwAcc: HwAcc.full,
-        autoPlay: true,
-      );
-      setState(() { isIpCameraActive = true; });
-    }
   }
 
   void _startBulletinMedia(String path, bool isVideo) {
@@ -654,14 +621,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  void _showQrGeneratorDialog() {
-    showDialog(context: context, builder: (context) { return AlertDialog(backgroundColor: Colors.grey[900], title: const Text("PCR QR కోడ్ జనరేటర్", style: TextStyle(color: Colors.white)), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: qrDataController, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లైవ్ లింక్", labelStyle: TextStyle(color: Colors.white54))), const SizedBox(height: 20), Container(padding: const EdgeInsets.all(10), color: Colors.white, child: QrImageView(data: qrDataController.text, version: QrVersions.auto, size: 150.0))],), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))]);});
-  }
-
-  void _showIpInputDialog() {
-    showDialog(context: context, builder: (context) { return AlertDialog(backgroundColor: Colors.grey[900], title: const Text("IP / Stream Link సెట్టింగ్స్", style: TextStyle(color: Colors.white)), content: TextField(controller: ipController, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "RTSP / HTTP లింక్", labelStyle: TextStyle(color: Colors.white54))), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () { setState(() { ipCameraUrl = ipController.text; }); Navigator.pop(context); }, child: const Text("Save", style: TextStyle(color: Colors.white)))]);});
-  }
-
   void _showMultiStreamDialog() {
     showDialog(context: context, builder: (context) { return AlertDialog(backgroundColor: Colors.grey[900], title: const Text("Restream & YouTube Multi-Live సెటప్", style: TextStyle(color: Colors.white, fontSize: 14)), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: youtubeUrlController, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(labelText: "RTMP URL (ఉదా: rtmp://bangalore.restream.io/live)", labelStyle: TextStyle(color: Colors.white54))), const SizedBox(height: 10), TextField(controller: restreamKeyController, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(labelText: "Stream Key", labelStyle: TextStyle(color: Colors.white54)))])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సెట్టింగ్స్ సేవ్ అయ్యాయి! (లైవ్ వెళ్లాలంటే స్క్రీన్ పై డబుల్ ట్యాప్ చేయండి)"), backgroundColor: Colors.blue)); }, child: const Text("Save Live Settings", style: TextStyle(color: Colors.white)))]);});
   }
@@ -897,29 +856,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double finalCamW = isScreenLandscape ? camW : camH;
     double finalCamH = isScreenLandscape ? camH : camW;
 
-    Widget cameraWidget = isIpCameraActive && _vlcViewController != null
-        ? IgnorePointer(ignoring: true, child: VlcPlayer(controller: _vlcViewController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))))
-        : (controller != null && controller!.value.isInitialized 
-            ? GestureDetector(
-                onScaleStart: (details) { _baseScale = _currentZoomLevel; },
-                onScaleUpdate: (details) async {
-                  if (controller == null || !controller!.value.isInitialized) return;
-                  double zoom = _baseScale * details.scale;
-                  if (zoom < _minZoomLevel) zoom = _minZoomLevel;
-                  if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-                  setState(() { _currentZoomLevel = zoom; });
-                  await controller?.setZoomLevel(zoom);
-                },
-                child: ClipRect(
-                  child: SizedBox.expand(
-                    child: FittedBox(
-                      fit: BoxFit.cover, 
-                      child: SizedBox(width: finalCamW, height: finalCamH, child: CameraPreview(controller!)),
-                    ),
-                  ),
+    Widget cameraWidget = (controller != null && controller!.value.isInitialized 
+        ? GestureDetector(
+            onScaleStart: (details) { _baseScale = _currentZoomLevel; },
+            onScaleUpdate: (details) async {
+              if (controller == null || !controller!.value.isInitialized) return;
+              double zoom = _baseScale * details.scale;
+              if (zoom < _minZoomLevel) zoom = _minZoomLevel;
+              if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+              setState(() { _currentZoomLevel = zoom; });
+              await controller?.setZoomLevel(zoom);
+            },
+            child: ClipRect(
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover, 
+                  child: SizedBox(width: finalCamW, height: finalCamH, child: CameraPreview(controller!)),
                 ),
-              )
-            : const Center(child: CircularProgressIndicator(color: Colors.white)));
+              ),
+            ),
+          )
+        : const Center(child: CircularProgressIndicator(color: Colors.white)));
 
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -972,7 +929,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           bottom: true,
           child: Stack(
             children: [
-              // 1. Root Gesture Detector - (హైడ్ లో ఉన్నప్పుడు ట్యాప్ చేస్తే తిరిగి బటన్స్ వస్తాయి)
+              // 1. Root Gesture Detector 
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -1000,30 +957,49 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-              // 2. Buttons layer (ఇక్కడ మిస్ అయిన టచ్ లేయర్ యాడ్ చేశాను!)
+              // 2. కొత్తగా డిజైన్ చేసిన "స్టూడియో కంట్రోల్ ప్యానెల్ (Box)" 
               if (!hideControls)
                 Positioned.fill(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () { setState(() { hideControls = true; }); }, // <- ఇక్కడే బటన్స్ హైడ్ అవుతాయి
+                    onTap: () { setState(() { hideControls = true; }); }, // బాక్స్ బయట నొక్కితే మాయం అవుతుంది
                     child: Container(
-                      color: Colors.black54,
+                      color: Colors.black54, // చుట్టూ కొంచెం చీకటిగా ఉండే ఎఫెక్ట్
                       child: Center(
-                        child: Wrap(
-                          alignment: WrapAlignment.center, spacing: 15, runSpacing: 15,
-                          children: [
-                            _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                            _buildControlButton(Icons.wifi_tethering, "IP Cam", _toggleIpCamera, isIpCameraActive ? Colors.green : Colors.orange),
-                            _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
-                            _buildControlButton(Icons.qr_code_2, "QR Gen", _showQrGeneratorDialog, Colors.tealAccent),
-                            _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
-                            _buildControlButton(Icons.settings_ethernet, "Set IP", _showIpInputDialog, Colors.cyan),
-                            _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
-                            _buildControlButton(isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent),
-                            _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.amber),
-                            _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
-                            _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                          ],
+                        child: GestureDetector(
+                          onTap: () {}, // బాక్స్ మీద నొక్కితే మాయం అవ్వకుండా ఆపుతుంది!
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+                            width: screenWidth > 600 ? 500 : screenWidth * 0.9, // స్క్రీన్ సైజును బట్టి బాక్స్ సైజు
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade900, // బాక్స్ కలర్
+                              borderRadius: BorderRadius.circular(20), // రౌండ్ కార్నర్స్
+                              border: Border.all(color: Colors.amberAccent, width: 2), // అంబర్ బోర్డర్
+                              boxShadow: const [BoxShadow(color: Colors.black, blurRadius: 15, spreadRadius: 5)],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text("స్టూడియో కంట్రోల్ ప్యానెల్", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 5),
+                                const Divider(color: Colors.white24, thickness: 1),
+                                const SizedBox(height: 15),
+                                Wrap(
+                                  alignment: WrapAlignment.center, spacing: 20, runSpacing: 25,
+                                  children: [
+                                    _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                                    _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
+                                    _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
+                                    _buildControlButton(isNewsBulletinMode ? Icons.newspaper : Icons.featured_play_list, isNewsBulletinMode ? "Exit Bulletin" : "News Bulletin", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.cyanAccent : Colors.pinkAccent),
+                                    _buildControlButton(Icons.playlist_add, "Bulletin Mgr", _showBulletinManagerDialog, Colors.orange),
+                                    _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.teal),
+                                    _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                                    _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1042,8 +1018,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 24, backgroundColor: Colors.white30, child: Icon(icon, color: iconColor, size: 24)),
-          const SizedBox(height: 5),
+          CircleAvatar(radius: 26, backgroundColor: Colors.white12, child: Icon(icon, color: iconColor, size: 26)),
+          const SizedBox(height: 6),
           Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
         ],
       ),
