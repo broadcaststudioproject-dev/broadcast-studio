@@ -53,8 +53,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    // వీడియో, ఆడియో కరెక్ట్ గా సిద్ధం అయితే..
-                    if (display.prepareAudio() && display.prepareVideo(1280, 720, 30, 2500 * 1024, 0)) {
+                    // ఎర్రర్ రాకుండా పాత పద్ధతిలోనే prepareVideo() వాడుతున్నాం
+                    if (display.prepareAudio() && display.prepareVideo()) {
                         
                         if (url.isNotEmpty()) {
                             display.startStream(url)
@@ -80,7 +80,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             e.printStackTrace()
                         }
                     } else {
-                        showMessage("❌ లైవ్ ప్రారంభించడంలో లోపం! రిజల్యూషన్ సపోర్ట్ చేయడం లేదు.")
+                        showMessage("❌ లైవ్ ప్రారంభించడంలో లోపం! స్క్రీన్ రికార్డింగ్ ఫెయిల్ అయింది.")
                     }
                 }
             }
@@ -146,7 +146,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("❌ లైవ్ ఫెయిల్ అయింది: $reason")
+        showMessage("❌ లైవ్ ఫెయిల్ అయింది: \$reason")
         stopAndSave()
     }
     
