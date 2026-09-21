@@ -53,7 +53,7 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   
   // === ఆటో అప్‌డేట్ సెట్టింగ్స్ ===
-  String currentAppVersion = "1.0.0"; // ప్రస్తుత యాప్ వెర్షన్
+  String currentAppVersion = "1.0.0+2"; // ప్రస్తుత యాప్ వెర్షన్
 
   Future<void> _checkForUpdates() async {
     try {
