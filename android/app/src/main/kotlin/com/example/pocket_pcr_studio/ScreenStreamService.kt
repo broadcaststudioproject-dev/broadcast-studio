@@ -24,17 +24,16 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private val channelId = "ScreenStreamChannel"
     private var currentRecordPath: String = ""
 
-    // స్క్రీన్ మీద మెసేజ్ చూపించడానికి ఫంక్షన్
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(baseContext, message, Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        rtmpDisplay = RtmpDisplay(baseContext, true, this)
-        rtmpDisplay?.setReTries(10) // కనెక్షన్ పోతే 10 సార్లు మళ్ళీ ట్రై చేస్తుంది
+        rtmpDisplay = RtmpDisplay(applicationContext, true, this)
+        rtmpDisplay?.setReTries(10)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,12 +52,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    // ఎర్రర్ రాకుండా పాత పద్ధతిలోనే prepareVideo() వాడుతున్నాం
+                    // రిజల్యూషన్ క్రాష్ అవ్వకుండా.. ఆటో-డిటెక్ట్ కి మార్చబడింది!
                     if (display.prepareAudio() && display.prepareVideo()) {
                         
                         if (url.isNotEmpty()) {
                             display.startStream(url)
-                            showMessage("⏳ రిస్ట్రీమ్ కి కనెక్ట్ అవుతోంది... దయచేసి ఆగండి.")
+                            showMessage("⏳ లైవ్ కనెక్ట్ అవుతోంది...")
+                        } else {
+                            showMessage("❌ లైవ్ లింక్ (URL) ఖాళీగా ఉంది!")
                         }
                         
                         try {
@@ -80,7 +81,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             e.printStackTrace()
                         }
                     } else {
-                        showMessage("❌ లైవ్ ప్రారంభించడంలో లోపం! స్క్రీన్ రికార్డింగ్ ఫెయిల్ అయింది.")
+                        showMessage("❌ ఆడియో/వీడియో సపోర్ట్ ఫెయిల్ అయింది.")
                     }
                 }
             }
@@ -129,33 +130,33 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         startForeground(1, notification)
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         super.onDestroy()
         stopAndSave()
     }
 
-    // === ఇక్కడే అసలు మ్యాజిక్ ఉంది (మెసేజ్‌లు వస్తాయి) ===
-    override fun onConnectionStartedRtmp(rtmpUrl: String) { }
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
     
     override fun onConnectionSuccessRtmp() {
-        showMessage("✅ రిస్ట్రీమ్ లైవ్ కనెక్ట్ అయింది! సక్సెస్!")
+        showMessage("✅ లైవ్ సక్సెస్! YouTube చెక్ చేయండి.")
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("❌ లైవ్ ఫెయిల్ అయింది: \$reason")
+        showMessage("❌ లైవ్ ఫెయిల్: $reason")
         stopAndSave()
     }
     
     override fun onNewBitrateRtmp(bitrate: Long) {}
+    
     override fun onDisconnectRtmp() {
         showMessage("⚠️ కనెక్షన్ కట్ అయింది.")
     }
+    
     override fun onAuthErrorRtmp() {
-        showMessage("❌ కీ (Key) తప్పుగా ఉంది. దయచేసి కరెక్ట్ కీ ఎంటర్ చేయండి.")
+        showMessage("❌ కీ (Key) తప్పుగా ఉంది.")
     }
+    
     override fun onAuthSuccessRtmp() {}
 }
