@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher.dart'; // ఆటో-అప్‌డేట్ కోసం ప్లగిన్
 
 List<CameraDescription> cameras = [];
 
@@ -51,12 +51,68 @@ class StudioScreen extends StatefulWidget {
 }
 
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
+  
+  // === ఆటో అప్‌డేట్ సెట్టింగ్స్ ===
+  String currentAppVersion = "1.0.0"; // ప్రస్తుత యాప్ వెర్షన్
+
+  Future<void> _checkForUpdates() async {
+    try {
+      // మీ గిట్‌హబ్ యూజర్ నేమ్ మరియు రెపో పేరు ఇక్కడ మార్చండి (ఉదా: broadcaststudio/broadcast-studio)
+      String versionUrl = 'https://raw.githubusercontent.com/మీ_గిట్‌హబ్_పేరు/మీ_రెపో_పేరు/main/version.txt';
+      final response = await http.get(Uri.parse(versionUrl));
+      
+      if (response.statusCode == 200) {
+        List<String> data = response.body.split('\n');
+        if (data.isNotEmpty) {
+          String latestVersion = data[0].trim();
+          String apkDownloadLink = data.length > 1 ? data[1].trim() : "";
+          
+          if (latestVersion != currentAppVersion && latestVersion.isNotEmpty) {
+            _showUpdateDialog(latestVersion, apkDownloadLink);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Update Check Failed: $e");
+    }
+  }
+
+  void _showUpdateDialog(String newVersion, String apkLink) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("కొత్త అప్‌డేట్ వచ్చింది! 🎉", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: Text("Pocket PCR Studio కొత్త వెర్షన్ ($newVersion) అందుబాటులో ఉంది. పాత యాప్ సెట్టింగ్స్ పోకుండా అప్‌డేట్ చేసుకోవడానికి కింద క్లిక్ చేయండి.", style: const TextStyle(color: Colors.white70)),
+          actions: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              icon: const Icon(Icons.system_update, color: Colors.white),
+              label: const Text("Update Now (అప్‌డేట్ చేయి)", style: TextStyle(color: Colors.white)),
+              onPressed: () async {
+                if (apkLink.isNotEmpty) {
+                  Uri url = Uri.parse(apkLink);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
+            )
+          ],
+        );
+      }
+    );
+  }
+  // === ఆటో అప్‌డేట్ సెట్టింగ్స్ ముగింపు ===
+
   CameraController? controller;
   VlcPlayerController? _videoAdVlcController; 
   VideoPlayerController? _bulletinVideoController; 
   
   bool hideControls = false;
-  bool isMenuOpen = false; // స్మార్ట్ మెనూ కోసం కొత్త వేరియబుల్
+  bool isMenuOpen = false;
   
   int currentCameraIndex = 0;
   bool isLandscape = false;
@@ -85,7 +141,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   double _baseScale = 1.0;
 
   final ImagePicker _picker = ImagePicker();
-
   Color adLayerColor = const Color(0xFF111111);
   
   String verticalAnimatedAdPath = "";
@@ -124,10 +179,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Timer? _newsTimer;
 
+  // === ఇక్కడ మీరు వెతుకుతున్న initState() ఉంది ===
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // యాప్ ఓపెన్ చేయగానే కొత్త అప్‌డేట్ ఉందేమో ఇక్కడే చెక్ చేస్తుంది!
+    _checkForUpdates(); 
+
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
@@ -224,7 +284,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     await _initCamera();
-    setState(() { isMenuOpen = false; }); // బటన్ నొక్కగానే మెనూ క్లోజ్ అవుతుంది
+    setState(() { isMenuOpen = false; }); 
   }
 
   void _startBulletinMedia(String path, bool isVideo) {
@@ -316,7 +376,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           });
         }
       } catch (fallbackErr) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ ఓపెన్ కావడంలో సమస్య వచ్చింది. సెట్టింగ్స్‌లో పర్మిషన్స్ చెక్ చేయండి."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ ఓపెన్ కావడంలో సమస్య వచ్చింది."), backgroundColor: Colors.red));
       }
     }
   }
@@ -392,13 +452,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
       if (image != null && mounted) {
-        setState(() {
-          breakingNewsLogoPath = image.path; 
-        });
+        setState(() { breakingNewsLogoPath = image.path; });
       }
-    } catch (e) {
-      debugPrint("Image Picker Error: $e");
-    }
+    } catch (e) { }
   }
 
   void _showBulletinManagerDialog() {
@@ -915,14 +971,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           bottom: true,
           child: Stack(
             children: [
-              // 1. Root Gesture Detector - (హైడ్ లో ఉన్నప్పుడు ట్యాప్ చేస్తే తిరిగి బటన్స్ వస్తాయి)
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () { 
                     setState(() { 
                       if (isMenuOpen) {
-                        isMenuOpen = false; // మెనూ ఓపెన్ ఉంటే దాన్ని మాత్రమే క్లోజ్ చేస్తుంది
+                        isMenuOpen = false; 
                       } else {
                         hideControls = !hideControls; 
                       }
@@ -951,7 +1006,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-              // === కొత్త స్మార్ట్ మెనూ ఐకాన్ (కుడివైపు కింద) ===
               if (!hideControls)
                 Positioned(
                   bottom: 75,
@@ -967,12 +1021,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),
                 ),
 
-              // === మెనూ ఓపెన్ చేసినప్పుడు కనిపించే 8 బటన్స్ ఓవర్లే ===
               if (!hideControls && isMenuOpen)
                 Positioned.fill(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () { setState(() { isMenuOpen = false; }); }, // బయట టచ్ చేస్తే మెనూ క్లోజ్ అవుతుంది
+                    onTap: () { setState(() { isMenuOpen = false; }); }, 
                     child: Container(
                       color: Colors.black87,
                       child: Center(
