@@ -141,7 +141,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Color adLayerColor = const Color(0xFF111111);
   
   String verticalAnimatedAdPath = "";
-  String horizontalAnimatedAdPath = ""; // దీన్ని కుడివైపు యాడ్ లాగా వాడుతున్నాం
+  String horizontalAnimatedAdPath = ""; 
   String breakingNewsLogoPath = ""; 
   
   final List<String> videoAdsList = List.generate(10, (index) => "");
@@ -838,8 +838,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       return Stack(children: [Positioned.fill(child: cameraWidget), Positioned(top: 15, right: 15, child: visualScreenLogoWidget)]);
     }
 
-    // తెర అంచులకు (Edges) సరిగ్గా సరిపోయే యాడ్స్ సైజు - స్క్రీన్ వెడల్పులో 20%
-    double sideAdWidth = screenWidth * 0.22;
+    // === L-Shape Ads కొలతలు ===
+    double vertAdWidth = screenWidth * 0.24;  // ఎడమవైపు 24% వెడల్పు
+    double horizAdHeight = screenHeight * 0.15; // కింద 15% ఎత్తు
 
     return Container(
       color: adLayerColor,
@@ -847,19 +848,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         children: [
           Positioned.fill(child: cameraWidget), 
           
-          // కుడివైపు యాడ్ కి తగలకుండా ఛానల్ లోగోని కొద్దిగా జరిపాను
-          Positioned(top: 15, right: sideAdWidth + 10, child: visualScreenLogoWidget),
+          Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
           
-          // 1. ఎడమవైపు నిలువు యాడ్ (Left Vertical Ad) - అంచుకి ఫిక్స్
+          // 1. ఎడమవైపు నిలువు యాడ్ (Vertical Ad) - L ఆకారం మొదలు
           Positioned(
             left: 0, 
             top: 0,
-            bottom: 55, // కింద బ్రేకింగ్ న్యూస్ బార్ పైన ఆగిపోతుంది
+            bottom: 55, // కింద బ్రేకింగ్ న్యూస్ బార్ వరకు
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
               onTap: _pickVerticalAd, 
               child: Container(
-                width: sideAdWidth, 
+                width: vertAdWidth, 
                 decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
                 child: verticalAnimatedAdPath.isNotEmpty 
                     ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
@@ -871,7 +871,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             children: [
                               Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26), 
                               SizedBox(height: 6), 
-                              Text("TAP TO UPLOAD\nLEFT AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+                              Text("TAP TO UPLOAD\nVERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
                             ],
                           ),
                         ),
@@ -880,17 +880,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           ),
 
-          // 2. కుడివైపు నిలువు యాడ్ (Right Vertical Ad) - అంచుకి ఫిక్స్
+          // 2. కింద అడ్డు యాడ్ (Horizontal Ad) - L ఆకారం ముగింపు (నిలువు యాడ్ పక్కనుండి మొదలవుతుంది)
           Positioned(
+            left: vertAdWidth, // కరెక్ట్ గా నిలువు యాడ్ పక్కనుండి స్టార్ట్ అవుతుంది
             right: 0, 
-            top: 0, 
-            bottom: 55,
+            bottom: 55, // బ్రేకింగ్ న్యూస్ పైన
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
-              onTap: _pickHorizontalAd, // ఇక్కడ కుడివైపు యాడ్ కోసం వాడుతున్నాం
+              onTap: _pickHorizontalAd, 
               child: Container(
-                width: sideAdWidth, 
-                decoration: const BoxDecoration(border: Border(left: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
+                height: horizAdHeight, 
+                decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
                 child: horizontalAnimatedAdPath.isNotEmpty 
                     ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
                     : const Center(
@@ -899,7 +899,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           children: [
                             Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26), 
                             SizedBox(height: 6), 
-                            Text("TAP TO UPLOAD\nRIGHT AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+                            Text("TAP TO UPLOAD BOTTOM BANNER AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
                           ],
                         ),
                       ),
@@ -1030,9 +1030,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               if (isVideoAdPlaying)
                 Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
 
-              // రిపోర్టర్ బ్యాడ్జ్ ఎడమవైపు యాడ్ కి తగలకుండా (పక్కకి) జరిపాను
+              // రిపోర్టర్ బ్యాడ్జ్ కింది అడ్డు యాడ్ (Horizontal Ad) కి పైన సేఫ్‌గా ఉండేలా పెట్టాను
               if (!isNewsBulletinMode)
-                Positioned(bottom: 65, left: isAnimatedAdsMode ? (screenWidth * 0.22 + 10) : 15, child: reporterBadgeWidget),
+                Positioned(
+                  bottom: isAnimatedAdsMode ? (55 + (screenHeight * 0.15) + 10) : 65, 
+                  left: isAnimatedAdsMode ? (screenWidth * 0.24 + 10) : 15, 
+                  child: reporterBadgeWidget
+                ),
               
               if (!isNewsBulletinMode)
                 Positioned(
