@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -50,6 +51,59 @@ class StudioScreen extends StatefulWidget {
 }
 
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
+  
+  String currentAppVersion = "1.0.0"; 
+
+  Future<void> _checkForUpdates() async {
+    try {
+      String versionUrl = 'https://raw.githubusercontent.com/broadcaststudio/broadcast-studio/main/version.txt';
+      final response = await http.get(Uri.parse(versionUrl));
+      
+      if (response.statusCode == 200) {
+        List<String> data = response.body.split('\n');
+        if (data.isNotEmpty) {
+          String latestVersion = data[0].trim();
+          String apkDownloadLink = data.length > 1 ? data[1].trim() : "";
+          
+          if (latestVersion != currentAppVersion && latestVersion.isNotEmpty) {
+            _showUpdateDialog(latestVersion, apkDownloadLink);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Update Check Failed: $e");
+    }
+  }
+
+  void _showUpdateDialog(String newVersion, String apkLink) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("కొత్త అప్‌డేట్ వచ్చింది! 🎉", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: Text("Pocket PCR Studio కొత్త వెర్షన్ ($newVersion) అందుబాటులో ఉంది. పాత యాప్ సెట్టింగ్స్ పోకుండా అప్‌డేట్ చేసుకోవడానికి కింద క్లిక్ చేయండి.", style: const TextStyle(color: Colors.white70)),
+          actions: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              icon: const Icon(Icons.system_update, color: Colors.white),
+              label: const Text("Update Now (అప్‌డేట్ చేయి)", style: TextStyle(color: Colors.white)),
+              onPressed: () async {
+                if (apkLink.isNotEmpty) {
+                  Uri url = Uri.parse(apkLink);
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
+            )
+          ],
+        );
+      }
+    );
+  }
+
   CameraController? controller;
   VlcPlayerController? _videoAdVlcController; 
   VideoPlayerController? _bulletinVideoController; 
@@ -87,22 +141,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Color adLayerColor = const Color(0xFF111111);
   
   String verticalAnimatedAdPath = "";
-  String rightVerticalAdPath = ""; // కుడి వైపు నిలువు యాడ్ కోసం
-  String horizontalAnimatedAdPath = "";
+  String horizontalAnimatedAdPath = ""; // దీన్ని కుడివైపు యాడ్ లాగా వాడుతున్నాం
   String breakingNewsLogoPath = ""; 
   
-  double _vertScale = 1.0;
-  double _vertRotation = 0.0;
-  Offset _vertOffset = Offset.zero;
-
-  double _rightVertScale = 1.0;
-  double _rightVertRotation = 0.0;
-  Offset _rightVertOffset = Offset.zero;
-
-  double _horizScale = 1.0;
-  double _horizRotation = 0.0;
-  Offset _horizOffset = Offset.zero;
-
   final List<String> videoAdsList = List.generate(10, (index) => "");
 
   String channelLogoPath = ""; 
@@ -131,6 +172,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    _checkForUpdates(); 
+
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
@@ -318,9 +362,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             }
           });
         }
-      } catch (fallbackErr) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ ఓపెన్ కావడంలో సమస్య వచ్చింది."), backgroundColor: Colors.red));
-      }
+      } catch (fallbackErr) {}
     }
   }
 
@@ -369,7 +411,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (rtmpUrl.isEmpty || streamKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("ఆఫ్‌లైన్ రికార్డింగ్ కోసం మీ ఫోన్ 'స్క్రీన్ రికార్డర్' వాడండి. లైవ్ వెళ్లాలంటే Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి."),
+          content: Text("లైవ్ వెళ్లాలంటే Multi-Live సెట్టింగ్స్ లో కీ ఇవ్వండి."),
           backgroundColor: Colors.blueAccent,
         ),
       );
@@ -398,15 +440,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         setState(() { breakingNewsLogoPath = image.path; });
       }
     } catch (e) { }
-  }
-
-  Future<void> _pickRightVerticalAd() async {
-    try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-      if (image != null && mounted) {
-        setState(() { rightVerticalAdPath = image.path; _rightVertScale = 1.0; _rightVertRotation = 0.0; _rightVertOffset = Offset.zero; });
-      }
-    } catch (e) {}
   }
 
   void _showBulletinManagerDialog() {
@@ -543,7 +576,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
       if (image != null && mounted) {
-        setState(() { verticalAnimatedAdPath = image.path; _vertScale = 1.0; _vertRotation = 0.0; _vertOffset = Offset.zero; });
+        setState(() { verticalAnimatedAdPath = image.path; });
       }
     } catch (e) {}
   }
@@ -552,7 +585,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
       if (image != null && mounted) {
-        setState(() { horizontalAnimatedAdPath = image.path; _horizScale = 1.0; _horizRotation = 0.0; _horizOffset = Offset.zero; });
+        setState(() { horizontalAnimatedAdPath = image.path; });
       }
     } catch (e) {}
   }
@@ -805,126 +838,71 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       return Stack(children: [Positioned.fill(child: cameraWidget), Positioned(top: 15, right: 15, child: visualScreenLogoWidget)]);
     }
 
-    // తెర అంచులకు (Screen Edges) సరిగ్గా సరిపోయే నిలువు మరియు అడ్డు యాడ్స్ కొలతలు
-    double sideAdWidth = screenWidth * 0.24;   // ఎడమ మరియు కుడి వైపు నిలువు యాడ్స్ వెడల్పు
-    double sideAdHeight = screenHeight * 0.62; // నిలువు యాడ్స్ ఎత్తు
-    double horizAdWidth = screenWidth * 0.72;  
-    double horizAdHeight = screenHeight * 0.12; 
+    // తెర అంచులకు (Edges) సరిగ్గా సరిపోయే యాడ్స్ సైజు - స్క్రీన్ వెడల్పులో 20%
+    double sideAdWidth = screenWidth * 0.22;
 
     return Container(
       color: adLayerColor,
       child: Stack(
         children: [
           Positioned.fill(child: cameraWidget), 
-          Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
           
-          // 1. ఎడమ అంచు నిలువు యాడ్ (Left Edge Vertical Ad)
+          // కుడివైపు యాడ్ కి తగలకుండా ఛానల్ లోగోని కొద్దిగా జరిపాను
+          Positioned(top: 15, right: sideAdWidth + 10, child: visualScreenLogoWidget),
+          
+          // 1. ఎడమవైపు నిలువు యాడ్ (Left Vertical Ad) - అంచుకి ఫిక్స్
           Positioned(
-            left: 4 + _vertOffset.dx, 
-            top: screenHeight * 0.15 + _vertOffset.dy,
+            left: 0, 
+            top: 0,
+            bottom: 55, // కింద బ్రేకింగ్ న్యూస్ బార్ పైన ఆగిపోతుంది
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
               onTap: _pickVerticalAd, 
-              onPanUpdate: (details) { setState(() { _vertOffset += details.delta; }); },
-              child: Transform(
-                transform: Matrix4.identity()..scale(_vertScale)..rotateZ(_vertRotation), 
-                alignment: Alignment.center, 
-                child: GestureDetector(
-                  onScaleUpdate: (details) { setState(() { _vertScale = (_vertScale * details.scale).clamp(0.4, 2.5); _vertRotation += details.rotation; }); }, 
-                  child: Container(
-                    width: sideAdWidth, 
-                    height: sideAdHeight, 
-                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black87), 
-                    child: verticalAnimatedAdPath.isNotEmpty 
-                        ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
-                        : const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(4.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center, 
-                                children: [
-                                  Icon(Icons.add_photo_alternate, color: Colors.amber, size: 22), 
-                                  SizedBox(height: 4), 
-                                  Text("LEFT VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))
-                                ],
-                              ),
-                            ),
+              child: Container(
+                width: sideAdWidth, 
+                decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
+                child: verticalAnimatedAdPath.isNotEmpty 
+                    ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
+                    : const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center, 
+                            children: [
+                              Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26), 
+                              SizedBox(height: 6), 
+                              Text("TAP TO UPLOAD\nLEFT AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+                            ],
                           ),
-                  ),
-                ),
+                        ),
+                      ),
               ),
             ),
           ),
 
-          // 2. కుడి అంచు నిలువు యాడ్ (Right Edge Vertical Ad) - తెర అంచుకు అమర్చబడింది
+          // 2. కుడివైపు నిలువు యాడ్ (Right Vertical Ad) - అంచుకి ఫిక్స్
           Positioned(
-            right: 4 + _rightVertOffset.dx, 
-            top: screenHeight * 0.15 + _rightVertOffset.dy,
+            right: 0, 
+            top: 0, 
+            bottom: 55,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
-              onTap: _pickRightVerticalAd, 
-              onPanUpdate: (details) { setState(() { _rightVertOffset += details.delta; }); },
-              child: Transform(
-                transform: Matrix4.identity()..scale(_rightVertScale)..rotateZ(_rightVertRotation), 
-                alignment: Alignment.center, 
-                child: GestureDetector(
-                  onScaleUpdate: (details) { setState(() { _rightVertScale = (_rightVertScale * details.scale).clamp(0.4, 2.5); _rightVertRotation += details.rotation; }); }, 
-                  child: Container(
-                    width: sideAdWidth, 
-                    height: sideAdHeight, 
-                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black87), 
-                    child: rightVerticalAdPath.isNotEmpty 
-                        ? Image.file(File(rightVerticalAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
-                        : const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(4.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center, 
-                                children: [
-                                  Icon(Icons.add_photo_alternate, color: Colors.amber, size: 22), 
-                                  SizedBox(height: 4), 
-                                  Text("RIGHT VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))
-                                ],
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 3. అడ్డు యాడ్ (Horizontal Banner Ad) - మధ్యలో కింది భాగం
-          Positioned(
-            left: screenWidth * 0.14 + _horizOffset.dx, 
-            bottom: 62 + _horizOffset.dy, 
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque, 
-              onTap: _pickHorizontalAd, 
-              onPanUpdate: (details) { setState(() { _horizOffset += details.delta; }); },
-              child: Transform(
-                transform: Matrix4.identity()..scale(_horizScale)..rotateZ(_horizRotation), 
-                alignment: Alignment.center, 
-                child: GestureDetector(
-                  onScaleUpdate: (details) { setState(() { _horizScale = (_horizScale * details.scale).clamp(0.4, 2.5); _horizRotation += details.rotation; }); }, 
-                  child: Container(
-                    width: horizAdWidth, 
-                    height: horizAdHeight, 
-                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black87), 
-                    child: horizontalAnimatedAdPath.isNotEmpty 
-                        ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
-                        : const Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center, 
-                              children: [
-                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20), 
-                                SizedBox(width: 6), 
-                                Text("HORIZONTAL BANNER AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))
-                              ],
-                            ),
-                          ),
-                  ),
-                ),
+              onTap: _pickHorizontalAd, // ఇక్కడ కుడివైపు యాడ్ కోసం వాడుతున్నాం
+              child: Container(
+                width: sideAdWidth, 
+                decoration: const BoxDecoration(border: Border(left: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
+                child: horizontalAnimatedAdPath.isNotEmpty 
+                    ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
+                    : const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center, 
+                          children: [
+                            Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26), 
+                            SizedBox(height: 6), 
+                            Text("TAP TO UPLOAD\nRIGHT AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+                          ],
+                        ),
+                      ),
               ),
             ),
           ),
@@ -1052,8 +1030,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               if (isVideoAdPlaying)
                 Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
 
+              // రిపోర్టర్ బ్యాడ్జ్ ఎడమవైపు యాడ్ కి తగలకుండా (పక్కకి) జరిపాను
               if (!isNewsBulletinMode)
-                Positioned(bottom: isAnimatedAdsMode ? (screenHeight * 0.15) : 65, left: 26, child: reporterBadgeWidget),
+                Positioned(bottom: 65, left: isAnimatedAdsMode ? (screenWidth * 0.22 + 10) : 15, child: reporterBadgeWidget),
               
               if (!isNewsBulletinMode)
                 Positioned(
