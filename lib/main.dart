@@ -87,12 +87,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Color adLayerColor = const Color(0xFF111111);
   
   String verticalAnimatedAdPath = "";
+  String rightVerticalAdPath = ""; // కుడి వైపు నిలువు యాడ్ కోసం
   String horizontalAnimatedAdPath = "";
   String breakingNewsLogoPath = ""; 
   
   double _vertScale = 1.0;
   double _vertRotation = 0.0;
   Offset _vertOffset = Offset.zero;
+
+  double _rightVertScale = 1.0;
+  double _rightVertRotation = 0.0;
+  Offset _rightVertOffset = Offset.zero;
 
   double _horizScale = 1.0;
   double _horizRotation = 0.0;
@@ -393,6 +398,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         setState(() { breakingNewsLogoPath = image.path; });
       }
     } catch (e) { }
+  }
+
+  Future<void> _pickRightVerticalAd() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+      if (image != null && mounted) {
+        setState(() { rightVerticalAdPath = image.path; _rightVertScale = 1.0; _rightVertRotation = 0.0; _rightVertOffset = Offset.zero; });
+      }
+    } catch (e) {}
   }
 
   void _showBulletinManagerDialog() {
@@ -791,11 +805,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       return Stack(children: [Positioned.fill(child: cameraWidget), Positioned(top: 15, right: 15, child: visualScreenLogoWidget)]);
     }
 
-    // డిస్‌ప్లేకి సరిగ్గా సరిపోయేలా యాడ్స్ సైజులు ఆటో-ఫిట్ చేయబడ్డాయి
-    double vertAdWidth = screenWidth * 0.28;  // స్క్రీన్ వెడల్పులో 28%
-    double vertAdHeight = screenHeight * 0.45; // స్క్రీన్ ఎత్తులో 45%
-    double horizAdWidth = screenWidth * 0.72;  // స్క్రీన్ వెడల్పులో 72%
-    double horizAdHeight = screenHeight * 0.12; // స్క్రీన్ ఎత్తులో 12%
+    // తెర అంచులకు (Screen Edges) సరిగ్గా సరిపోయే నిలువు మరియు అడ్డు యాడ్స్ కొలతలు
+    double sideAdWidth = screenWidth * 0.24;   // ఎడమ మరియు కుడి వైపు నిలువు యాడ్స్ వెడల్పు
+    double sideAdHeight = screenHeight * 0.62; // నిలువు యాడ్స్ ఎత్తు
+    double horizAdWidth = screenWidth * 0.72;  
+    double horizAdHeight = screenHeight * 0.12; 
 
     return Container(
       color: adLayerColor,
@@ -804,10 +818,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           Positioned.fill(child: cameraWidget), 
           Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
           
-          // నిలువు యాడ్ (Vertical Ad) - పర్ఫెక్ట్ ఫిట్ పొజిషన్
+          // 1. ఎడమ అంచు నిలువు యాడ్ (Left Edge Vertical Ad)
           Positioned(
-            left: 12 + _vertOffset.dx, 
-            top: screenHeight * 0.18 + _vertOffset.dy,
+            left: 4 + _vertOffset.dx, 
+            top: screenHeight * 0.15 + _vertOffset.dy,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
               onTap: _pickVerticalAd, 
@@ -818,20 +832,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: GestureDetector(
                   onScaleUpdate: (details) { setState(() { _vertScale = (_vertScale * details.scale).clamp(0.4, 2.5); _vertRotation += details.rotation; }); }, 
                   child: Container(
-                    width: vertAdWidth, 
-                    height: vertAdHeight, 
-                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black54), 
+                    width: sideAdWidth, 
+                    height: sideAdHeight, 
+                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black87), 
                     child: verticalAnimatedAdPath.isNotEmpty 
                         ? Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
                         : const Center(
                             child: Padding(
-                              padding: EdgeInsets.all(8.0),
+                              padding: EdgeInsets.all(4.0),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center, 
                                 children: [
-                                  Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26), 
-                                  SizedBox(height: 6), 
-                                  Text("TAP TO UPLOAD VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))
+                                  Icon(Icons.add_photo_alternate, color: Colors.amber, size: 22), 
+                                  SizedBox(height: 4), 
+                                  Text("LEFT VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))
                                 ],
                               ),
                             ),
@@ -842,9 +856,47 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           ),
 
-          // అడ్డు యాడ్ (Horizontal Ad) - పర్ఫెక్ట్ ఫిట్ పొజిషన్ (బ్రేకింగ్ న్యూస్ పైన నీట్‌గా కూర్చుంటుంది)
+          // 2. కుడి అంచు నిలువు యాడ్ (Right Edge Vertical Ad) - తెర అంచుకు అమర్చబడింది
           Positioned(
-            left: screenWidth * 0.27 + _horizOffset.dx, 
+            right: 4 + _rightVertOffset.dx, 
+            top: screenHeight * 0.15 + _rightVertOffset.dy,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque, 
+              onTap: _pickRightVerticalAd, 
+              onPanUpdate: (details) { setState(() { _rightVertOffset += details.delta; }); },
+              child: Transform(
+                transform: Matrix4.identity()..scale(_rightVertScale)..rotateZ(_rightVertRotation), 
+                alignment: Alignment.center, 
+                child: GestureDetector(
+                  onScaleUpdate: (details) { setState(() { _rightVertScale = (_rightVertScale * details.scale).clamp(0.4, 2.5); _rightVertRotation += details.rotation; }); }, 
+                  child: Container(
+                    width: sideAdWidth, 
+                    height: sideAdHeight, 
+                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black87), 
+                    child: rightVerticalAdPath.isNotEmpty 
+                        ? Image.file(File(rightVerticalAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
+                        : const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(4.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center, 
+                                children: [
+                                  Icon(Icons.add_photo_alternate, color: Colors.amber, size: 22), 
+                                  SizedBox(height: 4), 
+                                  Text("RIGHT VERTICAL AD", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 3. అడ్డు యాడ్ (Horizontal Banner Ad) - మధ్యలో కింది భాగం
+          Positioned(
+            left: screenWidth * 0.14 + _horizOffset.dx, 
             bottom: 62 + _horizOffset.dy, 
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
@@ -858,16 +910,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: Container(
                     width: horizAdWidth, 
                     height: horizAdHeight, 
-                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black54), 
+                    decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), color: Colors.black87), 
                     child: horizontalAnimatedAdPath.isNotEmpty 
                         ? Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity) 
                         : const Center(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center, 
                               children: [
-                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 22), 
-                                SizedBox(width: 8), 
-                                Text("TAP TO UPLOAD HORIZONTAL BANNER AD", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))
+                                Icon(Icons.add_photo_alternate, color: Colors.amber, size: 20), 
+                                SizedBox(width: 6), 
+                                Text("HORIZONTAL BANNER AD", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))
                               ],
                             ),
                           ),
@@ -922,7 +974,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           )
         : const Center(child: CircularProgressIndicator(color: Colors.white));
 
-    // రిపోర్టర్ బ్యాడ్జ్ డిస్‌ప్లేకి సరిగ్గా తగినట్లు అమర్చబడింది
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -984,7 +1035,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   onTap: () { 
                     setState(() { 
                       if (isMenuOpen) {
-                        isMenuOpen = 0 == 1; 
+                        isMenuOpen = false; 
                       } else {
                         hideControls = !hideControls; 
                       }
@@ -1002,7 +1053,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
 
               if (!isNewsBulletinMode)
-                Positioned(bottom: isAnimatedAdsMode ? (screenHeight * 0.15) : 65, left: 15, child: reporterBadgeWidget),
+                Positioned(bottom: isAnimatedAdsMode ? (screenHeight * 0.15) : 65, left: 26, child: reporterBadgeWidget),
               
               if (!isNewsBulletinMode)
                 Positioned(
