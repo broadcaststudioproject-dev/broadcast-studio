@@ -168,7 +168,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Timer? _newsTimer;
   
-  bool _isCameraInitialized = false; // కొత్త ఫ్లాగ్
+  bool _isCameraInitialized = false; 
 
   @override
   void initState() {
@@ -204,11 +204,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // ఈ Lifecycle ఫంక్షన్ ని పర్ఫెక్ట్ గా క్రాష్ అవ్వకుండా అప్‌డేట్ చేశాను
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-       // కెమెరాను డిస్పోజ్ చేయకుండా జస్ట్ పాజ్ చేస్తున్నాం (దీనివల్లే క్రాష్ అవుతోంది)
        _isCameraInitialized = false; 
     } else if (state == AppLifecycleState.resumed) {
        if (controller != null && !controller!.value.isInitialized) {
@@ -259,7 +257,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final camController = CameraController(
         cameras[currentCameraIndex],
         ResolutionPreset.high,
-        enableAudio: true,
+        enableAudio: false, // <--- ఇక్కడే లైవ్ ని ఆపుతున్న మైక్రోఫోన్ సమస్యను పరిష్కరించాం
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       controller = camController;
@@ -268,7 +266,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _minZoomLevel = await camController.getMinZoomLevel();
       _maxZoomLevel = await camController.getMaxZoomLevel();
       _currentZoomLevel = _minZoomLevel;
-      setState(() { _isCameraInitialized = true; }); // కరెక్ట్ గా ఫ్లాగ్ సెట్ చేశాం
+      setState(() { _isCameraInitialized = true; }); 
     } catch (e) {
       debugPrint("Camera Init Error: $e");
     }
@@ -428,7 +426,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
-    // లైవ్ వెళ్లేటప్పుడు కెమెరా క్రాష్ అవ్వకుండా ఈ చిన్న లాజిక్ అప్‌డేట్ చేశాం 
     try {
       if (!isLiveBroadcasting) {
         bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
@@ -933,7 +930,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double camW = 1080;
     double camH = 1920;
     
-    // కెమెరా ఇనిషియలైజ్ అయితేనే వాడతాం, లేదంటే డిస్పోజ్ ఎర్రర్ రాకుండా సేఫ్ గా ఆపేస్తాం
     if (_isCameraInitialized && controller != null && controller!.value.isInitialized) {
       final previewSize = controller!.value.previewSize;
       if (previewSize != null) {
@@ -1045,7 +1041,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               if (isVideoAdPlaying)
                 Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad & Resume", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
 
-              // రిపోర్టర్ బ్యాడ్జ్ కింది అడ్డు యాడ్ (Horizontal Ad) కి పైన సేఫ్‌గా ఉండేలా పెట్టాను
               if (!isNewsBulletinMode)
                 Positioned(
                   bottom: isAnimatedAdsMode ? (55 + (screenHeight * 0.15) + 10) : 65, 
