@@ -43,17 +43,17 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
         if (action == "START_STREAM") {
             val url = intent.getStringExtra("url") ?: ""
-            val resultCode = intent.getIntExtra("resultCode", -1)
+            val resultCode = intent.getIntExtra("resultCode", 0)
             val data = intent.getParcelableExtra<Intent>("data")
 
-            if (resultCode != -1 && data != null) {
+            // ఇక్కడే అసలు సమస్య ఉండింది! RESULT_OK అంటే ఆండ్రాయిడ్ లో -1. పాత కోడ్‌లో ఇది రివర్స్ లో ఉంది.
+            if (resultCode == -1 && data != null) {
                 startNotification()
                 
                 val display = rtmpDisplay 
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    // రిజల్యూషన్ క్రాష్ అవ్వకుండా.. ఆటో-డిటెక్ట్ కి మార్చబడింది!
                     if (display.prepareAudio() && display.prepareVideo()) {
                         
                         if (url.isNotEmpty()) {
@@ -85,6 +85,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                         showMessage("❌ ఆడియో/వీడియో సపోర్ట్ ఫెయిల్ అయింది.")
                     }
                 }
+            } else {
+                showMessage("⚠️ స్క్రీన్ రికార్డింగ్ పర్మిషన్ ఇవ్వలేదు!")
             }
         } else if (action == "STOP_STREAM") {
             stopAndSave()
@@ -129,7 +131,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             .setSmallIcon(android.R.drawable.ic_media_play) 
             .build()
             
-        // ఆండ్రాయిడ్ సెక్యూరిటీని దాటి వీడియో పంపడానికి ఈ కోడ్ ముఖ్యం
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
