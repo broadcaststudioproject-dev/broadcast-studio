@@ -16,7 +16,8 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
-import java.io.File
+import java.io.ఫైల్
+import android.content.pm.ServiceInfo
 
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
