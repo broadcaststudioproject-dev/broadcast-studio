@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
@@ -16,19 +17,84 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
-import java.io.ఫైల్
-import android.content.pm.ServiceInfo
+import java.io.File
 
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
+    private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
+    private var currentRecordPath: String = ""
 
     private fun showMessage(message: String) {
-        android.os.Handler(android.os.Looper.getMainLooper()).post {
-            android.widget.Toast.makeText(applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
         }
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        rtmpDisplay = RtmpDisplay(applicationContext, true, this)
+        rtmpDisplay?.setReTries(10)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent == null) return START_NOT_STICKY
+        val action = intent.action ?: return START_NOT_STICKY
+
+        if (action == "START_STREAM") {
+            val url = intent.getStringExtra("url") ?: ""
+            val resultCode = intent.getIntExtra("resultCode", -1)
+            val data = intent.getParcelableExtra<Intent>("data")
+
+            if (resultCode != -1 && data != null) {
+                startNotification()
+                
+                val display = rtmpDisplay 
+                if (display != null) {
+                    display.setIntentResult(resultCode, data)
+                    
+                    // రిజల్యూషన్ క్రాష్ అవ్వకుండా.. ఆటో-డిటెక్ట్ కి మార్చబడింది!
+                    if (display.prepareAudio() && display.prepareVideo()) {
+                        
+                        if (url.isNotEmpty()) {
+                            display.startStream(url)
+                            showMessage("⏳ లైవ్ కనెక్ట్ అవుతోంది...")
+                        } else {
+                            showMessage("❌ లైవ్ లింక్ (URL) ఖాళీగా ఉంది!")
+                        }
+                        
+                        try {
+                            var folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+                            var pcrFolder = File(folder, "PocketPCR")
+                            if (!pcrFolder.exists() && !pcrFolder.mkdirs()) {
+                                pcrFolder = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "PocketPCR")
+                                if (!pcrFolder.exists()) pcrFolder.mkdirs()
+                            }
+                            
+                            val file = File(pcrFolder, "PCR_Live_${System.currentTimeMillis()}.mp4")
+                            val absolutePath = file.absolutePath ?: ""
+                            currentRecordPath = absolutePath
+                            
+                            if (absolutePath.isNotEmpty()) {
+                                display.startRecord(absolutePath)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    } else {
+                        showMessage("❌ ఆడియో/వీడియో సపోర్ట్ ఫెయిల్ అయింది.")
+                    }
+                }
+            }
+        } else if (action == "STOP_STREAM") {
+            stopAndSave()
+            stopForeground(true)
+            stopSelf()
+            showMessage("⏹️ లైవ్ ఆపబడింది.")
+        }
+        return START_NOT_STICKY
+    }
+    
     private fun stopAndSave() {
         try {
             rtmpDisplay?.stopRecord()
@@ -40,7 +106,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         val pathToSave = currentRecordPath
         if (pathToSave.isNotEmpty()) {
             try {
-                android.media.MediaScannerConnection.scanFile(baseContext, arrayOf(pathToSave), arrayOf("video/mp4"), null)
+                MediaScannerConnection.scanFile(baseContext, arrayOf(pathToSave), arrayOf("video/mp4"), null)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -48,31 +114,30 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
 
     private fun startNotification() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = android.app.NotificationChannel(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
                 channelId,
                 "Screen Stream Service",
-                android.app.NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_LOW
             )
-            val manager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
-        
-        val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
-        builder.setContentTitle("Pocket PCR Studio")
-        builder.setContentText("Live Streaming is Active...")
-        builder.setSmallIcon(android.R.drawable.ic_media_play)
-        val notification = builder.build()
+        val notification: Notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Pocket PCR Studio")
+            .setContentText("Live Streaming is Active...")
+            .setSmallIcon(android.R.drawable.ic_media_play) 
+            .build()
             
-        // ఆండ్రాయిడ్ సెక్యూరిటీ (Media Projection) ని దాటి వీడియో పంపడానికి ఇక్కడే పర్మిషన్ వెళ్తుంది
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        // ఆండ్రాయిడ్ సెక్యూరిటీని దాటి వీడియో పంపడానికి ఈ కోడ్ ముఖ్యం
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
             startForeground(1, notification)
         }
     }
 
-    override fun onBind(intent: android.content.Intent?): android.os.IBinder? = null
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         super.onDestroy()
@@ -86,7 +151,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("❌ లైవ్ ఫెయిల్: \$reason")
+        showMessage("❌ లైవ్ ఫెయిల్: $reason")
         stopAndSave()
     }
     
@@ -102,5 +167,3 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     
     override fun onAuthSuccessRtmp() {}
 }
-
-    
