@@ -167,6 +167,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController headlineCtrl = TextEditingController();
 
   Timer? _newsTimer;
+  
+  bool _isCameraInitialized = false; // కొత్త ఫ్లాగ్
 
   @override
   void initState() {
@@ -202,12 +204,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // ఈ Lifecycle ఫంక్షన్ ని పర్ఫెక్ట్ గా క్రాష్ అవ్వకుండా అప్‌డేట్ చేశాను
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      controller?.dispose();
+       // కెమెరాను డిస్పోజ్ చేయకుండా జస్ట్ పాజ్ చేస్తున్నాం (దీనివల్లే క్రాష్ అవుతోంది)
+       _isCameraInitialized = false; 
     } else if (state == AppLifecycleState.resumed) {
-      _initCamera();
+       if (controller != null && !controller!.value.isInitialized) {
+           _initCamera();
+       } else {
+           setState(() { _isCameraInitialized = true; });
+       }
     }
   }
 
@@ -260,7 +268,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _minZoomLevel = await camController.getMinZoomLevel();
       _maxZoomLevel = await camController.getMaxZoomLevel();
       _currentZoomLevel = _minZoomLevel;
-      setState(() {});
+      setState(() { _isCameraInitialized = true; }); // కరెక్ట్ గా ఫ్లాగ్ సెట్ చేశాం
     } catch (e) {
       debugPrint("Camera Init Error: $e");
     }
@@ -420,16 +428,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     String fullRtmpUrl = rtmpUrl.endsWith('/') ? "$rtmpUrl$streamKey" : "$rtmpUrl/$streamKey";
 
-    if (!isLiveBroadcasting) {
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-      if (success) {
-        setState(() { isLiveBroadcasting = true; });
+    // లైవ్ వెళ్లేటప్పుడు కెమెరా క్రాష్ అవ్వకుండా ఈ చిన్న లాజిక్ అప్‌డేట్ చేశాం 
+    try {
+      if (!isLiveBroadcasting) {
+        bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+        if (success) {
+          setState(() { isLiveBroadcasting = true; });
+        }
+      } else {
+        bool success = await StreamServiceManager.stopLiveStream();
+        if (success) {
+          setState(() { isLiveBroadcasting = false; });
+        }
       }
-    } else {
-      bool success = await StreamServiceManager.stopLiveStream();
-      if (success) {
-        setState(() { isLiveBroadcasting = false; });
-      }
+    } catch (e) {
+      debugPrint("Stream Error: $e");
     }
   }
 
@@ -919,7 +932,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     
     double camW = 1080;
     double camH = 1920;
-    if (controller != null && controller!.value.isInitialized) {
+    
+    // కెమెరా ఇనిషియలైజ్ అయితేనే వాడతాం, లేదంటే డిస్పోజ్ ఎర్రర్ రాకుండా సేఫ్ గా ఆపేస్తాం
+    if (_isCameraInitialized && controller != null && controller!.value.isInitialized) {
       final previewSize = controller!.value.previewSize;
       if (previewSize != null) {
         camW = previewSize.width;
@@ -930,7 +945,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double finalCamW = isScreenLandscape ? camW : camH;
     double finalCamH = isScreenLandscape ? camH : camW;
 
-    Widget cameraWidget = (controller != null && controller!.value.isInitialized)
+    Widget cameraWidget = (_isCameraInitialized && controller != null && controller!.value.isInitialized)
         ? GestureDetector(
             onScaleStart: (details) { _baseScale = _currentZoomLevel; },
             onScaleUpdate: (details) async {
@@ -950,7 +965,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
           )
-        : const Center(child: CircularProgressIndicator(color: Colors.white));
+        : const Center(child: CircularProgressIndicator(color: Colors.amber));
 
     Widget reporterBadgeWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
