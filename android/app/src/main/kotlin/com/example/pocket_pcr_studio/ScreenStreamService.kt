@@ -21,6 +21,14 @@ import android.content.pm.ServiceInfo
 
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
+    private val channelId = "ScreenStreamChannel"
+
+    private fun showMessage(message: String) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            android.widget.Toast.makeText(applicationContext, message, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun stopAndSave() {
         try {
             rtmpDisplay?.stopRecord()
@@ -49,13 +57,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val manager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
             manager.createNotificationChannel(channel)
         }
-        val notification: android.app.Notification = androidx.core.app.NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Pocket PCR Studio")
-            .setContentText("Live Streaming is Active...")
-            .setSmallIcon(android.R.drawable.ic_media_play) 
-            .build()
+        
+        val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
+        builder.setContentTitle("Pocket PCR Studio")
+        builder.setContentText("Live Streaming is Active...")
+        builder.setSmallIcon(android.R.drawable.ic_media_play)
+        val notification = builder.build()
             
-        // ఆండ్రాయిడ్ సెక్యూరిటీ (Media Projection) ని దాటి వీడియో పంపడానికి సరైన కోడ్
+        // ఆండ్రాయిడ్ సెక్యూరిటీ (Media Projection) ని దాటి వీడియో పంపడానికి ఇక్కడే పర్మిషన్ వెళ్తుంది
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
@@ -93,3 +102,5 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     
     override fun onAuthSuccessRtmp() {}
 }
+
+    
