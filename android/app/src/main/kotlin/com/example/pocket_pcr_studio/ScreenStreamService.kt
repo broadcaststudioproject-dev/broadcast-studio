@@ -120,6 +120,30 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 "Screen Stream Service",
                 NotificationManager.IMPORTANCE_LOW
             )
+                private fun startNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Screen Stream Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+        val notification: Notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Pocket PCR Studio")
+            .setContentText("Live Streaming is Active...")
+            .setSmallIcon(android.R.drawable.ic_media_play) 
+            .build()
+            
+        // ఆండ్రాయిడ్ సెక్యూరిటీని దాటి వీడియో పంపడానికి ఈ కోడ్ ముఖ్యం
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(1, notification)
+        }
+    }
+
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
