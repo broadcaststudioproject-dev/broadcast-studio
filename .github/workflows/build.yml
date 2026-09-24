@@ -19,7 +19,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Java 17
+      - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
@@ -31,10 +31,28 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Fix Pedro Library Link Safely
+      - name: Auto-Repair Android Project
         run: |
-          sed -i 's/io.github.pedroSG94.RootEncoder:rtmp:2.3.0/com.github.pedroSG94.RootEncoder:library:2.4.2/g' android/app/build.gradle || true
-          sed -i 's/io.github.pedroSG94.RootEncoder:library:2.4.2/com.github.pedroSG94.RootEncoder:library:2.4.2/g' android/app/build.gradle || true
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను..."
+          cp -r android/app/src/main/kotlin /tmp/kotlin_backup || true
+          
+          echo "2. పాడైపోయిన ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          rm -rf android
+          
+          echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
+          flutter create . --platforms=android
+          
+          echo "4. మీ పాత కోడ్ తిరిగి పెడుతున్నాను..."
+          rm -rf android/app/src/main/kotlin
+          cp -r /tmp/kotlin_backup android/app/src/main/kotlin
+          
+          echo "5. JitPack లింక్ కలుపుతున్నాను..."
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/settings.gradle || true
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url = uri("https:\/\/jitpack.io") }/g' android/settings.gradle.kts || true
+          
+          echo "6. Pedro లైబ్రరీ (2.4.2) యాడ్ చేస్తున్నాను..."
+          echo "dependencies { implementation 'com.github.pedroSG94.RootEncoder:library:2.4.2' }" >> android/app/build.gradle || true
+          echo -e "\ndependencies {\n    implementation(\"com.github.pedroSG94.RootEncoder:library:2.4.2\")\n}" >> android/app/build.gradle.kts || true
 
       - name: Install Dependencies
         run: |
@@ -50,4 +68,3 @@ jobs:
           name: pocket-pcr-studio-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
-
