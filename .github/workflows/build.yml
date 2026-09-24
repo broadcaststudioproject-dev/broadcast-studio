@@ -81,6 +81,10 @@ jobs:
 
       - name: Build APK
         run: |
+              - name: Clean Project
+        run: |
+          flutter clean
+          flutter pub get
           flutter build apk --debug
 
       - name: Upload APK
