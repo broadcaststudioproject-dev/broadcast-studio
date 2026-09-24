@@ -56,12 +56,21 @@ jobs:
           echo "Updating App SDK to 36..."
           sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle.kts || true
           sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle.kts || true
+          sed -i 's/flutter.compileSdkVersion/36/g' android/app/build.gradle || true
+          sed -i 's/flutter.targetSdkVersion/36/g' android/app/build.gradle || true
           
-          echo "Adding Pedro RootEncoder Library Dependency..."
+          echo "Injecting Jitpack Repository..."
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url = uri("https:\/\/jitpack.io") }/g' android/settings.gradle.kts || true
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/settings.gradle || true
+
+          echo "Adding Correct Pedro RootEncoder..."
           echo "" >> android/app/build.gradle.kts
           echo "dependencies {" >> android/app/build.gradle.kts
-          echo "    implementation(\"io.github.pedroSG94.RootEncoder:rtmp:2.3.0\")" >> android/app/build.gradle.kts
+          echo "    implementation(\"com.github.pedroSG94.RootEncoder:library:2.4.2\")" >> android/app/build.gradle.kts
           echo "}" >> android/app/build.gradle.kts
+          
+          echo "" >> android/app/build.gradle
+          echo "dependencies { implementation 'com.github.pedroSG94.RootEncoder:library:2.4.2' }" >> android/app/build.gradle || true
 
       - name: Install Dependencies
         run: |
@@ -86,3 +95,4 @@ jobs:
           name: pocket-pcr-studio-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+
