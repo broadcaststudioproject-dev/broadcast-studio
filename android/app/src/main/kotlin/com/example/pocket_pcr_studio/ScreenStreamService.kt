@@ -53,15 +53,16 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    // బ్యాక్‌గ్రౌండ్ థ్రెడ్: దీనివల్ల మీ కెమెరా ఎప్పటికీ ఫ్రీజ్ అవ్వదు!
+                    // బ్యాక్‌గ్రౌండ్ థ్రెడ్ + 720p రిజల్యూషన్: దీనివల్ల మీ కెమెరా, ప్రాసెసర్ ఎప్పటికీ ఫ్రీజ్ అవ్వవు!
                     Thread {
                         try {
-                            val isVideoPrepared = display.prepareVideo() 
+                            val isVideoPrepared = display.prepareVideo(720, 1280, 30, 2500 * 1024, 0)
                             val isAudioPrepared = display.prepareAudio()
 
                             if (isVideoPrepared && isAudioPrepared) {
                                 if (url.isNotEmpty()) {
                                     display.startStream(url)
+                                    showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
                                 }
                             } else {
                                 showMessage("❌ ఫోన్ ఆడియో/వీడియో సెట్టింగ్స్ ఫెయిల్ అయ్యాయి.")
@@ -115,9 +116,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         } catch (e: Exception) {}
     }
 
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {
-        showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
-    }
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
     
     override fun onConnectionSuccessRtmp() {
         showMessage("✅ లైవ్ సక్సెస్! Restream ఆన్‌లైన్ చెక్ చేయండి.")
