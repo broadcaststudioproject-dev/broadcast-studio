@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   camera: ^0.10.5+9
-  rtmp_broadcaster: ^2.3.4
   permission_handler: ^11.3.0
   marquee: ^2.2.3
   http: ^1.2.0
