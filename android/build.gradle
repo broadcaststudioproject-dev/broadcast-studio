@@ -2,7 +2,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' (https://jitpack.io)' }
+        maven { url 'https://jitpack.io' }
     }
 }
 
@@ -17,4 +17,3 @@ subprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
