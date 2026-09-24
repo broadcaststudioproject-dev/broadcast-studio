@@ -39,7 +39,7 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
+    implementation 'io.github.pedroSG94.RootEncoder:library:2.3.0'
     implementation 'androidx.multidex:multidex:2.0.1'
 }
 repositories {
