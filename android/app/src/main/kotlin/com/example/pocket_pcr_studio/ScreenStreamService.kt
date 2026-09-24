@@ -13,10 +13,12 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.pedro.rtplibrary.rtmp.RtmpDisplay
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
-class ScreenStreamService : Service(), ConnectCheckerRtmp {
+// కొత్త RootEncoder కు సంబంధించిన ఇంపోర్ట్స్
+import com.pedro.library.rtmp.RtmpDisplay
+import com.pedro.common.ConnectChecker
+
+class ScreenStreamService : Service(), ConnectChecker {
 
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
@@ -99,18 +101,26 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
     }
 
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
+    // పాత వర్షన్ లో ఉన్న "Rtmp" అనే పదం ఇక్కడ తొలగించబడింది (RootEncoder నిబంధనల ప్రకారం)
+    override fun onConnectionStarted(rtmpUrl: String) {}
     
-    override fun onConnectionSuccessRtmp() {
+    override fun onConnectionSuccess() {
         showMessage("✅ కనెక్ట్ అయ్యింది! Restream ఆన్‌లైన్ చూసుకోండి.")
     }
     
-    override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("❌ కనెక్షన్ ఎర్రర్: \$reason")
+    override fun onConnectionFailed(reason: String) {
+        showMessage("❌ కనెక్షన్ ఎర్రర్: $reason")
     }
     
-    override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() { showMessage("⚠️ కనెక్షన్ కట్ అయింది.") }
-    override fun onAuthErrorRtmp() { showMessage("❌ RTMPS కీ తప్పుగా ఉంది.") }
-    override fun onAuthSuccessRtmp() {}
+    override fun onNewBitrate(bitrate: Long) {}
+    
+    override fun onDisconnect() { 
+        showMessage("⚠️ కనెక్షన్ కట్ అయింది.") 
+    }
+    
+    override fun onAuthError() { 
+        showMessage("❌ RTMPS కీ తప్పుగా ఉంది.") 
+    }
+    
+    override fun onAuthSuccess() {}
 }
