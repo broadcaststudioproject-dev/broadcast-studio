@@ -31,10 +31,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         super.onCreate()
         try {
             rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-            rtmpDisplay?.setReTries(10)
-        } catch (e: Exception) {
-            showMessage("❌ సర్వీస్ ఎర్రర్: \${e.message}")
-        }
+            rtmpDisplay?.setReTries(5)
+        } catch (e: Exception) {}
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -46,38 +44,29 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", 0)
             val data = intent.getParcelableExtra<Intent>("data")
 
-            if (resultCode == -1 && data != null) {
+            if (resultCode == -1 && data != null && url.isNotEmpty()) {
                 startNotification()
                 
                 val display = rtmpDisplay 
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    // కెమెరా ఫ్రీజ్ అవ్వకుండా బ్యాక్‌గ్రౌండ్ థ్రెడ్ వాడాం
                     Thread {
                         try {
-                            // పాత లైబ్రరీకి తగ్గట్టు ఆర్గ్యుమెంట్స్ లేకుండా మార్చబడింది
-                            val isVideoPrepared = display.prepareVideo() 
-                            val isAudioPrepared = display.prepareAudio()
-
-                            if (isVideoPrepared && isAudioPrepared) {
-                                if (url.isNotEmpty()) {
-                                    display.startStream(url)
-                                    showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
-                                }
+                            if (display.prepareVideo() && display.prepareAudio()) {
+                                display.startStream(url)
+                                showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
                             } else {
-                                showMessage("❌ ఫోన్ ఆడియో/వీడియో సెట్టింగ్స్ ఫెయిల్ అయ్యాయి.")
+                                showMessage("❌ ఆడియో/వీడియో ఎన్‌కోడర్ ఫెయిల్.")
                             }
-                        } catch (e: Exception) {
-                            showMessage("❌ లైవ్ క్రాష్: \${e.message}")
-                        }
+                        } catch (e: Exception) {}
                     }.start()
                 }
+            } else {
+                showMessage("❌ లింక్ లేదా పర్మిషన్ ఫెయిల్.")
             }
         } else if (action == "STOP_STREAM") {
-            try {
-                rtmpDisplay?.stopStream()
-            } catch (e: Exception) {}
+            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
             stopForeground(true)
             stopSelf()
             showMessage("⏹️ లైవ్ ఆపబడింది.")
@@ -87,15 +76,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private fun startNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Screen Stream Service",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
+            val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
         }
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
+        val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
             .setContentText("Live Streaming is Active...")
             .setSmallIcon(android.R.drawable.ic_media_play) 
@@ -112,30 +96,21 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            rtmpDisplay?.stopStream()
-        } catch (e: Exception) {}
+        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
     }
 
     override fun onConnectionStartedRtmp(rtmpUrl: String) {}
     
     override fun onConnectionSuccessRtmp() {
-        showMessage("✅ లైవ్ సక్సెస్! Restream ఆన్‌లైన్ చెక్ చేయండి.")
+        showMessage("✅ కనెక్ట్ అయ్యింది! Restream ఆన్‌లైన్ చూసుకోండి.")
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("❌ లైవ్ ఫెయిల్: \$reason")
+        showMessage("❌ కనెక్షన్ ఎర్రర్: \$reason")
     }
     
     override fun onNewBitrateRtmp(bitrate: Long) {}
-    
-    override fun onDisconnectRtmp() {
-        showMessage("⚠️ కనెక్షన్ కట్ అయింది.")
-    }
-    
-    override fun onAuthErrorRtmp() {
-        showMessage("❌ కీ (Key) తప్పుగా ఉంది.")
-    }
-    
+    override fun onDisconnectRtmp() { showMessage("⚠️ కనెక్షన్ కట్ అయింది.") }
+    override fun onAuthErrorRtmp() { showMessage("❌ RTMPS కీ తప్పుగా ఉంది.") }
     override fun onAuthSuccessRtmp() {}
 }
