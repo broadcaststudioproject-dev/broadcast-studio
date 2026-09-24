@@ -38,8 +38,7 @@ jobs:
         run: |
           echo "Backing up custom Kotlin files..."
           cp -r android/app/src/main/kotlin /tmp/kotlin_backup || true
-          
-          echo "Deleting old and corrupted android folder..."
+          echo "    implementation(\"io.github.pedroSG94.RootEncoder:rtmp:2.3.0\")" >> android/app/build.gradle.kts
           rm -rf android
           
           echo "Creating 100% fresh android platform..."
