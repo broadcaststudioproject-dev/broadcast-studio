@@ -2,13 +2,7 @@ name: Pocket PCR Studio - Android Build
 
 on:
   push:
-    branches:
-      - main
-      - master
-  pull_request:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -20,112 +14,73 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------------------------------
-      # 1. Checkout source code
-      # --------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # --------------------------------------------------
-      # 2. Setup Java 17
-      # --------------------------------------------------
-      - name: Set up Java 17
-        uses: actions/setup-java@v5
+      - name: Set up Java
+        uses: actions/setup-java@v3
         with:
-          distribution: temurin
-          java-version: "17"
-          cache: gradle
+          distribution: 'zulu'
+          java-version: '17'
 
-      # --------------------------------------------------
-      # 3. Setup Flutter
-      # --------------------------------------------------
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # --------------------------------------------------
-      # 4. Verify project files
-      # --------------------------------------------------
-      - name: Verify Flutter Project
-        run: |
-          test -f pubspec.yaml && echo "pubspec.yaml found"
-          test -d lib && echo "lib/ found"
-
-      # --------------------------------------------------
-      # 5. Backup Custom Kotlin Code (Added for Streaming)
-      # --------------------------------------------------
-      - name: Backup Custom Kotlin Code
+      - name: Clean & Regenerate Android Project
         run: |
           echo "బ్యాకప్ తీసుకుంటున్నాను..."
-          mkdir -p /tmp/kotlin_backup
-          cp -r android/app/src/main/kotlin /tmp/kotlin_backup/ || true
-
-      # --------------------------------------------------
-      # 6. Remove old unsupported Android project
-      # --------------------------------------------------
-      - name: Remove Old Android Project
-        run: |
-          if [ -d "android" ]; then
-            echo "Removing old Android project..."
-            rm -rf android
-          fi
-
-      # --------------------------------------------------
-      # 7. Create fresh supported Android project
-      # --------------------------------------------------
-      - name: Create Fresh Flutter Android Project
-        run: |
-          flutter create \
-            --platforms=android \
-            --org com.example \
-            .
-
-      # --------------------------------------------------
-      # 8. Restore Kotlin & Inject RootEncoder (Added)
-      # --------------------------------------------------
-      - name: Restore Kotlin & Inject RootEncoder
-        run: |
-          echo "మన కస్టమ్ కోడ్ తిరిగి పెడుతున్నాను..."
-          rm -rf android/app/src/main/kotlin
-          cp -r /tmp/kotlin_backup/kotlin android/app/src/main/ || true
-
-          echo "Jitpack లింక్ కలుపుతున్నాను..."
-          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/settings.gradle || true
-          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url = uri("https:\/\/jitpack.io") }/g' android/settings.gradle.kts || true
+          mkdir -p /tmp/android_backup
+          cp -r android/app/src/main /tmp/android_backup/ || true
           
-          echo "Pedro RootEncoder లైబ్రరీ జతచేస్తున్నాను..."
-          echo "dependencies { implementation 'com.github.pedroSG94.RootEncoder:library:2.4.2' }" >> android/app/build.gradle || true
-          echo -e "\ndependencies {\n    implementation(\"com.github.pedroSG94.RootEncoder:library:2.4.2\")\n}" >> android/app/build.gradle.kts || true
+          echo "పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          rm -rf android
+          
+          echo "ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
+          flutter create . --platforms=android
+          
+          echo "మీ పాత కోడ్ (Kotlin & Manifest) తిరిగి పెడుతున్నాను..."
+          cp -r /tmp/android_backup/main/* android/app/src/main/ || true
 
-      # --------------------------------------------------
-      # 9. Force Java 17 for Gradle
-      # --------------------------------------------------
-      - name: Configure Gradle Java 17
+      - name: Inject Jitpack and RootEncoder Safely
+        shell: python
         run: |
-          if ! grep -q "org.gradle.java.home" android/gradle.properties 2>/dev/null; then
-            echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
-          fi
+          import os
 
-      # --------------------------------------------------
-      # 10. Get Flutter dependencies
-      # --------------------------------------------------
+          # 1. Update settings.gradle.kts
+          settings = "android/settings.gradle.kts"
+          if os.path.exists(settings):
+              with open(settings, "r") as f:
+                  data = f.read()
+              if "jitpack.io" not in data:
+                  data = data.replace('mavenCentral()', 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
+              with open(settings, "w") as f:
+                  f.write(data)
+
+          # 2. Update app/build.gradle.kts
+          app_build = "android/app/build.gradle.kts"
+          if os.path.exists(app_build):
+              with open(app_build, "r") as f:
+                  data = f.read()
+              
+              data = data.replace('flutter.compileSdkVersion', '34')
+              data = data.replace('flutter.targetSdkVersion', '34')
+              
+              if "pedroSG94" not in data:
+                  data += '\n\ndependencies {\n    implementation("com.github.pedroSG94.RootEncoder:library:2.4.2")\n}\n'
+              with open(app_build, "w") as f:
+                  f.write(data)
+
       - name: Install Dependencies
         run: |
           flutter clean
           flutter pub get
 
-      # --------------------------------------------------
-      # 11. Build Debug APK
-      # --------------------------------------------------
       - name: Build APK
-        run: |
-          flutter build apk --debug
+        run: flutter build apk --debug
 
-      # --------------------------------------------------
-      # 12. Upload APK
-      # --------------------------------------------------
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
