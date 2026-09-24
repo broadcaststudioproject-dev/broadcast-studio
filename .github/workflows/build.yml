@@ -38,7 +38,8 @@ jobs:
         run: |
           echo "Backing up custom Kotlin files..."
           cp -r android/app/src/main/kotlin /tmp/kotlin_backup || true
-          echo "    implementation(\"io.github.pedroSG94.RootEncoder:rtmp:2.3.0\")" >> android/app/build.gradle.kts
+          
+          echo "Deleting old and corrupted android folder..."
           rm -rf android
           
           echo "Creating 100% fresh android platform..."
@@ -59,7 +60,7 @@ jobs:
           echo "Adding Pedro RootEncoder Library Dependency..."
           echo "" >> android/app/build.gradle.kts
           echo "dependencies {" >> android/app/build.gradle.kts
-          echo "    implementation(\"io.github.pedroSG94.RootEncoder:library:2.4.2\")" >> android/app/build.gradle.kts
+          echo "    implementation(\"io.github.pedroSG94.RootEncoder:rtmp:2.3.0\")" >> android/app/build.gradle.kts
           echo "}" >> android/app/build.gradle.kts
 
       - name: Install Dependencies
