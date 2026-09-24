@@ -7,9 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.media.MediaScannerConnection
 import android.os.Build
-import android.os.Environment
 import android.os.IBinder
 import android.os.Handler
 import android.os.Looper
@@ -17,13 +15,11 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
-import java.io.File
 
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
-    private var currentRecordPath: String = ""
 
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
@@ -33,8 +29,12 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     override fun onCreate() {
         super.onCreate()
-        rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-        rtmpDisplay?.setReTries(10)
+        try {
+            rtmpDisplay = RtmpDisplay(applicationContext, true, this)
+            rtmpDisplay?.setReTries(10)
+        } catch (e: Exception) {
+            showMessage("❌ సర్వీస్ ఎర్రర్: \${e.message}")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -46,7 +46,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", 0)
             val data = intent.getParcelableExtra<Intent>("data")
 
-            // ఇక్కడే అసలు సమస్య ఉండింది! RESULT_OK అంటే ఆండ్రాయిడ్ లో -1. పాత కోడ్‌లో ఇది రివర్స్ లో ఉంది.
             if (resultCode == -1 && data != null) {
                 startNotification()
                 
@@ -54,65 +53,34 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    if (display.prepareAudio() && display.prepareVideo()) {
-                        
-                        if (url.isNotEmpty()) {
-                            display.startStream(url)
-                            showMessage("⏳ లైవ్ కనెక్ట్ అవుతోంది...")
-                        } else {
-                            showMessage("❌ లైవ్ లింక్ (URL) ఖాళీగా ఉంది!")
-                        }
-                        
+                    // బ్యాక్‌గ్రౌండ్ థ్రెడ్: దీనివల్ల మీ కెమెరా ఎప్పటికీ ఫ్రీజ్ అవ్వదు!
+                    Thread {
                         try {
-                            var folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-                            var pcrFolder = File(folder, "PocketPCR")
-                            if (!pcrFolder.exists() && !pcrFolder.mkdirs()) {
-                                pcrFolder = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "PocketPCR")
-                                if (!pcrFolder.exists()) pcrFolder.mkdirs()
-                            }
-                            
-                            val file = File(pcrFolder, "PCR_Live_${System.currentTimeMillis()}.mp4")
-                            val absolutePath = file.absolutePath ?: ""
-                            currentRecordPath = absolutePath
-                            
-                            if (absolutePath.isNotEmpty()) {
-                                display.startRecord(absolutePath)
+                            val isVideoPrepared = display.prepareVideo() 
+                            val isAudioPrepared = display.prepareAudio()
+
+                            if (isVideoPrepared && isAudioPrepared) {
+                                if (url.isNotEmpty()) {
+                                    display.startStream(url)
+                                }
+                            } else {
+                                showMessage("❌ ఫోన్ ఆడియో/వీడియో సెట్టింగ్స్ ఫెయిల్ అయ్యాయి.")
                             }
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            showMessage("❌ లైవ్ క్రాష్: \${e.message}")
                         }
-                    } else {
-                        showMessage("❌ ఆడియో/వీడియో సపోర్ట్ ఫెయిల్ అయింది.")
-                    }
+                    }.start()
                 }
-            } else {
-                showMessage("⚠️ స్క్రీన్ రికార్డింగ్ పర్మిషన్ ఇవ్వలేదు!")
             }
         } else if (action == "STOP_STREAM") {
-            stopAndSave()
+            try {
+                rtmpDisplay?.stopStream()
+            } catch (e: Exception) {}
             stopForeground(true)
             stopSelf()
             showMessage("⏹️ లైవ్ ఆపబడింది.")
         }
         return START_NOT_STICKY
-    }
-    
-    private fun stopAndSave() {
-        try {
-            rtmpDisplay?.stopRecord()
-            rtmpDisplay?.stopStream()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        
-        val pathToSave = currentRecordPath
-        if (pathToSave.isNotEmpty()) {
-            try {
-                MediaScannerConnection.scanFile(baseContext, arrayOf(pathToSave), arrayOf("video/mp4"), null)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
     }
 
     private fun startNotification() {
@@ -142,18 +110,21 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopAndSave()
+        try {
+            rtmpDisplay?.stopStream()
+        } catch (e: Exception) {}
     }
 
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {
+        showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
+    }
     
     override fun onConnectionSuccessRtmp() {
-        showMessage("✅ లైవ్ సక్సెస్! YouTube చెక్ చేయండి.")
+        showMessage("✅ లైవ్ సక్సెస్! Restream ఆన్‌లైన్ చెక్ చేయండి.")
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("❌ లైవ్ ఫెయిల్: $reason")
-        stopAndSave()
+        showMessage("❌ లైవ్ ఫెయిల్: \$reason")
     }
     
     override fun onNewBitrateRtmp(bitrate: Long) {}
