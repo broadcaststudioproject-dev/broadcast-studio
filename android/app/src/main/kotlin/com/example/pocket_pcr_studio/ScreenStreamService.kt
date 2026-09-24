@@ -53,10 +53,11 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     
-                    // బ్యాక్‌గ్రౌండ్ థ్రెడ్ + 720p రిజల్యూషన్: దీనివల్ల మీ కెమెరా, ప్రాసెసర్ ఎప్పటికీ ఫ్రీజ్ అవ్వవు!
+                    // కెమెరా ఫ్రీజ్ అవ్వకుండా బ్యాక్‌గ్రౌండ్ థ్రెడ్ వాడాం
                     Thread {
                         try {
-                            val isVideoPrepared = display.prepareVideo(720, 1280, 30, 2500 * 1024, 0)
+                            // పాత లైబ్రరీకి తగ్గట్టు ఆర్గ్యుమెంట్స్ లేకుండా మార్చబడింది
+                            val isVideoPrepared = display.prepareVideo() 
                             val isAudioPrepared = display.prepareAudio()
 
                             if (isVideoPrepared && isAudioPrepared) {
