@@ -167,7 +167,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController headlineCtrl = TextEditingController();
 
   Timer? _newsTimer;
-  
   bool _isCameraInitialized = false; 
 
   @override
@@ -204,15 +203,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // ఫ్రీజ్ కాకుండా ఉండేందుకు లైఫ్ సైకిల్ కోడ్‌ని మార్చబడింది (ఇనాక్టివ్ లో కెమెరా ఆపడం లేదు)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-       _isCameraInitialized = false; 
-    } else if (state == AppLifecycleState.resumed) {
-       if (controller != null && !controller!.value.isInitialized) {
+    if (state == AppLifecycleState.resumed) {
+       if (controller == null || !controller!.value.isInitialized) {
            _initCamera();
-       } else {
-           setState(() { _isCameraInitialized = true; });
        }
     }
   }
@@ -257,7 +253,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final camController = CameraController(
         cameras[currentCameraIndex],
         ResolutionPreset.high,
-        enableAudio: false, // <--- ఇక్కడే లైవ్ ని ఆపుతున్న మైక్రోఫోన్ సమస్యను పరిష్కరించాం
+        enableAudio: false, 
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       controller = camController;
@@ -848,9 +844,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       return Stack(children: [Positioned.fill(child: cameraWidget), Positioned(top: 15, right: 15, child: visualScreenLogoWidget)]);
     }
 
-    // === L-Shape Ads కొలతలు ===
-    double vertAdWidth = screenWidth * 0.24;  // ఎడమవైపు 24% వెడల్పు
-    double horizAdHeight = screenHeight * 0.15; // కింద 15% ఎత్తు
+    double vertAdWidth = screenWidth * 0.24;  
+    double horizAdHeight = screenHeight * 0.15; 
 
     return Container(
       color: adLayerColor,
@@ -860,11 +855,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           
           Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
           
-          // 1. ఎడమవైపు నిలువు యాడ్ (Vertical Ad) - L ఆకారం మొదలు
           Positioned(
             left: 0, 
             top: 0,
-            bottom: 55, // కింద బ్రేకింగ్ న్యూస్ బార్ వరకు
+            bottom: 55, 
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
               onTap: _pickVerticalAd, 
@@ -890,11 +884,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           ),
 
-          // 2. కింద అడ్డు యాడ్ (Horizontal Ad) - L ఆకారం ముగింపు (నిలువు యాడ్ పక్కనుండి మొదలవుతుంది)
           Positioned(
-            left: vertAdWidth, // కరెక్ట్ గా నిలువు యాడ్ పక్కనుండి స్టార్ట్ అవుతుంది
+            left: vertAdWidth, 
             right: 0, 
-            bottom: 55, // బ్రేకింగ్ న్యూస్ పైన
+            bottom: 55, 
             child: GestureDetector(
               behavior: HitTestBehavior.opaque, 
               onTap: _pickHorizontalAd, 
