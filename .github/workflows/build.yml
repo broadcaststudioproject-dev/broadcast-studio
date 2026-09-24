@@ -35,7 +35,7 @@ jobs:
           mkdir -p /tmp/kotlin_backup
           cp -r android/app/src/main/kotlin /tmp/kotlin_backup/ || true
           
-          echo "2. కరప్ట్ అయిన పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
           rm -rf android
           
           echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
@@ -45,53 +45,28 @@ jobs:
           rm -rf android/app/src/main/kotlin
           cp -r /tmp/kotlin_backup/kotlin android/app/src/main/ || true
 
-      - name: Safe Patch Gradle Files (Python Engine)
-        shell: python
+      - name: Brute Force Inject JitPack & RootEncoder
         run: |
-          import os
+          echo "JitPack ను అన్ని ప్రాజెక్టులకు బలవంతంగా అప్లై చేస్తున్నాను..."
+          if [ -f "android/build.gradle.kts" ]; then
+            echo "" >> android/build.gradle.kts
+            echo "allprojects { repositories { maven { url = uri(\"https://jitpack.io\") } } }" >> android/build.gradle.kts
+          elif [ -f "android/build.gradle" ]; then
+            echo "" >> android/build.gradle
+            echo "allprojects { repositories { maven { url 'https://jitpack.io' } } }" >> android/build.gradle
+          fi
 
-          # A. Fix settings.gradle to add JitPack
-          settings_path = 'android/settings.gradle'
-          is_kts = False
-          if not os.path.exists(settings_path):
-              settings_path = 'android/settings.gradle.kts'
-              is_kts = True
-          
-          with open(settings_path, 'r') as f:
-              settings = f.read()
-          
-          if 'jitpack.io' not in settings:
-              if is_kts:
-                  settings = settings.replace('mavenCentral()', 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
-              else:
-                  settings = settings.replace('mavenCentral()', 'mavenCentral()\n        maven { url "https://jitpack.io" }')
-              with open(settings_path, 'w') as f:
-                  f.write(settings)
-          
-          # B. Fix app/build.gradle to add RootEncoder & upgrade SDK 36
-          app_gradle = 'android/app/build.gradle'
-          is_app_kts = False
-          if not os.path.exists(app_gradle):
-              app_gradle = 'android/app/build.gradle.kts'
-              is_app_kts = True
-              
-          with open(app_gradle, 'r') as f:
-              app_build = f.read()
+          echo "RootEncoder లైబ్రరీ యాడ్ చేస్తున్నాను..."
+          if [ -f "android/app/build.gradle.kts" ]; then
+            echo "" >> android/app/build.gradle.kts
+            echo "dependencies { implementation(\"com.github.pedroSG94.RootEncoder:library:2.4.2\") }" >> android/app/build.gradle.kts
+          elif [ -f "android/app/build.gradle" ]; then
+            echo "" >> android/app/build.gradle
+            echo "dependencies { implementation 'com.github.pedroSG94.RootEncoder:library:2.4.2' }" >> android/app/build.gradle
+          fi
 
-          # Upgrade SDK to 36
-          app_build = app_build.replace('flutter.compileSdkVersion', '36')
-          app_build = app_build.replace('flutter.targetSdkVersion', '36')
-
-          # Add dependencies
-          pedro_dep = 'implementation("com.github.pedroSG94.RootEncoder:library:2.4.2")' if is_app_kts else "implementation 'com.github.pedroSG94.RootEncoder:library:2.4.2'"
-          
-          if 'dependencies {' in app_build:
-              app_build = app_build.replace('dependencies {', f'dependencies {{\n    {pedro_dep}')
-          else:
-              app_build += f"\ndependencies {{\n    {pedro_dep}\n}}\n"
-
-          with open(app_gradle, 'w') as f:
-              f.write(app_build)
+          echo "SDK 36 కి అప్‌గ్రేడ్ చేస్తున్నాను..."
+          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/36/g' {} + || true
 
       - name: Install Dependencies
         run: |
