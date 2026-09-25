@@ -56,17 +56,29 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                     
                     Thread {
                         try {
-                            // ఫోన్ అడ్డంగా ఉందా నిలువుగా ఉందా చెక్ చేయడం
-                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-                            val width = if (isPortrait) 720 else 1280
-                            val height = if (isPortrait) 1280 else 720
-                            val fps = 30
-                            val bitrate = 2500 * 1024 // 2.5 Mbps
-                            val rotation = 0
-                            val dpi = 320
+                            // ఫోన్ స్క్రీన్ సైజును డైనమిక్ గా తీసుకోవడం
+                            val displayMetrics = resources.displayMetrics
+                            var width = displayMetrics.widthPixels
+                            var height = displayMetrics.heightPixels
                             
-                            // భారీ స్క్రీన్ సైజుని HD రిజల్యూషన్ కి మారుస్తున్నాం
+                            // రిజల్యూషన్ మరీ ఎక్కువగా ఉంటే, సగానికి (లేదా సరైన రేషియోకి) తగ్గించడం
+                            // (మరీ పెద్ద సైజులు పాత లైబ్రరీ తీసుకోదు కాబట్టి)
+                            if (width > 1080 || height > 1920) {
+                                width /= 2
+                                height /= 2
+                            }
+                            
+                            // ఆండ్రాయిడ్ ఎన్‌కోడర్‌లకు width మరియు height సరిసంఖ్యలో (even numbers) ఉండాలి
+                            if (width % 2 != 0) width -= 1
+                            if (height % 2 != 0) height -= 1
+
+                            val fps = 30
+                            val bitrate = 2500 * 1024
+                            val rotation = 0
+                            val dpi = displayMetrics.densityDpi
+                            
                             if (display.prepareVideo(width, height, fps, bitrate, rotation, dpi) && display.prepareAudio()) {
+
                                 display.startStream(url)
                                 showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
                             } else {
