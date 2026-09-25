@@ -45,9 +45,9 @@ jobs:
           rm -rf android/app/src/main/kotlin
           cp -r /tmp/kotlin_backup/kotlin android/app/src/main/ || true
 
-      - name: Brute Force Inject JitPack & RootEncoder
+      - name: Inject JitPack & Original Stable Library
         run: |
-          echo "JitPack ను అన్ని ప్రాజెక్టులకు బలవంతంగా అప్లై చేస్తున్నాను..."
+          echo "JitPack ను అప్లై చేస్తున్నాను..."
           if [ -f "android/build.gradle.kts" ]; then
             echo "" >> android/build.gradle.kts
             echo "allprojects { repositories { maven { url = uri(\"https://jitpack.io\") } } }" >> android/build.gradle.kts
@@ -56,13 +56,13 @@ jobs:
             echo "allprojects { repositories { maven { url 'https://jitpack.io' } } }" >> android/build.gradle
           fi
 
-          echo "RootEncoder లైబ్రరీ యాడ్ చేస్తున్నాను..."
+          echo "పాత మరియు స్థిరమైన RTMP లైబ్రరీ (2.2.2) యాడ్ చేస్తున్నాను..."
           if [ -f "android/app/build.gradle.kts" ]; then
             echo "" >> android/app/build.gradle.kts
-            echo "dependencies { implementation(\"com.github.pedroSG94.RootEncoder:library:2.4.2\") }" >> android/app/build.gradle.kts
+            echo "dependencies { implementation(\"com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2\") }" >> android/app/build.gradle.kts
           elif [ -f "android/app/build.gradle" ]; then
             echo "" >> android/app/build.gradle
-            echo "dependencies { implementation 'com.github.pedroSG94.RootEncoder:library:2.4.2' }" >> android/app/build.gradle
+            echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2' }" >> android/app/build.gradle
           fi
 
           echo "SDK 36 కి అప్‌గ్రేడ్ చేస్తున్నాను..."
