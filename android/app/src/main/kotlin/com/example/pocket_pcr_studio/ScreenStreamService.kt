@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.IBinder
 import android.os.Handler
@@ -55,13 +56,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                     
                     Thread {
                         try {
-                            if (display.prepareVideo() && display.prepareAudio()) {
+                            // ఫోన్ అడ్డంగా ఉందా నిలువుగా ఉందా చెక్ చేయడం
+                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                            val width = if (isPortrait) 720 else 1280
+                            val height = if (isPortrait) 1280 else 720
+                            val fps = 30
+                            val bitrate = 2500 * 1024 // 2.5 Mbps
+                            val rotation = 0
+                            val dpi = 320
+                            
+                            // భారీ స్క్రీన్ సైజుని HD రిజల్యూషన్ కి మారుస్తున్నాం
+                            if (display.prepareVideo(width, height, fps, bitrate, rotation, dpi) && display.prepareAudio()) {
                                 display.startStream(url)
                                 showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
                             } else {
                                 showMessage("❌ ఆడియో/వీడియో ఎన్‌కోడర్ ఫెయిల్.")
                             }
-                        } catch (e: Exception) {}
+                        } catch (e: Exception) {
+                            showMessage("❌ ఎర్రర్: ${e.message}")
+                        }
                     }.start()
                 }
             } else {
@@ -101,7 +114,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
     }
 
-    // పాత లైబ్రరీ నిబంధనల ప్రకారం ఫంక్షన్ పేర్లు
     override fun onConnectionStartedRtmp(rtmpUrl: String) {}
     
     override fun onConnectionSuccessRtmp() {
