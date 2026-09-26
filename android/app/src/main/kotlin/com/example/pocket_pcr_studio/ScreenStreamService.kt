@@ -44,10 +44,11 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
         if (action == "START_STREAM") {
             val url = intent.getStringExtra("url") ?: ""
-            val resultCode = intent.getIntExtra("resultCode", 0)
+            val resultCode = intent.getIntExtra("resultCode", -1) // డీఫాల్ట్‌గా -1 తీసుకుందాం
             val data = intent.getParcelableExtra<Intent>("data")
 
-            if (resultCode == -1 && data != null && url.isNotEmpty()) {
+            // resultCode చెకింగ్ తీసేసి, కేవలం data మరియు url ఉన్నాయా లేదా అని మాత్రమే చూస్తున్నాం
+            if (data != null && url.isNotEmpty()) {
                 startNotification()
                 
                 val display = rtmpDisplay 
@@ -62,7 +63,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             var height = displayMetrics.heightPixels
                             
                             // రిజల్యూషన్ మరీ ఎక్కువగా ఉంటే, సగానికి (లేదా సరైన రేషియోకి) తగ్గించడం
-                            // (మరీ పెద్ద సైజులు పాత లైబ్రరీ తీసుకోదు కాబట్టి)
                             if (width > 1080 || height > 1920) {
                                 width /= 2
                                 height /= 2
@@ -72,25 +72,27 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             if (width % 2 != 0) width -= 1
                             if (height % 2 != 0) height -= 1
 
+                            // టెస్టింగ్ మెసేజ్: సైజు ఎంత తీసుకుందో స్క్రీన్ పై చూడటానికి
+                            showMessage("⚙️ సైజు: ${width}x${height} తీసుకుంది...")
+
                             val fps = 30
                             val bitrate = 2500 * 1024
                             val rotation = 0
                             val dpi = displayMetrics.densityDpi
                             
                             if (display.prepareVideo(width, height, fps, bitrate, rotation, dpi) && display.prepareAudio()) {
-
                                 display.startStream(url)
-                                showMessage("⏳ లైవ్ సర్వర్ కి వెళ్తోంది...")
+                                showMessage("⏳ సర్వర్‌కి సిగ్నల్ వెళ్తోంది...")
                             } else {
-                                showMessage("❌ ఆడియో/వీడియో ఎన్‌కోడర్ ఫెయిల్.")
+                                showMessage("❌ ఎన్‌కోడర్ ఫెయిల్.")
                             }
                         } catch (e: Exception) {
-                            showMessage("❌ ఎర్రర్: ${e.message}")
+                            showMessage("❌ క్రాష్: ${e.message}")
                         }
                     }.start()
                 }
             } else {
-                showMessage("❌ లింక్ లేదా పర్మిషన్ ఫెయిల్.")
+                showMessage("❌ లింక్ లేదా పర్మిషన్ ఫెయిల్. (Data/URL missing)")
             }
         } else if (action == "STOP_STREAM") {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
