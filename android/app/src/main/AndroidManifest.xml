@@ -1,31 +1,18 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.pocket_pcr_studio">
 
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- మనకు కావాల్సిన ఇంటర్నెట్, స్క్రీన్ రికార్డింగ్ పర్మిషన్లు ఇక్కడే ఉన్నాయి -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-
-    <uses-feature android:name="android.hardware.camera" />
-    <uses-feature android:name="android.hardware.camera.autofocus" />
-    <uses-feature android:name="android.hardware.usb.host" />
-    <uses-permission android:name="android.permission.USB_PERMISSION" />
 
     <application
-        android:label="pocket_pcr_studio"
+        android:label="Pocket PCR Studio"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:requestLegacyExternalStorage="true">
         
-        <service
-            android:name=".ScreenStreamService"
-            android:foregroundServiceType="mediaProjection"
-            android:exported="false" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,10 +21,11 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+            
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-            />
+              android:resource="@style/NormalTheme" />
+              
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -46,6 +34,21 @@
 
         <meta-data
             android:name="flutterEmbedding"
-            android:value="2" />
+            value="2" />
+
+        <!-- మీ స్క్రీన్ క్యాప్చర్ సర్వీస్ ఆగిపోకుండా ఇక్కడ రిజిస్టర్ చేశాను -->
+        <service
+            android:name=".ScreenStreamService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
     </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
 </manifest>
