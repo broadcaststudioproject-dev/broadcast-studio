@@ -31,9 +31,10 @@ jobs:
 
       - name: Clean & Rebuild Android Folder
         run: |
-          echo "1. బ్యాకప్ తీసుకుంటున్నాను..."
-          mkdir -p /tmp/kotlin_backup
-          cp -r android/app/src/main/kotlin /tmp/kotlin_backup/ || true
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను (Kotlin మరియు Manifest)..."
+          mkdir -p /tmp/android_backup
+          cp -r android/app/src/main/kotlin /tmp/android_backup/ || true
+          cp android/app/src/main/AndroidManifest.xml /tmp/android_backup/ || true
           
           echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
           rm -rf android
@@ -41,9 +42,10 @@ jobs:
           echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
           flutter create . --platforms=android
           
-          echo "4. మీ కస్టమ్ కోడ్ (ScreenStreamService) రీస్టోర్ చేస్తున్నాను..."
+          echo "4. మీ కస్టమ్ కోడ్ మరియు Manifest రీస్టోర్ చేస్తున్నాను..."
           rm -rf android/app/src/main/kotlin
-          cp -r /tmp/kotlin_backup/kotlin android/app/src/main/ || true
+          cp -r /tmp/android_backup/kotlin android/app/src/main/ || true
+          cp /tmp/android_backup/AndroidManifest.xml android/app/src/main/ || true
 
       - name: Inject JitPack & Original Stable Library
         run: |
