@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace "com.example.pocket_pcr_studio"
-    compileSdk flutter.compileSdkVersion
+    compileSdk 35
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -21,7 +21,7 @@ android {
     defaultConfig {
         applicationId "com.example.pocket_pcr_studio"
         minSdk 24
-        targetSdk flutter.targetSdkVersion
+        targetSdk 35
         versionCode flutter.versionCode.toInteger()
         versionName flutter.versionName
         multiDexEnabled true
@@ -39,11 +39,6 @@ flutter {
 }
 
 dependencies {
-    implementation 'io.github.pedroSG94.RootEncoder:library:2.4.2'
+    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
     implementation 'androidx.multidex:multidex:2.0.1'
 }
-repositories {
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
-}
-
