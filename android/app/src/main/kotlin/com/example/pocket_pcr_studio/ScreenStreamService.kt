@@ -7,7 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.PowerManager
+import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
@@ -15,81 +20,300 @@ import com.pedro.rtmp.utils.ConnectCheckerRtmp
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private var rtmpDisplay: RtmpDisplay? = null
+    private var currentUrl: String = ""
+    private var triedAltProtocol = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
         super.onCreate()
-        rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-        rtmpDisplay?.setReTries(5)
+        try {
+            rtmpDisplay = RtmpDisplay(this, true, this)
+            rtmpDisplay?.setReTries(8)
+        } catch (e: Exception) {
+            Log.e(TAG, "RtmpDisplay create failed", e)
+            toast("Library error: ${e.message}")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "START_STREAM") {
-            val url = intent.getStringExtra("url") ?: ""
-            val resultCode = intent.getIntExtra("resultCode", -1)
-            val data = intent.getParcelableExtra<Intent>("data")
+        startNotification()
 
-            if (data != null && url.isNotEmpty()) {
-                startNotification()
-                
-                rtmpDisplay?.setIntentResult(resultCode, data)
-                
-                // ఇక్కడే అసలు మ్యాజిక్: ఫోన్ సైజుతో సంబంధం లేకుండా 
-                // Restream అంగీకరించే స్టాండర్డ్ HD (720p) కి ఫిక్స్ చేస్తున్నాం
-                val width = 720
-                val height = 1280
-                val fps = 30
-                val bitrate = 2500 * 1024 // 2.5 Mbps మంచి క్వాలిటీ కోసం
-                val dpi = 320
-                
-                Thread {
-                    if (rtmpDisplay?.prepareVideo(width, height, fps, bitrate, 0, dpi) == true && rtmpDisplay?.prepareAudio() == true) {
-                        rtmpDisplay?.startStream(url)
-                    }
-                }.start()
-            }
-        } else if (intent?.action == "STOP_STREAM") {
-            rtmpDisplay?.stopStream()
-            stopForeground(true)
-            stopSelf()
+        when (intent?.action) {
+            ACTION_START -> startStream(intent)
+            ACTION_STOP -> stopEverything()
         }
         return START_NOT_STICKY
+    }
+
+    private fun startStream(intent: Intent) {
+        val rawUrl = intent.getStringExtra(EXTRA_URL)?.trim().orEmpty()
+        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
+        val data = extractResultIntent(intent)
+
+        if (rawUrl.isEmpty() || rawUrl.contains("YOUR_STREAM_KEY")) {
+            toast("Restream stream key paste చేయండి")
+            return
+        }
+        if (data == null || resultCode != android.app.Activity.RESULT_OK) {
+            toast("Screen permission data రాలేదు. Malli try చేయండి.")
+            Log.e(TAG, "Missing projection data resultCode=$resultCode data=$data")
+            return
+        }
+
+        currentUrl = normalizeUrl(rawUrl)
+        triedAltProtocol = false
+        toast("Connecting: $currentUrl")
+        acquireWakeLock()
+
+        try {
+            rtmpDisplay?.setIntentResult(resultCode, data)
+        } catch (e: Exception) {
+            toast("Projection error: ${e.message}")
+            Log.e(TAG, "setIntentResult failed", e)
+            return
+        }
+
+        Thread {
+            try {
+                if (!prepareEncoders()) {
+                    toast("Video encoder start కాలేదు")
+                    return@Thread
+                }
+                rtmpDisplay?.startStream(currentUrl)
+            } catch (e: Exception) {
+                Log.e(TAG, "startStream thread failed", e)
+                toast("Start crash: ${e.message}")
+            }
+        }.start()
+    }
+
+    private fun prepareEncoders(): Boolean {
+        val dpi = resources.displayMetrics.densityDpi.coerceAtLeast(160)
+        val sizes = arrayOf(
+            intArrayOf(720, 1280, 30, 1_800_000),
+            intArrayOf(1280, 720, 30, 1_800_000),
+            intArrayOf(720, 1280, 25, 1_200_000),
+            intArrayOf(640, 1136, 25, 1_000_000),
+            intArrayOf(640, 480, 25, 800_000)
+        )
+
+        var videoOk = false
+        for (s in sizes) {
+            try {
+                if (rtmpDisplay?.prepareVideo(s[0], s[1], s[2], s[3], 0, dpi) == true) {
+                    videoOk = true
+                    Log.i(TAG, "Video prepared \( {s[0]}x \){s[1]} @${s[2]}")
+                    break
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "prepareVideo \( {s[0]}x \){s[1]} failed", e)
+            }
+        }
+        if (!videoOk) {
+            try {
+                videoOk = rtmpDisplay?.prepareVideo() == true
+            } catch (e: Exception) {
+                Log.e(TAG, "prepareVideo default failed", e)
+            }
+        }
+        if (!videoOk) return false
+
+        var audioOk = false
+        try {
+            audioOk = rtmpDisplay?.prepareAudio(44100, true, 128 * 1024) == true
+        } catch (e: Exception) {
+            Log.w(TAG, "prepareAudio custom failed", e)
+        }
+        if (!audioOk) {
+            try {
+                audioOk = rtmpDisplay?.prepareAudio() == true
+            } catch (e: Exception) {
+                Log.w(TAG, "prepareAudio default failed", e)
+            }
+        }
+        if (!audioOk) {
+            toast("Mic prepare fail — video only")
+        }
+        return true
+    }
+
+    private fun normalizeUrl(url: String): String {
+        var u = url.trim()
+        if (!u.contains("://")) {
+            u = "rtmp://live.restream.io/live/$u"
+        }
+        return u
+    }
+
+    private fun alternateUrl(url: String): String? {
+        return when {
+            url.startsWith("rtmps://") -> "rtmp://" + url.removePrefix("rtmps://")
+            url.startsWith("rtmp://") -> "rtmps://" + url.removePrefix("rtmp://")
+            else -> null
+        }
+    }
+
+    private fun extractResultIntent(intent: Intent): Intent? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(EXTRA_DATA)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "extractResultIntent", e)
+            null
+        }
     }
 
     private fun startNotification() {
         val channelId = "ScreenStreamChannel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+            val channel = NotificationChannel(
+                channelId,
+                "Screen Stream",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                .createNotificationChannel(channel)
         }
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
-            .setContentText("Live Streaming is Active...")
+            .setContentText("Live streaming…")
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .setOngoing(true)
             .build()
-            
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    1,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+            } else {
+                startForeground(1, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "startForeground failed", e)
+            try {
+                startForeground(1, notification)
+            } catch (e2: Exception) {
+                toast("Notification block: ${e2.message}")
+            }
+        }
+    }
+
+    private fun stopEverything() {
+        try {
+            rtmpDisplay?.stopStream()
+        } catch (_: Exception) {
+        }
+        releaseWakeLock()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
-            startForeground(1, notification)
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
+    private fun acquireWakeLock() {
+        try {
+            if (wakeLock?.isHeld == true) return
+            wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "pcr:stream")
+            wakeLock?.setReferenceCounted(false)
+            wakeLock?.acquire(4 * 60 * 60 * 1000L)
+        } catch (e: Exception) {
+            Log.w(TAG, "wakeLock", e)
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+        } catch (_: Exception) {
+        }
+        wakeLock = null
+    }
+
+    private fun toast(message: String) {
+        Log.i(TAG, message)
+        mainHandler.post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-    
+
     override fun onDestroy() {
+        stopEverything()
         super.onDestroy()
-        rtmpDisplay?.stopStream()
     }
-    
-    // Restream కి సిగ్నల్ వెళ్లడానికి కావాల్సిన ఫంక్షన్స్
+
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {
+        toast("Restream కి connect అవుతోంది…")
+    }
+
     override fun onConnectionSuccessRtmp() {
-        // సిగ్నల్ విజయవంతంగా Restream కి చేరింది!
+        toast("Restream ONLINE ✅")
     }
-    
-    override fun onConnectionFailedRtmp(reason: String) {}
+
+    override fun onConnectionFailedRtmp(reason: String) {
+        Log.e(TAG, "onConnectionFailedRtmp $reason")
+        try {
+            if (rtmpDisplay?.shouldRetry(reason) == true) {
+                toast("Retry: $reason")
+                rtmpDisplay?.reTry(4000, reason)
+                return
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "shouldRetry", e)
+        }
+
+        val alt = alternateUrl(currentUrl)
+        if (!triedAltProtocol && alt != null) {
+            triedAltProtocol = true
+            toast("Protocol change: $alt")
+            try {
+                rtmpDisplay?.stopStream()
+            } catch (_: Exception) {
+            }
+            currentUrl = alt
+            mainHandler.postDelayed({
+                try {
+                    rtmpDisplay?.startStream(currentUrl)
+                } catch (e: Exception) {
+                    toast("Alt start fail: ${e.message}")
+                }
+            }, 1200)
+            return
+        }
+        toast("Restream fail: $reason")
+    }
+
     override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() {}
-    override fun onAuthErrorRtmp() {}
+
+    override fun onDisconnectRtmp() {
+        toast("Restream disconnect")
+    }
+
+    override fun onAuthErrorRtmp() {
+        toast("Stream key తప్పు (auth error)")
+    }
+
     override fun onAuthSuccessRtmp() {}
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
+
+    companion object {
+        private const val TAG = "PCRStream"
+        const val ACTION_START = "START_STREAM"
+        const val ACTION_STOP = "STOP_STREAM"
+        const val EXTRA_URL = "url"
+        const val EXTRA_RESULT_CODE = "resultCode"
+        const val EXTRA_DATA = "data"
+    }
 }
