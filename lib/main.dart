@@ -126,7 +126,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.text = reporterRole;
     headlineCtrl.text = "";
     
-    // Default RTMPS URL (సెక్యూరిటీ బ్లాక్ ని దాటడానికి)
+    // Default RTMPS URL 
     youtubeUrlController.text = "rtmps://live.restream.io/live/YOUR_STREAM_KEY_HERE";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -190,7 +190,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final camController = CameraController(
         cameras[currentCameraIndex],
         ResolutionPreset.high,
-        enableAudio: false, // మైక్రోఫోన్ క్రాష్ లేకుండా సేఫ్ సెటప్
+        enableAudio: false, 
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
       controller = camController;
@@ -784,10 +784,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
+  
   static Future<bool> startLiveStream(String rtmpUrl) async {
-    try { await platform.invokeMethod('startScreenStream', {'rtmpUrl': rtmpUrl}); return true; } catch (e) { return false; }
+    try {
+      // ఇక్కడే మనం rtmps ని rtmp గా మార్చే ఆటోమేటిక్ లాజిక్ పెట్టాము
+      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
+      
+      await platform.invokeMethod('startScreenStream', {'rtmpUrl': safeUrl}); 
+      return true; 
+    } catch (e) { 
+      debugPrint("Error starting stream: $e");
+      return false; 
+    }
   }
+  
   static Future<bool> stopLiveStream() async {
-    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
+    try { 
+      await platform.invokeMethod('stopScreenStream'); 
+      return true; 
+    } catch (e) { 
+      debugPrint("Error stopping stream: $e");
+      return false; 
+    }
   }
 }
