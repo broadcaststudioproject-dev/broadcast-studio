@@ -31,10 +31,9 @@ jobs:
 
       - name: Clean & Rebuild Android Folder
         run: |
-          echo "1. బ్యాకప్ తీసుకుంటున్నాను (Kotlin మరియు Manifest)..."
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను (Kotlin కోడ్)..."
           mkdir -p /tmp/android_backup
           cp -r android/app/src/main/kotlin /tmp/android_backup/ || true
-          cp android/app/src/main/AndroidManifest.xml /tmp/android_backup/ || true
           
           echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
           rm -rf android
@@ -42,10 +41,59 @@ jobs:
           echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
           flutter create . --platforms=android
           
-          echo "4. మీ కస్టమ్ కోడ్ మరియు Manifest రీస్టోర్ చేస్తున్నాను..."
+          echo "4. మీ కస్టమ్ కోడ్ (Kotlin) రీస్టోర్ చేస్తున్నాను..."
           rm -rf android/app/src/main/kotlin
           cp -r /tmp/android_backup/kotlin android/app/src/main/ || true
-          cp /tmp/android_backup/AndroidManifest.xml android/app/src/main/ || true
+
+      - name: Force Inject Correct AndroidManifest.xml
+        run: |
+          echo "5. పక్కాగా కొత్త AndroidManifest.xml ని రాయిస్తున్నాను..."
+          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.example.pocket_pcr_studio">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <application
+                  android:label="Pocket PCR Studio"
+                  android:name="${applicationName}"
+                  android:icon="@mipmap/ic_launcher"
+                  android:requestLegacyExternalStorage="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <meta-data
+                        android:name="io.flutter.embedding.android.NormalTheme"
+                        android:resource="@style/NormalTheme" />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      value="2" />
+                  <service
+                      android:name=".ScreenStreamService"
+                      android:enabled="true"
+                      android:exported="false"
+                      android:foregroundServiceType="mediaProjection" />
+              </application>
+              <queries>
+                  <intent>
+                      <action android:name="android.intent.action.PROCESS_TEXT"/>
+                      <data android:mimeType="text/plain"/>
+                  </intent>
+              </queries>
+          </manifest>
+          EOF
 
       - name: Inject JitPack & Original Stable Library
         run: |
