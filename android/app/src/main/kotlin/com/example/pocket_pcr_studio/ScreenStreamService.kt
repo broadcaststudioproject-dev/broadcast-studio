@@ -6,6 +6,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -19,7 +20,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
 
-    // MainActivity కి కావాల్సిన కనెక్షన్ పేర్లు ఇక్కడే డిక్లేర్ చేశాను
     companion object {
         const val ACTION_START = "START_STREAM"
         const val ACTION_STOP = "STOP_STREAM"
@@ -60,27 +60,24 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                     display.setIntentResult(resultCode, data)
                     Thread {
                         try {
-                            val displayMetrics = resources.displayMetrics
-                            var width = displayMetrics.widthPixels
-                            var height = displayMetrics.heightPixels
-
-                            if (width > 1080 || height > 1920) {
-                                width /= 2
-                                height /= 2
-                            }
-                            if (width % 2 != 0) width -= 1
-                            if (height % 2 != 0) height -= 1
+                            // ఇక్కడే మ్యాజిక్: ఫోన్ సైజుతో సంబంధం లేకుండా పక్కా 720p ఇస్తున్నాం
+                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                            val width = if (isPortrait) 720 else 1280
+                            val height = if (isPortrait) 1280 else 720
 
                             val fps = 30
                             val bitrate = 2500 * 1024
-                            val dpi = displayMetrics.densityDpi
+                            val dpi = resources.displayMetrics.densityDpi
                             
-                            // Boolean ఎర్రర్ లేకుండా పక్కాగా 0, dpi (రెండు నంబర్లు) ఇస్తున్నాను
-                            if (display.prepareVideo(width, height, fps, bitrate, 0, dpi) && display.prepareAudio()) {
+                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
+                            val audioReady = display.prepareAudio()
+
+                            if (videoReady && audioReady) {
                                 display.startStream(url)
                                 showMessage("Live Server Connecting...")
                             } else {
-                                showMessage("Encoder Failed.")
+                                // వీడియో ఫెయిల్ అయిందా, ఆడియో ఫెయిల్ అయిందా అని స్పష్టంగా తెలుస్తుంది
+                                showMessage("Encoder Failed! Video: $videoReady, Audio: $audioReady")
                             }
                         } catch (e: Exception) {
                             showMessage("Stream Crash: ${e.message}")
