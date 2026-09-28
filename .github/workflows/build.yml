@@ -75,9 +75,9 @@ jobs:
             echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2' }" >> android/app/build.gradle
           fi
 
-          echo "Android 14 స్క్రీన్ రికార్డింగ్ క్రాష్ ఆపడానికి Target SDK 33 కి మారుస్తున్నాను..."
+          echo "compileSdk ని 36 కి మరియు targetSdk ని 33 కి సెట్ చేస్తున్నాను..."
           find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.targetSdkVersion/33/g' {} + || true
-          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/34/g' {} + || true
+          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/36/g' {} + || true
 
       - name: Install Dependencies
         run: |
