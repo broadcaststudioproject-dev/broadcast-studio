@@ -48,15 +48,11 @@ jobs:
       - name: Inject Permissions & Service into Manifest safely
         run: |
           echo "5. ఫ్లట్టర్ ఫైల్‌ను డిస్టర్బ్ చేయకుండా పర్మిషన్లు, సర్వీస్ యాడ్ చేస్తున్నాను..."
-          
-          # యాప్ ఫైల్‌లో పర్మిషన్లు జాగ్రత్తగా యాడ్ చేయడం
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
-          
-          # యాప్ ఫైల్‌లో సర్వీస్ పక్కాగా యాడ్ చేయడం
           sed -i -e '/<\/application>/i \        <service android:name=".ScreenStreamService" android:enabled="true" android:exported="false" android:foregroundServiceType="mediaProjection" />' android/app/src/main/AndroidManifest.xml
 
       - name: Inject JitPack & Original Stable Library
@@ -79,8 +75,9 @@ jobs:
             echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2' }" >> android/app/build.gradle
           fi
 
-          echo "SDK 36 కి అప్‌గ్రేడ్ చేస్తున్నాను..."
-          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/36/g' {} + || true
+          echo "Android 14 స్క్రీన్ రికార్డింగ్ క్రాష్ ఆపడానికి Target SDK 33 కి మారుస్తున్నాను..."
+          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.targetSdkVersion/33/g' {} + || true
+          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/34/g' {} + || true
 
       - name: Install Dependencies
         run: |
