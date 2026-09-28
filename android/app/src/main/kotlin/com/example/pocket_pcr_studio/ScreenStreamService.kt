@@ -19,6 +19,15 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
 
+    // MainActivity కి కావాల్సిన కనెక్షన్ పేర్లు ఇక్కడే డిక్లేర్ చేశాను
+    companion object {
+        const val ACTION_START = "START_STREAM"
+        const val ACTION_STOP = "STOP_STREAM"
+        const val EXTRA_URL = "url"
+        const val EXTRA_RESULT_CODE = "resultCode"
+        const val EXTRA_DATA = "data"
+    }
+
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -39,10 +48,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         if (intent == null) return START_NOT_STICKY
         val action = intent.action
 
-        if (action == "START_STREAM") {
-            val url = intent.getStringExtra("url") ?: ""
-            val resultCode = intent.getIntExtra("resultCode", -1)
-            val data = intent.getParcelableExtra<Intent>("data")
+        if (action == ACTION_START) {
+            val url = intent.getStringExtra(EXTRA_URL) ?: ""
+            val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
+            val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
 
             if (data != null && url.isNotEmpty() && !url.contains("YOUR_STREAM_KEY_HERE")) {
                 startNotification()
@@ -64,9 +73,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
                             val fps = 30
                             val bitrate = 2500 * 1024
+                            val dpi = displayMetrics.densityDpi
                             
-                            // ఎర్రర్ రాకుండా పక్కాగా లైబ్రరీ అడిగిన ఫార్మాట్‌లో (Boolean, Int) మార్చాను
-                            if (display.prepareVideo(width, height, fps, bitrate, false, 0) && display.prepareAudio()) {
+                            // Boolean ఎర్రర్ లేకుండా పక్కాగా 0, dpi (రెండు నంబర్లు) ఇస్తున్నాను
+                            if (display.prepareVideo(width, height, fps, bitrate, 0, dpi) && display.prepareAudio()) {
                                 display.startStream(url)
                                 showMessage("Live Server Connecting...")
                             } else {
@@ -80,7 +90,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             } else {
                 showMessage("Stream link error. Please provide valid key.")
             }
-        } else if (action == "STOP_STREAM") {
+        } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
             stopForeground(true)
             stopSelf()
@@ -119,7 +129,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     
     override fun onConnectionFailedRtmp(reason: String) {
         showMessage("Connection Error: $reason")
-        // ఎర్రర్ తెప్పిస్తున్న reTry కోడ్‌ను పూర్తిగా తొలగించాను
     }
     
     override fun onNewBitrateRtmp(bitrate: Long) {}
