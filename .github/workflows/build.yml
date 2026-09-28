@@ -45,55 +45,19 @@ jobs:
           rm -rf android/app/src/main/kotlin
           cp -r /tmp/android_backup/kotlin android/app/src/main/ || true
 
-      - name: Force Inject Correct AndroidManifest.xml
+      - name: Inject Permissions & Service into Manifest safely
         run: |
-          echo "5. పక్కాగా కొత్త AndroidManifest.xml ని రాయిస్తున్నాను..."
-          cat << 'EOF' > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.example.pocket_pcr_studio">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.RECORD_AUDIO" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-              <application
-                  android:label="Pocket PCR Studio"
-                  android:name="${applicationName}"
-                  android:icon="@mipmap/ic_launcher"
-                  android:requestLegacyExternalStorage="true">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTop"
-                      android:theme="@style/LaunchTheme"
-                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-                      android:hardwareAccelerated="true"
-                      android:windowSoftInputMode="adjustResize">
-                      <meta-data
-                        android:name="io.flutter.embedding.android.NormalTheme"
-                        android:resource="@style/NormalTheme" />
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-                  <meta-data
-                      android:name="flutterEmbedding"
-                      value="2" />
-                  <service
-                      android:name=".ScreenStreamService"
-                      android:enabled="true"
-                      android:exported="false"
-                      android:foregroundServiceType="mediaProjection" />
-              </application>
-              <queries>
-                  <intent>
-                      <action android:name="android.intent.action.PROCESS_TEXT"/>
-                      <data android:mimeType="text/plain"/>
-                  </intent>
-              </queries>
-          </manifest>
-          EOF
+          echo "5. ఫ్లట్టర్ ఫైల్‌ను డిస్టర్బ్ చేయకుండా పర్మిషన్లు, సర్వీస్ యాడ్ చేస్తున్నాను..."
+          
+          # యాప్ ఫైల్‌లో పర్మిషన్లు జాగ్రత్తగా యాడ్ చేయడం
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
+          
+          # యాప్ ఫైల్‌లో సర్వీస్ పక్కాగా యాడ్ చేయడం
+          sed -i -e '/<\/application>/i \        <service android:name=".ScreenStreamService" android:enabled="true" android:exported="false" android:foregroundServiceType="mediaProjection" />' android/app/src/main/AndroidManifest.xml
 
       - name: Inject JitPack & Original Stable Library
         run: |
