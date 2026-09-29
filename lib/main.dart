@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -55,13 +56,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   VlcPlayerController? _videoAdVlcController; 
   VideoPlayerController? _bulletinVideoController; 
   
-  // LIVE LOCK & INVISIBLE CONTROL LAYER VARIABLES
-  bool isLiveLocked = false;
-  int _activePointers = 0;
-  int _maxPointers = 0;
-  DateTime? _gestureStartTime;
-  Timer? _unlockTimer;
-
   bool hideControls = false;
   bool isMenuOpen = false;
   
@@ -73,7 +67,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   bool isNewsBulletinMode = false;
   int currentNewsIndex = 0;
-  bool isBulletinMuted = true; // డిఫాల్ట్‌గా మ్యూట్ (రిపోర్టర్ వాయిస్-ఓవర్ కోసం)
+  bool isBulletinMuted = true; // రిపోర్టర్ వాయిస్-ఓవర్ కోసం వీడియో డిఫాల్ట్‌గా మ్యూట్ చేయబడింది
 
   final List<NewsBulletinItem> newsBulletinList = [
     NewsBulletinItem(title: "ప్రస్తుతం ప్లే అవుతున్న వార్త: దయచేసి వీడియో ఎంచుకోండి", mediaPath: "", isVideo: true),
@@ -109,8 +103,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String locationText = "LIVE KOTHAKOTA"; 
   String reporterName = "JANAMPALLY VINOD KUMAR";
   String reporterRole = "SPECIAL CORRESPONDENT";
-  String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
+  String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి... దయచేసి వేచి ఉండండి...";
   
+  final ValueNotifier<String> topHeadlineNotifier = ValueNotifier<String>("రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!");
+
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController watermarkCtrl = TextEditingController();
   TextEditingController locCtrl = TextEditingController();
@@ -144,6 +140,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _headlineRotationTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (customHeadlines.isNotEmpty) {
         _headlineIndex = (_headlineIndex + 1) % customHeadlines.length;
+        topHeadlineNotifier.value = customHeadlines[_headlineIndex];
       }
     });
 
@@ -166,11 +163,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     _headlineRotationTimer?.cancel();
-    _unlockTimer?.cancel();
     controller?.dispose();
     _videoAdVlcController?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
+    topHeadlineNotifier.dispose();
     youtubeUrlController.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
@@ -217,91 +214,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; }); 
   }
 
-  // --- INVISIBLE GESTURE & MULTI-TOUCH HANDLING ---
-  
-  void _handlePointerDown(PointerDownEvent event) {
-    _activePointers++;
-    if (_activePointers > _maxPointers) _maxPointers = _activePointers;
-    
-    if (_activePointers == 1) {
-      _gestureStartTime = DateTime.now();
-    }
-    
-    // 3-Finger Long Press to Unlock Live Lock
-    if (_activePointers == 3 && isLiveLocked) {
-      HapticFeedback.selectionClick();
-      _unlockTimer?.cancel();
-      _unlockTimer = Timer(const Duration(seconds: 2), () {
-        if (_activePointers >= 3) {
-          setState(() { isLiveLocked = false; }); 
-          HapticFeedback.heavyImpact(); 
-        }
-      });
-    }
-  }
-
-  void _handlePointerUp(PointerUpEvent event) {
-    _activePointers--;
-    if (_activePointers < 3) {
-      _unlockTimer?.cancel(); 
-    }
-    
-    if (_activePointers == 0) {
-      if (_gestureStartTime != null && isLiveLocked) {
-        final duration = DateTime.now().difference(_gestureStartTime!);
-        // Two-Finger Tap for Mute/Unmute
-        if (duration.inMilliseconds < 400 && _maxPointers == 2) {
-          _toggleMute();
-        }
-      }
-      _maxPointers = 0;
-      _gestureStartTime = null;
-    }
-    
-    if (_activePointers < 0) _activePointers = 0;
-  }
-
-  void _handleSwipe(DragEndDetails details, bool isHorizontal) {
-    if (!isLiveLocked) return; 
-    
-    if (isHorizontal) {
-      if (details.primaryVelocity! > 300) {
-        _changeNewsVideo(1); // Swipe Right -> Next News
-      } else if (details.primaryVelocity! < -300) {
-        _changeNewsVideo(-1); // Swipe Left -> Prev News
-      }
-    } else {
-      if (details.primaryVelocity! > 300) {
-        // Swipe Down -> Return to Camera Mode
-        HapticFeedback.lightImpact();
-        setState(() { isNewsBulletinMode = false; _bulletinVideoController?.pause(); });
-      }
-    }
-  }
-
-  void _changeNewsVideo(int direction) {
-    if (newsBulletinList.length <= 1) return;
-    HapticFeedback.lightImpact(); 
-    setState(() {
-      currentNewsIndex = (currentNewsIndex + direction) % newsBulletinList.length;
-      if (currentNewsIndex < 0) currentNewsIndex = newsBulletinList.length - 1;
-      isNewsBulletinMode = true;
-      if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty) {
-        _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, newsBulletinList[currentNewsIndex].isVideo);
-      }
-    });
-  }
-
-  void _toggleMute() {
-    HapticFeedback.mediumImpact();
-    setState(() {
-      isBulletinMuted = !isBulletinMuted;
-      _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-    });
-  }
-
-  // ------------------------------------------------
-
   void _startBulletinMedia(String path, bool isVideo) {
     if (path.isEmpty) return;
     if (isVideo) {
@@ -310,6 +222,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bulletinVideoController = VideoPlayerController.file(File(path))
         ..initialize().then((_) {
           if (!mounted) return;
+          // ఇక్కడే మనం వీడియోకి మ్యూట్ ఆప్షన్ సెట్ చేస్తున్నాం
           _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
           setState(() {});
           _bulletinVideoController?.play();
@@ -331,8 +244,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     final duration = vController.value.duration;
     if (position >= duration && duration != Duration.zero) {
       vController.removeListener(_videoListener);
-      _changeNewsVideo(1); // Auto Next
+      _nextNewsItem();
     }
+  }
+
+  void _nextNewsItem() {
+    if (newsBulletinList.length <= 1) {
+      // ప్లేలిస్ట్ లో ఇంకేమీ లేకపోతే మళ్ళీ నార్మల్ కెమెరా మోడ్ కి వచ్చేస్తుంది
+      setState(() { isNewsBulletinMode = false; });
+      return;
+    }
+    setState(() {
+      currentNewsIndex = (currentNewsIndex + 1) % newsBulletinList.length;
+      if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty) {
+        _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, newsBulletinList[currentNewsIndex].isVideo);
+      } else {
+        isNewsBulletinMode = false;
+      }
+    });
   }
 
   void _playVideoAd(String videoPath) {
@@ -353,7 +282,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isVideoAdPlaying = false; _videoAdVlcController = null; });
   }
 
-  Future<void> _startLiveAndLock() async {
+  void _toggleNewsBulletinMode() {
+    setState(() {
+      if (newsBulletinList.length == 1 && newsBulletinList[0].mediaPath.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ముందుగా News Videos సెట్టింగ్స్ లో వీడియోను ఎంచుకోండి.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
+        return;
+      }
+      
+      isNewsBulletinMode = !isNewsBulletinMode;
+      hideControls = true; 
+      isMenuOpen = false;
+      if (isNewsBulletinMode) {
+        if (newsBulletinList[currentNewsIndex].mediaPath.isNotEmpty) {
+          _startBulletinMedia(newsBulletinList[currentNewsIndex].mediaPath, newsBulletinList[currentNewsIndex].isVideo);
+        }
+      } else {
+        _bulletinVideoController?.removeListener(_videoListener);
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
+      }
+    });
+  }
+
+  Future<void> _toggleHiddenLiveStream() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty || !fullRtmpUrl.startsWith("rtmp")) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి సరైన RTMP లింక్ ఇవ్వండి."), backgroundColor: Colors.blueAccent));
@@ -361,27 +312,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
 
     try {
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-      if (success) { 
-        HapticFeedback.heavyImpact();
-        setState(() { 
-          isLiveBroadcasting = true; 
-          isLiveLocked = true; // LIVE LOCK ON & HIDE CONTROLS
-          hideControls = true;
-          isMenuOpen = false;
-        }); 
+      if (!isLiveBroadcasting) {
+        bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+        if (success) { setState(() { isLiveBroadcasting = true; }); }
+      } else {
+        bool success = await StreamServiceManager.stopLiveStream();
+        if (success) { setState(() { isLiveBroadcasting = false; }); }
       }
     } catch (e) {
       debugPrint("Stream Error: $e");
-    }
-  }
-
-  Future<void> _stopLiveStream() async {
-    try {
-      bool success = await StreamServiceManager.stopLiveStream();
-      if (success) { setState(() { isLiveBroadcasting = false; isLiveLocked = false; }); }
-    } catch (e) {
-      debugPrint("Stop Stream Error: $e");
     }
   }
 
@@ -425,7 +364,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   String fTitle = newTitleCtrl.text.isNotEmpty ? newTitleCtrl.text : "వార్తా అప్‌డేట్ ${newsBulletinList.length + 1}";
                                   newsBulletinList.add(NewsBulletinItem(title: fTitle, mediaPath: media.path, isVideo: isVid));
                                 }
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియోలు ప్లేలిస్ట్ లోకి వచ్చాయి. ఇప్పుడు 'START LIVE & LOCK' నొక్కండి."), backgroundColor: Colors.green));
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియోలు ప్లేలిస్ట్ లోకి వచ్చాయి. ఇప్పుడు 'Play News' నొక్కండి."), backgroundColor: Colors.green));
                               });
                             }
                           } catch(e) {}
@@ -545,7 +484,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           ), 
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))), 
-            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సేవ్ అయ్యింది! 'START LIVE & LOCK' నొక్కండి."), backgroundColor: Colors.blue)); }, child: const Text("Save", style: TextStyle(color: Colors.white)))
+            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సేవ్ అయ్యింది! డబుల్ ట్యాప్ చేసి లైవ్ స్టార్ట్ చేయండి."), backgroundColor: Colors.blue)); }, child: const Text("Save", style: TextStyle(color: Colors.white)))
           ]
         );
       }
@@ -640,6 +579,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
+  // ప్రధాన లైవ్ డిస్ప్లే (PiP మరియు నార్మల్ కెమెరా మోడ్స్ కలిపి)
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget, Widget visualScreenLogoWidget) {
     if (isVideoAdPlaying && _videoAdVlcController != null) {
       return IgnorePointer(ignoring: true, child: Container(color: Colors.black, child: VlcPlayer(controller: _videoAdVlcController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))));
@@ -652,6 +592,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
       return Stack(
         children: [
+          // బ్యాక్ గ్రౌండ్ లో ఫుల్ స్క్రీన్ న్యూస్ వీడియో 
           Positioned.fill(
             child: Container(
               color: Colors.black,
@@ -663,6 +604,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
           ),
+          // పైన చిన్న బాక్సులో మీ కెమెరా (Picture-in-Picture)
           Positioned(
             top: 20,
             left: 15,
@@ -676,6 +618,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: cameraWidget,
             ),
           ),
+          // మ్యూట్/అన్‌మ్యూట్ బటన్ (వాయిస్ ఓవర్ కోసం)
           if (!hideControls)
             Positioned(
               top: 20,
@@ -703,6 +646,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     } 
     
+    // నార్మల్ కెమెరా మోడ్ (Ads తో కలిపి)
     if (!isAnimatedAdsMode) {
       return Stack(children: [Positioned.fill(child: cameraWidget), Positioned(top: 15, right: 15, child: visualScreenLogoWidget)]);
     }
@@ -799,57 +743,55 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           ? SizedBox(width: logoWidth, height: logoHeight, child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
           : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        top: false, bottom: true,
-        // INVISIBLE CONTROL LAYER & MULTI-TOUCH LISTENER
-        child: Listener(
-          onPointerDown: _handlePointerDown,
-          onPointerUp: _handlePointerUp,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onHorizontalDragEnd: (details) => _handleSwipe(details, true),
-            onVerticalDragEnd: (details) => _handleSwipe(details, false),
-            onDoubleTap: () {
-              if (isLiveLocked && isNewsBulletinMode && _bulletinVideoController != null) {
-                _bulletinVideoController!.value.isPlaying ? _bulletinVideoController!.pause() : _bulletinVideoController!.play();
-                HapticFeedback.lightImpact();
-              }
-            },
-            onTap: () {
-              if (isLiveLocked) return; // లాక్ లో ఉంటే టచ్ పనిచేయదు
-              setState(() { isMenuOpen ? isMenuOpen = false : hideControls = !hideControls; });
-            },
-            child: Stack(
-              children: [
-                Positioned.fill(
+    return WillPopScope(
+      onWillPop: () async {
+        if (isMenuOpen) { setState(() { isMenuOpen = false; }); return false; }
+        if (!hideControls) { setState(() { hideControls = true; }); return false; } 
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          top: false, bottom: true,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () { setState(() { if (isMenuOpen) { isMenuOpen = false; } else { hideControls = !hideControls; } }); },
+                  onDoubleTap: _toggleHiddenLiveStream,
+                  onLongPress: _toggleHiddenLiveStream,
+                  // ఇక్కడ పాత దానికి బదులు కొత్త PiP డిస్ప్లే వస్తుంది
                   child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget, visualScreenLogoWidget),
                 ),
+              ),
 
-                if (isVideoAdPlaying)
-                  Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
+              if (isVideoAdPlaying)
+                Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
 
-                // రిపోర్టర్ బ్యాడ్జ్
-                Positioned(bottom: isAnimatedAdsMode ? (55 + (screenHeight * 0.15) + 10) : 65, left: isAnimatedAdsMode ? (screenWidth * 0.24 + 10) : 15, child: reporterBadgeWidget),
-                
-                // కింద స్క్రోలింగ్ బ్రేకింగ్ న్యూస్
+              // రిపోర్టర్ బ్యాడ్జ్
+              Positioned(bottom: isAnimatedAdsMode ? (55 + (screenHeight * 0.15) + 10) : 65, left: isAnimatedAdsMode ? (screenWidth * 0.24 + 10) : 15, child: reporterBadgeWidget),
+              
+              // కింద స్క్రోలింగ్ బ్రేకింగ్ న్యూస్
+              Positioned(
+                bottom: 0, left: 0, right: 0, 
+                child: Container(
+                  height: 55, decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber.shade400, width: 1.5)),
+                  child: Row(children: [GestureDetector(onTap: _pickBreakingNewsLogo, child: Container(width: 55, height: double.infinity, color: Colors.black, child: breakingNewsLogoPath.isNotEmpty ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity) : const Center(child: Icon(Icons.newspaper, color: Colors.amber, size: 28)))), Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 40.0)))]),
+                ),
+              ),
+
+              if (!hideControls)
                 Positioned(
-                  bottom: 0, left: 0, right: 0, 
-                  child: Container(
-                    height: 55, decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber.shade400, width: 1.5)),
-                    child: Row(children: [GestureDetector(onTap: _pickBreakingNewsLogo, child: Container(width: 55, height: double.infinity, color: Colors.black, child: breakingNewsLogoPath.isNotEmpty ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity) : const Center(child: Icon(Icons.newspaper, color: Colors.amber, size: 28)))), Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 40.0)))]),
-                  ),
+                  bottom: 75, right: 20,
+                  child: FloatingActionButton(backgroundColor: Colors.blueAccent.withOpacity(0.9), onPressed: () { setState(() { isMenuOpen = !isMenuOpen; }); }, child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white, size: 28)),
                 ),
 
-                if (!hideControls && !isLiveLocked)
-                  Positioned(
-                    bottom: 75, right: 20,
-                    child: FloatingActionButton(backgroundColor: Colors.blueAccent.withOpacity(0.9), onPressed: () { setState(() { isMenuOpen = !isMenuOpen; }); }, child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white, size: 28)),
-                  ),
-
-                if (!hideControls && isMenuOpen && !isLiveLocked)
-                  Positioned.fill(
+              if (!hideControls && isMenuOpen)
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () { setState(() { isMenuOpen = false; }); }, 
                     child: Container(
                       color: Colors.black87,
                       child: Center(
@@ -857,20 +799,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           alignment: WrapAlignment.center, spacing: 25, runSpacing: 25,
                           children: [
                             _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                            _buildControlButton(Icons.playlist_play, "1. Playlist", _showBulletinManagerDialog, Colors.orange),
-                            _buildControlButton(Icons.video_library, "2. Media Ads", _showAdsManagerDialog, Colors.amberAccent),
-                            _buildControlButton(Icons.lock_outline, "3. START LIVE & LOCK", _startLiveAndLock, Colors.redAccent),
-                            if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
+                            // కొత్తగా మెనూలో యాడ్ చేసిన న్యూస్ బటన్స్
+                            _buildControlButton(Icons.playlist_play, "News Videos", _showBulletinManagerDialog, Colors.orange),
+                            _buildControlButton(isNewsBulletinMode ? Icons.stop_screen_share : Icons.present_to_all, isNewsBulletinMode ? "Stop News" : "Play News", _toggleNewsBulletinMode, isNewsBulletinMode ? Colors.red : Colors.teal),
+                            _buildControlButton(Icons.video_library, "Media Ads", _showAdsManagerDialog, Colors.amberAccent),
                             _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
-                            _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
+                            _buildControlButton(isLiveBroadcasting ? Icons.stop : Icons.live_tv, "Multi-Live", _showMultiStreamDialog, isLiveBroadcasting ? Colors.green : Colors.redAccent),
+                            _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer Ads", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
                             _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                           ],
                         ),
                       ),
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
