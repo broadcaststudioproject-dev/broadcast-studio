@@ -46,12 +46,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
 
-  // స్ప్లిట్ స్క్రీన్ కోసం మల్టిపుల్ వీడియోల లిస్ట్ మరియు కంట్రోలర్
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
   VideoPlayerController? _bottomAdVideoController;
   
-  // L-Band Ads
   VideoPlayerController? _verticalAdController;
   VideoPlayerController? _horizontalAdController;
 
@@ -222,7 +220,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- ఆన్‌లైన్ / యూట్యూబ్ ప్లేబ్యాక్ (Youtube Explode Dart వాడబడింది) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -271,7 +268,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- లైవ్ బ్రాడ్ కాస్టింగ్ కంట్రోల్స్ ---
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty) { 
@@ -319,7 +315,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // --- స్ప్లిట్ స్క్రీన్ (Dual Screen) గ్యాలరీ & టచ్ కంట్రోల్స్ ---
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
     
@@ -353,7 +348,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bottomAdVideoController = VideoPlayerController.file(File(path))
         ..initialize().then((_) {
           if (mounted) {
-            _bottomAdVideoController!.setLooping(true); // స్ప్లిట్ స్క్రీన్ వీడియో లూప్
+            _bottomAdVideoController!.setLooping(true);
             _bottomAdVideoController!.setVolume(0.0);
             _bottomAdVideoController!.play();
             setState(() {}); 
@@ -388,7 +383,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- L-Band Ads (Auto Timer) లాజిక్ ---
   void _toggleAutoTimerAds() { 
     setState(() { 
       isAnimatedAdsMode = !isAnimatedAdsMode; 
@@ -406,7 +400,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _verticalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _verticalAdController!.setLooping(true); // ఆటో-లూప్
+                _verticalAdController!.setLooping(true);
                 _verticalAdController!.setVolume(0.0);
                 _verticalAdController!.play();
                 setState((){}); 
@@ -430,7 +424,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _horizontalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _horizontalAdController!.setLooping(true); // ఆటో-లూప్
+                _horizontalAdController!.setLooping(true);
                 _horizontalAdController!.setVolume(0.0);
                 _horizontalAdController!.play();
                 setState((){}); 
@@ -444,7 +438,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {} 
   }
 
-  // --- మల్టీ-లైవ్ విండో ---
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(context: context, builder: (context) {
@@ -625,19 +618,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- మెయిన్ డిస్ప్లే సెటప్ ---
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
     Widget actualCameraWidget = isLivePaused 
       ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3)))) 
       : cameraWidget;
 
-    // స్ప్లిట్ స్క్రీన్ విత్ బార్డర్ & టచ్ కంట్రోల్స్ (Next, Prev, Pause)
+    // స్ప్లిట్ స్క్రీన్ - డిస్‌ప్లేకి సరిగ్గా ఫిట్ అయ్యేలా సేఫ్టీ మార్జిన్ మరియు బార్డర్
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
-        margin: const EdgeInsets.all(4.0), 
+        margin: const EdgeInsets.all(2.0), 
         decoration: BoxDecoration(
           color: Colors.black, 
-          border: Border.all(color: Colors.redAccent, width: 3.0) 
+          border: Border.all(color: Colors.redAccent, width: 2.5) 
         ),
         child: isScreenLandscape 
           ? Row(children: [
@@ -689,7 +681,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // YouTube / Online Video Player with Draggable Camera
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
@@ -736,7 +727,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ]);
     }
 
-    // L-Band Auto Timer Ads
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.24; 
       double horizAdHeight = screenHeight * 0.15; 
@@ -836,9 +826,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       backgroundColor: Colors.black,
       body: SafeArea(
         top: false, bottom: true,
-        // ఇన్ విజిబుల్ లాక్ (Invisible Lock) - లాంగ్ ప్రెస్
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
+          // స్క్రీన్ మీద ఎక్కడైనా ట్యాప్ చేస్తే కంట్రోల్స్ హైడ్/అన్‌హైడ్ అవుతాయి
+          onTap: () {
+            if (!isLiveLocked) {
+              setState(() { 
+                if (isMenuOpen) {
+                  isMenuOpen = false;
+                } else {
+                  hideControls = !hideControls; 
+                }
+              });
+            }
+          },
+          // లాంగ్ ప్రెస్ చేస్తే అన్‌లాక్ అవుతుంది
           onLongPress: () {
             if (isLiveLocked) { 
               HapticFeedback.heavyImpact(); 
@@ -856,12 +858,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode)
                 Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
+              // బ్రేకింగ్ న్యూస్ టిక్కర్ - లోగో బటన్ వెడల్పు (Width) పెంచబడింది (70 -> 90)
               Positioned(
                 bottom: 0, left: 0, right: 0,
                 child: Container(
                   height: 55, decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber.shade400, width: 1.5)),
                   child: Row(children: [
-                    GestureDetector(onTap: _pickBreakingNewsLogo, child: Container(width: 55, height: double.infinity, color: Colors.black, child: breakingNewsLogoPath.isNotEmpty ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity) : const Center(child: Icon(Icons.newspaper, color: Colors.amber, size: 28)))),
+                    GestureDetector(
+                      onTap: _pickBreakingNewsLogo, 
+                      child: Container(
+                        width: 90, // వెడల్పు పెంచబడింది
+                        height: double.infinity, 
+                        color: Colors.black, 
+                        child: breakingNewsLogoPath.isNotEmpty 
+                            ? Image.file(File(breakingNewsLogoPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity) 
+                            : const Center(child: Icon(Icons.newspaper, color: Colors.amber, size: 28))
+                      )
+                    ),
                     Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))
                   ]),
                 ),
