@@ -56,7 +56,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   VlcPlayerController? _videoAdVlcController; 
   VideoPlayerController? _bulletinVideoController; 
   
-  // LIVE LOCK & INVISIBLE CONTROL LAYER VARIABLES
   bool isLiveLocked = false;
   int _activePointers = 0;
   int _maxPointers = 0;
@@ -135,7 +134,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     roleCtrl.text = reporterRole;
     headlineCtrl.text = "";
     
-    youtubeUrlController.text = "rtmps://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
+    youtubeUrlController.text = "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
@@ -222,8 +221,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; }); 
   }
 
-  // --- GESTURE & MULTI-TOUCH HANDLING ---
-  
   void _handlePointerDown(PointerDownEvent event) {
     _activePointers++;
     if (_activePointers > _maxPointers) _maxPointers = _activePointers;
@@ -356,7 +353,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty || !fullRtmpUrl.startsWith("rtmp")) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి సరైన RTMP లింక్ ఇవ్వండి."), backgroundColor: Colors.blueAccent));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి సరైన RTMP లింక్ ఇవ్వండి (rtmp:// দিয়ে ప్రారంభించండి)."), backgroundColor: Colors.blueAccent));
       return;
     }
 
@@ -640,13 +637,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // ABN న్యూస్ ఛానల్ స్టైల్ లేఅవుట్ (లోగో ఎడమవైపు, PiP కుడివైపు)
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget, Widget visualScreenLogoWidget) {
     if (isVideoAdPlaying && _videoAdVlcController != null) {
       return IgnorePointer(ignoring: true, child: Container(color: Colors.black, child: VlcPlayer(controller: _videoAdVlcController!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.amber)))));
     }
     
-    // PiP మోడ్ (News Video ప్లే అవుతున్నప్పుడు - ABN స్టైల్)
+    // PiP మోడ్ (News Video ప్లే అవుతున్నప్పుడు - ABN స్టైల్: లోగో ఎడమవైపు, PiP కుడివైపు)
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth); 
@@ -664,7 +660,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
           ),
-          // కుడివైపు పైభాగంలో PiP కెమెరా బాక్స్
           Positioned(
             top: 20,
             right: 15,
@@ -678,7 +673,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: cameraWidget,
             ),
           ),
-          // మ్యూట్/అన్‌మ్యూట్ బటన్
           if (!hideControls)
             Positioned(
               top: 20 + pipHeight + 5,
@@ -704,7 +698,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ),
               ),
             ),
-          // ఎడమవైపు ఛానల్ లోగో
           Positioned(top: 15, left: 15, child: visualScreenLogoWidget)
         ],
       );
@@ -810,7 +803,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       backgroundColor: Colors.black,
       body: SafeArea(
         top: false, bottom: true,
-        // INVISIBLE GESTURE & MULTI-TOUCH LISTENER
         child: Listener(
           onPointerDown: _handlePointerDown,
           onPointerUp: _handlePointerUp,
@@ -837,10 +829,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 if (isVideoAdPlaying)
                   Positioned(top: 40, right: 40, child: FloatingActionButton.extended(backgroundColor: Colors.red, onPressed: _stopVideoAd, label: const Text("Close Ad", style: TextStyle(color: Colors.white)), icon: const Icon(Icons.close, color: Colors.white))),
 
-                // రిపోర్టర్ బ్యాడ్జ్
                 Positioned(bottom: isAnimatedAdsMode ? (55 + (screenHeight * 0.15) + 10) : 65, left: isAnimatedAdsMode ? (screenWidth * 0.24 + 10) : 15, child: reporterBadgeWidget),
                 
-                // కింద స్క్రోలింగ్ బ్రేకింగ్ న్యూస్
                 Positioned(
                   bottom: 0, left: 0, right: 0, 
                   child: Container(
