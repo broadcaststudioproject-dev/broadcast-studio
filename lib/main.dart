@@ -542,7 +542,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           ), 
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white))), 
-            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సేవ్ అయ్యింది! 'START LIVE & LOCK' నొక్కండి."), backgroundColor: Colors.blue)); }, child: const Text("Save", style: TextStyle(color: Colors.white)))
+            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ సేవ్ అయ్యింది! ఇప్పుడు 'START LIVE & LOCK' నొక్కండి."), backgroundColor: Colors.blue)); }, child: const Text("Save", style: TextStyle(color: Colors.white)))
           ]
         );
       }
@@ -858,6 +858,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             _buildControlButton(Icons.video_library, "2. Media Ads", _showAdsManagerDialog, Colors.amberAccent),
                             _buildControlButton(Icons.lock_outline, "3. START LIVE & LOCK", _startLiveAndLock, Colors.redAccent),
                             if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
+                            _buildControlButton(Icons.live_tv, "Multi-Live URL", _showMultiStreamDialog, Colors.lightBlueAccent), // <-- మల్టీ లైవ్ బటన్ ఇక్కడ చేర్చబడింది
                             _buildControlButton(Icons.edit, "Logo & Edit", _showEditDialog, Colors.blue),
                             _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
                             _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
