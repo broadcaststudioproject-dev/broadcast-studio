@@ -88,7 +88,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final ImagePicker _picker = ImagePicker();
 
-  // డిజైన్ & టెక్స్ట్ వేరియబుల్స్ 
+  // డిజైన్ & కలర్ వేరియబుల్స్ (Fix applied here)
+  Color adLayerColor = const Color(0xFF111111);
   String breakingNewsLogoPath = ""; 
   String channelLogoPath = "";
   double logoWidth = 70.0;
@@ -392,7 +393,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {}
   }
 
-  // --- L-Band Ads (Auto Timer) లాజిక్ (Looping Videos & GIFs) ---
   void _toggleAutoTimerAds() { 
     setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; isMenuOpen = false; }); 
   }
@@ -565,7 +565,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         try {
                           final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                           if (image != null) {
-                            // లోగో వెంటనే మెయిన్ స్క్రీన్‌లో అప్డేట్ అవ్వడానికి (Fix applied)
                             setState(() { channelLogoPath = image.path; });
                             setDialogState(() { channelLogoPath = image.path; });
                           }
@@ -640,11 +639,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3))))
         : cameraWidget;
 
-    // స్ప్లిట్ స్క్రీన్ (Dual Screen) - రంగుల బార్డర్‌తో
     if (isDualScreenMode && bottomAdPath.isNotEmpty) {
       return Container(
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.redAccent, width: 3.0), // కొత్తగా యాడ్ చేసిన స్క్రీన్ బార్డర్
+          border: Border.all(color: Colors.redAccent, width: 3.0),
         ),
         color: Colors.black,
         child: isScreenLandscape 
@@ -729,7 +727,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // Auto Timer L-Band Ads (Images & Videos)
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.24;  
       double horizAdHeight = screenHeight * 0.15; 
@@ -749,7 +746,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: verticalAnimatedAdPath.isNotEmpty 
                       ? (_verticalAdController != null && _verticalAdController!.value.isInitialized
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!)))
-                          : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)) // GIF లు ఆటోమేటిక్ గా ప్లే అవుతాయి
+                          : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)) 
                       : const Center(child: Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26))
                 )
               )
@@ -763,7 +760,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   child: horizontalAnimatedAdPath.isNotEmpty 
                       ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!)))
-                          : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)) // GIF లు ఆటోమేటిక్ గా ప్లే అవుతాయి
+                          : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity))
                       : const Center(child: Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26))
                 )
               )
