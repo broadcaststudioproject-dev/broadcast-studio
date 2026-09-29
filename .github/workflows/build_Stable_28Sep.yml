@@ -1,1 +1,95 @@
+name: Pocket PCR Studio - Android Build
 
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Pocket PCR Studio APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Clean & Rebuild Android Folder
+        run: |
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను (Kotlin కోడ్)..."
+          mkdir -p /tmp/android_backup
+          cp -r android/app/src/main/kotlin /tmp/android_backup/ || true
+          
+          echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          rm -rf android
+          
+          echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
+          flutter create . --platforms=android
+          
+          echo "4. మీ కస్టమ్ కోడ్ (Kotlin) రీస్టోర్ చేస్తున్నాను..."
+          rm -rf android/app/src/main/kotlin
+          cp -r /tmp/android_backup/kotlin android/app/src/main/ || true
+
+      - name: Inject Permissions & Service into Manifest safely
+        run: |
+          echo "5. ఫ్లట్టర్ ఫైల్‌ను డిస్టర్బ్ చేయకుండా పర్మిషన్లు, సర్వీస్ యాడ్ చేస్తున్నాను..."
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<\/application>/i \        <service android:name=".ScreenStreamService" android:enabled="true" android:exported="false" android:foregroundServiceType="mediaProjection" />' android/app/src/main/AndroidManifest.xml
+
+      - name: Inject JitPack & Original Stable Library
+        run: |
+          echo "JitPack ను అప్లై చేస్తున్నాను..."
+          if [ -f "android/build.gradle.kts" ]; then
+            echo "" >> android/build.gradle.kts
+            echo "allprojects { repositories { maven { url = uri(\"https://jitpack.io\") } } }" >> android/build.gradle.kts
+          elif [ -f "android/build.gradle" ]; then
+            echo "" >> android/build.gradle
+            echo "allprojects { repositories { maven { url 'https://jitpack.io' } } }" >> android/build.gradle
+          fi
+
+          echo "పాత మరియు స్థిరమైన RTMP లైబ్రరీ (2.2.2) యాడ్ చేస్తున్నాను..."
+          if [ -f "android/app/build.gradle.kts" ]; then
+            echo "" >> android/app/build.gradle.kts
+            echo "dependencies { implementation(\"com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2\") }" >> android/app/build.gradle.kts
+          elif [ -f "android/app/build.gradle" ]; then
+            echo "" >> android/app/build.gradle
+            echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2' }" >> android/app/build.gradle
+          fi
+
+          echo "compileSdk ని 36 కి మరియు targetSdk ని 33 కి సెట్ చేస్తున్నాను..."
+          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.targetSdkVersion/33/g' {} + || true
+          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/36/g' {} + || true
+
+      - name: Install Dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocket-pcr-studio-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
