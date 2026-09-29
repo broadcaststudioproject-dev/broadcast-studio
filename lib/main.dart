@@ -88,7 +88,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final ImagePicker _picker = ImagePicker();
 
-  // డిజైన్ & కలర్ వేరియబుల్స్ (Fix applied here)
+  // డిజైన్ & కలర్ వేరియబుల్స్ 
   Color adLayerColor = const Color(0xFF111111);
   String breakingNewsLogoPath = ""; 
   String channelLogoPath = "";
@@ -634,7 +634,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget, Widget visualScreenLogoWidget) {
+  Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
     Widget actualCameraWidget = isLivePaused
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3))))
         : cameraWidget;
@@ -642,9 +642,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (isDualScreenMode && bottomAdPath.isNotEmpty) {
       return Container(
         decoration: BoxDecoration(
+          color: Colors.black,
           border: Border.all(color: Colors.redAccent, width: 3.0),
         ),
-        color: Colors.black,
         child: isScreenLandscape 
           ? Row(
               children: [
@@ -686,7 +686,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       double pipHeight = pipWidth * (screenHeight / screenWidth);
 
       if (!isPipPositionInitialized) {
-        pipLeft = screenWidth - pipWidth - 15;
+        pipLeft = 15.0; // Draggable camera కుడివైపుకు జరిపినందున దాన్ని ఎడమవైపు పెట్టాం
         pipTop = 60.0;
         isPipPositionInitialized = true;
       }
@@ -708,7 +708,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           if (!hideControls)
             Positioned(
-              top: 20, right: 15,
+              top: 20, left: 15, // కంట్రోల్స్‌ని కూడా లోగోకు అడ్డు లేకుండా ఎడమవైపుకి జరిపాం
               child: Row(
                 children: [
                   GestureDetector(
@@ -722,7 +722,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ],
               ),
             ),
-          Positioned(top: 15, left: 15, child: visualScreenLogoWidget)
         ],
       );
     }
@@ -736,7 +735,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         child: Stack(
           children: [
             Positioned.fill(child: actualCameraWidget), 
-            Positioned(top: 15, left: 15, child: visualScreenLogoWidget),
             Positioned(
               left: 0, top: 0, bottom: 55, 
               child: GestureDetector(
@@ -770,7 +768,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    return Stack(children: [Positioned.fill(child: actualCameraWidget), Positioned(top: 15, left: 15, child: visualScreenLogoWidget)]);
+    return Stack(children: [Positioned.fill(child: actualCameraWidget)]);
   }
 
   @override
@@ -847,7 +845,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             },
             child: Stack(
               children: [
-                Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget, visualScreenLogoWidget)),
+                // మెయిన్ కెమెరా / విజువల్స్ డిస్‌ప్లే
+                Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget)),
+
+                // ఛానల్ లోగో - ఎప్పుడూ కుడివైపు పైన ఉంటుంది
+                Positioned(top: 15, right: 15, child: visualScreenLogoWidget),
 
                 if (!isDualScreenMode && !isAnimatedAdsMode)
                   Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
@@ -892,7 +894,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                             _buildControlButton(isDualScreenMode ? Icons.grid_off : Icons.grid_on, isDualScreenMode ? "1. Dual Off" : "1. Dual Screen", _toggleDualScreenAndPickMedia, isDualScreenMode ? Colors.redAccent : Colors.orangeAccent),
                             _buildControlButton(Icons.live_tv, "2. Multi-Live Cntrl", _showMultiStreamDialog, Colors.redAccent),
-                            _buildControlButton(Icons.lock_outline, "3. START LIVE & LOCK", _startLiveAndLock, Colors.cyan),
                             if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                             _buildControlButton(Icons.settings, "Settings & Text", _showEditDialog, Colors.blue),
                             _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
