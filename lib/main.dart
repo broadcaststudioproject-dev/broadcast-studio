@@ -60,7 +60,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isLiveBroadcasting = false;
   bool isLivePaused = false;
   
-  // కొత్త స్ప్లిట్ స్క్రీన్ (Dual Screen) కంట్రోల్
+  // స్ప్లిట్ స్క్రీన్ (Dual Screen) కంట్రోల్
   bool isDualScreenMode = false;
   String bottomAdPath = "";
 
@@ -79,6 +79,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final ImagePicker _picker = ImagePicker();
 
+  // డిజైన్ & టెక్స్ట్ వేరియబుల్స్ (ఎర్రర్ వచ్చిన వేరియబుల్ ఇక్కడే యాడ్ చేయబడింది)
+  String breakingNewsLogoPath = ""; 
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
@@ -89,7 +91,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String reporterRole = "SPECIAL CORRESPONDENT";
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
 
-  // స్ప్లిట్ స్క్రీన్ హెడ్‌లైన్స్ (ఎడిట్ చేసుకోవడానికి)
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
   String splitScreenSubHeadline = "వార్తా అప్‌డేట్";
 
@@ -201,7 +202,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; });
   }
 
-  // --- జెస్చర్స్ & లాక్ లాజిక్ ---
   void _handlePointerDown(PointerDownEvent event) {
     _activePointers++;
     if (_activePointers > _maxPointers) _maxPointers = _activePointers;
@@ -258,7 +258,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // ఆన్‌లైన్/యూట్యూబ్ వీడియో ఫుల్ స్క్రీన్ బ్రాడ్‌కాస్టింగ్
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -286,7 +285,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
         setState(() {
           isNewsBulletinMode = true;
-          isDualScreenMode = false; // ఫుల్ స్క్రీన్ ఆన్‌లైన్ వీడియో ప్లే అయితే స్ప్లిట్ స్క్రీన్ ఆఫ్ అవుతుంది
+          isDualScreenMode = false; 
           hideControls = true;
           isCameraVisible = false;
         });
@@ -349,32 +348,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // కొత్తగా యాడ్ చేసిన 'Dual Screen (Split Mode)' ఆన్/ఆఫ్ ఫంక్షన్ మరియు మీడియా పిక్కర్
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
     
     if (isDualScreenMode) {
-      // ఆన్‌లో ఉంటే ఆఫ్ చేయడం
       setState(() { isDualScreenMode = false; _bottomAdVideoController?.dispose(); _bottomAdVideoController = null; });
       return;
     }
 
-    // ఆఫ్ లో ఉంటే గ్యాలరీ నుండి మీడియా సెలక్ట్ చేయమని అడగడం
     try {
       final XFile? media = await _picker.pickMedia();
       if (media != null && mounted) {
         setState(() { 
           bottomAdPath = media.path; 
           isDualScreenMode = true; 
-          isNewsBulletinMode = false; // ఆన్‌లైన్ ఫుల్ స్క్రీన్ వీడియో ఆఫ్ చేస్తుంది
+          isNewsBulletinMode = false; 
         });
 
-        // MP4 వీడియో అయితే దాన్ని ఆటో-లూప్ చేయడం
         if (media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov')) {
           _bottomAdVideoController?.dispose();
           _bottomAdVideoController = VideoPlayerController.file(File(media.path))
             ..setLooping(true)
-            ..setVolume(0.0) // యాడ్ వీడియోలకి సాధారణంగా మ్యూట్ ఉంటుంది
+            ..setVolume(0.0)
             ..initialize().then((_) {
               if (mounted) { setState(() {}); _bottomAdVideoController!.play(); }
             });
@@ -497,7 +492,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // స్టూడియో సెట్టింగ్స్ విండోలో స్ప్లిట్ స్క్రీన్ హెడ్‌లైన్స్ ఎడిట్ కూడా కలపబడింది
   void _showEditDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -541,6 +535,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       },
                       child: const Text("టిక్కర్ అప్‌డేట్ చేయి", style: TextStyle(color: Colors.black)),
                     ),
+                    TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్")),
+                    TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్")),
+                    TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
+                    TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "హోదా")),
                   ],
                 ),
               ),
@@ -550,6 +548,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     setState(() {
                       splitScreenMainHeadline = mainHeadlineCtrl.text;
                       splitScreenSubHeadline = subHeadlineCtrl.text;
+                      watermarkText = watermarkCtrl.text;
+                      locationText = locCtrl.text;
+                      reporterName = nameCtrl.text;
+                      reporterRole = roleCtrl.text;
                     });
                     Navigator.pop(context);
                   },
@@ -580,16 +582,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3))))
         : cameraWidget;
 
-    // 1. స్ప్లిట్ స్క్రీన్ (Dual Screen) మోడ్ ఆన్ లో ఉంటే...
     if (isDualScreenMode && bottomAdPath.isNotEmpty) {
       return Container(
         color: Colors.black,
         child: isScreenLandscape 
-          // అడ్డంగా ఉంటే: ఎడమ కెమెరా - కుడివైపు యాడ్ + కింద హెడ్‌లైన్స్
           ? Row(
               children: [
                 Expanded(child: actualCameraWidget),
-                Container(width: 2, color: Colors.white), // మధ్యలో చిన్న గీత
+                Container(width: 2, color: Colors.white), 
                 Expanded(
                   child: Column(
                     children: [
@@ -598,7 +598,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bottomAdVideoController!.value.size.width, height: _bottomAdVideoController!.value.size.height, child: VideoPlayer(_bottomAdVideoController!)))
                             : Image.file(File(bottomAdPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                       ),
-                      // హెడ్‌లైన్స్ బాక్స్
                       Container(width: double.infinity, padding: const EdgeInsets.all(8), color: Colors.amber, child: Text(splitScreenMainHeadline, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold))),
                       Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 4), color: Colors.blueAccent, child: Text(splitScreenSubHeadline, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
                     ],
@@ -606,7 +605,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 )
               ],
             )
-          // నిలువుగా ఉంటే: పైన కెమెరా - మధ్య హెడ్‌లైన్స్ - కింద యాడ్
           : Column(
               children: [
                 Expanded(flex: 4, child: actualCameraWidget),
@@ -623,7 +621,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // 2. యూట్యూబ్/ఆన్‌లైన్ వీడియో ప్లే అవుతుంటే (PiP కెమెరాతో)...
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
@@ -670,7 +667,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // 3. నార్మల్ మోడ్ (కెమెరా + లోగో)
     return Stack(children: [Positioned.fill(child: actualCameraWidget), Positioned(top: 15, left: 15, child: visualScreenLogoWidget)]);
   }
 
@@ -750,7 +746,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               children: [
                 Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget, visualScreenLogoWidget)),
 
-                // స్ప్లిట్ స్క్రీన్ (Dual Screen) ఆన్‌లో ఉన్నప్పుడు మాత్రమే రిపోర్టర్ బ్యాడ్జ్ కనిపించదు (డిజైన్ నీట్ గా ఉండటానికి)
                 if (!isDualScreenMode)
                   Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
