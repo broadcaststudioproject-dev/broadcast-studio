@@ -45,6 +45,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
   VideoPlayerController? _bottomAdVideoController;
+  
+  // L-Band (Auto Timer) Ads కోసo కంట్రోలర్స్
+  VideoPlayerController? _verticalAdController;
+  VideoPlayerController? _horizontalAdController;
 
   bool isLiveLocked = false;
   int _activePointers = 0;
@@ -63,6 +67,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   // స్ప్లిట్ స్క్రీన్ (Dual Screen) కంట్రోల్
   bool isDualScreenMode = false;
   String bottomAdPath = "";
+  
+  // Auto Timer Ads కంట్రోల్
+  bool isAnimatedAdsMode = false; 
+  String verticalAnimatedAdPath = "";
+  String horizontalAnimatedAdPath = ""; 
 
   // ఆన్‌లైన్/యూట్యూబ్ వీడియోల కంట్రోల్
   bool isNewsBulletinMode = false;
@@ -79,7 +88,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   final ImagePicker _picker = ImagePicker();
 
-  // డిజైన్ & టెక్స్ట్ వేరియబుల్స్ (ఎర్రర్ వచ్చిన వేరియబుల్ ఇక్కడే యాడ్ చేయబడింది)
+  // డిజైన్ & టెక్స్ట్ వేరియబుల్స్ 
   String breakingNewsLogoPath = ""; 
   String channelLogoPath = "";
   double logoWidth = 70.0;
@@ -153,6 +162,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     _bottomAdVideoController?.dispose();
+    _verticalAdController?.dispose();
+    _horizontalAdController?.dispose();
     youtubeUrlController.dispose();
     networkVideoUrlCtrl.dispose();
     youtubeVideoUrlCtrl.dispose();
@@ -381,6 +392,49 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {}
   }
 
+  // --- L-Band Ads (Auto Timer) లాజిక్ (Looping Videos & GIFs) ---
+  void _toggleAutoTimerAds() { 
+    setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; isMenuOpen = false; }); 
+  }
+  
+  Future<void> _pickVerticalAd() async { 
+    try { 
+      final XFile? media = await _picker.pickMedia(); 
+      if (media != null && mounted) {
+        setState(() { verticalAnimatedAdPath = media.path; }); 
+        if (media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov')) {
+          _verticalAdController?.dispose();
+          _verticalAdController = VideoPlayerController.file(File(media.path))
+            ..setLooping(true)
+            ..setVolume(0.0)
+            ..initialize().then((_) { if(mounted){ setState((){}); _verticalAdController!.play(); }});
+        } else {
+          _verticalAdController?.dispose(); 
+          _verticalAdController = null;
+        }
+      } 
+    } catch (e) {} 
+  }
+
+  Future<void> _pickHorizontalAd() async { 
+    try { 
+      final XFile? media = await _picker.pickMedia(); 
+      if (media != null && mounted) { 
+        setState(() { horizontalAnimatedAdPath = media.path; }); 
+        if (media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov')) {
+          _horizontalAdController?.dispose();
+          _horizontalAdController = VideoPlayerController.file(File(media.path))
+            ..setLooping(true)
+            ..setVolume(0.0)
+            ..initialize().then((_) { if(mounted){ setState((){}); _horizontalAdController!.play(); }});
+        } else {
+          _horizontalAdController?.dispose(); 
+          _horizontalAdController = null;
+        }
+      } 
+    } catch (e) {} 
+  }
+
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -510,7 +564,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       onPressed: () async {
                         try {
                           final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                          if (image != null) setDialogState(() { channelLogoPath = image.path; });
+                          if (image != null) {
+                            // లోగో వెంటనే మెయిన్ స్క్రీన్‌లో అప్డేట్ అవ్వడానికి (Fix applied)
+                            setState(() { channelLogoPath = image.path; });
+                            setDialogState(() { channelLogoPath = image.path; });
+                          }
                         } catch (e) {}
                       },
                       icon: const Icon(Icons.upload),
@@ -582,8 +640,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3))))
         : cameraWidget;
 
+    // స్ప్లిట్ స్క్రీన్ (Dual Screen) - రంగుల బార్డర్‌తో
     if (isDualScreenMode && bottomAdPath.isNotEmpty) {
       return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.redAccent, width: 3.0), // కొత్తగా యాడ్ చేసిన స్క్రీన్ బార్డర్
+        ),
         color: Colors.black,
         child: isScreenLandscape 
           ? Row(
@@ -667,6 +729,50 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
+    // Auto Timer L-Band Ads (Images & Videos)
+    if (isAnimatedAdsMode) {
+      double vertAdWidth = screenWidth * 0.24;  
+      double horizAdHeight = screenHeight * 0.15; 
+
+      return Container(
+        color: adLayerColor,
+        child: Stack(
+          children: [
+            Positioned.fill(child: actualCameraWidget), 
+            Positioned(top: 15, left: 15, child: visualScreenLogoWidget),
+            Positioned(
+              left: 0, top: 0, bottom: 55, 
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque, onTap: _pickVerticalAd, 
+                child: Container(
+                  width: vertAdWidth, decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
+                  child: verticalAnimatedAdPath.isNotEmpty 
+                      ? (_verticalAdController != null && _verticalAdController!.value.isInitialized
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!)))
+                          : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)) // GIF లు ఆటోమేటిక్ గా ప్లే అవుతాయి
+                      : const Center(child: Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26))
+                )
+              )
+            ),
+            Positioned(
+              left: vertAdWidth, right: 0, bottom: 55, 
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque, onTap: _pickHorizontalAd, 
+                child: Container(
+                  height: horizAdHeight, decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.amber, width: 2.0)), color: Colors.black54), 
+                  child: horizontalAnimatedAdPath.isNotEmpty 
+                      ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!)))
+                          : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill, width: double.infinity, height: double.infinity)) // GIF లు ఆటోమేటిక్ గా ప్లే అవుతాయి
+                      : const Center(child: Icon(Icons.add_photo_alternate, color: Colors.amber, size: 26))
+                )
+              )
+            ),
+          ],
+        ),
+      );
+    }
+
     return Stack(children: [Positioned.fill(child: actualCameraWidget), Positioned(top: 15, left: 15, child: visualScreenLogoWidget)]);
   }
 
@@ -746,7 +852,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               children: [
                 Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget, visualScreenLogoWidget)),
 
-                if (!isDualScreenMode)
+                if (!isDualScreenMode && !isAnimatedAdsMode)
                   Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
                 Positioned(
@@ -792,6 +898,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             _buildControlButton(Icons.lock_outline, "3. START LIVE & LOCK", _startLiveAndLock, Colors.cyan),
                             if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                             _buildControlButton(Icons.settings, "Settings & Text", _showEditDialog, Colors.blue),
+                            _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
                             _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                           ],
                         ),
