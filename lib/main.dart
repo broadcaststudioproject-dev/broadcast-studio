@@ -220,7 +220,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- నవీకరించబడిన యూట్యూబ్ ప్లేబ్యాక్ సిస్టమ్ (Live & VOD రెండింటికీ) ---
+  // --- నవీకరించబడిన యూట్యూబ్ ప్లేబ్యాక్ (Robust URL Parsing) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -228,11 +228,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
         var ytExplode = yt.YoutubeExplode();
-        var video = await ytExplode.videos.get(url);
         
-        // ముఖ్యమైన మార్పు: వీడియో లైవ్ అయితే వేరే లింక్, నార్మల్ అయితే వేరే లింక్ ఫెచ్ అవుతుంది
+        // పక్కాగా వీడియో ఐడీ తీయడానికి లాజిక్
+        String? extractedId = yt.VideoId.parseVideoId(url);
+        if (extractedId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లింక్ ఫార్మాట్ తప్పుగా ఉంది. సరియైన యూట్యూబ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+          return;
+        }
+
+        var video = await ytExplode.videos.get(yt.VideoId(extractedId));
+        
+        // వీడియో లైవ్ అయితే వేరే లింక్, నార్మల్ అయితే వేరే లింక్
         if (video.isLive) {
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
         } else {
@@ -240,7 +248,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           if (manifest.muxed.isNotEmpty) {
             finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ యూట్యూబ్ వీడియో ఫార్మాట్ సపోర్ట్ చేయబడలేదు."), backgroundColor: Colors.red));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ యూట్యూబ్ వీడియో (DRM) ఇక్కడ ప్లే చేయడానికి అనుమతి లేదు."), backgroundColor: Colors.red));
             ytExplode.close();
             return;
           }
@@ -248,7 +256,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ytExplode.close();
       } catch (e) {
         debugPrint("YouTube Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు. దయచేసి వేరొక లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ లింక్ కాపీరైట్ లేదా ప్రైవసీ వల్ల బ్లాక్ చేయబడింది. వేరొక పబ్లిక్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
         return;
       }
     }
@@ -256,7 +264,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     
-    // డీకోడ్ అయిన యూట్యూబ్ లింక్ లేదా డైరెక్ట్ లింక్ ఇక్కడ ప్లే అవుతుంది
+    // డైరెక్ట్ MP4 లేదా డీకోడ్ అయిన యూట్యూబ్ లింక్ ఇక్కడ ప్లే అవుతుంది
     _bulletinVideoController = VideoPlayerController.network(finalPlayUrl)
       ..initialize().then((_) {
         if (!mounted) return;
@@ -272,7 +280,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
         debugPrint("Video Player Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు.")));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. వేరొక లింక్ ప్రయత్నించండి."), backgroundColor: Colors.red));
       });
   }
 
@@ -333,7 +341,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // --- స్ప్లిట్ స్క్రీన్ కోసం మల్టిపుల్ వీడియో గ్యాలరీ (Tap Left/Right టు చేంజ్) ---
+  // --- స్ప్లిట్ స్క్రీన్ (Tap Left/Right టు చేంజ్) ---
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
     
@@ -367,7 +375,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bottomAdVideoController = VideoPlayerController.file(File(path))
         ..initialize().then((_) {
           if (mounted) {
-            _bottomAdVideoController!.setLooping(true); // స్ప్లిట్ స్క్రీన్ వీడియో లూప్
+            _bottomAdVideoController!.setLooping(true);
             _bottomAdVideoController!.setVolume(0.0);
             _bottomAdVideoController!.play();
             setState(() {}); 
@@ -420,7 +428,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _verticalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _verticalAdController!.setLooping(true); // ఆటో-లూప్ పక్కా
+                _verticalAdController!.setLooping(true);
                 _verticalAdController!.setVolume(0.0);
                 _verticalAdController!.play();
                 setState((){}); 
@@ -444,7 +452,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _horizontalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _horizontalAdController!.setLooping(true); // ఆటో-లూప్ పక్కా
+                _horizontalAdController!.setLooping(true);
                 _horizontalAdController!.setVolume(0.0);
                 _horizontalAdController!.play();
                 setState((){}); 
@@ -474,7 +482,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); 
             }),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("3. YouTube Video Link (ప్లే చేయడానికి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
+            _buildLinkEditor("3. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); 
               _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); 
             }),
