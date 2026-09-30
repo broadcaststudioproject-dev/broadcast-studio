@@ -220,28 +220,43 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- యూట్యూబ్ / MP4 నెట్‌వర్క్ వీడియో ప్లేబ్యాక్ (Explode Dart ద్వారా) ---
+  // --- నవీకరించబడిన యూట్యూబ్ ప్లేబ్యాక్ సిస్టమ్ (Live & VOD రెండింటికీ) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
     String finalPlayUrl = url;
+    
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
         var ytExplode = yt.YoutubeExplode();
         var video = await ytExplode.videos.get(url);
-        var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
-        var streamInfo = manifest.muxed.withHighestBitrate();
-        finalPlayUrl = streamInfo.url.toString();
+        
+        // ముఖ్యమైన మార్పు: వీడియో లైవ్ అయితే వేరే లింక్, నార్మల్ అయితే వేరే లింక్ ఫెచ్ అవుతుంది
+        if (video.isLive) {
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
+        } else {
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
+          if (manifest.muxed.isNotEmpty) {
+            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ యూట్యూబ్ వీడియో ఫార్మాట్ సపోర్ట్ చేయబడలేదు."), backgroundColor: Colors.red));
+            ytExplode.close();
+            return;
+          }
+        }
         ytExplode.close();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు."), backgroundColor: Colors.red));
+        debugPrint("YouTube Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు. దయచేసి వేరొక లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
         return;
       }
     }
 
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
+    
+    // డీకోడ్ అయిన యూట్యూబ్ లింక్ లేదా డైరెక్ట్ లింక్ ఇక్కడ ప్లే అవుతుంది
     _bulletinVideoController = VideoPlayerController.network(finalPlayUrl)
       ..initialize().then((_) {
         if (!mounted) return;
@@ -256,6 +271,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         _bulletinVideoController?.setLooping(false);
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
+        debugPrint("Video Player Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు.")));
       });
   }
@@ -269,6 +285,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // --- లైవ్ బ్రాడ్ కాస్టింగ్ కంట్రోల్స్ ---
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty) { 
@@ -316,6 +333,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
+  // --- స్ప్లిట్ స్క్రీన్ కోసం మల్టిపుల్ వీడియో గ్యాలరీ (Tap Left/Right టు చేంజ్) ---
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
     
@@ -349,7 +367,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bottomAdVideoController = VideoPlayerController.file(File(path))
         ..initialize().then((_) {
           if (mounted) {
-            _bottomAdVideoController!.setLooping(true);
+            _bottomAdVideoController!.setLooping(true); // స్ప్లిట్ స్క్రీన్ వీడియో లూప్
             _bottomAdVideoController!.setVolume(0.0);
             _bottomAdVideoController!.play();
             setState(() {}); 
@@ -384,6 +402,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // --- L-Band Ads (Auto Timer) లాజిక్ ---
   void _toggleAutoTimerAds() { 
     setState(() { 
       isAnimatedAdsMode = !isAnimatedAdsMode; 
@@ -401,7 +420,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _verticalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _verticalAdController!.setLooping(true);
+                _verticalAdController!.setLooping(true); // ఆటో-లూప్ పక్కా
                 _verticalAdController!.setVolume(0.0);
                 _verticalAdController!.play();
                 setState((){}); 
@@ -425,7 +444,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _horizontalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _horizontalAdController!.setLooping(true);
+                _horizontalAdController!.setLooping(true); // ఆటో-లూప్ పక్కా
                 _horizontalAdController!.setVolume(0.0);
                 _horizontalAdController!.play();
                 setState((){}); 
@@ -439,6 +458,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {} 
   }
 
+  // --- మల్టీ-లైవ్ విండో ---
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(context: context, builder: (context) {
@@ -454,7 +474,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); 
             }),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("3. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
+            _buildLinkEditor("3. YouTube Video Link (ప్లే చేయడానికి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); 
               _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); 
             }),
@@ -624,6 +644,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3)))) 
       : cameraWidget;
 
+    // స్ప్లిట్ స్క్రీన్
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.all(2.0), 
@@ -681,6 +702,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
+    // YouTube / Online Video Player with Draggable Camera
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
