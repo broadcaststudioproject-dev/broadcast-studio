@@ -9,8 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
-import 'package:youtube_player_iframe/youtube_player_iframe.dart'; // కొత్త యూట్యూబ్ ప్యాకేజీ
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; 
 
 List<CameraDescription> cameras = [];
 
@@ -45,9 +44,7 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
   
   CameraController? controller;
-  
   VideoPlayerController? _bulletinVideoController;
-  YoutubePlayerController? _ytController; // కొత్త ఫ్రేమ్‌వర్క్ కంట్రోలర్
   
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
@@ -73,7 +70,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String horizontalAnimatedAdPath = ""; 
 
   bool isNewsBulletinMode = false;
-  bool isYouTubeMode = false; 
   bool isBulletinMuted = false;
   bool isCameraVisible = false;
   
@@ -100,7 +96,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
 
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
-  String splitScreenSubHeadline = "వార్తా అప్‌‌డేట్";
+  String splitScreenSubHeadline = "వార్తా అప్‌‌‌‌డేట్";
 
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController networkVideoUrlCtrl = TextEditingController();
@@ -160,7 +156,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _ytController?.close();
     _bottomAdVideoController?.dispose();
     _verticalAdController?.dispose();
     _horizontalAdController?.dispose();
@@ -203,50 +198,42 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; });
   }
 
-  // --- సురక్షితమైన యూట్యూబ్ ప్లేబ్యాక్ (Iframe) ---
-  void _startNetworkBulletin(String url) {
+  // --- యూట్యూబ్ లింక్ ని డైరెక్ట్ వీడియో లింక్ గా మార్చి ప్లే చేసే పద్ధతి (No WebView Error) ---
+  Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
-    
-    // యూట్యూబ్ లింక్ అయితే..
+    String finalPlayUrl = url;
+
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
-        String videoId = yt.VideoId(url).value; // ఎర్రర్ లేకుండా ఐడి తీస్తుంది
-        
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green));
-        
-        _ytController?.close();
-        _ytController = YoutubePlayerController(
-          params: const YoutubePlayerParams(
-            showControls: false,
-            mute: false,
-            showFullscreenButton: false,
-            loop: false,
-          ),
-        );
-        _ytController!.loadVideoById(videoId: videoId);
-        
-        setState(() { 
-          isYouTubeMode = true; 
-          isNewsBulletinMode = false; 
-          isDualScreenMode = false; 
-          hideControls = true; 
-          isCameraVisible = false; 
-        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
+        var ytExplode = yt.YoutubeExplode();
+        String? videoId = yt.VideoId.parseVideoId(url);
+        if (videoId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
+          return;
+        }
+        var video = await ytExplode.videos.get(yt.VideoId(videoId));
+        if (video.isLive) {
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
+        } else {
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
+          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
+        }
+        ytExplode.close();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ యూట్యూబ్ వీడియో ప్లే చేయడం సాధ్యం కాలేదు."), backgroundColor: Colors.red));
+        return;
       }
-      return;
     }
 
-    // డైరెక్ట్ MP4/Network వీడియో
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green));
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(url))
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-        setState(() { isNewsBulletinMode = true; isYouTubeMode = false; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
+        setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
         _bulletinVideoController?.play();
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
@@ -260,7 +247,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
       if (video != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.blueAccent));
-        _ytController?.close();
         _bulletinVideoController?.removeListener(_videoListener);
         _bulletinVideoController?.dispose();
         
@@ -268,7 +254,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           ..initialize().then((_) {
             if (!mounted) return;
             _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-            setState(() { isNewsBulletinMode = true; isYouTubeMode = false; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
+            setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
             _bulletinVideoController?.play();
             _bulletinVideoController?.addListener(_videoListener);
           }).catchError((e) {
@@ -291,9 +277,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     HapticFeedback.mediumImpact();
     setState(() {
       isBulletinMuted = !isBulletinMuted;
-      if (isYouTubeMode && _ytController != null) {
-        isBulletinMuted ? _ytController!.mute() : _ytController!.unMute();
-      } else if (isNewsBulletinMode && _bulletinVideoController != null) {
+      if (isNewsBulletinMode && _bulletinVideoController != null) {
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
       }
     });
@@ -446,7 +430,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (medias.isNotEmpty && mounted) {
         dualMediaList = medias.map((e) => e.path).toList();
         currentDualMediaIndex = 0;
-        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; isYouTubeMode = false; });
+        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; });
         _playDualMedia(dualMediaList[currentDualMediaIndex]);
       }
     } catch (e) {}
@@ -458,7 +442,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { 
         if (mounted) { 
           _bottomAdVideoController!.setLooping(true); 
-          _bottomAdVideoController!.setVolume(1.0); // ఆడియో కోసం
+          _bottomAdVideoController!.setVolume(1.0); 
           _bottomAdVideoController!.play(); 
           setState(() {}); 
         } 
@@ -571,7 +555,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    if ((isYouTubeMode && _ytController != null) || (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized)) {
+    if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
       if (!isPipPositionInitialized) { pipLeft = 15.0; pipTop = 60.0; isPipPositionInitialized = true; }
@@ -581,9 +565,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           child: Container(
             color: Colors.black, 
             child: Center(
-              child: isYouTubeMode 
-                ? YoutubePlayer(controller: _ytController!)
-                : AspectRatio(aspectRatio: _bulletinVideoController!.value.aspectRatio, child: VideoPlayer(_bulletinVideoController!))
+              child: AspectRatio(aspectRatio: _bulletinVideoController!.value.aspectRatio, child: VideoPlayer(_bulletinVideoController!))
             )
           ),
         ),
@@ -694,7 +676,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 child: visualScreenLogoWidget
               ),
 
-              if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode && !isYouTubeMode)
+              if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode)
                 Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
               Positioned(
