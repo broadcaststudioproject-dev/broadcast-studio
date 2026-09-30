@@ -11,57 +11,6 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
-// --- యూట్యూబ్ లింక్ ద్వారా వీడియో ప్లే చేసే ప్రత్యేక కోడ్ విభాగం ---
-class YouTubePlayerService {
-  static Future<String?> extractYouTubeStreamUrl(String url) async {
-    if (url.isEmpty) return null;
-    String finalPlayUrl = url;
-
-    if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      try {
-        var ytExplode = yt.YoutubeExplode();
-        String? videoId;
-        
-        try {
-          videoId = yt.VideoId.parseVideoId(url);
-        } catch (_) {}
-
-        if (videoId == null) {
-          RegExp regExp = RegExp(
-            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
-            caseSensitive: false,
-          );
-          Match? match = regExp.firstMatch(url);
-          if (match != null && match.groupCount >= 1) {
-            videoId = match.group(1);
-          }
-        }
-
-        if (videoId == null) {
-          ytExplode.close();
-          return null; 
-        }
-
-        var video = await ytExplode.videos.get(yt.VideoId(videoId));
-        if (video.isLive) {
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
-        } else {
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
-          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
-        }
-        
-        ytExplode.close();
-        return finalPlayUrl;
-      } catch (e) {
-        debugPrint("YouTube Extraction Error: $e");
-        return null;
-      }
-    }
-    
-    return finalPlayUrl;
-  }
-}
-
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
@@ -122,7 +71,9 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false; 
+  
+  // కెమెరా డిఫాల్ట్‌గా ఆన్‌లో ఉండేలా సెట్ చేయబడింది
+  bool isCameraVisible = true; 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -253,12 +204,13 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   void _switchCamera() async {
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
-    if (isCameraVisible || (!isNewsBulletinMode && !isDualScreenMode)) {
+    if (isCameraVisible) {
       await _initCamera();
     }
     setState(() { isMenuOpen = false; });
   }
 
+  // కెమెరా ఆన్/ఆఫ్ పక్కాగా పనిచేసే లాజిక్
   void _toggleCameraVisibility() {
     setState(() {
       isCameraVisible = !isCameraVisible;
@@ -268,7 +220,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // పైన వేరుచేసిన సర్వీస్ ద్వారా యూట్యూబ్ లింక్‌ను పక్కాగా ప్లే చేసే ఫంక్షన్
+  // --- మీ Regex లాజిక్‌తో కలిపిన యూట్యూబ్ ప్లేయర్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -276,13 +228,52 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange),
     );
 
-    String? playableUrl = await YouTubePlayerService.extractYouTubeStreamUrl(url);
+    String finalPlayUrl = url;
 
-    if (playableUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్ లేదా ప్లే చేయడం సాధ్యం కాలేదు."), backgroundColor: Colors.red),
-      );
-      return;
+    if (url.contains("youtube.com") || url.contains("youtu.be")) {
+      try {
+        var ytExplode = yt.YoutubeExplode();
+        String? videoId;
+
+        try {
+          videoId = yt.VideoId.parseVideoId(url);
+        } catch (_) {}
+
+        if (videoId == null) {
+          RegExp regExp = RegExp(
+            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
+            caseSensitive: false,
+          );
+          Match? match = regExp.firstMatch(url);
+          if (match != null && match.groupCount >= 1) {
+            videoId = match.group(1);
+          }
+        }
+
+        if (videoId == null) {
+          ytExplode.close();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్ లేదా ప్లే చేయడం సాధ్యం కాలేదు."), backgroundColor: Colors.red),
+          );
+          return; 
+        }
+
+        var video = await ytExplode.videos.get(yt.VideoId(videoId));
+        if (video.isLive) {
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
+        } else {
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
+          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
+        }
+        
+        ytExplode.close();
+      } catch (e) {
+        debugPrint("YouTube Extraction Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ఈ లింక్‌ను ప్లే చేయలేము. వేరొకటి ప్రయత్నించండి."), backgroundColor: Colors.red),
+        );
+        return;
+      }
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -292,7 +283,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playableUrl))
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
@@ -329,60 +320,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // Go Live బటన్ ద్వారా రికార్డింగ్ & బ్రాడ్‌కాస్టింగ్
-  Future<void> _startLiveAndLock() async {
-    String fullRtmpUrl = youtubeUrlController.text.trim();
-    if (fullRtmpUrl.isEmpty || !fullRtmpUrl.contains("rtmp")) { 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి సరైన YouTube RTMP/Stream Key లింక్ ఇవ్వండి."), backgroundColor: Colors.red)); 
-      return; 
-    }
-
-    var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) {
-      micStatus = await Permission.microphone.request();
-    }
-    if (!micStatus.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆడియో రికార్డ్ చేయడానికి Microphone పర్మిషన్ తప్పనిసరి!"), backgroundColor: Colors.red));
-      return;
-    }
-
-    try {
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-      if (success) {
-        HapticFeedback.heavyImpact();
-        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-        setState(() { 
-          isLiveBroadcasting = true; 
-          isLivePaused = false; 
-          isLiveLocked = true; 
-          hideControls = true; 
-          isMenuOpen = false; 
-          isLandscape = true; 
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("YouTube Live విజయవంతంగా ప్రారంభమైంది!"), backgroundColor: Colors.green));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ కనెక్ట్ అవ్వలేదు. ఇంటర్నెట్ లేదా స్ట్రీమ్ కీ చెక్ చేయండి."), backgroundColor: Colors.red));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ఎర్రర్: $e"), backgroundColor: Colors.red));
-    }
-  }
-
-  Future<void> _stopLiveStream() async {
-    try {
-      bool success = await StreamServiceManager.stopLiveStream();
-      if (success) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-        setState(() { 
-          isLiveBroadcasting = false; 
-          isLiveLocked = false; 
-          isLivePaused = false; 
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ఆపబడింది."), backgroundColor: Colors.green));
-      }
-    } catch (e) {}
-  }
-
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(context: context, builder: (context) {
@@ -393,7 +330,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
           content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
             _buildLinkEditor("1. YouTube/Restream RTMP Key", youtubeUrlController, setDialogState),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("2. YouTube Video Link (ప్లే చేయడానికి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
+            _buildLinkEditor("2. YouTube Video Link (ఇక్కడ లింక్ ఇవ్వండి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); 
             }),
             const Divider(color: Colors.white24, height: 20),
@@ -435,15 +372,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
         if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
       ])
     ]);
-  }
-
-  Future<void> _pickBreakingNewsLogo() async {
-    try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-      if (image != null && mounted) { 
-        setState(() { breakingNewsLogoPath = image.path; }); 
-      }
-    } catch (e) { }
   }
 
   void _showEditDialog() {
@@ -504,6 +432,44 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } 
       else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
     });
+  }
+
+  Future<void> _startLiveAndLock() async {
+    String fullRtmpUrl = youtubeUrlController.text.trim();
+    if (fullRtmpUrl.isEmpty || !fullRtmpUrl.contains("rtmp")) { 
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి సరైన YouTube RTMP/Stream Key లింక్ ఇవ్వండి."), backgroundColor: Colors.red)); 
+      return; 
+    }
+
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) micStatus = await Permission.microphone.request();
+    if (!micStatus.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆడియో కోసం Microphone పర్మిషన్ తప్పనిసరి!"), backgroundColor: Colors.red));
+      return;
+    }
+
+    try {
+      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+      if (success) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+        setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = true; hideControls = true; isMenuOpen = false; isLandscape = true; });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("YouTube Live ప్రారంభమైంది!"), backgroundColor: Colors.green));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ కనెక్ట్ అవ్వలేదు."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ఎర్రర్: $e"), backgroundColor: Colors.red));
+    }
+  }
+
+  Future<void> _stopLiveStream() async {
+    try {
+      bool success = await StreamServiceManager.stopLiveStream();
+      if (success) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+        setState(() { isLiveBroadcasting = false; isLiveLocked = false; isLivePaused = false; });
+      }
+    } catch (e) {}
   }
 
   Future<void> _toggleDualScreenAndPickMedia() async {
@@ -600,22 +566,10 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   }
 
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
+    // వాస్తవ కెమెరా విడ్జెట్ ఇక్కడ సెట్ చేయబడింది (సరిదిద్దిన లాజిక్)
     Widget actualCameraWidget = isLivePaused 
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
-        : (!isNewsBulletinMode && !isDualScreenMode && _isCameraInitialized && controller != null && controller!.value.isInitialized) || (isCameraVisible && _isCameraInitialized && controller != null && controller!.value.isInitialized)
-            ? ClipRect(
-                child: SizedBox.expand(
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: controller!.value.previewSize?.height ?? 1080,
-                      height: controller!.value.previewSize?.width ?? 1920,
-                      child: CameraPreview(controller!),
-                    ),
-                  ),
-                ),
-              )
-            : Container(color: Colors.black);
+        : cameraWidget;
 
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
@@ -746,6 +700,42 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
+    double camW = 1080; double camH = 1920;
+    if (_isCameraInitialized && controller != null && controller!.value.isInitialized) {
+      final previewSize = controller!.value.previewSize;
+      if (previewSize != null) { 
+        camW = previewSize.width; camH = previewSize.height; 
+        if (camW < camH) { double temp = camW; camW = camH; camH = temp; } 
+      }
+    }
+    double finalCamW = isScreenLandscape ? camW : camH; double finalCamH = isScreenLandscape ? camH : camW;
+
+    // కెమెరా విడ్జెట్ కండిషన్ (isCameraVisible ని అనుసరించి అడ్జస్ట్ చేయబడింది)
+    Widget cameraWidget;
+    if (!isCameraVisible) {
+      cameraWidget = Container(color: Colors.transparent);
+    } else if (_isCameraInitialized && controller != null && controller!.value.isInitialized) {
+      cameraWidget = GestureDetector(
+        onScaleStart: (details) { _baseScale = _currentZoomLevel; },
+        onScaleUpdate: (details) async {
+          if (controller == null || !controller!.value.isInitialized) return;
+          double zoom = _baseScale * details.scale;
+          if (zoom < _minZoomLevel) zoom = _minZoomLevel; if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+          setState(() { _currentZoomLevel = zoom; }); await controller?.setZoomLevel(zoom);
+        },
+        child: ClipRect(
+          child: SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover, 
+              child: SizedBox(width: finalCamW, height: finalCamH, child: CameraPreview(controller!))
+            )
+          )
+        ),
+      );
+    } else {
+      cameraWidget = const Center(child: CircularProgressIndicator(color: Colors.amber));
+    }
+
     Widget reporterBadgeWidget = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       if (watermarkText.isNotEmpty) Container(color: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), child: Text(watermarkText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0))),
       Container(color: Colors.red.shade700, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0))),
@@ -792,7 +782,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
                 ),
               ),
 
-              Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, Container())),
+              Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget)),
               
               Positioned(
                 top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
@@ -827,7 +817,10 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
                     child: Center(
                       child: Wrap(alignment: WrapAlignment.center, spacing: 25, runSpacing: 25, children: [
                           _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                          _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),
+                          
+                          // కెమెరా ఆన్/ఆఫ్ కంట్రోల్ బటన్
+                          _buildControlButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.redAccent : Colors.greenAccent),
+                          
                           _buildControlButton(Icons.grid_on, "1. Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                           _buildControlButton(Icons.live_tv, "2. Multi-Live Cntrl", _showMultiStreamDialog, Colors.redAccent),
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
@@ -860,14 +853,12 @@ class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      // ఆడియో రికార్డింగ్ పెరామీటర్
       await platform.invokeMethod('startScreenStream', {
         'rtmpUrl': safeUrl,
         'recordAudio': true 
       }); 
       return true; 
     } catch (e) { 
-      debugPrint("Live Stream Error: $e");
       return false; 
     }
   }
