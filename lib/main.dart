@@ -64,7 +64,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isDualScreenMode = false;
   bool isAnimatedAdsMode = false; 
   bool isLBandRight = true; 
-  int logoPosition = 1; 
+  int logoPosition = 1; // 0: TopLeft, 1: TopRight, 2: BottomRight, 3: BottomLeft
 
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = ""; 
@@ -96,7 +96,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
 
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
-  String splitScreenSubHeadline = "వార్తా అప్‌‌‌‌డేట్";
+  String splitScreenSubHeadline = "వార్తా అప్‌డేట్";
 
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController networkVideoUrlCtrl = TextEditingController();
@@ -198,7 +198,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; });
   }
 
-  // --- యూట్యూబ్ లింక్ ని డైరెక్ట్ వీడియో లింక్ గా మార్చి ప్లే చేసే పద్ధతి (No WebView Error) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     String finalPlayUrl = url;
