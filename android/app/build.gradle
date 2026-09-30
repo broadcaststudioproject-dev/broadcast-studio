@@ -5,8 +5,9 @@ plugins {
 }
 
 android {
-    namespace "com.example.pocket_pcr_studio"
-    compileSdk 35
+    // మీరు చెప్పిన పేరు ఇక్కడ మార్చబడింది
+    namespace "com.kingjvk.pocket_pcr" 
+    compileSdk 34 
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -19,9 +20,10 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.pocket_pcr_studio"
+        // మీరు చెప్పిన పేరు ఇక్కడ కూడా మార్చబడింది
+        applicationId "com.kingjvk.pocket_pcr" 
         minSdk 24
-        targetSdk 35
+        targetSdk 34 
         versionCode flutter.versionCode.toInteger()
         versionName flutter.versionName
         multiDexEnabled true
