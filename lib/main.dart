@@ -220,7 +220,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- నవీకరించబడిన యూట్యూబ్ ప్లేబ్యాక్ (networkUrl ఫిక్స్ చేయబడింది) ---
+  // --- యూట్యూబ్ వీడియో ప్లే చేసే ఫంక్షన్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -262,13 +262,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     
-    // Updated to networkUrl with Uri.parse
+    // MP4/Stream లింక్‌ను ప్లేయర్‌కి పంపడం
     _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
         setState(() {
-          isNewsBulletinMode = true;
+          isNewsBulletinMode = true; // వీడియో మోడ్ ఆన్ చేయబడుతుంది
           isDualScreenMode = false; 
           hideControls = true;
           isCameraVisible = false;
@@ -339,7 +339,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // --- స్ప్లిట్ స్క్రీన్ ---
+  // --- స్ప్లిట్ స్క్రీన్ (Tap Left/Right టు చేంజ్) ---
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
     
@@ -408,7 +408,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- L-Band Ads లాజిక్ ---
+  // --- L-Band Ads (Auto Timer) లాజిక్ ---
   void _toggleAutoTimerAds() { 
     setState(() { 
       isAnimatedAdsMode = !isAnimatedAdsMode; 
@@ -464,7 +464,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {} 
   }
 
-  // --- మల్టీ-లైవ్ విండో ---
+  // --- మల్టీ-లైవ్ విండో (యూట్యూబ్ లింక్ ఇన్పుట్) ---
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(context: context, builder: (context) {
@@ -475,14 +475,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
             _buildLinkEditor("1. YouTube/Restream RTMP Key", youtubeUrlController, setDialogState),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("2. Direct Video Link (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { 
+            
+            // ఇక్కడ యూట్యూబ్ లింక్ ఇచ్చి ప్లే బటన్ నొక్కొచ్చు
+            _buildLinkEditor("2. YouTube Video Link (ఇక్కడ లింక్ ఇవ్వండి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); 
-              _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); 
-            }),
-            const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("3. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
-              Navigator.pop(context); 
-              _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); 
+              _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); // ఫంక్షన్ కాల్ అవుతుంది
             }),
           ])),
           actions: [
@@ -491,26 +488,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green), 
                 onPressed: () { Navigator.pop(context); _startLiveAndLock(); }, 
                 child: const Text("Go Live", style: TextStyle(color: Colors.white, fontSize: 11))
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), 
-                onPressed: () async {
-                  Navigator.pop(context);
-                  if (isLivePaused) {
-                    bool success = await StreamServiceManager.startLiveStream(youtubeUrlController.text.trim());
-                    if (success) { 
-                      setState(() { isLivePaused = false; }); 
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); 
-                    }
-                  } else {
-                    bool success = await StreamServiceManager.stopLiveStream();
-                    if (success) { 
-                      setState(() { isLivePaused = true; }); 
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."))); 
-                    }
-                  }
-                }, 
-                child: Text(isLivePaused ? "Resume Live" : "Live Pause", style: const TextStyle(color: Colors.white, fontSize: 11))
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
@@ -546,7 +523,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (onPlay != null) 
           IconButton(
             icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), 
-            onPressed: onPlay
+            onPressed: onPlay // ప్లే బటన్ యాక్షన్
           )
       ])
     ]);
@@ -654,10 +631,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.all(2.0), 
-        decoration: BoxDecoration(
-          color: Colors.black, 
-          border: Border.all(color: Colors.redAccent, width: 2.5) 
-        ),
+        decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.redAccent, width: 2.5)),
         child: isScreenLandscape 
           ? Row(children: [
               Expanded(child: actualCameraWidget),
@@ -755,7 +729,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ]);
     }
 
-    // L-Band Ads Mode (వీడియో మోడల్ డిజైన్)
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.28; 
       double horizAdHeight = screenHeight * 0.20; 
@@ -875,7 +848,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             if (isLiveLocked) { 
               HapticFeedback.heavyImpact(); 
               setState(() { isLiveLocked = false; hideControls = false; }); 
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌లాక్ చేయబడింది.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green)); 
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌‌లాక్ చేయబడింది.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green)); 
             }
           },
           child: Stack(
@@ -887,14 +860,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode)
                 Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
-              // --- ప్రొఫెషనల్ న్యూస్ టిక్కర్ (BREAKING NEWS బాక్స్ తో) ---
+              // ప్రొఫెషనల్ న్యూస్ టిక్కర్ 
               Positioned(
                 bottom: 0, left: 0, right: 0,
                 child: Container(
                   height: 55, 
                   decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber.shade400, width: 1.5)),
                   child: Row(children: [
-                    // బ్రేకింగ్ న్యూస్ రెడ్/బ్లాక్ బాక్స్
                     Container(
                       width: 95, 
                       height: double.infinity, 
@@ -902,7 +874,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       alignment: Alignment.center,
                       child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, height: 1.1))
                     ),
-                    // స్క్రోలింగ్ టెక్స్ట్ బాక్స్
                     Expanded(
                       child: Container(
                         color: const Color(0xFF0D47A1),
