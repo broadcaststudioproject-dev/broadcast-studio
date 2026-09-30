@@ -9,7 +9,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart'; 
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
+import 'package:youtube_player_iframe/youtube_player_iframe.dart'; // కొత్త యూట్యూబ్ ప్యాకేజీ
 
 List<CameraDescription> cameras = [];
 
@@ -46,7 +47,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   
   VideoPlayerController? _bulletinVideoController;
-  YoutubePlayerController? _ytController; 
+  YoutubePlayerController? _ytController; // కొత్త ఫ్రేమ్‌వర్క్ కంట్రోలర్
   
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
@@ -65,8 +66,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   bool isDualScreenMode = false;
   bool isAnimatedAdsMode = false; 
-  bool isLBandRight = true; // L-Band కుడి/ఎడమ మార్చడానికి
-  int logoPosition = 1; // 0: TopLeft, 1: TopRight, 2: BottomRight, 3: BottomLeft
+  bool isLBandRight = true; 
+  int logoPosition = 1; 
 
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = ""; 
@@ -159,7 +160,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _ytController?.dispose();
+    _ytController?.close();
     _bottomAdVideoController?.dispose();
     _verticalAdController?.dispose();
     _horizontalAdController?.dispose();
@@ -202,26 +203,42 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; });
   }
 
+  // --- సురక్షితమైన యూట్యూబ్ ప్లేబ్యాక్ (Iframe) ---
   void _startNetworkBulletin(String url) {
     if (url.isEmpty) return;
+    
+    // యూట్యూబ్ లింక్ అయితే..
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      String? videoId = YoutubePlayer.convertUrlToId(url);
-      if (videoId != null) {
+      try {
+        String videoId = yt.VideoId(url).value; // ఎర్రర్ లేకుండా ఐడి తీస్తుంది
+        
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green));
-        _ytController?.dispose();
+        
+        _ytController?.close();
         _ytController = YoutubePlayerController(
-          initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(autoPlay: true, mute: false, hideControls: true, enableCaption: false, loop: false),
-        )..addListener(() {
-            if (_ytController != null && _ytController!.value.playerState == PlayerState.ended) { setState(() { isYouTubeMode = false; }); }
+          params: const YoutubePlayerParams(
+            showControls: false,
+            mute: false,
+            showFullscreenButton: false,
+            loop: false,
+          ),
+        );
+        _ytController!.loadVideoById(videoId: videoId);
+        
+        setState(() { 
+          isYouTubeMode = true; 
+          isNewsBulletinMode = false; 
+          isDualScreenMode = false; 
+          hideControls = true; 
+          isCameraVisible = false; 
         });
-        setState(() { isYouTubeMode = true; isNewsBulletinMode = false; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
-      } else {
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
       }
       return;
     }
 
+    // డైరెక్ట్ MP4/Network వీడియో
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
@@ -243,7 +260,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
       if (video != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.blueAccent));
-        _ytController?.dispose();
+        _ytController?.close();
         _bulletinVideoController?.removeListener(_videoListener);
         _bulletinVideoController?.dispose();
         
@@ -435,14 +452,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {}
   }
 
-  // --- స్ప్లిట్ స్క్రీన్ ఆడియో ఫిక్స్ (వాల్యూమ్ 1.0) ---
   void _playDualMedia(String path) {
     if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) {
       _bottomAdVideoController?.dispose();
       _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { 
         if (mounted) { 
           _bottomAdVideoController!.setLooping(true); 
-          _bottomAdVideoController!.setVolume(1.0); // <-- ఇక్కడ ఆడియో వాల్యూమ్ ఎనేబుల్ చేయబడింది
+          _bottomAdVideoController!.setVolume(1.0); // ఆడియో కోసం
           _bottomAdVideoController!.play(); 
           setState(() {}); 
         } 
@@ -470,8 +486,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _toggleAutoTimerAds() { setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; isMenuOpen = false; }); }
-  
-  // --- L-Band Left/Right మార్చే ఫంక్షన్ ---
   void _toggleLBandDirection() { setState(() { isLBandRight = !isLBandRight; isMenuOpen = false; }); }
 
   Future<void> _pickVerticalAd() async { 
@@ -568,7 +582,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             color: Colors.black, 
             child: Center(
               child: isYouTubeMode 
-                ? YoutubePlayer(controller: _ytController!, showVideoProgressIndicator: false)
+                ? YoutubePlayer(controller: _ytController!)
                 : AspectRatio(aspectRatio: _bulletinVideoController!.value.aspectRatio, child: VideoPlayer(_bulletinVideoController!))
             )
           ),
@@ -592,7 +606,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ]);
     }
 
-    // --- అప్‌డేట్ చేయబడిన L-Band యాడ్స్ (ఎడమ/కుడి పొజిషన్లు) ---
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.28; double horizAdHeight = screenHeight * 0.20; 
       return Container(
@@ -654,12 +667,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       Container(color: Colors.red.shade700, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0))),
     ]);
 
-    // --- డైనమిక్ లోగో విడ్జెట్ ---
     Widget visualScreenLogoWidget = GestureDetector(
-      onTap: () {
-        // లోగో పై టచ్ చేసిన ప్రతిసారీ అది వేరొక మూలకు మారుతుంది
-        setState(() { logoPosition = (logoPosition + 1) % 4; });
-      },
+      onTap: () { setState(() { logoPosition = (logoPosition + 1) % 4; }); },
       child: channelLogoPath.isNotEmpty
           ? SizedBox(width: logoWidth, height: logoHeight, child: Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
           : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
@@ -677,7 +686,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             children: [
               Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget)),
               
-              // --- 4 మూలలకు మారే లోగో పొజిషనింగ్ లాజిక్ ---
               Positioned(
                 top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
                 bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,
@@ -689,7 +697,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode && !isYouTubeMode)
                 Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
-              // ప్రొఫెషనల్ న్యూస్ టిక్కర్ 
               Positioned(
                 bottom: 0, left: 0, right: 0,
                 child: Container(
@@ -718,10 +725,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                           _buildControlButton(Icons.settings, "Settings & Text", _showEditDialog, Colors.blue),
                           _buildControlButton(Icons.timer, "L-Band Timer", _toggleAutoTimerAds, Colors.amber),
-                          
-                          // --- కొత్తగా యాడ్ చేసిన L-Band కుడి/ఎడమ మార్చే బటన్ ---
                           _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.pinkAccent),
-                          
                           _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ]),
                     ),
