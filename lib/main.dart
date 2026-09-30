@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:webview_flutter/webview_flutter.dart'; // యూట్యూబ్ పక్కాగా ప్లే చేయడానికి వెబ్‌వ్యూ
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
 List<CameraDescription> cameras = [];
 
@@ -45,7 +45,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
-  WebViewController? _webViewController; // యూట్యూబ్ కోసం వెబ్‌కంట్రోలర్
 
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
@@ -69,7 +68,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String horizontalAnimatedAdPath = ""; 
 
   bool isNewsBulletinMode = false;
-  bool isYtBrowserMode = false; // యూట్యూబ్ మోడ్ చెక్ చేయడానికి
   bool isBulletinMuted = true;
   bool isCameraVisible = false;
   double pipTop = 60.0;
@@ -222,17 +220,33 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- నెట్‌వర్క్ / MP4 వీడియో ప్లేయర్ ---
-  void _startNetworkBulletin(String url) {
+  // --- యూట్యూబ్ / MP4 నెట్‌వర్క్ వీడియో ప్లేబ్యాక్ (ఎంబెడెడ్ అనుచిత ఆప్షన్లు రాకుండా) ---
+  Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
+
+    String finalPlayUrl = url;
+    if (url.contains("youtube.com") || url.contains("youtu.be")) {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
+        var ytExplode = yt.YoutubeExplode();
+        var video = await ytExplode.videos.get(url);
+        var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
+        var streamInfo = manifest.muxed.withHighestBitrate();
+        finalPlayUrl = streamInfo.url.toString();
+        ytExplode.close();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు."), backgroundColor: Colors.red));
+        return;
+      }
+    }
+
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _bulletinVideoController = VideoPlayerController.network(url)
+    _bulletinVideoController = VideoPlayerController.network(finalPlayUrl)
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
         setState(() {
-          isYtBrowserMode = false;
           isNewsBulletinMode = true;
           isDualScreenMode = false; 
           hideControls = true;
@@ -246,31 +260,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       });
   }
 
-  // --- యూట్యూబ్ లింక్ ప్లేబ్యాక్ (WebView ద్వారా పక్కాగా ప్లే అవుతుంది) ---
-  void _startYoutubeBulletin(String url) {
-    if (url.isEmpty) return;
-    
-    // యూట్యూబ్ లింక్‌ని ఎంబెడెడ్ మోడ్‌లోకి మార్చడం
-    String embedUrl = url;
-    if (url.contains("watch?v=")) {
-      embedUrl = url.replaceAll("watch?v=", "embed/");
-    } else if (url.contains("youtu.be/")) {
-      embedUrl = url.replaceAll("youtu.be/", "www.youtube.com/embed/");
-    }
-
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(embedUrl));
-
-    setState(() {
-      isYtBrowserMode = true;
-      isNewsBulletinMode = true;
-      isDualScreenMode = false;
-      hideControls = true;
-      isCameraVisible = false;
-    });
-  }
-
   void _videoListener() {
     final vController = _bulletinVideoController;
     if (vController == null || !vController.value.isInitialized) return;
@@ -280,10 +269,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // --- లైవ్ బ్రాడ్ కాస్టింగ్ (Go Live బటన్ నొక్కినప్పుడే రికార్డింగ్ స్టార్ట్ అవుతుంది) ---
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty) { 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సరైన లింక్ ఇవ్వండి."), backgroundColor: Colors.blueAccent)); 
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సరైన RTMP లింక్ ఇవ్వండి."), backgroundColor: Colors.blueAccent)); 
       return; 
     }
     try {
@@ -465,9 +455,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); 
             }),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("3. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
+            _buildLinkEditor("3. YouTube Video Link (ప్లే చేయడానికి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); 
-              _startYoutubeBulletin(youtubeVideoUrlCtrl.text.trim()); // వెబ్‌వ్యూ ద్వారా పక్కాగా ప్లే అవుతుంది
+              _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); // యూట్యూబ్ లింక్ డైరెక్ట్ వీడియో ప్లేయర్‌లో ప్లే అవుతుంది
             }),
           ])),
           actions: [
@@ -578,7 +568,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
-            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")),
+            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌లైన్ (Blue Box)")),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
             ElevatedButton(
@@ -693,8 +683,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // యూట్యూబ్ వెబ్‌వ్యూ & డ్రాగబుల్ కెమెరా మోడ్
-    if (isNewsBulletinMode) {
+    // యూట్యూబ్ / నెట్‌వర్క్ వీడియో ప్లేయర్ (డ్రాగబుల్ కెమెరాతో)
+    if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
       if (!isPipPositionInitialized) { 
@@ -705,14 +695,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
       return Stack(children: [
         Positioned.fill(
-          child: Container(
-            color: Colors.black, 
-            child: isYtBrowserMode && _webViewController != null
-                ? WebViewWidget(controller: _webViewController!) // యూట్యూబ్ పక్కాగా ప్లే అవుతుంది
-                : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized 
-                    ? VideoPlayer(_bulletinVideoController!) 
-                    : Container()),
-          ),
+          child: Container(color: Colors.black, child: Center(child: AspectRatio(aspectRatio: _bulletinVideoController!.value.aspectRatio, child: VideoPlayer(_bulletinVideoController!)))),
         ),
           
         if (isCameraVisible) 
@@ -738,11 +721,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 onTap: () { setState(() { isCameraVisible = !isCameraVisible; }); }, 
                 child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), margin: const EdgeInsets.only(right: 8), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(isCameraVisible ? Icons.videocam : Icons.videocam_off, color: isCameraVisible ? Colors.greenAccent : Colors.red, size: 16), const SizedBox(width: 4), Text(isCameraVisible ? "Cam On" : "Cam Off", style: const TextStyle(color: Colors.white, fontSize: 10))]))
               ),
-              if (!isYtBrowserMode)
-                GestureDetector(
-                  onTap: _toggleMute, 
-                  child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(isBulletinMuted ? Icons.volume_off : Icons.volume_up, color: isBulletinMuted ? Colors.red : Colors.greenAccent, size: 16), const SizedBox(width: 4), Text(isBulletinMuted ? "Muted" : "Audio On", style: const TextStyle(color: Colors.white, fontSize: 10))]))
-                ),
+              GestureDetector(
+                onTap: _toggleMute, 
+                child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(isBulletinMuted ? Icons.volume_off : Icons.volume_up, color: isBulletinMuted ? Colors.red : Colors.greenAccent, size: 16), const SizedBox(width: 4), Text(isBulletinMuted ? "Muted" : "Audio On", style: const TextStyle(color: Colors.white, fontSize: 10))]))
+              ),
             ])
           ),
       ]);
@@ -919,7 +901,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                           _buildControlButton(Icons.settings, "Settings & Text", _showEditDialog, Colors.blue),
                           _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
-                          _buildControlButton(isAnimatedAdsMode ? Icons.fullscreen : Icons.timer, isAnimatedAdsMode ? "Ads Active" : "Auto Timer", _toggleAutoTimerAds, isAnimatedAdsMode ? Colors.greenAccent : Colors.amber),
                           _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                       ]),
                     ),
@@ -950,9 +931,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   static Future<bool> startLiveStream(String rtmpUrl) async {
-    try { String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://'); await platform.invokeMethod('startScreenStream', {'rtmpUrl': safeUrl}); return true; } catch (e) { return false; }
+    try {
+      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
+      await platform.invokeMethod('startScreenStream', {'rtmpUrl': safeUrl}); 
+      return true; 
+    } catch (e) { 
+      return false; 
+    }
   }
+  
   static Future<bool> stopLiveStream() async {
-    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
+    try { 
+      await platform.invokeMethod('stopScreenStream'); 
+      return true; 
+    } catch (e) { 
+      return false; 
+    }
   }
 }
