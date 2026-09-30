@@ -46,10 +46,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
 
+  // స్ప్లిట్ స్క్రీన్ కోసం మల్టిపుల్ వీడియోల లిస్ట్ మరియు కంట్రోలర్
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
   VideoPlayerController? _bottomAdVideoController;
   
+  // L-Band Ads
   VideoPlayerController? _verticalAdController;
   VideoPlayerController? _horizontalAdController;
 
@@ -220,11 +222,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- యూట్యూబ్ / MP4 నెట్‌వర్క్ వీడియో ప్లేబ్యాక్ (Explode Dart ద్వారా) ---
+  // --- ఆన్‌లైన్ / యూట్యూబ్ ప్లేబ్యాక్ (ఎర్రర్స్ లేకుండా) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
     String finalPlayUrl = url;
+    
+    // యూట్యూబ్ లింక్ అయితే.. బ్యాక్ గ్రౌండ్ లో డీకోడ్ చేసి మన సొంత వీడియో ప్లేయర్‌లో ప్లే అవుతుంది
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
@@ -242,6 +246,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
+    
+    // డీకోడ్ అయిన యూట్యూబ్ లింక్ లేదా డైరెక్ట్ లింక్ ఇక్కడ ప్లే అవుతుంది
     _bulletinVideoController = VideoPlayerController.network(finalPlayUrl)
       ..initialize().then((_) {
         if (!mounted) return;
@@ -269,6 +275,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // --- లైవ్ బ్రాడ్ కాస్టింగ్ కంట్రోల్స్ ---
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty) { 
@@ -316,6 +323,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
+  // --- స్ప్లిట్ స్క్రీన్ కోసం మల్టిపుల్ వీడియో గ్యాలరీ (Tap Left/Right టు చేంజ్) ---
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
     
@@ -349,7 +357,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bottomAdVideoController = VideoPlayerController.file(File(path))
         ..initialize().then((_) {
           if (mounted) {
-            _bottomAdVideoController!.setLooping(true);
+            _bottomAdVideoController!.setLooping(true); // స్ప్లిట్ స్క్రీన్ వీడియో లూప్
             _bottomAdVideoController!.setVolume(0.0);
             _bottomAdVideoController!.play();
             setState(() {}); 
@@ -384,6 +392,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // --- L-Band Ads (Auto Timer) లాజిక్ ---
   void _toggleAutoTimerAds() { 
     setState(() { 
       isAnimatedAdsMode = !isAnimatedAdsMode; 
@@ -401,7 +410,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _verticalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _verticalAdController!.setLooping(true);
+                _verticalAdController!.setLooping(true); // ఆటో-లూప్ పక్కా
                 _verticalAdController!.setVolume(0.0);
                 _verticalAdController!.play();
                 setState((){}); 
@@ -425,7 +434,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _horizontalAdController = VideoPlayerController.file(File(media.path))
             ..initialize().then((_) { 
               if(mounted){ 
-                _horizontalAdController!.setLooping(true);
+                _horizontalAdController!.setLooping(true); // ఆటో-లూప్ పక్కా
                 _horizontalAdController!.setVolume(0.0);
                 _horizontalAdController!.play();
                 setState((){}); 
@@ -439,6 +448,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {} 
   }
 
+  // --- మల్టీ-లైవ్ విండో ---
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(context: context, builder: (context) {
@@ -624,6 +634,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3)))) 
       : cameraWidget;
 
+    // స్ప్లిట్ స్క్రీన్ (Dual Screen)
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.all(2.0), 
@@ -681,6 +692,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
+    // YouTube / Online Video Player with Draggable Camera
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
@@ -727,6 +739,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ]);
     }
 
+    // L-Band Auto Timer Ads
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.24; 
       double horizAdHeight = screenHeight * 0.15; 
