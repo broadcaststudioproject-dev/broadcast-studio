@@ -41,7 +41,7 @@ class StudioScreen extends StatefulWidget {
   State<StudioScreen> createState() => _StudioScreenState();
 }
 
-class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
+class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
@@ -71,7 +71,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false;
+  bool isCameraVisible = false; // యూజర్ అవసరాన్ని బట్టి కెమెరా ఆన్/ఆఫ్ చేసుకోవడానికి
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -112,10 +112,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
+  // కలర్‌ఫుల్ యానిమేటెడ్ వాల్‌పేపర్ కోసం కంట్రోలర్
+  late AnimationController _bgAnimationController;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _bgAnimationController = AnimationController(
+      duration: const Duration(seconds: 10),
+      vsync: this,
+    )..repeat(reverse: true);
 
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
@@ -143,7 +151,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (controller == null || !controller!.value.isInitialized) { 
+      if (isCameraVisible && (controller == null || !controller!.value.isInitialized)) { 
         _initCamera(); 
       }
     }
@@ -152,6 +160,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _bgAnimationController.dispose();
     _newsTimer?.cancel();
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
@@ -194,11 +203,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _switchCamera() async {
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
-    await _initCamera();
+    if (isCameraVisible) {
+      await _initCamera();
+    }
     setState(() { isMenuOpen = false; });
   }
 
-  // --- కొత్త సురక్షితమైన యూట్యూబ్ లింక్ పార్సింగ్ లాజిక్ ---
+  // కెమెరా ఆన్/ఆఫ్ టోగుల్ ఆప్షన్
+  void _toggleCameraVisibility() {
+    setState(() {
+      isCameraVisible = !isCameraVisible;
+      if (isCameraVisible && (controller == null || !controller!.value.isInitialized)) {
+        _initCamera();
+      }
+    });
+  }
+
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     String finalPlayUrl = url;
@@ -207,7 +227,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       try {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
         var ytExplode = yt.YoutubeExplode();
-        
         String? videoId;
         try {
           videoId = yt.VideoId.parseVideoId(url);
@@ -250,35 +269,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-        setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
+        setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; });
         _bulletinVideoController?.play();
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red));
       });
-  }
-
-  Future<void> _pickAndPlayLocalVideo() async {
-    setState(() { isMenuOpen = false; });
-    try {
-      final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
-      if (video != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.blueAccent));
-        _bulletinVideoController?.removeListener(_videoListener);
-        _bulletinVideoController?.dispose();
-        
-        _bulletinVideoController = VideoPlayerController.file(File(video.path))
-          ..initialize().then((_) {
-            if (!mounted) return;
-            _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-            setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; isCameraVisible = false; });
-            _bulletinVideoController?.play();
-            _bulletinVideoController?.addListener(_videoListener);
-          }).catchError((e) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red));
-          });
-      }
-    } catch (e) { }
   }
 
   void _videoListener() {
@@ -373,7 +369,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
-            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌లైన్ (Blue Box)")),
+            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
             ElevatedButton(
@@ -530,15 +526,36 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
-    Widget actualCameraWidget = isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : cameraWidget;
+    Widget actualCameraWidget = isLivePaused 
+        ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
+        : (isCameraVisible && _isCameraInitialized && controller != null && controller!.value.isInitialized)
+            ? ClipRect(
+                child: SizedBox.expand(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: controller!.value.previewSize?.height ?? 1080,
+                      height: controller!.value.previewSize?.width ?? 1920,
+                      child: CameraPreview(controller!),
+                    ),
+                  ),
+                ),
+              )
+            : Container(color: Colors.transparent);
 
+    // 2. Dual స్క్రీన్ చుట్టూ నాలుగు వైపులా స్పష్టమైన బార్డర్ వచ్చేలా సెట్ చేయబడింది
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
-        margin: const EdgeInsets.all(2.0), decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.redAccent, width: 2.5)),
+        margin: const EdgeInsets.all(6.0), 
+        decoration: BoxDecoration(
+          color: Colors.black, 
+          border: Border.all(color: Colors.amberAccent, width: 3.5),
+          boxShadow: const [BoxShadow(color: Colors.redAccent, blurRadius: 10)],
+        ),
         child: isScreenLandscape 
           ? Row(children: [ 
               Expanded(child: actualCameraWidget), 
-              Container(width: 2, color: Colors.white), 
+              Container(width: 3, color: Colors.amberAccent), 
               Expanded(child: Column(children: [
                 Expanded(child: LayoutBuilder(builder: (context, constraints) {
                   return GestureDetector(
@@ -573,10 +590,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
 
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
-      double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
-      double pipHeight = pipWidth * (screenHeight / screenWidth);
-      if (!isPipPositionInitialized) { pipLeft = 15.0; pipTop = 60.0; isPipPositionInitialized = true; }
-
       return Stack(children: [
         Positioned.fill(
           child: Container(
@@ -588,25 +601,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ),
         if (isCameraVisible) 
           Positioned(
-            top: pipTop, left: pipLeft, 
-            child: GestureDetector(
-              onPanUpdate: (details) { setState(() { pipTop += details.delta.dy; pipLeft += details.delta.dx; }); }, 
-              child: Container(width: pipWidth, height: pipHeight, decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0)), child: actualCameraWidget)
+            top: 20, left: 15, width: screenWidth * 0.3, height: screenHeight * 0.25,
+            child: Container(
+              decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0)), 
+              child: actualCameraWidget
             )
-          ),
-        if (!hideControls) 
-          Positioned(
-            top: 20, left: 15, 
-            child: Row(children: [
-              GestureDetector(onTap: () { setState(() { isCameraVisible = !isCameraVisible; }); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), margin: const EdgeInsets.only(right: 8), color: Colors.black87, child: Text(isCameraVisible ? "Cam On" : "Cam Off", style: const TextStyle(color: Colors.white, fontSize: 10)))),
-              GestureDetector(onTap: _toggleMute, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.black87, child: Text(isBulletinMuted ? "Muted" : "Audio On", style: const TextStyle(color: Colors.white, fontSize: 10)))),
-            ])
           ),
       ]);
     }
 
+    // 5. L-Band యాడ్స్ స్క్రీన్ పైకి వచ్చే సమయాన, కవర్ చేయని ఖాళీ ఫ్రేమ్‌లో వీడియో/కెమెరా ప్లే అయ్యేలా సెట్ చేయబడింది
     if (isAnimatedAdsMode) {
-      double vertAdWidth = screenWidth * 0.28; double horizAdHeight = screenHeight * 0.20; 
+      double vertAdWidth = screenWidth * 0.28; 
+      double horizAdHeight = screenHeight * 0.20; 
       return Container(
         color: const Color(0xFFB71C1C), 
         child: Stack(children: [
@@ -615,7 +622,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             top: 0, 
             right: isLBandRight ? vertAdWidth : 0, 
             bottom: horizAdHeight + 55, 
-            child: actualCameraWidget
+            child: isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
+                ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
+                : actualCameraWidget
           ), 
           Positioned(
             left: isLBandRight ? null : 0,
@@ -636,7 +645,20 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    return Stack(children: [Positioned.fill(child: actualCameraWidget)]);
+    if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
+      return Positioned.fill(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: _bulletinVideoController!.value.size.width,
+            height: _bulletinVideoController!.value.size.height,
+            child: VideoPlayer(_bulletinVideoController!),
+          ),
+        ),
+      );
+    }
+
+    return Positioned.fill(child: actualCameraWidget);
   }
 
   @override
@@ -644,19 +666,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
-
-    Widget cameraWidget = (_isCameraInitialized && controller != null && controller!.value.isInitialized)
-        ? GestureDetector(
-            onScaleStart: (details) { _baseScale = _currentZoomLevel; },
-            onScaleUpdate: (details) async {
-              if (controller == null) return;
-              double zoom = _baseScale * details.scale;
-              if (zoom < _minZoomLevel) zoom = _minZoomLevel; if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-              setState(() { _currentZoomLevel = zoom; }); await controller?.setZoomLevel(zoom);
-            },
-            child: SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: 1080, height: 1920, child: CameraPreview(controller!)))),
-          )
-        : const Center(child: CircularProgressIndicator());
 
     Widget reporterBadgeWidget = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
       if (watermarkText.isNotEmpty) Container(color: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), child: Text(watermarkText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0))),
@@ -680,10 +689,32 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () { if (!isLiveLocked) setState(() { isMenuOpen ? isMenuOpen = false : hideControls = !hideControls; }); },
-          onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌‌‌‌లాక్ చేయబడింది."))); } },
+          onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌లాక్ చేయబడింది."))); } },
           child: Stack(
             children: [
-              Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget)),
+              // 4. డిస్‌ప్లే వెనుక భాగంలో ఒక అద్భుతమైన కలర్‌ఫుల్ యానిమేటెడ్ గ్రేడియంట్ వాల్‌‌పేపర్
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _bgAnimationController,
+                  builder: (context, child) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color.lerp(Colors.indigo.shade900, Colors.purple.shade900, _bgAnimationController.value)!,
+                            Color.lerp(Colors.blue.shade800, Colors.deepOrange.shade900, _bgAnimationController.value)!,
+                            Color.lerp(Colors.black, Colors.indigo.shade900, _bgAnimationController.value)!,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, Container())),
               
               Positioned(
                 top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
@@ -718,8 +749,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: Center(
                       child: Wrap(alignment: WrapAlignment.center, spacing: 25, runSpacing: 25, children: [
                           _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                          
+                          // 3. కెమెరా అవసరం అయినప్పుడు ఆన్/ఆఫ్ చేసుకునే బటన్
+                          _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),
+                          
                           _buildControlButton(Icons.grid_on, "1. Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
-                          _buildControlButton(Icons.video_library, "Local Video", _pickAndPlayLocalVideo, Colors.cyanAccent),
                           _buildControlButton(Icons.live_tv, "2. Multi-Live Cntrl", _showMultiStreamDialog, Colors.redAccent),
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                           _buildControlButton(Icons.settings, "Settings & Text", _showEditDialog, Colors.blue),
