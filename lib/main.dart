@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart'; // <-- కొత్త ప్లేయర్ ఇంపోర్ట్
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
 List<CameraDescription> cameras = [];
 
@@ -45,7 +45,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
-  YoutubePlayerController? _ytController; // కొత్త ప్లేయర్ కంట్రోలర్
   
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
@@ -71,7 +70,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   String horizontalAnimatedAdPath = ""; 
 
   bool isNewsBulletinMode = false;
-  bool isYtMode = false; 
   bool isBulletinMuted = false;
   bool isCameraVisible = false; 
   
@@ -166,7 +164,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _ytController?.close(); // ఐఫ్రేమ్ ప్లేయర్ క్లోజ్
     _bottomAdVideoController?.dispose();
     _verticalAdController?.dispose();
     _horizontalAdController?.dispose();
@@ -220,66 +217,55 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // --- కొత్త YouTube IFrame Player లాజిక్ ---
+  // --- YouTube Explode ద్వారా పక్కా ఆన్‌లైన్ ప్లేబ్యాక్ (No WebView) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
+    String finalPlayUrl = url;
+    
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      String? videoId;
       try {
-         // ఐడీని తీయడానికి లాజిక్
-         RegExp regExp = RegExp(
-            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
-            caseSensitive: false,
-         );
-         Match? match = regExp.firstMatch(url);
-         if (match != null && match.groupCount >= 1) {
-            videoId = match.group(1);
-         }
-      } catch (_) {}
-
-      if (videoId != null) {
-        _bulletinVideoController?.removeListener(_videoListener);
-        _bulletinVideoController?.dispose();
-        _bulletinVideoController = null;
-
-        _ytController?.close();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
+        var ytExplode = yt.YoutubeExplode();
         
-        // IFrame Player సెటప్ (ఎలాంటి వెబ్‌వ్యూ ఎర్రర్స్ లేకుండా)
-        _ytController = YoutubePlayerController.fromVideoId(
-          videoId: videoId,
-          autoPlay: true,
-          params: const YoutubePlayerParams(
-            showControls: false,
-            showFullscreenButton: false,
-            mute: false,
-            loop: false,
-          ),
-        );
+        String? extractedId = yt.VideoId.parseVideoId(url);
+        if (extractedId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ సరిగ్గా లేదు."), backgroundColor: Colors.red));
+          return;
+        }
 
-        setState(() {
-          isYtMode = true;
-          isNewsBulletinMode = true;
-          isDualScreenMode = false; 
-          hideControls = true;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ సరిగ్గా లేదు.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
+        var video = await ytExplode.videos.get(yt.VideoId(extractedId));
+        
+        // లైవ్ వీడియోల కోసం ఒక లింక్, నార్మల్ వీడియోల కోసం ఇంకో లింక్
+        if (video.isLive) {
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
+        } else {
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
+          if (manifest.muxed.isNotEmpty) {
+            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ వీడియోకు పర్మిషన్ లేదు."), backgroundColor: Colors.red));
+            ytExplode.close();
+            return;
+          }
+        }
+        ytExplode.close();
+      } catch (e) {
+        debugPrint("YouTube Parse Error: $e");
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు. దయచేసి వేరొక లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+        return;
       }
-      return;
     }
 
-    // డైరెక్ట్ MP4 లింక్ అయితే
-    _ytController?.close();
-    _ytController = null;
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _bulletinVideoController = VideoPlayerController.network(url)
+    
+    // ఏ అడ్డంకి లేకుండా నేరుగా వీడియో ప్లే అవుతుంది
+    _bulletinVideoController = VideoPlayerController.network(finalPlayUrl)
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
         setState(() {
-          isYtMode = false;
           isNewsBulletinMode = true;
           isDualScreenMode = false; 
           hideControls = true;
@@ -288,6 +274,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
         _bulletinVideoController?.setLooping(false);
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
+        debugPrint("Video Player Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు.")));
       });
   }
@@ -305,12 +292,8 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     HapticFeedback.mediumImpact();
     setState(() {
       isBulletinMuted = !isBulletinMuted;
-      if (isNewsBulletinMode) {
-        if (isYtMode && _ytController != null) {
-          isBulletinMuted ? _ytController!.mute() : _ytController!.unMute();
-        } else if (_bulletinVideoController != null) {
-          _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-        }
+      if (isNewsBulletinMode && _bulletinVideoController != null) {
+        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
       }
     });
   }
@@ -388,7 +371,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
             ),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
-            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌లైన్ (Blue Box)")),
+            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
             ElevatedButton(
@@ -462,7 +445,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       if (medias.isNotEmpty && mounted) {
         dualMediaList = medias.map((e) => e.path).toList();
         currentDualMediaIndex = 0;
-        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; _ytController?.close(); _ytController = null; });
+        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; });
         _playDualMedia(dualMediaList[currentDualMediaIndex]);
       }
     } catch (e) {}
@@ -612,17 +595,13 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       double pipHeight = pipWidth * (screenHeight / screenWidth); 
       if (!isPipPositionInitialized) { pipLeft = 15.0; pipTop = 60.0; isPipPositionInitialized = true; }
 
-      // కొత్త ఐఫ్రేమ్ ప్లేయర్‌తో డిస్‌ప్లే
-      Widget mainPlayer = isYtMode && _ytController != null 
-          ? YoutubePlayer(
-              controller: _ytController!,
-              aspectRatio: 16 / 9,
-            ) 
-          : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized ? VideoPlayer(_bulletinVideoController!) : Container());
+      Widget mainPlayer = (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) 
+          ? VideoPlayer(_bulletinVideoController!) 
+          : const Center(child: CircularProgressIndicator(color: Colors.amber));
 
       Widget baseWidget = Stack(
         children: [
-          Positioned.fill(child: Container(color: Colors.black, child: Center(child: mainPlayer))),
+          Positioned.fill(child: Container(color: Colors.black, child: Center(child: AspectRatio(aspectRatio: _bulletinVideoController?.value.aspectRatio ?? 16/9, child: mainPlayer)))),
           if (isCameraVisible)
             Positioned(
               top: pipTop, left: pipLeft,
