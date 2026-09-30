@@ -22,6 +22,7 @@ dependencies:
   geolocator: ^13.0.0
   url_launcher: ^6.2.1
   youtube_explode_dart: ^2.2.2
+  youtube_player_flutter: ^8.1.2 # <--- యూట్యూబ్ వీడియోలు ప్లే చేయడానికి యాడ్ చేసిన ప్యాకేజీ
 
 dependency_overrides:
   flutter_inappwebview: ^6.0.0
