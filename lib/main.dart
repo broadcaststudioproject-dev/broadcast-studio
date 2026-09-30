@@ -220,7 +220,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- యూట్యూబ్ / MP4 నెట్‌వర్క్ వీడియో ప్లేబ్యాక్ (ఎంబెడెడ్ అనుచిత ఆప్షన్లు రాకుండా) ---
+  // --- యూట్యూబ్ / MP4 నెట్‌వర్క్ వీడియో ప్లేబ్యాక్ (Explode Dart ద్వారా) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -269,7 +269,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- లైవ్ బ్రాడ్ కాస్టింగ్ (Go Live బటన్ నొక్కినప్పుడే రికార్డింగ్ స్టార్ట్ అవుతుంది) ---
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty) { 
@@ -455,9 +454,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); 
             }),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("3. YouTube Video Link (ప్లే చేయడానికి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
+            _buildLinkEditor("3. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); 
-              _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); // యూట్యూబ్ లింక్ డైరెక్ట్ వీడియో ప్లేయర్‌లో ప్లే అవుతుంది
+              _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); 
             }),
           ])),
           actions: [
@@ -625,7 +624,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: 3)))) 
       : cameraWidget;
 
-    // స్ప్లిట్ స్క్రీన్
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.all(2.0), 
@@ -683,7 +681,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // యూట్యూబ్ / నెట్‌వర్క్ వీడియో ప్లేయర్ (డ్రాగబుల్ కెమెరాతో)
     if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
       double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
       double pipHeight = pipWidth * (screenHeight / screenWidth);
