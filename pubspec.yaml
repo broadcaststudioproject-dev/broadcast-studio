@@ -26,7 +26,8 @@ dependencies:
 
 # ఈ కింద ఉన్న విభాగం ఎర్రర్‌ను సాల్వ్ చేస్తుంది
 dependency_overrides:
-  flutter_inappwebview: ^6.1.5 
+  flutter_inappwebview: ^6.1.5
+  flutter_inappwebview_android: ^1.1.5  # ఈ లైన్ కొత్తగా జత చేయాలి 
 
 flutter:
   uses-material-design: true
