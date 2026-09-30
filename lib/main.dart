@@ -198,6 +198,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { isMenuOpen = false; });
   }
 
+  // --- కొత్త సురక్షితమైన యూట్యూబ్ లింక్ పార్సింగ్ లాజిక్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     String finalPlayUrl = url;
@@ -206,11 +207,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       try {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
         var ytExplode = yt.YoutubeExplode();
-        String? videoId = yt.VideoId.parseVideoId(url);
+        
+        String? videoId;
+        try {
+          videoId = yt.VideoId.parseVideoId(url);
+        } catch (_) {}
+
+        if (videoId == null) {
+          RegExp regExp = RegExp(
+            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
+            caseSensitive: false,
+          );
+          Match? match = regExp.firstMatch(url);
+          if (match != null && match.groupCount >= 1) {
+            videoId = match.group(1);
+          }
+        }
+
         if (videoId == null) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
           return;
         }
+
         var video = await ytExplode.videos.get(yt.VideoId(videoId));
         if (video.isLive) {
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
@@ -662,7 +680,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () { if (!isLiveLocked) setState(() { isMenuOpen ? isMenuOpen = false : hideControls = !hideControls; }); },
-          onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌‌లాక్ చేయబడింది."))); } },
+          onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌‌‌‌లాక్ చేయబడింది."))); } },
           child: Stack(
             children: [
               Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget)),
