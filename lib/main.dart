@@ -11,6 +11,57 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
+// --- యూట్యూబ్ లింక్ ద్వారా వీడియో ప్లే చేసే ప్రత్యేక కోడ్ విభాగం ---
+class YouTubePlayerService {
+  static Future<String?> extractYouTubeStreamUrl(String url) async {
+    if (url.isEmpty) return null;
+    String finalPlayUrl = url;
+
+    if (url.contains("youtube.com") || url.contains("youtu.be")) {
+      try {
+        var ytExplode = yt.YoutubeExplode();
+        String? videoId;
+        
+        try {
+          videoId = yt.VideoId.parseVideoId(url);
+        } catch (_) {}
+
+        if (videoId == null) {
+          RegExp regExp = RegExp(
+            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
+            caseSensitive: false,
+          );
+          Match? match = regExp.firstMatch(url);
+          if (match != null && match.groupCount >= 1) {
+            videoId = match.group(1);
+          }
+        }
+
+        if (videoId == null) {
+          ytExplode.close();
+          return null; 
+        }
+
+        var video = await ytExplode.videos.get(yt.VideoId(videoId));
+        if (video.isLive) {
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
+        } else {
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
+          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
+        }
+        
+        ytExplode.close();
+        return finalPlayUrl;
+      } catch (e) {
+        debugPrint("YouTube Extraction Error: $e");
+        return null;
+      }
+    }
+    
+    return finalPlayUrl;
+  }
+}
+
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
@@ -217,68 +268,45 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // --- 1. యూట్యూబ్ ప్లేబ్యాక్ లాజిక్ (User-Agent ద్వారా బ్లాక్స్ బైపాస్) ---
+  // పైన వేరుచేసిన సర్వీస్ ద్వారా యూట్యూబ్ లింక్‌ను పక్కాగా ప్లే చేసే ఫంక్షన్
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
-    String finalPlayUrl = url;
-    
-    if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      try {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
-        var ytExplode = yt.YoutubeExplode();
-        
-        String? extractedId = yt.VideoId.parseVideoId(url);
-        if (extractedId == null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ సరిగ్గా లేదు."), backgroundColor: Colors.red));
-          return;
-        }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange),
+    );
 
-        var video = await ytExplode.videos.get(yt.VideoId(extractedId));
-        
-        if (video.isLive) {
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
-        } else {
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
-          if (manifest.muxed.isNotEmpty) {
-            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ వీడియో ఫార్మాట్ సపోర్ట్ చేయదు."), backgroundColor: Colors.red));
-            ytExplode.close();
-            return;
-          }
-        }
-        ytExplode.close();
-      } catch (e) {
-        debugPrint("YouTube Parse Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు."), backgroundColor: Colors.red));
-        return;
-      }
+    String? playableUrl = await YouTubePlayerService.extractYouTubeStreamUrl(url);
+
+    if (playableUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్ లేదా ప్లే చేయడం సాధ్యం కాలేదు."), backgroundColor: Colors.red),
+      );
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green),
+    );
 
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     
-    // యూట్యూబ్ రోబోట్ అని బ్లాక్ చేయకుండా User-Agent హెడర్ పంపుతున్నాం
-    _bulletinVideoController = VideoPlayerController.networkUrl(
-      Uri.parse(finalPlayUrl),
-      httpHeaders: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
-      }
-    )..initialize().then((_) {
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playableUrl))
+      ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-        setState(() {
-          isNewsBulletinMode = true;
+        setState(() { 
+          isNewsBulletinMode = true; 
           isDualScreenMode = false; 
-          hideControls = true;
+          hideControls = true; 
         });
         _bulletinVideoController?.play();
-        _bulletinVideoController?.setLooping(false);
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
-        debugPrint("Video Player Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red),
+        );
       });
   }
 
@@ -301,7 +329,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // --- 2. Go Live ఫంక్షన్ (YouTube Live స్ట్రీమింగ్ కోసం పక్కా లాజిక్) ---
+  // Go Live బటన్ ద్వారా రికార్డింగ్ & బ్రాడ్‌కాస్టింగ్
   Future<void> _startLiveAndLock() async {
     String fullRtmpUrl = youtubeUrlController.text.trim();
     if (fullRtmpUrl.isEmpty || !fullRtmpUrl.contains("rtmp")) { 
@@ -309,7 +337,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       return; 
     }
 
-    // ఆడియో ఎన్‌కోడర్ క్రాష్ అవ్వకుండా మైక్ పర్మిషన్ పక్కాగా చెక్ చేస్తున్నాం
     var micStatus = await Permission.microphone.status;
     if (!micStatus.isGranted) {
       micStatus = await Permission.microphone.request();
@@ -320,9 +347,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     }
 
     try {
-      // ఆండ్రాయిడ్‌కి రికార్డింగ్ స్టార్ట్ చేయమని కమాండ్
       bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-      
       if (success) {
         HapticFeedback.heavyImpact();
         SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
@@ -835,8 +860,7 @@ class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      
-      // రికార్డింగ్ కోసం 'recordAudio' పారామీటర్‌ పంపుతున్నాం
+      // ఆడియో రికార్డింగ్ పెరామీటర్
       await platform.invokeMethod('startScreenStream', {
         'rtmpUrl': safeUrl,
         'recordAudio': true 
