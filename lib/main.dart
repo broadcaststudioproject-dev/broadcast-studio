@@ -217,7 +217,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // --- YouTube Explode ద్వారా పక్కా ఆన్‌లైన్ ప్లేబ్యాక్ (No WebView) ---
+  // --- 1. యూట్యూబ్ ప్లేబ్యాక్ లాజిక్ (User-Agent ద్వారా బ్లాక్స్ బైపాస్) ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -225,7 +225,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
         var ytExplode = yt.YoutubeExplode();
         
         String? extractedId = yt.VideoId.parseVideoId(url);
@@ -236,7 +236,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
         var video = await ytExplode.videos.get(yt.VideoId(extractedId));
         
-        // లైవ్ వీడియోల కోసం ఒక లింక్, నార్మల్ వీడియోల కోసం ఇంకో లింక్
         if (video.isLive) {
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
         } else {
@@ -244,7 +243,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
           if (manifest.muxed.isNotEmpty) {
             finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ వీడియోకు పర్మిషన్ లేదు."), backgroundColor: Colors.red));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ వీడియో ఫార్మాట్ సపోర్ట్ చేయదు."), backgroundColor: Colors.red));
             ytExplode.close();
             return;
           }
@@ -252,7 +251,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
         ytExplode.close();
       } catch (e) {
         debugPrint("YouTube Parse Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు. దయచేసి వేరొక లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు."), backgroundColor: Colors.red));
         return;
       }
     }
@@ -260,9 +259,13 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     
-    // ఏ అడ్డంకి లేకుండా నేరుగా వీడియో ప్లే అవుతుంది
-    _bulletinVideoController = VideoPlayerController.network(finalPlayUrl)
-      ..initialize().then((_) {
+    // యూట్యూబ్ రోబోట్ అని బ్లాక్ చేయకుండా User-Agent హెడర్ పంపుతున్నాం
+    _bulletinVideoController = VideoPlayerController.networkUrl(
+      Uri.parse(finalPlayUrl),
+      httpHeaders: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+      }
+    )..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
         setState(() {
@@ -298,6 +301,63 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
+  // --- 2. Go Live ఫంక్షన్ (YouTube Live స్ట్రీమింగ్ కోసం పక్కా లాజిక్) ---
+  Future<void> _startLiveAndLock() async {
+    String fullRtmpUrl = youtubeUrlController.text.trim();
+    if (fullRtmpUrl.isEmpty || !fullRtmpUrl.contains("rtmp")) { 
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి సరైన YouTube RTMP/Stream Key లింక్ ఇవ్వండి."), backgroundColor: Colors.red)); 
+      return; 
+    }
+
+    // ఆడియో ఎన్‌కోడర్ క్రాష్ అవ్వకుండా మైక్ పర్మిషన్ పక్కాగా చెక్ చేస్తున్నాం
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) {
+      micStatus = await Permission.microphone.request();
+    }
+    if (!micStatus.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆడియో రికార్డ్ చేయడానికి Microphone పర్మిషన్ తప్పనిసరి!"), backgroundColor: Colors.red));
+      return;
+    }
+
+    try {
+      // ఆండ్రాయిడ్‌కి రికార్డింగ్ స్టార్ట్ చేయమని కమాండ్
+      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+      
+      if (success) {
+        HapticFeedback.heavyImpact();
+        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+        setState(() { 
+          isLiveBroadcasting = true; 
+          isLivePaused = false; 
+          isLiveLocked = true; 
+          hideControls = true; 
+          isMenuOpen = false; 
+          isLandscape = true; 
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("YouTube Live విజయవంతంగా ప్రారంభమైంది!"), backgroundColor: Colors.green));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ కనెక్ట్ అవ్వలేదు. ఇంటర్నెట్ లేదా స్ట్రీమ్ కీ చెక్ చేయండి."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("ఎర్రర్: $e"), backgroundColor: Colors.red));
+    }
+  }
+
+  Future<void> _stopLiveStream() async {
+    try {
+      bool success = await StreamServiceManager.stopLiveStream();
+      if (success) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+        setState(() { 
+          isLiveBroadcasting = false; 
+          isLiveLocked = false; 
+          isLivePaused = false; 
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ఆపబడింది."), backgroundColor: Colors.green));
+      }
+    } catch (e) {}
+  }
+
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(context: context, builder: (context) {
@@ -308,7 +368,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
           content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
             _buildLinkEditor("1. YouTube/Restream RTMP Key", youtubeUrlController, setDialogState),
             const Divider(color: Colors.white24, height: 20),
-            _buildLinkEditor("2. YouTube Video Link (ఇక్కడ లింక్ ఇవ్వండి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
+            _buildLinkEditor("2. YouTube Video Link (ప్లే చేయడానికి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { 
               Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); 
             }),
             const Divider(color: Colors.white24, height: 20),
@@ -350,6 +410,15 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
         if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
       ])
     ]);
+  }
+
+  Future<void> _pickBreakingNewsLogo() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+      if (image != null && mounted) { 
+        setState(() { breakingNewsLogoPath = image.path; }); 
+      }
+    } catch (e) { }
   }
 
   void _showEditDialog() {
@@ -410,28 +479,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } 
       else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
     });
-  }
-
-  Future<void> _startLiveAndLock() async {
-    String fullRtmpUrl = youtubeUrlController.text.trim();
-    if (fullRtmpUrl.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సరైన RTMP లింక్ ఇవ్వండి."), backgroundColor: Colors.blueAccent)); return; }
-    try {
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
-      if (success) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-        setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = true; hideControls = true; isMenuOpen = false; isLandscape = true; });
-      }
-    } catch (e) {}
-  }
-
-  Future<void> _stopLiveStream() async {
-    try {
-      bool success = await StreamServiceManager.stopLiveStream();
-      if (success) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-        setState(() { isLiveBroadcasting = false; isLiveLocked = false; isLivePaused = false; });
-      }
-    } catch (e) {}
   }
 
   Future<void> _toggleDualScreenAndPickMedia() async {
@@ -784,20 +831,29 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
+  
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
+      
+      // రికార్డింగ్ కోసం 'recordAudio' పారామీటర్‌ పంపుతున్నాం
       await platform.invokeMethod('startScreenStream', {
         'rtmpUrl': safeUrl,
         'recordAudio': true 
       }); 
       return true; 
-    } catch (e) { return false; }
+    } catch (e) { 
+      debugPrint("Live Stream Error: $e");
+      return false; 
+    }
   }
+  
   static Future<bool> stopLiveStream() async {
     try { 
       await platform.invokeMethod('stopScreenStream'); 
       return true; 
-    } catch (e) { return false; }
+    } catch (e) { 
+      return false; 
+    }
   }
 }
