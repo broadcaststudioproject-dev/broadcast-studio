@@ -71,7 +71,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false; // యూజర్ అవసరాన్ని బట్టి కెమెరా ఆన్/ఆఫ్ చేసుకోవడానికి
+  bool isCameraVisible = false; 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -96,7 +96,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
 
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
-  String splitScreenSubHeadline = "వార్తా అప్‌డేట్";
+  String splitScreenSubHeadline = "వార్తా అప్‌‌డేట్";
 
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController networkVideoUrlCtrl = TextEditingController();
@@ -112,7 +112,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // కలర్‌ఫుల్ యానిమేటెడ్ వాల్‌పేపర్ కోసం కంట్రోలర్
   late AnimationController _bgAnimationController;
 
   @override
@@ -209,7 +208,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     setState(() { isMenuOpen = false; });
   }
 
-  // కెమెరా ఆన్/ఆఫ్ టోగుల్ ఆప్షన్
   void _toggleCameraVisibility() {
     setState(() {
       isCameraVisible = !isCameraVisible;
@@ -369,7 +367,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
             ),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
-            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")),
+            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌లైన్ (Blue Box)")),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
             ElevatedButton(
@@ -543,7 +541,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
               )
             : Container(color: Colors.transparent);
 
-    // 2. Dual స్క్రీన్ చుట్టూ నాలుగు వైపులా స్పష్టమైన బార్డర్ వచ్చేలా సెట్ చేయబడింది
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
         margin: const EdgeInsets.all(6.0), 
@@ -589,28 +586,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       );
     }
 
-    if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
-      return Stack(children: [
-        Positioned.fill(
-          child: Container(
-            color: Colors.black, 
-            child: Center(
-              child: AspectRatio(aspectRatio: _bulletinVideoController!.value.aspectRatio, child: VideoPlayer(_bulletinVideoController!))
-            )
-          ),
-        ),
-        if (isCameraVisible) 
-          Positioned(
-            top: 20, left: 15, width: screenWidth * 0.3, height: screenHeight * 0.25,
-            child: Container(
-              decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0)), 
-              child: actualCameraWidget
-            )
-          ),
-      ]);
-    }
-
-    // 5. L-Band యాడ్స్ స్క్రీన్ పైకి వచ్చే సమయాన, కవర్ చేయని ఖాళీ ఫ్రేమ్‌లో వీడియో/కెమెరా ప్లే అయ్యేలా సెట్ చేయబడింది
+    // L-Band యాడ్స్ ఆన్ అయినప్పుడు కవర్ చేయని మిగిలిన ఖాళీ ఫ్రేమ్‌లో వీడియో పర్‌ఫెక్ట్‌గా అడ్జస్ట్ అయ్యేలా సెట్ చేయబడింది
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.28; 
       double horizAdHeight = screenHeight * 0.20; 
@@ -692,7 +668,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
           onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌లాక్ చేయబడింది."))); } },
           child: Stack(
             children: [
-              // 4. డిస్‌ప్లే వెనుక భాగంలో ఒక అద్భుతమైన కలర్‌ఫుల్ యానిమేటెడ్ గ్రేడియంట్ వాల్‌‌పేపర్
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: _bgAnimationController,
@@ -716,6 +691,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
               Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, Container())),
               
+              // 4 మూలలకు మారే లోగో విడ్జెట్
               Positioned(
                 top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
                 bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,
@@ -749,10 +725,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
                     child: Center(
                       child: Wrap(alignment: WrapAlignment.center, spacing: 25, runSpacing: 25, children: [
                           _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                          
-                          // 3. కెమెరా అవసరం అయినప్పుడు ఆన్/ఆఫ్ చేసుకునే బటన్
                           _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),
-                          
                           _buildControlButton(Icons.grid_on, "1. Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                           _buildControlButton(Icons.live_tv, "2. Multi-Live Cntrl", _showMultiStreamDialog, Colors.redAccent),
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
