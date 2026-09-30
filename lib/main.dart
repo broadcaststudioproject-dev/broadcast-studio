@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart'; 
+import 'package:youtube_player_iframe/youtube_player_iframe.dart'; // <-- కొత్త ప్లేయర్ ఇంపోర్ట్
 
 List<CameraDescription> cameras = [];
 
@@ -45,7 +45,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
-  YoutubePlayerController? _ytController; // అఫీషియల్ యూట్యూబ్ ప్లేయర్
+  YoutubePlayerController? _ytController; // కొత్త ప్లేయర్ కంట్రోలర్
   
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
@@ -166,7 +166,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _ytController?.dispose();
+    _ytController?.close(); // ఐఫ్రేమ్ ప్లేయర్ క్లోజ్
     _bottomAdVideoController?.dispose();
     _verticalAdController?.dispose();
     _horizontalAdController?.dispose();
@@ -220,27 +220,40 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
-  // --- పక్కాగా పనిచేసే యూట్యూబ్/ఆన్‌లైన్ ప్లేబ్యాక్ ఫంక్షన్ ---
+  // --- కొత్త YouTube IFrame Player లాజిక్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
-    // యూట్యూబ్ లింక్ అయితే అఫీషియల్ ప్లేయర్‌ను లోడ్ చేస్తుంది
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      String? videoId = YoutubePlayer.convertUrlToId(url);
+      String? videoId;
+      try {
+         // ఐడీని తీయడానికి లాజిక్
+         RegExp regExp = RegExp(
+            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
+            caseSensitive: false,
+         );
+         Match? match = regExp.firstMatch(url);
+         if (match != null && match.groupCount >= 1) {
+            videoId = match.group(1);
+         }
+      } catch (_) {}
+
       if (videoId != null) {
         _bulletinVideoController?.removeListener(_videoListener);
         _bulletinVideoController?.dispose();
         _bulletinVideoController = null;
 
-        _ytController?.dispose();
-        _ytController = YoutubePlayerController(
-          initialVideoId: videoId,
-          flags: YoutubePlayerFlags(
-            autoPlay: true,
-            mute: isBulletinMuted,
-            hideControls: true, // అనుచిత ఆప్షన్లు కనిపించకుండా చేస్తుంది
-            isLive: false,
-            forceHD: true,
+        _ytController?.close();
+        
+        // IFrame Player సెటప్ (ఎలాంటి వెబ్‌వ్యూ ఎర్రర్స్ లేకుండా)
+        _ytController = YoutubePlayerController.fromVideoId(
+          videoId: videoId,
+          autoPlay: true,
+          params: const YoutubePlayerParams(
+            showControls: false,
+            showFullscreenButton: false,
+            mute: false,
+            loop: false,
           ),
         );
 
@@ -257,7 +270,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     }
 
     // డైరెక్ట్ MP4 లింక్ అయితే
-    _ytController?.dispose();
+    _ytController?.close();
     _ytController = null;
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
@@ -449,7 +462,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       if (medias.isNotEmpty && mounted) {
         dualMediaList = medias.map((e) => e.path).toList();
         currentDualMediaIndex = 0;
-        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; _ytController?.dispose(); _ytController = null; });
+        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; _ytController?.close(); _ytController = null; });
         _playDualMedia(dualMediaList[currentDualMediaIndex]);
       }
     } catch (e) {}
@@ -599,8 +612,12 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       double pipHeight = pipWidth * (screenHeight / screenWidth); 
       if (!isPipPositionInitialized) { pipLeft = 15.0; pipTop = 60.0; isPipPositionInitialized = true; }
 
+      // కొత్త ఐఫ్రేమ్ ప్లేయర్‌తో డిస్‌ప్లే
       Widget mainPlayer = isYtMode && _ytController != null 
-          ? YoutubePlayer(controller: _ytController!, showVideoProgressIndicator: false, bottomActions: const []) 
+          ? YoutubePlayer(
+              controller: _ytController!,
+              aspectRatio: 16 / 9,
+            ) 
           : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized ? VideoPlayer(_bulletinVideoController!) : Container());
 
       Widget baseWidget = Stack(
@@ -791,7 +808,6 @@ class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      // ఇక్కడ ఆండ్రాయిడ్‌కు "ఇంటర్నల్ ఆడియో & మైక్ రికార్డ్ చేయి" అని స్పష్టంగా చెప్తున్నాం
       await platform.invokeMethod('startScreenStream', {
         'rtmpUrl': safeUrl,
         'recordAudio': true 
