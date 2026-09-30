@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; 
+import 'package:youtube_player_flutter/youtube_player_flutter.dart'; 
 
 List<CameraDescription> cameras = [];
 
@@ -45,6 +45,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
+  YoutubePlayerController? _ytController; // అఫీషియల్ యూట్యూబ్ ప్లేయర్
   
   List<String> dualMediaList = [];
   int currentDualMediaIndex = 0;
@@ -64,12 +65,13 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   bool isDualScreenMode = false;
   bool isAnimatedAdsMode = false; 
   bool isLBandRight = true; 
-  int logoPosition = 1; // 0: TopLeft, 1: TopRight, 2: BottomRight, 3: BottomLeft
+  int logoPosition = 1; 
 
   String verticalAnimatedAdPath = "";
   String horizontalAnimatedAdPath = ""; 
 
   bool isNewsBulletinMode = false;
+  bool isYtMode = false; 
   bool isBulletinMuted = false;
   bool isCameraVisible = false; 
   
@@ -164,6 +166,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
+    _ytController?.dispose();
     _bottomAdVideoController?.dispose();
     _verticalAdController?.dispose();
     _horizontalAdController?.dispose();
@@ -202,7 +205,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   void _switchCamera() async {
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
-    if (isCameraVisible) {
+    if (isCameraVisible || (!isNewsBulletinMode && !isDualScreenMode)) {
       await _initCamera();
     }
     setState(() { isMenuOpen = false; });
@@ -217,61 +220,62 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     });
   }
 
+  // --- పక్కాగా పనిచేసే యూట్యూబ్/ఆన్‌లైన్ ప్లేబ్యాక్ ఫంక్షన్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
-    String finalPlayUrl = url;
 
+    // యూట్యూబ్ లింక్ అయితే అఫీషియల్ ప్లేయర్‌ను లోడ్ చేస్తుంది
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      try {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
-        var ytExplode = yt.YoutubeExplode();
-        String? videoId;
-        try {
-          videoId = yt.VideoId.parseVideoId(url);
-        } catch (_) {}
+      String? videoId = YoutubePlayer.convertUrlToId(url);
+      if (videoId != null) {
+        _bulletinVideoController?.removeListener(_videoListener);
+        _bulletinVideoController?.dispose();
+        _bulletinVideoController = null;
 
-        if (videoId == null) {
-          RegExp regExp = RegExp(
-            r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})',
-            caseSensitive: false,
-          );
-          Match? match = regExp.firstMatch(url);
-          if (match != null && match.groupCount >= 1) {
-            videoId = match.group(1);
-          }
-        }
+        _ytController?.dispose();
+        _ytController = YoutubePlayerController(
+          initialVideoId: videoId,
+          flags: YoutubePlayerFlags(
+            autoPlay: true,
+            mute: isBulletinMuted,
+            hideControls: true, // అనుచిత ఆప్షన్లు కనిపించకుండా చేస్తుంది
+            isLive: false,
+            forceHD: true,
+          ),
+        );
 
-        if (videoId == null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
-          return;
-        }
-
-        var video = await ytExplode.videos.get(yt.VideoId(videoId));
-        if (video.isLive) {
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);
-        } else {
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);
-          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
-        }
-        ytExplode.close();
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ యూట్యూబ్ వీడియో ప్లే చేయడం సాధ్యం కాలేదు."), backgroundColor: Colors.red));
-        return;
+        setState(() {
+          isYtMode = true;
+          isNewsBulletinMode = true;
+          isDualScreenMode = false; 
+          hideControls = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ సరిగ్గా లేదు.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.red));
       }
+      return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green));
+    // డైరెక్ట్ MP4 లింక్ అయితే
+    _ytController?.dispose();
+    _ytController = null;
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))
+    _bulletinVideoController = VideoPlayerController.network(url)
       ..initialize().then((_) {
         if (!mounted) return;
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
-        setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; });
+        setState(() {
+          isYtMode = false;
+          isNewsBulletinMode = true;
+          isDualScreenMode = false; 
+          hideControls = true;
+        });
         _bulletinVideoController?.play();
+        _bulletinVideoController?.setLooping(false);
         _bulletinVideoController?.addListener(_videoListener);
       }).catchError((e) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు.")));
       });
   }
 
@@ -288,8 +292,12 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     HapticFeedback.mediumImpact();
     setState(() {
       isBulletinMuted = !isBulletinMuted;
-      if (isNewsBulletinMode && _bulletinVideoController != null) {
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
+      if (isNewsBulletinMode) {
+        if (isYtMode && _ytController != null) {
+          isBulletinMuted ? _ytController!.mute() : _ytController!.unMute();
+        } else if (_bulletinVideoController != null) {
+          _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
+        }
       }
     });
   }
@@ -441,7 +449,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       if (medias.isNotEmpty && mounted) {
         dualMediaList = medias.map((e) => e.path).toList();
         currentDualMediaIndex = 0;
-        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; });
+        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; _ytController?.dispose(); _ytController = null; });
         _playDualMedia(dualMediaList[currentDualMediaIndex]);
       }
     } catch (e) {}
@@ -526,7 +534,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
     Widget actualCameraWidget = isLivePaused 
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
-        : (isCameraVisible && _isCameraInitialized && controller != null && controller!.value.isInitialized)
+        : (!isNewsBulletinMode && !isDualScreenMode && _isCameraInitialized && controller != null && controller!.value.isInitialized) || (isCameraVisible && _isCameraInitialized && controller != null && controller!.value.isInitialized)
             ? ClipRect(
                 child: SizedBox.expand(
                   child: FittedBox(
@@ -539,7 +547,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
                   ),
                 ),
               )
-            : Container(color: Colors.transparent);
+            : Container(color: Colors.black);
 
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
@@ -586,8 +594,35 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       );
     }
 
-    // L-Band యాడ్స్ ఆన్ అయినప్పుడు కవర్ చేయని మిగిలిన ఖాళీ ఫ్రేమ్‌లో వీడియో పర్‌ఫెక్ట్‌గా అడ్జస్ట్ అయ్యేలా సెట్ చేయబడింది
-    if (isAnimatedAdsMode) {
+    if (isNewsBulletinMode) {
+      double pipWidth = isScreenLandscape ? screenWidth * 0.28 : screenWidth * 0.38;
+      double pipHeight = pipWidth * (screenHeight / screenWidth); 
+      if (!isPipPositionInitialized) { pipLeft = 15.0; pipTop = 60.0; isPipPositionInitialized = true; }
+
+      Widget mainPlayer = isYtMode && _ytController != null 
+          ? YoutubePlayer(controller: _ytController!, showVideoProgressIndicator: false, bottomActions: const []) 
+          : (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized ? VideoPlayer(_bulletinVideoController!) : Container());
+
+      Widget baseWidget = Stack(
+        children: [
+          Positioned.fill(child: Container(color: Colors.black, child: Center(child: mainPlayer))),
+          if (isCameraVisible)
+            Positioned(
+              top: pipTop, left: pipLeft,
+              child: GestureDetector(
+                onPanUpdate: (details) { setState(() { pipTop += details.delta.dy; pipLeft += details.delta.dx; }); },
+                child: Container(
+                  width: pipWidth, height: pipHeight,
+                  decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2.0), boxShadow: const [BoxShadow(color: Colors.black87, blurRadius: 8)]),
+                  child: actualCameraWidget, 
+                ),
+              ),
+            ),
+        ],
+      );
+
+      if (!isAnimatedAdsMode) return baseWidget;
+
       double vertAdWidth = screenWidth * 0.28; 
       double horizAdHeight = screenHeight * 0.20; 
       return Container(
@@ -598,39 +633,39 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
             top: 0, 
             right: isLBandRight ? vertAdWidth : 0, 
             bottom: horizAdHeight + 55, 
-            child: isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized
-                ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!)))
-                : actualCameraWidget
+            child: baseWidget
           ), 
           Positioned(
-            left: isLBandRight ? null : 0,
-            right: isLBandRight ? 0 : null, 
-            top: 0, 
-            bottom: 55, 
-            width: vertAdWidth, 
+            left: isLBandRight ? null : 0, right: isLBandRight ? 0 : null, top: 0, bottom: 55, width: vertAdWidth, 
             child: GestureDetector(onTap: _pickVerticalAd, child: Container(color: const Color(0xFF0D47A1), child: verticalAnimatedAdPath.isNotEmpty ? (_verticalAdController != null && _verticalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!))) : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white)))))
           ),
           Positioned(
-            left: isLBandRight ? 0 : vertAdWidth, 
-            right: isLBandRight ? vertAdWidth : 0, 
-            bottom: 55, 
-            height: horizAdHeight, 
+            left: isLBandRight ? 0 : vertAdWidth, right: isLBandRight ? vertAdWidth : 0, bottom: 55, height: horizAdHeight, 
             child: GestureDetector(onTap: _pickHorizontalAd, child: Container(color: const Color(0xFF0D47A1), child: horizontalAnimatedAdPath.isNotEmpty ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!))) : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white)))))
           ),
         ])
       );
     }
 
-    if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {
-      return Positioned.fill(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _bulletinVideoController!.value.size.width,
-            height: _bulletinVideoController!.value.size.height,
-            child: VideoPlayer(_bulletinVideoController!),
+    if (isAnimatedAdsMode) {
+      double vertAdWidth = screenWidth * 0.28; 
+      double horizAdHeight = screenHeight * 0.20; 
+      return Container(
+        color: const Color(0xFFB71C1C), 
+        child: Stack(children: [
+          Positioned(
+            left: isLBandRight ? 0 : vertAdWidth, top: 0, right: isLBandRight ? vertAdWidth : 0, bottom: horizAdHeight + 55, 
+            child: actualCameraWidget
+          ), 
+          Positioned(
+            left: isLBandRight ? null : 0, right: isLBandRight ? 0 : null, top: 0, bottom: 55, width: vertAdWidth, 
+            child: GestureDetector(onTap: _pickVerticalAd, child: Container(color: const Color(0xFF0D47A1), child: verticalAnimatedAdPath.isNotEmpty ? (_verticalAdController != null && _verticalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!))) : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white)))))
           ),
-        ),
+          Positioned(
+            left: isLBandRight ? 0 : vertAdWidth, right: isLBandRight ? vertAdWidth : 0, bottom: 55, height: horizAdHeight, 
+            child: GestureDetector(onTap: _pickHorizontalAd, child: Container(color: const Color(0xFF0D47A1), child: horizontalAnimatedAdPath.isNotEmpty ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!))) : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white)))))
+          ),
+        ])
       );
     }
 
@@ -691,7 +726,6 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
               Positioned.fill(child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, Container())),
               
-              // 4 మూలలకు మారే లోగో విడ్జెట్
               Positioned(
                 top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
                 bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,
@@ -757,7 +791,11 @@ class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      await platform.invokeMethod('startScreenStream', {'rtmpUrl': safeUrl}); 
+      // ఇక్కడ ఆండ్రాయిడ్‌కు "ఇంటర్నల్ ఆడియో & మైక్ రికార్డ్ చేయి" అని స్పష్టంగా చెప్తున్నాం
+      await platform.invokeMethod('startScreenStream', {
+        'rtmpUrl': safeUrl,
+        'recordAudio': true 
+      }); 
       return true; 
     } catch (e) { return false; }
   }
