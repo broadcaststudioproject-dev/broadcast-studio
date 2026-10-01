@@ -72,8 +72,8 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
   
-  // కెమెరా డిఫాల్ట్‌గా ఆన్‌లో ఉండేలా సెట్ చేయబడింది
-  bool isCameraVisible = true; 
+  // యాప్ ఓపెన్ చేయగానే కెమెరా డిఫాల్ట్ గా ఆఫ్ (OFF) లో ఉంటుంది
+  bool isCameraVisible = false; 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -140,9 +140,10 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
       DeviceOrientation.landscapeRight
     ]);
 
-    _initCamera();
     _requestPermissions();
     _fetchBreakingNews();
+
+    // గమనిక: ఇక్కడ ఉన్న _initCamera() ని తీసేశాను, కాబట్టి యాప్ ఓపెన్ చేయగానే కెమెరా స్టార్ట్ అవ్వదు.
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { 
       _fetchBreakingNews(); 
@@ -210,17 +211,22 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     setState(() { isMenuOpen = false; });
   }
 
-  // కెమెరా ఆన్/ఆఫ్ పక్కాగా పనిచేసే లాజిక్
-  void _toggleCameraVisibility() {
-    setState(() {
-      isCameraVisible = !isCameraVisible;
-      if (isCameraVisible && (controller == null || !controller!.value.isInitialized)) {
-        _initCamera();
-      }
-    });
+  // కెమెరా ఆన్/ఆఫ్ పక్కాగా పనిచేసే లాజిక్ (బ్యాక్ గ్రౌండ్ లో కూడా క్లోజ్ అవుతుంది)
+  void _toggleCameraVisibility() async {
+    setState(() { isMenuOpen = false; }); // మెనూ క్లోజ్ అవ్వడానికి
+    if (isCameraVisible) {
+      // కెమెరా ఆపినప్పుడు హార్డ్‌వేర్ పూర్తిగా క్లోజ్ అవుతుంది
+      setState(() { isCameraVisible = false; });
+      await controller?.dispose();
+      controller = null;
+      setState(() { _isCameraInitialized = false; });
+    } else {
+      // కెమెరా ఆన్ చేసినప్పుడు మాత్రమే స్టార్ట్ అవుతుంది
+      setState(() { isCameraVisible = true; });
+      await _initCamera();
+    }
   }
 
-  // --- మీ Regex లాజిక్‌తో కలిపిన యూట్యూబ్ ప్లేయర్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
 
@@ -393,7 +399,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
             ),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
-            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")),
+            TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌‌‌లైన్ (Blue Box)")),
             const Divider(color: Colors.white24, height: 20),
             TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
             ElevatedButton(
