@@ -566,10 +566,30 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
   }
 
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
-    // వాస్తవ కెమెరా విడ్జెట్ ఇక్కడ సెట్ చేయబడింది (సరిదిద్దిన లాజిక్)
+    // వాస్తవ కెమెరా విడ్జెట్ ఇక్కడ సెట్ చేయబడింది 
     Widget actualCameraWidget = isLivePaused 
         ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
         : cameraWidget;
+
+    // యానిమేటెడ్ బ్యాక్‌గ్రౌండ్ (వీడియో వెనుక వస్తుంది)
+    Widget animatedBackground = AnimatedBuilder(
+      animation: _bgAnimationController,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.lerp(Colors.indigo.shade900, Colors.purple.shade900, _bgAnimationController.value)!,
+                Color.lerp(Colors.blue.shade800, Colors.deepOrange.shade900, _bgAnimationController.value)!,
+                Color.lerp(Colors.black, Colors.indigo.shade900, _bgAnimationController.value)!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        );
+      },
+    );
 
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
@@ -627,7 +647,8 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
       Widget baseWidget = Stack(
         children: [
-          Positioned.fill(child: Container(color: Colors.black, child: Center(child: AspectRatio(aspectRatio: _bulletinVideoController?.value.aspectRatio ?? 16/9, child: mainPlayer)))),
+          Positioned.fill(child: animatedBackground), // నలుపు రంగుకు బదులుగా యానిమేటెడ్ కలర్స్
+          Positioned.fill(child: Center(child: AspectRatio(aspectRatio: _bulletinVideoController?.value.aspectRatio ?? 16/9, child: mainPlayer))),
           if (isCameraVisible)
             Positioned(
               top: pipTop, left: pipLeft,
@@ -647,48 +668,48 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
 
       double vertAdWidth = screenWidth * 0.28; 
       double horizAdHeight = screenHeight * 0.20; 
-      return Container(
-        color: const Color(0xFFB71C1C), 
-        child: Stack(children: [
-          Positioned(
-            left: isLBandRight ? 0 : vertAdWidth, 
-            top: 0, 
-            right: isLBandRight ? vertAdWidth : 0, 
-            bottom: horizAdHeight + 55, 
-            child: baseWidget
-          ), 
-          Positioned(
-            left: isLBandRight ? null : 0, right: isLBandRight ? 0 : null, top: 0, bottom: 55, width: vertAdWidth, 
-            child: GestureDetector(onTap: _pickVerticalAd, child: Container(color: const Color(0xFF0D47A1), child: verticalAnimatedAdPath.isNotEmpty ? (_verticalAdController != null && _verticalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!))) : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white)))))
-          ),
-          Positioned(
-            left: isLBandRight ? 0 : vertAdWidth, right: isLBandRight ? vertAdWidth : 0, bottom: 55, height: horizAdHeight, 
-            child: GestureDetector(onTap: _pickHorizontalAd, child: Container(color: const Color(0xFF0D47A1), child: horizontalAnimatedAdPath.isNotEmpty ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!))) : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white)))))
-          ),
-        ])
-      );
+      return Stack(children: [
+        Positioned.fill(child: animatedBackground),
+        Positioned(
+          left: isLBandRight ? 0 : vertAdWidth, 
+          top: 0, 
+          right: isLBandRight ? vertAdWidth : 0, 
+          bottom: horizAdHeight + 55, 
+          child: baseWidget
+        ), 
+        // వర్టికల్ యాడ్ - ఫిట్ గా ఉంటుంది
+        Positioned(
+          left: isLBandRight ? null : 0, right: isLBandRight ? 0 : null, top: 0, bottom: 55, width: vertAdWidth, 
+          child: GestureDetector(onTap: _pickVerticalAd, child: Container(color: const Color(0xFF0D47A1), child: verticalAnimatedAdPath.isNotEmpty ? (_verticalAdController != null && _verticalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!))) : SizedBox.expand(child: Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill))) : const Center(child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white)))))
+        ),
+        // హారిజాంటల్ యాడ్ - ఫిట్ గా ఉంటుంది
+        Positioned(
+          left: isLBandRight ? 0 : vertAdWidth, right: isLBandRight ? vertAdWidth : 0, bottom: 55, height: horizAdHeight, 
+          child: GestureDetector(onTap: _pickHorizontalAd, child: Container(color: const Color(0xFF0D47A1), child: horizontalAnimatedAdPath.isNotEmpty ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!))) : SizedBox.expand(child: Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill))) : const Center(child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white)))))
+        ),
+      ]);
     }
 
     if (isAnimatedAdsMode) {
       double vertAdWidth = screenWidth * 0.28; 
       double horizAdHeight = screenHeight * 0.20; 
-      return Container(
-        color: const Color(0xFFB71C1C), 
-        child: Stack(children: [
-          Positioned(
-            left: isLBandRight ? 0 : vertAdWidth, top: 0, right: isLBandRight ? vertAdWidth : 0, bottom: horizAdHeight + 55, 
-            child: actualCameraWidget
-          ), 
-          Positioned(
-            left: isLBandRight ? null : 0, right: isLBandRight ? 0 : null, top: 0, bottom: 55, width: vertAdWidth, 
-            child: GestureDetector(onTap: _pickVerticalAd, child: Container(color: const Color(0xFF0D47A1), child: verticalAnimatedAdPath.isNotEmpty ? (_verticalAdController != null && _verticalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!))) : Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white)))))
-          ),
-          Positioned(
-            left: isLBandRight ? 0 : vertAdWidth, right: isLBandRight ? vertAdWidth : 0, bottom: 55, height: horizAdHeight, 
-            child: GestureDetector(onTap: _pickHorizontalAd, child: Container(color: const Color(0xFF0D47A1), child: horizontalAnimatedAdPath.isNotEmpty ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!))) : Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)) : const Center(child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white)))))
-          ),
-        ])
-      );
+      return Stack(children: [
+        Positioned.fill(child: animatedBackground),
+        Positioned(
+          left: isLBandRight ? 0 : vertAdWidth, top: 0, right: isLBandRight ? vertAdWidth : 0, bottom: horizAdHeight + 55, 
+          child: actualCameraWidget
+        ), 
+        // వర్టికల్ యాడ్ - ఫిట్ గా ఉంటుంది
+        Positioned(
+          left: isLBandRight ? null : 0, right: isLBandRight ? 0 : null, top: 0, bottom: 55, width: vertAdWidth, 
+          child: GestureDetector(onTap: _pickVerticalAd, child: Container(color: const Color(0xFF0D47A1), child: verticalAnimatedAdPath.isNotEmpty ? (_verticalAdController != null && _verticalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _verticalAdController!.value.size.width, height: _verticalAdController!.value.size.height, child: VideoPlayer(_verticalAdController!))) : SizedBox.expand(child: Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill))) : const Center(child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white)))))
+        ),
+        // హారిజాంటల్ యాడ్ - ఫిట్ గా ఉంటుంది
+        Positioned(
+          left: isLBandRight ? 0 : vertAdWidth, right: isLBandRight ? vertAdWidth : 0, bottom: 55, height: horizAdHeight, 
+          child: GestureDetector(onTap: _pickHorizontalAd, child: Container(color: const Color(0xFF0D47A1), child: horizontalAnimatedAdPath.isNotEmpty ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _horizontalAdController!.value.size.width, height: _horizontalAdController!.value.size.height, child: VideoPlayer(_horizontalAdController!))) : SizedBox.expand(child: Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill))) : const Center(child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white)))))
+        ),
+      ]);
     }
 
     return Positioned.fill(child: actualCameraWidget);
@@ -710,7 +731,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
     }
     double finalCamW = isScreenLandscape ? camW : camH; double finalCamH = isScreenLandscape ? camH : camW;
 
-    // కెమెరా విడ్జెట్ కండిషన్ (isCameraVisible ని అనుసరించి అడ్జస్ట్ చేయబడింది)
+    // కెమెరా విడ్జెట్ కండిషన్ 
     Widget cameraWidget;
     if (!isCameraVisible) {
       cameraWidget = Container(color: Colors.transparent);
@@ -817,10 +838,7 @@ class _StudioScreenState extends State<StudioScreen> with TickerProviderStateMix
                     child: Center(
                       child: Wrap(alignment: WrapAlignment.center, spacing: 25, runSpacing: 25, children: [
                           _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                          
-                          // కెమెరా ఆన్/ఆఫ్ కంట్రోల్ బటన్
                           _buildControlButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.redAccent : Colors.greenAccent),
-                          
                           _buildControlButton(Icons.grid_on, "1. Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                           _buildControlButton(Icons.live_tv, "2. Multi-Live Cntrl", _showMultiStreamDialog, Colors.redAccent),
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
