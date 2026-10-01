@@ -35,10 +35,20 @@ class MainActivity: FlutterActivity() {
 
     private fun startScreenCapture() {
         try {
-            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+            // 1. ఆండ్రాయిడ్ 14 క్రాష్ అవ్వకుండా ముందుగా బ్యాక్‌గ్రౌండ్ సర్వీస్ ని ఫోర్స్‌గా ఆపేస్తున్నాం
+            stopScreenCapture()
+            
+            // 2. పాత పర్మిషన్ పూర్తిగా క్లియర్ అవ్వడానికి ఒక అర సెకను (500ms) ఆగి కొత్త పర్మిషన్ అడుగుతున్నాం
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                    startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                } catch (e: Exception) {
+                    showToast("Popup Error: ${e.message}")
+                }
+            }, 500)
         } catch (e: Exception) {
-            showToast("Popup Error: ${e.message}")
+            showToast("Error: ${e.message}")
         }
     }
 
@@ -69,10 +79,14 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun stopScreenCapture() {
-        val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-            action = ScreenStreamService.ACTION_STOP
+        try {
+            val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
+                action = ScreenStreamService.ACTION_STOP
+            }
+            startService(serviceIntent)
+        } catch (e: Exception) {
+            // Ignore if service is already stopped
         }
-        startService(serviceIntent)
     }
     
     private fun showToast(message: String) {
