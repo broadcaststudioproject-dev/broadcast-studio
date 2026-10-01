@@ -1,7 +1,7 @@
 name: pocket_pcr_studio
 description: A new Flutter project.
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: '>=2.19.0 <4.0.0'
@@ -22,5 +22,16 @@ dependencies:
   url_launcher: ^6.2.1
   youtube_explode_dart: ^2.2.2 # <-- వెబ్‌వ్యూ లేని అఫీషియల్ ప్యాకేజీ
 
+dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+
+# ఇక్కడే మన యాప్ ఐకాన్ జనరేట్ అవుతుంది
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "logo.png"
+
 flutter:
   uses-material-design: true
+  assets:
+    - logo.png
