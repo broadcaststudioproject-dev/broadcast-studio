@@ -67,7 +67,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false; // డిఫాల్ట్ గా కెమెరా ఆఫ్ 
+  bool isCameraVisible = false; 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -107,19 +107,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // --- సింపుల్ L-Band Ad Control Variables ---
+  // --- L-Band Ad Control Variables ---
   String leftAdPath = "";
   String bottomAdPath = "";
-
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _bottomAdVideoCtrlForAds; 
+
+  // --- కొత్తగా: IP Cam & External Cam Variables ---
+  bool isExternalIpCamMode = false;
+  bool isUsbCamMode = false;
+  VideoPlayerController? _ipCamController;
+  TextEditingController ipCamUrlCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // డీఫాల్ట్ టెక్స్ట్‌లు అసైన్ చేయడం
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
@@ -127,6 +131,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     mainHeadlineCtrl.text = splitScreenMainHeadline;
     subHeadlineCtrl.text = splitScreenSubHeadline;
     youtubeUrlController.text = "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
+    ipCamUrlCtrl.text = "http://192.168.1.100:8080/video"; // డిఫాల్ట్ IP క్యామ్ లింక్
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp, 
@@ -134,7 +139,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       DeviceOrientation.landscapeRight
     ]);
 
-    _loadSavedData(); // యాప్ ఓపెన్ అవ్వగానే పాత డేటా అంతా లోడ్ అవుతుంది
+    _loadSavedData(); 
     _requestPermissions();
     _fetchBreakingNews();
 
@@ -143,7 +148,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // --- యాప్ లో సేవ్ అయిన పాత డేటా లోడ్ చేసే ఫంక్షన్ ---
   Future<void> _loadSavedData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -158,6 +162,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       youtubeUrlController.text = prefs.getString('youtubeUrl') ?? "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
       youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
       networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
+      ipCamUrlCtrl.text = prefs.getString('ipCamUrl') ?? "http://192.168.1.100:8080/video";
 
       watermarkCtrl.text = watermarkText;
       locCtrl.text = locationText;
@@ -203,7 +208,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- టెక్స్ట్ డేటా సేవ్ చేసే ఫంక్షన్స్ ---
   Future<void> _saveTextSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('watermarkText', watermarkText);
@@ -220,12 +224,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     await prefs.setString('youtubeUrl', youtubeUrlController.text);
     await prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text);
     await prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text);
+    await prefs.setString('ipCamUrl', ipCamUrlCtrl.text);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (isCameraVisible && (controller == null || !controller!.value.isInitialized)) { 
+      if (isCameraVisible && !isExternalIpCamMode && !isUsbCamMode && (controller == null || !controller!.value.isInitialized)) { 
         _initCamera(); 
       }
     }
@@ -242,10 +247,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     
     _leftAdVideoCtrl?.dispose();
     _bottomAdVideoCtrlForAds?.dispose();
+    _ipCamController?.dispose();
 
     youtubeUrlController.dispose();
     networkVideoUrlCtrl.dispose();
     youtubeVideoUrlCtrl.dispose();
+    ipCamUrlCtrl.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
@@ -292,6 +299,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _switchCamera() async {
+    if (isExternalIpCamMode || isUsbCamMode) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.")));
+      return;
+    }
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
     if (isCameraVisible) {
@@ -306,21 +317,127 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     setState(() { 
       isMenuOpen = false; 
     });
-    if (isCameraVisible) {
-      setState(() { 
-        isCameraVisible = false; 
+    
+    if (isExternalIpCamMode || isUsbCamMode) {
+      // ఎక్స్‌టర్నల్ కెమెరా ఆఫ్ చేయడం
+      setState(() {
+        isExternalIpCamMode = false;
+        isUsbCamMode = false;
+        isCameraVisible = false;
       });
+      _ipCamController?.dispose();
+      _ipCamController = null;
+      // USB కెమెరా ఆపే కమాండ్
+      try { await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera'); } catch (_) {}
+      return;
+    }
+
+    if (isCameraVisible) {
+      setState(() { isCameraVisible = false; });
       await controller?.dispose();
       controller = null;
-      setState(() { 
-        _isCameraInitialized = false; 
-      });
+      setState(() { _isCameraInitialized = false; });
     } else {
-      setState(() { 
-        isCameraVisible = true; 
-      });
+      setState(() { isCameraVisible = true; });
       await _initCamera();
     }
+  }
+
+  // --- కొత్తగా: IP మరియు USB కెమెరాలను ప్రారంభించే ఫంక్షన్స్ ---
+  Future<void> _startIpCamera(String url) async {
+    if (url.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("IP కెమెరాకు కనెక్ట్ అవుతోంది..."), backgroundColor: Colors.orange));
+    
+    _ipCamController?.dispose();
+    _ipCamController = VideoPlayerController.networkUrl(Uri.parse(url))
+      ..initialize().then((_) {
+        if (!mounted) return;
+        setState(() {
+          isExternalIpCamMode = true;
+          isUsbCamMode = false;
+          isCameraVisible = true;
+          isNewsBulletinMode = false; // బులిటెన్ ఆఫ్ చేస్తున్నాం
+          isDualScreenMode = false;
+        });
+        _ipCamController?.play();
+      }).catchError((e) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("IP కెమెరా కనెక్ట్ కాలేదు. లింక్ లేదా నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red));
+      });
+  }
+
+  Future<void> _startUsbCamera() async {
+    // ఈ ఫంక్షన్ నేటివ్ Android UVC Library కి సిగ్నల్ పంపుతుంది
+    try {
+      final String result = await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera');
+      if (result == 'success') {
+        setState(() {
+          isUsbCamMode = true;
+          isExternalIpCamMode = false;
+          isCameraVisible = true;
+          isNewsBulletinMode = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB Capture Card / ఎక్స్‌టర్నల్ కెమెరా కనెక్ట్ అయ్యింది!"), backgroundColor: Colors.green));
+      }
+    } on PlatformException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB క్యాప్చర్ కార్డ్ కనెక్ట్ కావాలంటే నేటివ్ UVC కోడ్ అవసరం."), backgroundColor: Colors.redAccent));
+    }
+  }
+
+  // --- External Cams డయలాగ్ బాక్స్ ---
+  void _showExternalCamsDialog() {
+    setState(() { isMenuOpen = false; });
+    showDialog(
+      context: context, 
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: const Text("External Cameras Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min, 
+                children: [
+                  const Text("1. IP Camera / Wi-Fi CCTV", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), 
+                    decoration: const InputDecoration(hintText: "http://... or rtsp://...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+                    onPressed: () async { 
+                      await _saveLinks();
+                      Navigator.pop(context); 
+                      _startIpCamera(ipCamUrlCtrl.text.trim()); 
+                    },
+                    icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18),
+                    label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))
+                  ),
+                  const Divider(color: Colors.white24, height: 30),
+                  
+                  const Text("2. USB / Type-C Capture Card (DSLR/Webcam)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent),
+                    onPressed: () { 
+                      Navigator.pop(context); 
+                      _startUsbCamera(); 
+                    },
+                    icon: const Icon(Icons.usb, color: Colors.white, size: 18),
+                    label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))
+                  ),
+                ]
+              )
+            ),
+            actions: [
+              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 11))),
+            ]
+          );
+        });
+      }
+    );
   }
 
   Future<void> _startNetworkBulletin(String url) async {
@@ -386,7 +503,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       });
   }
 
-  // --- కొత్త ఫీచర్: గ్యాలరీ నుండి లోకల్ వీడియో (HD/4K/8K) ప్లే చేయడం ---
   Future<void> _playLocalGalleryVideo() async {
     try {
       final XFile? videoFile = await _picker.pickVideo(source: ImageSource.gallery);
@@ -457,8 +573,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   const Divider(color: Colors.white24, height: 20),
                   _buildLinkEditor("3. Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
                   const Divider(color: Colors.white24, height: 20),
-                  
-                  // --- కొత్తగా జోడించిన "గ్యాలరీ వీడియో (HD, 4K, 8K)" ఆప్షన్ ---
                   const Text("4. గ్యాలరీ వీడియో (MP4, HD, 4K, 8K)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -529,7 +643,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // --- Ads అప్‌లోడ్ & ఆటో-సేవ్ లాజిక్ ---
   Future<void> _pickLeftAd() async { 
     try { 
       final XFile? media = await _picker.pickMedia(); 
@@ -766,10 +879,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
-    Widget actualCameraWidget = isLivePaused 
-        ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
-        : cameraWidget;
+  Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
+    // --- ఎక్స్‌టర్నల్ కెమెరా ఉంటే దాన్ని చూపించడానికి లాజిక్ ---
+    Widget actualCameraWidget;
+    
+    if (isLivePaused) {
+      actualCameraWidget = Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))));
+    } else if (isExternalIpCamMode && _ipCamController != null && _ipCamController!.value.isInitialized) {
+      actualCameraWidget = SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _ipCamController!.value.size.width, height: _ipCamController!.value.size.height, child: VideoPlayer(_ipCamController!))));
+    } else if (isUsbCamMode) {
+      actualCameraWidget = Container(color: Colors.black, child: const Center(child: Text("USB CAMERA ACTIVE", style: TextStyle(color: Colors.greenAccent, fontSize: 20))));
+    } else {
+      actualCameraWidget = phoneCameraWidget;
+    }
 
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
       return Container(
@@ -830,10 +952,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
 
     double availableHeight = screenHeight; 
-    
-    // లెఫ్ట్ యాడ్ వెడల్పు 20%
     double leftAdWidth = screenWidth * 0.20; 
-    
     double videoWidth = screenWidth - leftAdWidth; 
     double videoHeight = videoWidth * (9 / 16); 
     double bottomAdHeight = availableHeight - videoHeight;
@@ -956,7 +1075,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double finalCamW = isScreenLandscape ? camW : camH; 
     double finalCamH = isScreenLandscape ? camH : camW;
 
-    Widget cameraWidget = (!isCameraVisible) 
+    Widget phoneCameraWidget = (!isCameraVisible) 
       ? Container(color: Colors.transparent)
       : (_isCameraInitialized && controller != null && controller!.value.isInitialized)
         ? GestureDetector(
@@ -1010,14 +1129,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             builder: (context, constraints) {
               double screenW = constraints.maxWidth;
               double screenH = constraints.maxHeight;
-              double tickerH = 55.0; // స్క్రోలింగ్ వార్తల ఎత్తు
+              double tickerH = 55.0; 
               double topAreaH = screenH - tickerH; 
 
               return Stack(
                 children: [
                   Positioned(
                     top: 0, left: 0, right: 0, height: topAreaH,
-                    child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, cameraWidget)
+                    child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)
                   ),
                   
                   Positioned(
@@ -1061,8 +1180,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                             children: [
                               _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                               _buildControlButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.redAccent : Colors.greenAccent),
-                              _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
+                              _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
                               _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
+                              _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                               if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                               _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
                               _buildControlButton(Icons.visibility, "Toggle Ads", _toggleAutoTimerAds, Colors.pinkAccent),
