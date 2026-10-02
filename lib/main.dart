@@ -66,7 +66,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false; // యాప్ ఓపెన్ అవ్వగానే కెమెరా ఆఫ్ 
+  bool isCameraVisible = false; 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -106,7 +106,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // --- సింపుల్ L-Band Ad Control Variables ---
+  // --- L-Band Ad Control Variables ---
   String leftAdPath = "";
   String bottomAdPath = "";
 
@@ -338,7 +338,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 children: [
                   _buildLinkEditor("1. YouTube/Restream RTMP Key", youtubeUrlController, setDialogState),
                   const Divider(color: Colors.white24, height: 20),
-                  _buildLinkEditor("2. YouTube Video Link (ఇక్కడ లింక్ ఇవ్వండి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
+                  _buildLinkEditor("2. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
                   const Divider(color: Colors.white24, height: 20),
                   _buildLinkEditor("3. Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
                 ]
@@ -394,7 +394,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // --- సింపుల్ Ads అప్‌లోడ్ లాజిక్ ---
   Future<void> _pickLeftAd() async { 
     try { 
       final XFile? media = await _picker.pickMedia(); 
@@ -681,21 +680,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // --- సింపుల్ & పర్ఫెక్ట్ 16:9 L-Band లాజిక్ ---
     double tickerHeight = 55.0;
     double availableHeight = screenHeight - tickerHeight;
     
-    // లెఫ్ట్ యాడ్ స్టాండర్డ్ గా 28% వెడల్పు తీసుకుంటుంది
     double leftAdWidth = screenWidth * 0.28; 
-    
-    // మిగిలిన స్థలంలో వీడియో 16:9 రేషియోలో కచ్చితంగా ఫిట్ అవుతుంది
     double videoWidth = screenWidth - leftAdWidth; 
     double videoHeight = videoWidth * (9 / 16); 
-    
-    // వీడియో కింద మిగిలిన ఖాళీ స్థలం మొత్తం బాటమ్ యాడ్ కి వస్తుంది (గ్యాప్స్ ఉండవు)
     double bottomAdHeight = availableHeight - videoHeight;
 
-    // సేఫ్టీ చెక్ 
     if (bottomAdHeight < 0) {
       bottomAdHeight = availableHeight * 0.20;
       videoHeight = availableHeight - bottomAdHeight;
@@ -717,7 +709,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         color: Colors.black, 
         child: Stack(
           children: [
-            // 1. మెయిన్ వీడియో (16:9)
+            // 1. మెయిన్ వీడియో
             Positioned(
               left: isLBandRight ? 0 : leftAdWidth,
               top: 0,
@@ -731,7 +723,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       child: mainPlayer,
                     ),
                   ),
-                  // కెమెరా PIP మోడ్‌ 
                   if (isNewsBulletinMode && isCameraVisible)
                     Positioned(
                       top: pipTop, left: pipLeft,
@@ -748,7 +739,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 2. Left Ad (Vertical) - డైరెక్ట్ టచ్ అప్లోడ్ (ఫోటో సాగకుండా ఉండటానికి BoxFit.contain పెట్టాం)
+            // 2. Left Ad (BoxFit.cover వాడాం కాబట్టి బ్లూ గ్యాప్ అస్సలు రాదు)
             Positioned(
               left: isLBandRight ? videoWidth : 0,
               top: 0,
@@ -761,8 +752,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: const Color(0xFF0D47A1), 
                   child: leftAdPath.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.contain, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
-                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.contain)))
+                          ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
+                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.cover)))
                       : const Center(
                           child: Text("LEFT AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                         )
@@ -770,7 +761,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // 3. Bottom Ad (Horizontal) - డైరెక్ట్ టచ్ అప్లోడ్ (ఫోటో సాగకుండా ఉండటానికి BoxFit.contain పెట్టాం)
+            // 3. Bottom Ad (BoxFit.cover వాడాం కాబట్టి బ్లూ గ్యాప్ అస్సలు రాదు)
             Positioned(
               left: isLBandRight ? 0 : leftAdWidth,
               top: videoHeight,
@@ -783,8 +774,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: const Color(0xFF0D47A1), 
                   child: bottomAdPath.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.contain, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
-                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.contain)))
+                          ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
+                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.cover)))
                       : const Center(
                           child: Text("BOTTOM AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                         )
