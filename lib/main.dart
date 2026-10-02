@@ -72,7 +72,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
   
-  // యాప్ ఓపెన్ చేయగానే కెమెరా ఆఫ్ ఉండేలా సెట్ చేయబడింది
   bool isCameraVisible = false; 
   
   double pipTop = 60.0;
@@ -98,7 +97,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
 
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
-  String splitScreenSubHeadline = "వార్తా అప్‌‌డేట్";
+  String splitScreenSubHeadline = "వార్తా అప్‌‌‌డేట్";
 
   TextEditingController youtubeUrlController = TextEditingController();
   TextEditingController networkVideoUrlCtrl = TextEditingController();
@@ -1070,64 +1069,98 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 2. వర్టికల్ యాడ్
+            // 2. వర్టికల్ యాడ్ (వేళ్లతో అడ్జస్ట్ చేసుకునే ఫీచర్ ఇక్కడ యాడ్ చేయబడింది)
             Positioned(
               top: 0,
               left: isLBandRight ? videoWidth : 0,
               width: vertAdWidth,
               height: videoHeight,
               child: GestureDetector(
-                onTap: _pickVerticalAd, 
-                child: Container(
-                  color: const Color(0xFF0D47A1), 
-                  child: verticalAnimatedAdPath.isNotEmpty 
-                      ? (_verticalAdController != null && _verticalAdController!.value.isInitialized 
-                          ? FittedBox(
-                              fit: BoxFit.fill, 
-                              child: SizedBox(
-                                width: _verticalAdController!.value.size.width, 
-                                height: _verticalAdController!.value.size.height, 
-                                child: VideoPlayer(_verticalAdController!)
+                onDoubleTap: _pickVerticalAd, // డబుల్ టాప్ చేస్తే మళ్ళీ కొత్త యాడ్ పెట్టుకోవచ్చు 
+                onTap: verticalAnimatedAdPath.isEmpty ? _pickVerticalAd : null,
+                child: ClipRect(
+                  child: Container(
+                    color: const Color(0xFF0D47A1), 
+                    child: verticalAnimatedAdPath.isNotEmpty 
+                        ? (_verticalAdController != null && _verticalAdController!.value.isInitialized 
+                            ? InteractiveViewer(
+                                boundaryMargin: const EdgeInsets.all(double.infinity),
+                                minScale: 0.1,
+                                maxScale: 8.0,
+                                child: FittedBox(
+                                  fit: BoxFit.contain, 
+                                  child: SizedBox(
+                                    width: _verticalAdController!.value.size.width, 
+                                    height: _verticalAdController!.value.size.height, 
+                                    child: VideoPlayer(_verticalAdController!)
+                                  )
+                                )
+                              ) 
+                            : InteractiveViewer(
+                                boundaryMargin: const EdgeInsets.all(double.infinity),
+                                minScale: 0.1,
+                                maxScale: 8.0,
+                                child: SizedBox.expand(
+                                  child: Image.file(File(verticalAnimatedAdPath), fit: BoxFit.contain)
+                                )
                               )
-                            ) 
-                          : SizedBox.expand(
-                              child: Image.file(File(verticalAnimatedAdPath), fit: BoxFit.fill)
+                          ) 
+                        : const Center(
+                            child: Text(
+                              "VERTICAL\nBANNER\n(Double Tap to Change)", 
+                              textAlign: TextAlign.center, 
+                              style: TextStyle(color: Colors.white, fontSize: 10)
                             )
-                        ) 
-                      : const Center(
-                          child: Text("VERTICAL\nBANNER", style: TextStyle(color: Colors.white))
-                        )
+                          )
+                  ),
                 )
               ),
             ),
 
-            // 3. హారిజాంటల్ యాడ్ 
+            // 3. హారిజాంటల్ యాడ్ (వేళ్లతో అడ్జస్ట్ చేసుకునే ఫీచర్ ఇక్కడ యాడ్ చేయబడింది)
             Positioned(
               top: videoHeight,
               left: 0,
               width: screenWidth, 
               height: horizAdHeight,
               child: GestureDetector(
-                onTap: _pickHorizontalAd, 
-                child: Container(
-                  color: const Color(0xFF0D47A1), 
-                  child: horizontalAnimatedAdPath.isNotEmpty 
-                      ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized 
-                          ? FittedBox(
-                              fit: BoxFit.fill, 
-                              child: SizedBox(
-                                width: _horizontalAdController!.value.size.width, 
-                                height: _horizontalAdController!.value.size.height, 
-                                child: VideoPlayer(_horizontalAdController!)
+                onDoubleTap: _pickHorizontalAd, // డబుల్ టాప్ చేస్తే మళ్ళీ కొత్త యాడ్ పెట్టుకోవచ్చు 
+                onTap: horizontalAnimatedAdPath.isEmpty ? _pickHorizontalAd : null,
+                child: ClipRect(
+                  child: Container(
+                    color: const Color(0xFF0D47A1), 
+                    child: horizontalAnimatedAdPath.isNotEmpty 
+                        ? (_horizontalAdController != null && _horizontalAdController!.value.isInitialized 
+                            ? InteractiveViewer(
+                                boundaryMargin: const EdgeInsets.all(double.infinity),
+                                minScale: 0.1,
+                                maxScale: 8.0,
+                                child: FittedBox(
+                                  fit: BoxFit.contain, 
+                                  child: SizedBox(
+                                    width: _horizontalAdController!.value.size.width, 
+                                    height: _horizontalAdController!.value.size.height, 
+                                    child: VideoPlayer(_horizontalAdController!)
+                                  )
+                                )
+                              ) 
+                            : InteractiveViewer(
+                                boundaryMargin: const EdgeInsets.all(double.infinity),
+                                minScale: 0.1,
+                                maxScale: 8.0,
+                                child: SizedBox.expand(
+                                  child: Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.contain)
+                                )
                               )
-                            ) 
-                          : SizedBox.expand(
-                              child: Image.file(File(horizontalAnimatedAdPath), fit: BoxFit.fill)
+                          ) 
+                        : const Center(
+                            child: Text(
+                              "HORIZONTAL BANNER\n(Double Tap to Change)", 
+                              textAlign: TextAlign.center, 
+                              style: TextStyle(color: Colors.white, fontSize: 10)
                             )
-                        ) 
-                      : const Center(
-                          child: Text("HORIZONTAL BANNER", style: TextStyle(color: Colors.white))
-                        )
+                          )
+                  ),
                 )
               ),
             ),
