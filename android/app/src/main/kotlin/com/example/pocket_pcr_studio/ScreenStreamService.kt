@@ -60,23 +60,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                     display.setIntentResult(resultCode, data)
                     Thread {
                         try {
-                            // ఇక్కడే మ్యాజిక్: ఫోన్ సైజుతో సంబంధం లేకుండా పక్కా 720p ఇస్తున్నాం
+                            // పక్కా 720p HD రిజల్యూషన్ లాక్ (బఫరింగ్ మరియు స్ట్రక్ అవ్వకుండా)
                             val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
                             val width = if (isPortrait) 720 else 1280
                             val height = if (isPortrait) 1280 else 720
 
                             val fps = 30
-                            val bitrate = 2500 * 1024
+                            // 2 Mbps బిట్‌రేట్ సెట్ చేశాం. ఇంటర్నెట్ తక్కువ ఉన్నా స్మూత్ గా వెళ్తుంది.
+                            val bitrate = 2000 * 1024 
                             val dpi = resources.displayMetrics.densityDpi
                             
                             val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
-                            val audioReady = display.prepareAudio()
+                            
+                            // ఆడియో క్వాలిటీ సెట్టింగ్స్ (128kbps, 44.1kHz)
+                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
 
                             if (videoReady && audioReady) {
                                 display.startStream(url)
                                 showMessage("Live Server Connecting...")
                             } else {
-                                // వీడియో ఫెయిల్ అయిందా, ఆడియో ఫెయిల్ అయిందా అని స్పష్టంగా తెలుస్తుంది
                                 showMessage("Encoder Failed! Video: $videoReady, Audio: $audioReady")
                             }
                         } catch (e: Exception) {
@@ -103,8 +105,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         }
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
-            .setContentText("Live Streaming is Active...")
+            .setContentText("Live Streaming is Active in Background...")
             .setSmallIcon(android.R.drawable.ic_media_play)
+            .setPriority(NotificationCompat.PRIORITY_LOW) // సైలెంట్ గా బ్యాక్‌గ్రౌండ్ లో ఉంటుంది
+            .setOngoing(true) // యూజర్ పొరపాటున క్లియర్ చేయలేరు
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -121,7 +125,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
 
     override fun onConnectionSuccessRtmp() {
-        showMessage("Connected to Restream! (Online)")
+        showMessage("Live Connected Successfully! (Online)")
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
@@ -129,8 +133,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
     
     override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() { showMessage("Connection Disconnected.") }
-    override fun onAuthErrorRtmp() { showMessage("Password or Key Error.") }
+    override fun onDisconnectRtmp() { showMessage("Live Disconnected.") }
+    override fun onAuthErrorRtmp() { showMessage("Live Key Error.") }
     override fun onAuthSuccessRtmp() {}
     override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
