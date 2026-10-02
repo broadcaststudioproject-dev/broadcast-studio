@@ -66,7 +66,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false; 
+  bool isCameraVisible = false; // డిఫాల్ట్ గా కెమెరా ఆఫ్ 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -106,7 +106,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // --- L-Band Ad Control Variables ---
+  // --- సింపుల్ L-Band Ad Control Variables ---
   String leftAdPath = "";
   String bottomAdPath = "";
 
@@ -394,6 +394,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // --- సింపుల్ Ads అప్‌లోడ్ లాజిక్ ---
   Future<void> _pickLeftAd() async { 
     try { 
       final XFile? media = await _picker.pickMedia(); 
@@ -680,16 +681,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    double tickerHeight = 55.0;
-    double availableHeight = screenHeight - tickerHeight;
+    // --- ఇక్కడ availableHeight పక్కాగా స్క్రోలింగ్ న్యూస్ కి పైవరకే వస్తుంది (కట్ అవ్వదు) ---
+    double availableHeight = screenHeight; 
     
-    double leftAdWidth = screenWidth * 0.28; 
+    // లెఫ్ట్ యాడ్ వెడల్పును 28% నుండి 20% కి తగ్గించాను (చూడటానికి చాలా నీట్ గా ఉంటుంది)
+    double leftAdWidth = screenWidth * 0.20; 
+    
     double videoWidth = screenWidth - leftAdWidth; 
     double videoHeight = videoWidth * (9 / 16); 
     double bottomAdHeight = availableHeight - videoHeight;
 
-    if (bottomAdHeight < 0) {
-      bottomAdHeight = availableHeight * 0.20;
+    // సేఫ్టీ చెక్ 
+    if (bottomAdHeight < availableHeight * 0.15) {
+      bottomAdHeight = availableHeight * 0.15;
       videoHeight = availableHeight - bottomAdHeight;
       videoWidth = videoHeight * (16 / 9);
       leftAdWidth = screenWidth - videoWidth;
@@ -709,7 +713,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         color: Colors.black, 
         child: Stack(
           children: [
-            // 1. మెయిన్ వీడియో
+            // 1. మెయిన్ వీడియో (16:9)
             Positioned(
               left: isLBandRight ? 0 : leftAdWidth,
               top: 0,
@@ -739,7 +743,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 2. Left Ad (BoxFit.cover వాడాం కాబట్టి బ్లూ గ్యాప్ అస్సలు రాదు)
+            // 2. Left Ad - BoxFit.fill మరియు Black Background తో పక్కాగా సెట్ అవుతుంది
             Positioned(
               left: isLBandRight ? videoWidth : 0,
               top: 0,
@@ -749,11 +753,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 onTap: leftAdPath.isEmpty ? _pickLeftAd : null,
                 onDoubleTap: leftAdPath.isNotEmpty ? _pickLeftAd : null,
                 child: Container(
-                  color: const Color(0xFF0D47A1), 
+                  color: Colors.black, // బ్లూ కలర్ తీసేసి బ్లాక్ పెట్టాం
                   child: leftAdPath.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
-                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.cover)))
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
+                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.fill)))
                       : const Center(
                           child: Text("LEFT AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                         )
@@ -761,7 +765,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // 3. Bottom Ad (BoxFit.cover వాడాం కాబట్టి బ్లూ గ్యాప్ అస్సలు రాదు)
+            // 3. Bottom Ad - BoxFit.fill మరియు Black Background తో పక్కాగా సెట్ అవుతుంది
             Positioned(
               left: isLBandRight ? 0 : leftAdWidth,
               top: videoHeight,
@@ -771,11 +775,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 onTap: bottomAdPath.isEmpty ? _pickBottomAd : null,
                 onDoubleTap: bottomAdPath.isNotEmpty ? _pickBottomAd : null,
                 child: Container(
-                  color: const Color(0xFF0D47A1), 
+                  color: Colors.black, // బ్లూ కలర్ తీసేసి బ్లాక్ పెట్టాం
                   child: bottomAdPath.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
-                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.cover)))
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
+                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.fill)))
                       : const Center(
                           child: Text("BOTTOM AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                         )
@@ -793,8 +797,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
 
     double camW = 1080; 
     double camH = 1920;
@@ -858,66 +860,77 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           behavior: HitTestBehavior.opaque,
           onTap: () { if (!isLiveLocked) { setState(() { isMenuOpen ? isMenuOpen = false : hideControls = !hideControls; }); } },
           onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ అన్‌లాక్ చేయబడింది."))); } },
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: _buildMainDisplay(isScreenLandscape, screenWidth, screenHeight, cameraWidget)
-              ),
-              
-              Positioned(
-                top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
-                bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,
-                left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,
-                right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,
-                child: visualScreenLogoWidget
-              ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              double screenW = constraints.maxWidth;
+              double screenH = constraints.maxHeight;
+              double tickerH = 55.0; // స్క్రోలింగ్ వార్తల ఎత్తు
+              double topAreaH = screenH - tickerH; // ఇక్కడే అసలైన మ్యాజిక్: యాడ్స్ కోసం మిగిలిన పక్కా స్థలం!
 
-              if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode)
-                Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
-
-              Positioned(
-                bottom: 0, left: 0, right: 0,
-                child: Container(
-                  height: 55, 
-                  decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber.shade400, width: 1.5)),
-                  child: Row(
-                    children: [
-                      Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),
-                      Expanded(child: Container(color: const Color(0xFF0D47A1), padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))
-                    ]
+              return Stack(
+                children: [
+                  // ఈ బాక్స్ లోపల మాత్రమే మెయిన్ వీడియో మరియు యాడ్స్ వస్తాయి (టిక్కర్ కి పైన)
+                  Positioned(
+                    top: 0, left: 0, right: 0, height: topAreaH,
+                    child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, cameraWidget)
                   ),
-                ),
-              ),
+                  
+                  Positioned(
+                    top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
+                    bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,
+                    left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,
+                    right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,
+                    child: visualScreenLogoWidget
+                  ),
 
-              if (!hideControls && !isLiveLocked)
-                Positioned(
-                  bottom: 75, right: 20, 
-                  child: FloatingActionButton(backgroundColor: Colors.blueAccent, onPressed: () { setState(() { isMenuOpen = !isMenuOpen; }); }, child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white))
-                ),
+                  if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode)
+                    Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
-              if (!hideControls && isMenuOpen && !isLiveLocked)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black87,
-                    child: Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center, spacing: 25, runSpacing: 25, 
+                  // ఇది కింది స్క్రోలింగ్ న్యూస్ బాక్స్ (దీని వెనుకకి ఇకపై ఏదీ వెళ్లదు)
+                  Positioned(
+                    bottom: 0, left: 0, right: 0, height: tickerH,
+                    child: Container(
+                      decoration: BoxDecoration(color: Colors.red.shade900, border: Border.all(color: Colors.amber.shade400, width: 1.5)),
+                      child: Row(
                         children: [
-                          _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                          _buildControlButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.redAccent : Colors.greenAccent),
-                          _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
-                          _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
-                          if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
-                          _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
-                          _buildControlButton(Icons.visibility, "Toggle Ads", _toggleAutoTimerAds, Colors.pinkAccent),
-                          _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
-                          _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                          Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),
+                          Expanded(child: Container(color: const Color(0xFF0D47A1), padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))
                         ]
                       ),
                     ),
                   ),
-                ),
-            ],
+
+                  if (!hideControls && !isLiveLocked)
+                    Positioned(
+                      bottom: 75, right: 20, 
+                      child: FloatingActionButton(backgroundColor: Colors.blueAccent, onPressed: () { setState(() { isMenuOpen = !isMenuOpen; }); }, child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white))
+                    ),
+
+                  if (!hideControls && isMenuOpen && !isLiveLocked)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black87,
+                        child: Center(
+                          child: Wrap(
+                            alignment: WrapAlignment.center, spacing: 25, runSpacing: 25, 
+                            children: [
+                              _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                              _buildControlButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", _toggleCameraVisibility, isCameraVisible ? Colors.redAccent : Colors.greenAccent),
+                              _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
+                              _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
+                              if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
+                              _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
+                              _buildControlButton(Icons.visibility, "Toggle Ads", _toggleAutoTimerAds, Colors.pinkAccent),
+                              _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
+                              _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                            ]
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            }
           ),
         ),
       ),
