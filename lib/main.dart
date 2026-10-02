@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
-import 'package:shared_preferences/shared_preferences.dart'; // కొత్తగా యాడ్ చేసిన ఆటో-సేవ్ ప్యాకేజీ
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 List<CameraDescription> cameras = [];
 
@@ -386,6 +386,38 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       });
   }
 
+  // --- కొత్త ఫీచర్: గ్యాలరీ నుండి లోకల్ వీడియో (HD/4K/8K) ప్లే చేయడం ---
+  Future<void> _playLocalGalleryVideo() async {
+    try {
+      final XFile? videoFile = await _picker.pickVideo(source: ImageSource.gallery);
+      if (videoFile != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("గ్యాలరీ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange)
+        );
+
+        _bulletinVideoController?.removeListener(_videoListener);
+        _bulletinVideoController?.dispose();
+        
+        _bulletinVideoController = VideoPlayerController.file(File(videoFile.path))
+          ..initialize().then((_) {
+            if (!mounted) return;
+            _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
+            setState(() { 
+              isNewsBulletinMode = true; 
+              isDualScreenMode = false; 
+              hideControls = true; 
+            });
+            _bulletinVideoController?.play();
+            _bulletinVideoController?.addListener(_videoListener);
+          }).catchError((e) { 
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. ఫార్మాట్ సపోర్ట్ చేయకపోవచ్చు."), backgroundColor: Colors.red)); 
+          });
+      }
+    } catch (e) {
+      debugPrint("Gallery Video Error: $e");
+    }
+  }
+
   void _videoListener() {
     final vController = _bulletinVideoController;
     if (vController == null || !vController.value.isInitialized) return;
@@ -416,6 +448,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             title: const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 15)),
             content: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min, 
                 children: [
                   _buildLinkEditor("1. YouTube/Restream RTMP Key", youtubeUrlController, setDialogState),
@@ -423,6 +456,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   _buildLinkEditor("2. YouTube Video Link (ఇక్కడ లింక్ ఇవ్వండి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
                   const Divider(color: Colors.white24, height: 20),
                   _buildLinkEditor("3. Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
+                  const Divider(color: Colors.white24, height: 20),
+                  
+                  // --- కొత్తగా జోడించిన "గ్యాలరీ వీడియో (HD, 4K, 8K)" ఆప్షన్ ---
+                  const Text("4. గ్యాలరీ వీడియో (MP4, HD, 4K, 8K)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 10)),
+                      onPressed: () { 
+                        Navigator.pop(context); 
+                        _playLocalGalleryVideo(); 
+                      },
+                      icon: const Icon(Icons.video_library, color: Colors.white, size: 20),
+                      label: const Text("గ్యాలరీ నుండి సెలెక్ట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
+                    ),
+                  ),
                 ]
               )
             ),
@@ -469,7 +519,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               )
             ),
             IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { 
-              await _saveLinks(); // లింక్ టైప్ చేశాక సేవ్ అవుతుంది
+              await _saveLinks(); 
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); 
             }),
             if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
@@ -589,7 +639,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     reporterName = nameCtrl.text; 
                     reporterRole = roleCtrl.text; 
                   });
-                  await _saveTextSettings(); // టెక్స్ట్ అంతా సేవ్ అవుతుంది
+                  await _saveTextSettings(); 
                   Navigator.pop(context);
                 }, 
                 child: const Text("Save & Close")
@@ -981,7 +1031,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   if (!isDualScreenMode && !isAnimatedAdsMode && !isNewsBulletinMode)
                     Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
-                  // ఇది కింది స్క్రోలింగ్ న్యూస్ బాక్స్ (దీని వెనుకకి ఇకపై ఏదీ వెళ్లదు)
+                  // ఇది కింది స్క్రోలింగ్ న్యూస్ బాక్స్ 
                   Positioned(
                     bottom: 0, left: 0, right: 0, height: tickerH,
                     child: Container(
