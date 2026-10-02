@@ -748,7 +748,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 2. Left Ad (Vertical) - డైరెక్ట్ టచ్ అప్లోడ్
+            // 2. Left Ad (Vertical) - డైరెక్ట్ టచ్ అప్లోడ్ (ఫోటో సాగకుండా ఉండటానికి BoxFit.contain పెట్టాం)
             Positioned(
               left: isLBandRight ? videoWidth : 0,
               top: 0,
@@ -761,8 +761,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: const Color(0xFF0D47A1), 
                   child: leftAdPath.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
-                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.fill)))
+                          ? FittedBox(fit: BoxFit.contain, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
+                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.contain)))
                       : const Center(
                           child: Text("LEFT AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                         )
@@ -770,7 +770,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // 3. Bottom Ad (Horizontal) - డైరెక్ట్ టచ్ అప్లోడ్ 
+            // 3. Bottom Ad (Horizontal) - డైరెక్ట్ టచ్ అప్లోడ్ (ఫోటో సాగకుండా ఉండటానికి BoxFit.contain పెట్టాం)
             Positioned(
               left: isLBandRight ? 0 : leftAdWidth,
               top: videoHeight,
@@ -783,8 +783,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   color: const Color(0xFF0D47A1), 
                   child: bottomAdPath.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
-                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.fill)))
+                          ? FittedBox(fit: BoxFit.contain, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
+                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.contain)))
                       : const Center(
                           child: Text("BOTTOM AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
                         )
