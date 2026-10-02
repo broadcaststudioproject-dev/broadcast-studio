@@ -61,11 +61,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   
   bool isDualScreenMode = false;
   bool isAnimatedAdsMode = false; 
+  bool isLBandRight = true; 
   int logoPosition = 1; 
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false; // Camera starts OFF by default
+  bool isCameraVisible = false; // యాప్ ఓపెన్ అవ్వగానే కెమెరా ఆఫ్ 
   
   double pipTop = 60.0;
   double pipLeft = 0.0;
@@ -105,28 +106,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // --- 4 Sides Ad Control Variables ---
-  String topAdPath = "";
-  String bottomAdPath = "";
+  // --- సింపుల్ L-Band Ad Control Variables ---
   String leftAdPath = "";
-  String rightAdPath = "";
+  String bottomAdPath = "";
 
-  VideoPlayerController? _topAdVideoCtrl;
-  VideoPlayerController? _bottomAdVideoCtrlForAds; 
   VideoPlayerController? _leftAdVideoCtrl;
-  VideoPlayerController? _rightAdVideoCtrl;
-
-  double topAdRatio = 0.15;
-  double bottomAdRatio = 0.20;
-  double leftAdRatio = 0.25;
-  double rightAdRatio = 0.25;
-
-  double topAdRot = 0.0;
-  double bottomAdRot = 0.0;
-  double leftAdRot = 0.0;
-  double rightAdRot = 0.0;
-  
-  bool showAdDimensions = true;
+  VideoPlayerController? _bottomAdVideoCtrlForAds; 
 
   @override
   void initState() {
@@ -173,10 +158,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bulletinVideoController?.dispose();
     _bottomAdVideoController?.dispose();
     
-    _topAdVideoCtrl?.dispose();
-    _bottomAdVideoCtrlForAds?.dispose();
     _leftAdVideoCtrl?.dispose();
-    _rightAdVideoCtrl?.dispose();
+    _bottomAdVideoCtrlForAds?.dispose();
 
     youtubeUrlController.dispose();
     networkVideoUrlCtrl.dispose();
@@ -272,16 +255,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         var ytExplode = yt.YoutubeExplode();
         String? videoId;
 
-        try { 
-          videoId = yt.VideoId.parseVideoId(url); 
-        } catch (_) {}
+        try { videoId = yt.VideoId.parseVideoId(url); } catch (_) {}
 
         if (videoId == null) {
           RegExp regExp = RegExp(r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})', caseSensitive: false);
           Match? match = regExp.firstMatch(url);
-          if (match != null && match.groupCount >= 1) { 
-            videoId = match.group(1); 
-          }
+          if (match != null && match.groupCount >= 1) { videoId = match.group(1); }
         }
 
         if (videoId == null) {
@@ -330,9 +309,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (vController == null || !vController.value.isInitialized) return;
     if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
       vController.removeListener(_videoListener);
-      setState(() { 
-        isNewsBulletinMode = false; 
-      });
+      setState(() { isNewsBulletinMode = false; });
     }
   }
 
@@ -347,9 +324,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _showMultiStreamDialog() {
-    setState(() { 
-      isMenuOpen = false; 
-    });
+    setState(() { isMenuOpen = false; });
     showDialog(
       context: context, 
       builder: (context) {
@@ -419,155 +394,49 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // --- 4 Ads Manager డైలాగ్ ---
-  void _showAdSettingsDialog() {
-    setState(() { 
-      isMenuOpen = false; 
-    });
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900],
-            title: const Text("Ads & Layout Manager", style: TextStyle(color: Colors.white, fontSize: 15)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SwitchListTile(
-                    title: const Text("Show Size Measurements", style: TextStyle(color: Colors.white, fontSize: 11)),
-                    value: showAdDimensions,
-                    activeColor: Colors.green,
-                    onChanged: (v) { 
-                      setState((){ showAdDimensions = v; }); 
-                      setDialogState((){}); 
-                    },
-                  ),
-                  const Divider(color: Colors.white24, height: 10),
-                  _adControlBox(
-                    "TOP AD", "top", topAdPath, topAdRatio, topAdRot, 
-                    (v){ setState((){ topAdRatio = v; }); setDialogState((){}); }, 
-                    (v){ setState((){ topAdRot = v; }); setDialogState((){}); }, 
-                    setDialogState
-                  ),
-                  _adControlBox(
-                    "BOTTOM AD", "bottom", bottomAdPath, bottomAdRatio, bottomAdRot, 
-                    (v){ setState((){ bottomAdRatio = v; }); setDialogState((){}); }, 
-                    (v){ setState((){ bottomAdRot = v; }); setDialogState((){}); }, 
-                    setDialogState
-                  ),
-                  _adControlBox(
-                    "LEFT AD", "left", leftAdPath, leftAdRatio, leftAdRot, 
-                    (v){ setState((){ leftAdRatio = v; }); setDialogState((){}); }, 
-                    (v){ setState((){ leftAdRot = v; }); setDialogState((){}); }, 
-                    setDialogState
-                  ),
-                  _adControlBox(
-                    "RIGHT AD", "right", rightAdPath, rightAdRatio, rightAdRot, 
-                    (v){ setState((){ rightAdRatio = v; }); setDialogState((){}); }, 
-                    (v){ setState((){ rightAdRot = v; }); setDialogState((){}); }, 
-                    setDialogState
-                  ),
-                ]
-              )
-            ),
-            actions: [
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text("Done & Close"))
-            ]
-          );
-        });
-      }
-    );
-  }
-
-  Widget _adControlBox(String label, String pos, String path, double ratio, double rot, ValueChanged<double> onRatio, ValueChanged<double> onRot, StateSetter setDialogState) {
-    return Card(
-      color: Colors.white12,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-           children: [
-              Text(label, style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
-              Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                 children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                      onPressed: () async {
-                        await _pickAd(pos);
-                        setDialogState((){});
-                      }, 
-                      child: Text(path.isEmpty ? "Add Media" : "Change", style: const TextStyle(fontSize: 10, color: Colors.white))
-                    ),
-                    if(path.isNotEmpty) 
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
-                        onPressed: () { _clearAd(pos); setDialogState((){}); }, 
-                        child: const Text("Clear", style: TextStyle(fontSize: 10, color: Colors.white))
-                      ),
-                 ]
-              ),
-              if(path.isNotEmpty) ...[
-                 Text("Size Ratio: ${(ratio*100).toInt()}%", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                 Slider(value: ratio, min: 0.05, max: 0.6, activeColor: Colors.amber, onChanged: onRatio),
-                 Text("Rotation: ${rot.toInt()}°", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                 Slider(value: rot, min: 0, max: 360, activeColor: Colors.cyanAccent, onChanged: onRot),
-              ]
-           ]
-        )
-      )
-    );
-  }
-
-  Future<void> _pickAd(String position) async { 
+  // --- సింపుల్ Ads అప్‌లోడ్ లాజిక్ ---
+  Future<void> _pickLeftAd() async { 
     try { 
       final XFile? media = await _picker.pickMedia(); 
       if (media != null && mounted) {
-        setState(() { 
-          if(position == 'top') topAdPath = media.path;
-          else if(position == 'bottom') bottomAdPath = media.path;
-          else if(position == 'left') leftAdPath = media.path;
-          else if(position == 'right') rightAdPath = media.path;
-        }); 
+        setState(() { leftAdPath = media.path; }); 
 
         bool isVideo = media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov');
-        VideoPlayerController? ctrl;
-
         if (isVideo) {
-          ctrl = VideoPlayerController.file(File(media.path));
-          await ctrl.initialize();
-          if(mounted) {
-            ctrl.setLooping(true); 
-            ctrl.setVolume(0.0); 
-            ctrl.play(); 
-            setState((){}); 
-          }
-        } 
-
-        setState(() {
-          if (position == 'top') { _topAdVideoCtrl?.dispose(); _topAdVideoCtrl = ctrl; }
-          else if (position == 'bottom') { _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = ctrl; }
-          else if (position == 'left') { _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = ctrl; }
-          else if (position == 'right') { _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = ctrl; }
-        });
+          _leftAdVideoCtrl?.dispose();
+          _leftAdVideoCtrl = VideoPlayerController.file(File(media.path))
+            ..initialize().then((_) { 
+              if(mounted) { _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }
+            });
+        } else {
+          _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;
+        }
       } 
     } catch (e) {} 
   }
 
-  void _clearAd(String position) {
-    setState(() {
-      if (position == 'top') { topAdPath = ""; _topAdVideoCtrl?.dispose(); _topAdVideoCtrl = null; }
-      else if (position == 'bottom') { bottomAdPath = ""; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; }
-      else if (position == 'left') { leftAdPath = ""; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; }
-      else if (position == 'right') { rightAdPath = ""; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; }
-    });
+  Future<void> _pickBottomAd() async { 
+    try { 
+      final XFile? media = await _picker.pickMedia(); 
+      if (media != null && mounted) {
+        setState(() { bottomAdPath = media.path; }); 
+
+        bool isVideo = media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov');
+        if (isVideo) {
+          _bottomAdVideoCtrlForAds?.dispose();
+          _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(media.path))
+            ..initialize().then((_) { 
+              if(mounted) { _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }
+            });
+        } else {
+          _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;
+        }
+      } 
+    } catch (e) {} 
   }
 
   void _showEditDialog() {
-    setState(() { 
-      isMenuOpen = false; 
-    });
+    setState(() { isMenuOpen = false; });
     showDialog(
       context: context, 
       builder: (context) {
@@ -727,10 +596,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _toggleAutoTimerAds() { 
-    setState(() { 
-      isAnimatedAdsMode = !isAnimatedAdsMode; 
-      isMenuOpen = false; 
-    }); 
+    setState(() { isAnimatedAdsMode = !isAnimatedAdsMode; isMenuOpen = false; }); 
+  }
+
+  void _toggleLBandDirection() { 
+    setState(() { isLBandRight = !isLBandRight; isMenuOpen = false; }); 
   }
 
   Future<void> _fetchBreakingNews() async {
@@ -748,50 +618,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // రీ-యూజబుల్ Ad బాక్స్ విడ్జెట్ (Interactive Zoom + Double Tap)
-  Widget _buildAdBox(String position, String path, VideoPlayerController? ctrl, double rot) {
-    if (path.isEmpty) return const SizedBox.shrink();
-    return GestureDetector(
-      onDoubleTap: () => _pickAd(position),
-      child: ClipRect(
-        child: Container(
-          color: const Color(0xFF0D47A1),
-          child: Transform.rotate(
-            angle: rot * 3.1415927 / 180,
-            child: ctrl != null && ctrl.value.isInitialized
-                ? InteractiveViewer(
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    minScale: 0.1, maxScale: 8.0,
-                    child: FittedBox(
-                      fit: BoxFit.contain, 
-                      child: SizedBox(
-                        width: ctrl.value.size.width, 
-                        height: ctrl.value.size.height, 
-                        child: VideoPlayer(ctrl)
-                      )
-                    )
-                  )
-                : InteractiveViewer(
-                    boundaryMargin: const EdgeInsets.all(double.infinity),
-                    minScale: 0.1, maxScale: 8.0,
-                    child: SizedBox.expand(
-                      child: Image.file(File(path), fit: BoxFit.contain)
-                    )
-                  )
-          )
-        )
-      )
-    );
-  }
-
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget cameraWidget) {
     Widget actualCameraWidget = isLivePaused 
-        ? Container(
-            color: Colors.black, 
-            child: const Center(
-              child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))
-            )
-          ) 
+        ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
         : cameraWidget;
 
     if (isDualScreenMode && dualMediaList.isNotEmpty) {
@@ -852,21 +681,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // --- Dynamic Ads Math Logic ---
+    // --- సింపుల్ & పర్ఫెక్ట్ 16:9 L-Band లాజిక్ ---
     double tickerHeight = 55.0;
     double availableHeight = screenHeight - tickerHeight;
     
-    double actualLeftWidth = leftAdPath.isNotEmpty ? screenWidth * leftAdRatio : 0.0;
-    double actualRightWidth = rightAdPath.isNotEmpty ? screenWidth * rightAdRatio : 0.0;
+    // లెఫ్ట్ యాడ్ స్టాండర్డ్ గా 28% వెడల్పు తీసుకుంటుంది
+    double leftAdWidth = screenWidth * 0.28; 
     
-    double videoAreaWidth = screenWidth - (actualLeftWidth + actualRightWidth);
-    if(videoAreaWidth < 0) videoAreaWidth = 0;
+    // మిగిలిన స్థలంలో వీడియో 16:9 రేషియోలో కచ్చితంగా ఫిట్ అవుతుంది
+    double videoWidth = screenWidth - leftAdWidth; 
+    double videoHeight = videoWidth * (9 / 16); 
+    
+    // వీడియో కింద మిగిలిన ఖాళీ స్థలం మొత్తం బాటమ్ యాడ్ కి వస్తుంది (గ్యాప్స్ ఉండవు)
+    double bottomAdHeight = availableHeight - videoHeight;
 
-    double actualTopHeight = topAdPath.isNotEmpty ? availableHeight * topAdRatio : 0.0;
-    double actualBottomHeight = bottomAdPath.isNotEmpty ? availableHeight * bottomAdRatio : 0.0;
-    
-    double videoAreaHeight = availableHeight - (actualTopHeight + actualBottomHeight);
-    if(videoAreaHeight < 0) videoAreaHeight = 0;
+    // సేఫ్టీ చెక్ 
+    if (bottomAdHeight < 0) {
+      bottomAdHeight = availableHeight * 0.20;
+      videoHeight = availableHeight - bottomAdHeight;
+      videoWidth = videoHeight * (16 / 9);
+      leftAdWidth = screenWidth - videoWidth;
+    }
 
     if (isNewsBulletinMode || isAnimatedAdsMode) {
       
@@ -882,12 +717,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         color: Colors.black, 
         child: Stack(
           children: [
-            // 1. మెయిన్ వీడియో (ఆటోమేటిక్ గా 16:9 ఫిట్ అవుతుంది)
+            // 1. మెయిన్ వీడియో (16:9)
             Positioned(
-              left: actualLeftWidth,
-              top: actualTopHeight,
-              width: videoAreaWidth,
-              height: videoAreaHeight,
+              left: isLBandRight ? 0 : leftAdWidth,
+              top: 0,
+              width: videoWidth,
+              height: videoHeight,
               child: Stack(
                 children: [
                   Center(
@@ -913,57 +748,49 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 2. Left Ad
-            if (leftAdPath.isNotEmpty)
-              Positioned(
-                left: 0, top: 0, width: actualLeftWidth, height: availableHeight,
-                child: _buildAdBox('left', leftAdPath, _leftAdVideoCtrl, leftAdRot)
+            // 2. Left Ad (Vertical) - డైరెక్ట్ టచ్ అప్లోడ్
+            Positioned(
+              left: isLBandRight ? videoWidth : 0,
+              top: 0,
+              width: leftAdWidth,
+              height: availableHeight,
+              child: GestureDetector(
+                onTap: leftAdPath.isEmpty ? _pickLeftAd : null,
+                onDoubleTap: leftAdPath.isNotEmpty ? _pickLeftAd : null,
+                child: Container(
+                  color: const Color(0xFF0D47A1), 
+                  child: leftAdPath.isNotEmpty 
+                      ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
+                          : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.fill)))
+                      : const Center(
+                          child: Text("LEFT AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
+                        )
+                )
               ),
+            ),
 
-            // 3. Right Ad
-            if (rightAdPath.isNotEmpty)
-              Positioned(
-                right: 0, top: 0, width: actualRightWidth, height: availableHeight,
-                child: _buildAdBox('right', rightAdPath, _rightAdVideoCtrl, rightAdRot)
+            // 3. Bottom Ad (Horizontal) - డైరెక్ట్ టచ్ అప్లోడ్ 
+            Positioned(
+              left: isLBandRight ? 0 : leftAdWidth,
+              top: videoHeight,
+              width: videoWidth, 
+              height: bottomAdHeight,
+              child: GestureDetector(
+                onTap: bottomAdPath.isEmpty ? _pickBottomAd : null,
+                onDoubleTap: bottomAdPath.isNotEmpty ? _pickBottomAd : null,
+                child: Container(
+                  color: const Color(0xFF0D47A1), 
+                  child: bottomAdPath.isNotEmpty 
+                      ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
+                          : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.fill)))
+                      : const Center(
+                          child: Text("BOTTOM AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
+                        )
+                )
               ),
-
-            // 4. Top Ad
-            if (topAdPath.isNotEmpty)
-              Positioned(
-                left: actualLeftWidth, top: 0, width: videoAreaWidth, height: actualTopHeight,
-                child: _buildAdBox('top', topAdPath, _topAdVideoCtrl, topAdRot)
-              ),
-
-            // 5. Bottom Ad
-            if (bottomAdPath.isNotEmpty)
-              Positioned(
-                left: actualLeftWidth, top: videoAreaHeight + actualTopHeight, width: videoAreaWidth, height: actualBottomHeight,
-                child: _buildAdBox('bottom', bottomAdPath, _bottomAdVideoCtrlForAds, bottomAdRot)
-              ),
-
-            // 6. సైజులు చూపే టెక్స్ట్ (Overlay Measurements)
-            if (showAdDimensions) ...[
-              if (leftAdPath.isNotEmpty)
-                Positioned(
-                  top: 5, left: 5, 
-                  child: Container(padding: const EdgeInsets.all(4), color: Colors.black87, child: Text("Left W: ${actualLeftWidth.toInt()}", style: const TextStyle(color: Colors.white, fontSize: 10)))
-                ),
-              if (rightAdPath.isNotEmpty)
-                Positioned(
-                  top: 5, right: 5, 
-                  child: Container(padding: const EdgeInsets.all(4), color: Colors.black87, child: Text("Right W: ${actualRightWidth.toInt()}", style: const TextStyle(color: Colors.white, fontSize: 10)))
-                ),
-              if (topAdPath.isNotEmpty)
-                Positioned(
-                  top: 5, left: actualLeftWidth + 5, 
-                  child: Container(padding: const EdgeInsets.all(4), color: Colors.black87, child: Text("Top H: ${actualTopHeight.toInt()}", style: const TextStyle(color: Colors.white, fontSize: 10)))
-                ),
-              if (bottomAdPath.isNotEmpty)
-                Positioned(
-                  bottom: actualBottomHeight + 5, left: actualLeftWidth + 5, 
-                  child: Container(padding: const EdgeInsets.all(4), color: Colors.black87, child: Text("Bottom H: ${actualBottomHeight.toInt()}", style: const TextStyle(color: Colors.white, fontSize: 10)))
-                ),
-            ]
+            ),
           ],
         ),
       );
@@ -1091,8 +918,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
                           if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                           _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
-                          _buildControlButton(Icons.dashboard_customize, "Ads Manager", _showAdSettingsDialog, Colors.amber),
                           _buildControlButton(Icons.visibility, "Toggle Ads", _toggleAutoTimerAds, Colors.pinkAccent),
+                          _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
                           _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                         ]
                       ),
