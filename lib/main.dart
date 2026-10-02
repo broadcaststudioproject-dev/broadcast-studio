@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
+import 'package:shared_preferences/shared_preferences.dart'; // కొత్తగా యాడ్ చేసిన ఆటో-సేవ్ ప్యాకేజీ
 
 List<CameraDescription> cameras = [];
 
@@ -118,6 +119,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    // డీఫాల్ట్ టెక్స్ట్‌లు అసైన్ చేయడం
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
     nameCtrl.text = reporterName;
@@ -132,12 +134,92 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       DeviceOrientation.landscapeRight
     ]);
 
+    _loadSavedData(); // యాప్ ఓపెన్ అవ్వగానే పాత డేటా అంతా లోడ్ అవుతుంది
     _requestPermissions();
     _fetchBreakingNews();
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { 
       _fetchBreakingNews(); 
     });
+  }
+
+  // --- యాప్ లో సేవ్ అయిన పాత డేటా లోడ్ చేసే ఫంక్షన్ ---
+  Future<void> _loadSavedData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      watermarkText = prefs.getString('watermarkText') ?? "SS YATRA TV";
+      locationText = prefs.getString('locationText') ?? "LIVE KOTHAKOTA";
+      reporterName = prefs.getString('reporterName') ?? "JANAMPALLY VINOD KUMAR";
+      reporterRole = prefs.getString('reporterRole') ?? "SPECIAL CORRESPONDENT";
+      breakingNewsText = prefs.getString('breakingNewsText') ?? "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
+      splitScreenMainHeadline = prefs.getString('splitScreenMainHeadline') ?? "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
+      splitScreenSubHeadline = prefs.getString('splitScreenSubHeadline') ?? "వార్తా అప్డేట్";
+
+      youtubeUrlController.text = prefs.getString('youtubeUrl') ?? "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
+      youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
+      networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
+
+      watermarkCtrl.text = watermarkText;
+      locCtrl.text = locationText;
+      nameCtrl.text = reporterName;
+      roleCtrl.text = reporterRole;
+      mainHeadlineCtrl.text = splitScreenMainHeadline;
+      subHeadlineCtrl.text = splitScreenSubHeadline;
+
+      String savedLogo = prefs.getString('channelLogoPath') ?? "";
+      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
+        channelLogoPath = savedLogo;
+      }
+
+      String savedLeftAd = prefs.getString('leftAdPath') ?? "";
+      if (savedLeftAd.isNotEmpty && File(savedLeftAd).existsSync()) {
+        leftAdPath = savedLeftAd;
+        _initSavedAdVideo('left', leftAdPath);
+      }
+
+      String savedBottomAd = prefs.getString('bottomAdPath') ?? "";
+      if (savedBottomAd.isNotEmpty && File(savedBottomAd).existsSync()) {
+        bottomAdPath = savedBottomAd;
+        _initSavedAdVideo('bottom', bottomAdPath);
+      }
+    });
+  }
+
+  void _initSavedAdVideo(String pos, String path) {
+    bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov');
+    if (isVideo) {
+      VideoPlayerController ctrl = VideoPlayerController.file(File(path));
+      ctrl.initialize().then((_) {
+        if(mounted) {
+          ctrl.setLooping(true);
+          ctrl.setVolume(0.0);
+          ctrl.play();
+          setState(() {
+            if (pos == 'left') _leftAdVideoCtrl = ctrl;
+            if (pos == 'bottom') _bottomAdVideoCtrlForAds = ctrl;
+          });
+        }
+      });
+    }
+  }
+
+  // --- టెక్స్ట్ డేటా సేవ్ చేసే ఫంక్షన్స్ ---
+  Future<void> _saveTextSettings() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('watermarkText', watermarkText);
+    await prefs.setString('locationText', locationText);
+    await prefs.setString('reporterName', reporterName);
+    await prefs.setString('reporterRole', reporterRole);
+    await prefs.setString('splitScreenMainHeadline', splitScreenMainHeadline);
+    await prefs.setString('splitScreenSubHeadline', splitScreenSubHeadline);
+    await prefs.setString('breakingNewsText', breakingNewsText);
+  }
+
+  Future<void> _saveLinks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('youtubeUrl', youtubeUrlController.text);
+    await prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text);
+    await prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text);
   }
 
   @override
@@ -338,7 +420,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 children: [
                   _buildLinkEditor("1. YouTube/Restream RTMP Key", youtubeUrlController, setDialogState),
                   const Divider(color: Colors.white24, height: 20),
-                  _buildLinkEditor("2. YouTube Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
+                  _buildLinkEditor("2. YouTube Video Link (ఇక్కడ లింక్ ఇవ్వండి)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
                   const Divider(color: Colors.white24, height: 20),
                   _buildLinkEditor("3. Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
                 ]
@@ -386,7 +468,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))
               )
             ),
-            IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+            IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { 
+              await _saveLinks(); // లింక్ టైప్ చేశాక సేవ్ అవుతుంది
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); 
+            }),
             if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
           ]
         )
@@ -394,12 +479,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // --- సింపుల్ Ads అప్‌లోడ్ లాజిక్ ---
+  // --- Ads అప్‌లోడ్ & ఆటో-సేవ్ లాజిక్ ---
   Future<void> _pickLeftAd() async { 
     try { 
       final XFile? media = await _picker.pickMedia(); 
       if (media != null && mounted) {
         setState(() { leftAdPath = media.path; }); 
+        
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('leftAdPath', media.path);
 
         bool isVideo = media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov');
         if (isVideo) {
@@ -420,6 +508,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final XFile? media = await _picker.pickMedia(); 
       if (media != null && mounted) {
         setState(() { bottomAdPath = media.path; }); 
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('bottomAdPath', media.path);
 
         bool isVideo = media.path.toLowerCase().endsWith('.mp4') || media.path.toLowerCase().endsWith('.mov');
         if (isVideo) {
@@ -452,7 +543,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     onPressed: () async {
                       try {
                         final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                        if (image != null) { setState(() { channelLogoPath = image.path; }); setDialogState(() {}); }
+                        if (image != null) { 
+                          setState(() { channelLogoPath = image.path; }); 
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('channelLogoPath', image.path);
+                          setDialogState(() {}); 
+                        }
                       } catch (e) {}
                     }, 
                     icon: const Icon(Icons.upload), 
@@ -465,9 +561,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.amber), 
-                    onPressed: () {
+                    onPressed: () async {
                       if (manualTickerCtrl.text.trim().isNotEmpty) { 
                         setState(() { breakingNewsText = manualTickerCtrl.text.trim(); }); 
+                        await _saveTextSettings();
                         manualTickerCtrl.clear(); 
                         setDialogState(() {}); 
                       }
@@ -483,7 +580,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             actions: [
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() { 
                     splitScreenMainHeadline = mainHeadlineCtrl.text; 
                     splitScreenSubHeadline = subHeadlineCtrl.text; 
@@ -492,6 +589,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     reporterName = nameCtrl.text; 
                     reporterRole = roleCtrl.text; 
                   });
+                  await _saveTextSettings(); // టెక్స్ట్ అంతా సేవ్ అవుతుంది
                   Navigator.pop(context);
                 }, 
                 child: const Text("Save & Close")
@@ -681,17 +779,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // --- ఇక్కడ availableHeight పక్కాగా స్క్రోలింగ్ న్యూస్ కి పైవరకే వస్తుంది (కట్ అవ్వదు) ---
     double availableHeight = screenHeight; 
     
-    // లెఫ్ట్ యాడ్ వెడల్పును 28% నుండి 20% కి తగ్గించాను (చూడటానికి చాలా నీట్ గా ఉంటుంది)
+    // లెఫ్ట్ యాడ్ వెడల్పు 20%
     double leftAdWidth = screenWidth * 0.20; 
     
     double videoWidth = screenWidth - leftAdWidth; 
     double videoHeight = videoWidth * (9 / 16); 
     double bottomAdHeight = availableHeight - videoHeight;
 
-    // సేఫ్టీ చెక్ 
     if (bottomAdHeight < availableHeight * 0.15) {
       bottomAdHeight = availableHeight * 0.15;
       videoHeight = availableHeight - bottomAdHeight;
@@ -743,7 +839,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
             
-            // 2. Left Ad - BoxFit.fill మరియు Black Background తో పక్కాగా సెట్ అవుతుంది
+            // 2. Left Ad 
             Positioned(
               left: isLBandRight ? videoWidth : 0,
               top: 0,
@@ -753,7 +849,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 onTap: leftAdPath.isEmpty ? _pickLeftAd : null,
                 onDoubleTap: leftAdPath.isNotEmpty ? _pickLeftAd : null,
                 child: Container(
-                  color: Colors.black, // బ్లూ కలర్ తీసేసి బ్లాక్ పెట్టాం
+                  color: Colors.black, 
                   child: leftAdPath.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
@@ -765,7 +861,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),
             ),
 
-            // 3. Bottom Ad - BoxFit.fill మరియు Black Background తో పక్కాగా సెట్ అవుతుంది
+            // 3. Bottom Ad 
             Positioned(
               left: isLBandRight ? 0 : leftAdWidth,
               top: videoHeight,
@@ -775,7 +871,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 onTap: bottomAdPath.isEmpty ? _pickBottomAd : null,
                 onDoubleTap: bottomAdPath.isNotEmpty ? _pickBottomAd : null,
                 child: Container(
-                  color: Colors.black, // బ్లూ కలర్ తీసేసి బ్లాక్ పెట్టాం
+                  color: Colors.black, 
                   child: bottomAdPath.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
@@ -865,11 +961,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               double screenW = constraints.maxWidth;
               double screenH = constraints.maxHeight;
               double tickerH = 55.0; // స్క్రోలింగ్ వార్తల ఎత్తు
-              double topAreaH = screenH - tickerH; // ఇక్కడే అసలైన మ్యాజిక్: యాడ్స్ కోసం మిగిలిన పక్కా స్థలం!
+              double topAreaH = screenH - tickerH; 
 
               return Stack(
                 children: [
-                  // ఈ బాక్స్ లోపల మాత్రమే మెయిన్ వీడియో మరియు యాడ్స్ వస్తాయి (టిక్కర్ కి పైన)
                   Positioned(
                     top: 0, left: 0, right: 0, height: topAreaH,
                     child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, cameraWidget)
