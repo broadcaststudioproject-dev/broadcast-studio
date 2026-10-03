@@ -106,10 +106,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // --- L-Band Ad Control Variables ---
-  String leftAdPath = "";
-  String bottomAdPath = "";
+  // --- మల్టీపుల్ U-Band Ads Control Variables ---
+  List<String> leftAdPaths = [];
+  List<String> rightAdPaths = [];
+  List<String> bottomAdPaths = [];
+  
+  int leftAdIndex = 0;
+  int rightAdIndex = 0;
+  int bottomAdIndex = 0;
+
   VideoPlayerController? _leftAdVideoCtrl;
+  VideoPlayerController? _rightAdVideoCtrl;
   VideoPlayerController? _bottomAdVideoCtrlForAds; 
 
   // --- External IP Cam & USB UVC Cam Variables ---
@@ -119,9 +126,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController ipCamUrlCtrl = TextEditingController();
   int? _usbTextureId; 
 
-  // --- కొత్త ఫీచర్: ఆటోమేటిక్ యాడ్స్ టైమర్ Variables ---
-  bool isAutoAdModeActive = false; // యూజర్ ఆన్/ఆఫ్ చేసే బటన్
-  bool isAdCurrentlyShowing = false; // యాడ్స్ స్క్రీన్ మీద ఉన్నాయా లేదా?
+  // --- కొత్తగా: 3-State ఆటోమేటిక్ యాడ్స్ టైమర్ ---
+  int adDisplayMode = 0; // 0 = OFF, 1 = ON (Continuous), 2 = Auto Timer
+  bool isAdCurrentlyShowing = false; 
   Timer? _adCycleTimer;
 
   @override
@@ -177,39 +184,62 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       subHeadlineCtrl.text = splitScreenSubHeadline;
 
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
-      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
-        channelLogoPath = savedLogo;
-      }
+      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) channelLogoPath = savedLogo;
 
-      String savedLeftAd = prefs.getString('leftAdPath') ?? "";
-      if (savedLeftAd.isNotEmpty && File(savedLeftAd).existsSync()) {
-        leftAdPath = savedLeftAd;
-        _initSavedAdVideo('left', leftAdPath);
-      }
+      // మల్టీపుల్ యాడ్స్ లోడింగ్ (గ్యాలరీలో డిలీట్ అయిన ఫైల్స్ కాకుండా మిగిలినవి మాత్రమే తీసుకుంటుంది)
+      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((path) => File(path).existsSync()).toList();
+      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((path) => File(path).existsSync()).toList();
+      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((path) => File(path).existsSync()).toList();
 
-      String savedBottomAd = prefs.getString('bottomAdPath') ?? "";
-      if (savedBottomAd.isNotEmpty && File(savedBottomAd).existsSync()) {
-        bottomAdPath = savedBottomAd;
-        _initSavedAdVideo('bottom', bottomAdPath);
-      }
+      if (leftAdPaths.isNotEmpty) _initAdVideo('left');
+      if (rightAdPaths.isNotEmpty) _initAdVideo('right');
+      if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
     });
   }
 
-  void _initSavedAdVideo(String pos, String path) {
+  void _initAdVideo(String pos) {
+    String path = "";
+    if (pos == 'left' && leftAdPaths.isNotEmpty) {
+      if(leftAdIndex >= leftAdPaths.length) leftAdIndex = 0;
+      path = leftAdPaths[leftAdIndex];
+    }
+    if (pos == 'right' && rightAdPaths.isNotEmpty) {
+      if(rightAdIndex >= rightAdPaths.length) rightAdIndex = 0;
+      path = rightAdPaths[rightAdIndex];
+    }
+    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) {
+      if(bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0;
+      path = bottomAdPaths[bottomAdIndex];
+    }
+
+    if (path.isEmpty) return;
+
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov');
-    if (isVideo) {
-      VideoPlayerController ctrl = VideoPlayerController.file(File(path));
-      ctrl.initialize().then((_) {
-        if(mounted) {
-          ctrl.setLooping(true);
-          ctrl.setVolume(0.0);
-          ctrl.play();
-          setState(() {
-            if (pos == 'left') _leftAdVideoCtrl = ctrl;
-            if (pos == 'bottom') _bottomAdVideoCtrlForAds = ctrl;
-          });
-        }
-      });
+
+    if (pos == 'left') {
+      _leftAdVideoCtrl?.dispose();
+      _leftAdVideoCtrl = null;
+      if (isVideo) {
+        _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) {
+            if (mounted) { _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState(() {}); }
+        });
+      }
+    } else if (pos == 'right') {
+      _rightAdVideoCtrl?.dispose();
+      _rightAdVideoCtrl = null;
+      if (isVideo) {
+        _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) {
+            if (mounted) { _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState(() {}); }
+        });
+      }
+    } else if (pos == 'bottom') {
+      _bottomAdVideoCtrlForAds?.dispose();
+      _bottomAdVideoCtrlForAds = null;
+      if (isVideo) {
+        _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) {
+            if (mounted) { _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState(() {}); }
+        });
+      }
     }
   }
 
@@ -245,13 +275,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
-    _adCycleTimer?.cancel(); // టైమర్ క్లోజ్ చేయడం
+    _adCycleTimer?.cancel(); 
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     _bottomAdVideoController?.dispose();
     
     _leftAdVideoCtrl?.dispose();
+    _rightAdVideoCtrl?.dispose();
     _bottomAdVideoCtrlForAds?.dispose();
     _ipCamController?.dispose();
 
@@ -285,20 +316,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (controller != null) { 
         await controller!.dispose(); 
       }
-      final camController = CameraController(
-        cameras[currentCameraIndex], 
-        ResolutionPreset.high, 
-        enableAudio: false
-      );
+      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: false);
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
       _minZoomLevel = await camController.getMinZoomLevel();
       _maxZoomLevel = await camController.getMaxZoomLevel();
       _currentZoomLevel = _minZoomLevel;
-      setState(() { 
-        _isCameraInitialized = true; 
-      });
+      setState(() { _isCameraInitialized = true; });
     } catch (e) { 
       debugPrint("Init Camera Error: $e");
     }
@@ -314,15 +339,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (isCameraVisible) {
       await _initCamera();
     }
-    setState(() { 
-      isMenuOpen = false; 
-    });
+    setState(() { isMenuOpen = false; });
   }
 
   void _toggleCameraVisibility() async {
-    setState(() { 
-      isMenuOpen = false; 
-    });
+    setState(() { isMenuOpen = false; });
     
     if (isExternalIpCamMode || isUsbCamMode) {
       setState(() {
@@ -348,46 +369,69 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // --- కొత్త ఫీచర్: ఆటోమేటిక్ టైమర్ కంట్రోల్స్ ---
-  void _toggleAutoTimerAds() { 
+  // --- కొత్తగా: 3-State ఆటోమేటిక్ టైమర్ మరియు సైక్లింగ్ సిస్టమ్ ---
+  void _toggleAdMode() {
     setState(() {
-      isAutoAdModeActive = !isAutoAdModeActive;
+      adDisplayMode = (adDisplayMode + 1) % 3;
       isMenuOpen = false;
-      if (isAutoAdModeActive) {
-        isAdCurrentlyShowing = true; // ఆన్ చేయగానే వెంటనే యాడ్స్ వస్తాయి
-        _startAdCycle();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆటోమేటిక్ యాడ్స్ ప్రారంభమయ్యాయి (ON)"), backgroundColor: Colors.green));
-      } else {
+      _adCycleTimer?.cancel();
+      
+      if (adDisplayMode == 0) {
         isAdCurrentlyShowing = false;
-        _adCycleTimer?.cancel();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆటోమేటిక్ యాడ్స్ ఆగిపోయాయి (OFF)"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యాడ్స్ ఆఫ్ చేయబడ్డాయి (OFF)"), backgroundColor: Colors.red));
+      } else if (adDisplayMode == 1) {
+        isAdCurrentlyShowing = true;
+        _startPermanentCycle();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యాడ్స్ ఆన్ (నిరంతరం ప్లే అవుతాయి)"), backgroundColor: Colors.blueAccent));
+      } else if (adDisplayMode == 2) {
+        isAdCurrentlyShowing = true;
+        _startAutoCycle();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆటో టైమర్ (20s ON / 40s OFF)"), backgroundColor: Colors.green));
       }
-    }); 
+    });
   }
 
-  void _startAdCycle() {
+  void _startPermanentCycle() {
+    _adCycleTimer?.cancel();
+    _adCycleTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (mounted && adDisplayMode == 1) {
+        setState(() {
+          if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
+          if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
+          if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
+          _initAdVideo('left');
+          _initAdVideo('right');
+          _initAdVideo('bottom');
+        });
+      }
+    });
+  }
+
+  void _startAutoCycle() {
     _adCycleTimer?.cancel();
     if (isAdCurrentlyShowing) {
-      // యాడ్స్ 20 సెకన్ల పాటు ప్లే అవుతాయి, ఆ తర్వాత దాక్కుంటాయి (Hide)
       _adCycleTimer = Timer(const Duration(seconds: 20), () {
-        if (mounted && isAutoAdModeActive) {
+        if (mounted && adDisplayMode == 2) {
           setState(() { isAdCurrentlyShowing = false; });
-          _startAdCycle();
+          _startAutoCycle();
         }
       });
     } else {
-      // యాడ్స్ లేనప్పుడు ఫుల్ స్క్రీన్ 40 సెకన్ల పాటు ప్లే అవుతుంది, ఆ తర్వాత మళ్లీ యాడ్స్ వస్తాయి (Show)
       _adCycleTimer = Timer(const Duration(seconds: 40), () {
-        if (mounted && isAutoAdModeActive) {
-          setState(() { isAdCurrentlyShowing = true; });
-          _startAdCycle();
+        if (mounted && adDisplayMode == 2) {
+          setState(() { 
+            isAdCurrentlyShowing = true; 
+            if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
+            if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
+            if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
+            _initAdVideo('left');
+            _initAdVideo('right');
+            _initAdVideo('bottom');
+          });
+          _startAutoCycle();
         }
       });
     }
-  }
-
-  void _toggleLBandDirection() { 
-    setState(() { isLBandRight = !isLBandRight; isMenuOpen = false; }); 
   }
 
   Future<void> _startIpCamera(String url) async {
@@ -517,7 +561,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         }
         ytExplode.close();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ లింక్‌ను ప్లే చేయలేము."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ లింక్‌‌ను ప్లే చేయలేము."), backgroundColor: Colors.red));
         return;
       }
     }
@@ -605,10 +649,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 10)),
-                      onPressed: () { 
-                        Navigator.pop(context); 
-                        _playLocalGalleryVideo(); 
-                      },
+                      onPressed: () { Navigator.pop(context); _playLocalGalleryVideo(); },
                       icon: const Icon(Icons.video_library, color: Colors.white, size: 20),
                       label: const Text("గ్యాలరీ నుండి సెలెక్ట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
                     ),
@@ -669,28 +710,65 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  Future<void> _pickLeftAd() async { 
+  // --- మల్టీపుల్ మీడియా అప్‌లోడ్ లాజిక్ ---
+  Future<void> _pickLeftAds() async { 
     try { 
-      final XFile? media = await _picker.pickMedia(); 
-      if (media != null && mounted) {
-        setState(() { leftAdPath = media.path; }); 
+      final List<XFile> medias = await _picker.pickMultipleMedia(); 
+      if (medias.isNotEmpty && mounted) {
+        setState(() { 
+          leftAdPaths = medias.map((e) => e.path).toList(); 
+          leftAdIndex = 0;
+        }); 
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('leftAdPath', media.path);
-        _initSavedAdVideo('left', media.path);
+        await prefs.setStringList('leftAdPaths', leftAdPaths);
+        _initAdVideo('left');
+      } 
+    } catch (e) {} 
+  }
+  
+  void _clearLeftAds() async {
+    setState(() { leftAdPaths.clear(); leftAdIndex = 0; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; });
+    SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setStringList('leftAdPaths', []);
+  }
+
+  Future<void> _pickRightAds() async { 
+    try { 
+      final List<XFile> medias = await _picker.pickMultipleMedia(); 
+      if (medias.isNotEmpty && mounted) {
+        setState(() { 
+          rightAdPaths = medias.map((e) => e.path).toList(); 
+          rightAdIndex = 0;
+        }); 
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList('rightAdPaths', rightAdPaths);
+        _initAdVideo('right');
       } 
     } catch (e) {} 
   }
 
-  Future<void> _pickBottomAd() async { 
+  void _clearRightAds() async {
+    setState(() { rightAdPaths.clear(); rightAdIndex = 0; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; });
+    SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setStringList('rightAdPaths', []);
+  }
+
+  Future<void> _pickBottomAds() async { 
     try { 
-      final XFile? media = await _picker.pickMedia(); 
-      if (media != null && mounted) {
-        setState(() { bottomAdPath = media.path; }); 
+      final List<XFile> medias = await _picker.pickMultipleMedia(); 
+      if (medias.isNotEmpty && mounted) {
+        setState(() { 
+          bottomAdPaths = medias.map((e) => e.path).toList(); 
+          bottomAdIndex = 0;
+        }); 
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('bottomAdPath', media.path);
-        _initSavedAdVideo('bottom', media.path);
+        await prefs.setStringList('bottomAdPaths', bottomAdPaths);
+        _initAdVideo('bottom');
       } 
     } catch (e) {} 
+  }
+
+  void _clearBottomAds() async {
+    setState(() { bottomAdPaths.clear(); bottomAdIndex = 0; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; });
+    SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setStringList('bottomAdPaths', []);
   }
 
   void _showEditDialog() {
@@ -722,7 +800,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     label: const Text("ఛానల్ లోగో అప్లోడ్")
                   ),
                   const Divider(color: Colors.white24, height: 20),
-                  TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
+                  TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌‌లైన్ (Yellow Box)")),
                   TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")),
                   const Divider(color: Colors.white24, height: 20),
                   TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్ న్యూస్")),
@@ -875,7 +953,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { }
   }
 
-  // --- స్మూత్ యానిమేటెడ్ L-Band డిస్‌ప్లే ఫంక్షన్ ---
+  // --- స్మూత్ యానిమేటెడ్ U-Band (Left, Right, Bottom) డిస్‌ప్లే ఫంక్షన్ ---
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
     
     Widget actualCameraWidget;
@@ -952,12 +1030,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );
     }
 
-    // --- డైనమిక్ సైజింగ్ (AnimatedPositioned) ---
-    bool showLBand = isNewsBulletinMode || isAdCurrentlyShowing;
+    bool showAds = isNewsBulletinMode || isAdCurrentlyShowing;
     
+    // --- U-Band కొలతలు (లెఫ్ట్ 15%, రైట్ 15%, మధ్యలో వీడియో) ---
     double topAreaH = screenHeight; 
-    double leftAdWidth = screenWidth * 0.20; 
-    double videoWidth = screenWidth - leftAdWidth; 
+    double leftAdWidth = screenWidth * 0.15; 
+    double rightAdWidth = screenWidth * 0.15; 
+    double videoWidth = screenWidth - leftAdWidth - rightAdWidth; 
     double videoHeight = videoWidth * (9 / 16); 
     double bottomAdHeight = topAreaH - videoHeight;
 
@@ -965,26 +1044,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       bottomAdHeight = topAreaH * 0.15;
       videoHeight = topAreaH - bottomAdHeight;
       videoWidth = videoHeight * (16 / 9);
-      leftAdWidth = screenWidth - videoWidth;
+      leftAdWidth = (screenWidth - videoWidth) / 2;
+      rightAdWidth = leftAdWidth;
     }
 
     Widget mainPlayer = isNewsBulletinMode && (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) 
         ? SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!))))
         : actualCameraWidget;
 
-    // స్మూత్ టైమింగ్స్ సెట్ చేశాం
     return Container(
       color: Colors.black, 
       child: Stack(
         children: [
-          // 1. మెయిన్ వీడియో (ఇది స్మూత్ గా కుంచించుకుపోతుంది / పెద్దదవుతుంది)
+          // 1. మెయిన్ వీడియో (స్మూత్ గా సెంటర్ లో కుంచించుకుపోయి, మళ్లీ ఫుల్ అవుతుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
-            left: showLBand ? (isLBandRight ? 0 : leftAdWidth) : 0,
+            left: showAds ? leftAdWidth : 0,
             top: 0,
-            width: showLBand ? videoWidth : screenWidth,
-            height: showLBand ? videoHeight : topAreaH,
+            width: showAds ? videoWidth : screenWidth,
+            height: showAds ? videoHeight : topAreaH,
             child: Stack(
               children: [
                 Center(
@@ -1010,46 +1089,68 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
           ),
           
-          // 2. Left Ad (ఇది స్మూత్ గా పక్కనుండి వస్తుంది)
+          // 2. Left Ad (ఎడమవైపు నుండి వస్తుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
-            left: showLBand ? (isLBandRight ? videoWidth : 0) : (isLBandRight ? screenWidth : -leftAdWidth),
+            left: showAds ? 0 : -leftAdWidth,
             top: 0,
             width: leftAdWidth,
             height: topAreaH,
             child: GestureDetector(
-              onTap: leftAdPath.isEmpty ? _pickLeftAd : null,
-              onDoubleTap: leftAdPath.isNotEmpty ? _pickLeftAd : null,
+              onTap: _pickLeftAds,
+              onLongPress: _clearLeftAds,
               child: Container(
                 color: Colors.black, 
-                child: leftAdPath.isNotEmpty 
+                child: leftAdPaths.isNotEmpty 
                     ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
                         ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))
-                        : SizedBox.expand(child: Image.file(File(leftAdPath), fit: BoxFit.fill)))
-                    : const Center(child: Text("LEFT AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))
+                        : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) // GIF కూడా ఇక్కడే ప్లే అవుతుంది!
+                    : Center(child: Text("LEFT ADS (${leftAdPaths.length})\nTap to Add\nLong Press: Clear", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))
               )
             ),
           ),
 
-          // 3. Bottom Ad (ఇది స్మూత్ గా కింది నుండి వస్తుంది)
+          // 3. Right Ad (కుడివైపు నుండి వస్తుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
-            left: showLBand ? (isLBandRight ? 0 : leftAdWidth) : 0,
-            top: showLBand ? videoHeight : topAreaH,
-            width: videoWidth,
-            height: bottomAdHeight,
+            right: showAds ? 0 : -rightAdWidth,
+            top: 0,
+            width: rightAdWidth,
+            height: topAreaH,
             child: GestureDetector(
-              onTap: bottomAdPath.isEmpty ? _pickBottomAd : null,
-              onDoubleTap: bottomAdPath.isNotEmpty ? _pickBottomAd : null,
+              onTap: _pickRightAds,
+              onLongPress: _clearRightAds,
               child: Container(
                 color: Colors.black, 
-                child: bottomAdPath.isNotEmpty 
+                child: rightAdPaths.isNotEmpty 
+                    ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized 
+                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!)))
+                        : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) // GIF కూడా ఇక్కడే ప్లే అవుతుంది!
+                    : Center(child: Text("RIGHT ADS (${rightAdPaths.length})\nTap to Add\nLong Press: Clear", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))
+              )
+            ),
+          ),
+
+          // 4. Bottom Ad (కింది నుండి వస్తుంది)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
+            left: showAds ? leftAdWidth : 0,
+            top: showAds ? videoHeight : topAreaH,
+            width: showAds ? videoWidth : screenWidth,
+            height: bottomAdHeight,
+            child: GestureDetector(
+              onTap: _pickBottomAds,
+              onLongPress: _clearBottomAds,
+              child: Container(
+                color: Colors.black, 
+                child: bottomAdPaths.isNotEmpty 
                     ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
                         ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))
-                        : SizedBox.expand(child: Image.file(File(bottomAdPath), fit: BoxFit.fill)))
-                    : const Center(child: Text("BOTTOM AD\n(Tap to Upload)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))
+                        : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) // GIF కూడా ఇక్కడే ప్లే అవుతుంది!
+                    : Center(child: Text("BOTTOM ADS (${bottomAdPaths.length})\nTap to Add\nLong Press: Clear", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))
               )
             ),
           ),
@@ -1116,6 +1217,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
     );
 
+    // కొత్త బటన్ రంగు మరియు పేరు సెట్ చేయడం కోసం ఫంక్షన్స్
+    String getAdButtonLabel() {
+      if (adDisplayMode == 0) return "Ads OFF";
+      if (adDisplayMode == 1) return "Ads ON";
+      return "Auto Ads";
+    }
+    Color getAdButtonColor() {
+      if (adDisplayMode == 0) return Colors.pinkAccent;
+      if (adDisplayMode == 1) return Colors.blueAccent;
+      return Colors.greenAccent;
+    }
+
     return Scaffold(
       backgroundColor: Colors.black, 
       body: SafeArea(
@@ -1146,7 +1259,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: visualScreenLogoWidget
                   ),
 
-                  // యాడ్స్ లేనప్పుడు మాత్రమే రిపోర్టర్ బ్యాడ్జ్ కనిపిస్తుంది (వీడియో మీద)
                   if (!isDualScreenMode && !isAdCurrentlyShowing && !isNewsBulletinMode)
                     Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),
 
@@ -1186,10 +1298,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
                               _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
                               
-                              // కొత్త ఫీచర్ బటన్: ఆటో యాడ్స్ ఆన్/ఆఫ్ (ON ఉంటే గ్రీన్, OFF ఉంటే పింక్)
-                              _buildControlButton(Icons.visibility, isAutoAdModeActive ? "Auto Ads ON" : "Auto Ads OFF", _toggleAutoTimerAds, isAutoAdModeActive ? Colors.greenAccent : Colors.pinkAccent),
+                              // కొత్తగా యాడ్ చేసిన 3-స్టేట్ బటన్ (OFF -> ON -> Auto Timer)
+                              _buildControlButton(Icons.visibility, getAdButtonLabel(), _toggleAdMode, getAdButtonColor()),
                               
-                              _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
                             ]
                           ),
