@@ -1,97 +1,101 @@
-package com.example.pocket_pcr_studio
+package com.ssyatratv.pocket_pcr
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.media.projection.MediaProjectionManager
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
+import android.graphics.SurfaceTexture
+import android.hardware.usb.UsbDevice
+import android.view.Surface
+import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.view.TextureRegistry
+import com.jiangdongguo.android.usbcamera.UVCCameraHelper
+import com.serenegiant.usb.widget.CameraViewInterface
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.ssyatratv.pocket_pcr/stream"
-    private val REQUEST_CODE_SCREEN_CAPTURE = 100
-    private var pendingRtmpUrl: String = ""
+    
+    // USB Camera Variables
+    private var mUVCCameraHelper: UVCCameraHelper? = null
+    private var surfaceEntry: TextureRegistry.SurfaceTextureEntry? = null
+    private var flutterSurface: Surface? = null
 
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "startScreenStream") {
-                pendingRtmpUrl = call.argument<String>("rtmpUrl") ?: ""
-                startScreenCapture()
-                result.success(true)
-            } else if (call.method == "stopScreenStream") {
-                stopScreenCapture()
-                result.success(true)
-            } else {
-                result.notImplemented()
-            }
-        }
-    }
-
-    private fun startScreenCapture() {
-        try {
-            // 1. ఆండ్రాయిడ్ 14 క్రాష్ అవ్వకుండా ముందుగా బ్యాక్‌గ్రౌండ్ సర్వీస్ ని ఫోర్స్‌గా ఆపేస్తున్నాం
-            stopScreenCapture()
-            
-            // 2. పాత పర్మిషన్ పూర్తిగా క్లియర్ అవ్వడానికి ఒక అర సెకను (500ms) ఆగి కొత్త పర్మిషన్ అడుగుతున్నాం
-            Handler(Looper.getMainLooper()).postDelayed({
-                try {
-                    val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
-                } catch (e: Exception) {
-                    showToast("Popup Error: ${e.message}")
-                }
-            }, 500)
-        } catch (e: Exception) {
-            showToast("Error: ${e.message}")
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
         
-        if (requestCode == REQUEST_CODE_SCREEN_CAPTURE) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                try {
-                    val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                        action = ScreenStreamService.ACTION_START
-                        putExtra(ScreenStreamService.EXTRA_URL, pendingRtmpUrl)
-                        putExtra(ScreenStreamService.EXTRA_RESULT_CODE, resultCode)
-                        putExtra(ScreenStreamService.EXTRA_DATA, data)
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent)
-                    } else {
-                        startService(serviceIntent)
-                    }
-                } catch (e: Exception) {
-                    showToast("Service Error: ${e.message}")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startScreenStream" -> {
+                    val rtmpUrl = call.argument<String>("rtmpUrl")
+                    // మీ థర్డ్-పార్టీ RTMP లైబ్రరీ (ఉదాహరణకు rtmp-rtsp-stream-client-java) ఇక్కడ కాల్ అవుతుంది
+                    // startScreenBroadcasting(rtmpUrl)
+                    result.success(true)
                 }
-            } else {
-                showToast("Recording permission cancelled!")
+                "stopScreenStream" -> {
+                    // stopScreenBroadcasting()
+                    result.success(true)
+                }
+                "startUsbCamera" -> {
+                    try {
+                        val textureRegistry = flutterEngine.renderer
+                        surfaceEntry = textureRegistry.createSurfaceTexture()
+                        val surfaceTexture = surfaceEntry?.surfaceTexture
+                        
+                        // UVC కెమెరా రిజల్యూషన్ సెట్ చేయడం
+                        surfaceTexture?.setDefaultBufferSize(1920, 1080)
+                        flutterSurface = Surface(surfaceTexture)
+
+                        initUVCCamera()
+                        
+                        // Flutter టెక్స్చర్ ఐడీని వెనక్కి పంపడం
+                        result.success(surfaceEntry?.id())
+                    } catch (e: Exception) {
+                        result.error("UVC_ERROR", e.localizedMessage, null)
+                    }
+                }
+                "stopUsbCamera" -> {
+                    mUVCCameraHelper?.release()
+                    flutterSurface?.release()
+                    surfaceEntry?.release()
+                    result.success(true)
+                }
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
     }
 
-    private fun stopScreenCapture() {
-        try {
-            val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                action = ScreenStreamService.ACTION_STOP
+    private fun initUVCCamera() {
+        mUVCCameraHelper = UVCCameraHelper.getInstance()
+        mUVCCameraHelper?.setDefaultFrameFormat(UVCCameraHelper.FRAME_FORMAT_MJPEG)
+        mUVCCameraHelper?.initUSBMonitor(this, mCameraHelperCallback)
+        mUVCCameraHelper?.registerUSB()
+    }
+
+    private val mCameraHelperCallback = object : UVCCameraHelper.OnMyDevConnectListener {
+        override fun onAttachDev(device: UsbDevice?) {
+            if (mUVCCameraHelper?.isCameraOpened == false) {
+                mUVCCameraHelper?.requestPermission(0)
             }
-            startService(serviceIntent)
-        } catch (e: Exception) {
-            // Ignore if service is already stopped
+        }
+        override fun onDettachDev(device: UsbDevice?) {
+            mUVCCameraHelper?.closeCamera()
+        }
+        override fun onConnectDev(device: UsbDevice?, isConnected: Boolean) {
+            if (isConnected) {
+                // ఫ్లట్టర్ సర్ఫేస్ కు ఫీడ్ పంపడం
+                mUVCCameraHelper?.startPreview(flutterSurface)
+            }
+        }
+        override fun onDisConnectDev(device: UsbDevice?) {
+            mUVCCameraHelper?.closeCamera()
         }
     }
     
-    private fun showToast(message: String) {
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        mUVCCameraHelper?.unregisterUSB()
+        mUVCCameraHelper?.release()
     }
 }
