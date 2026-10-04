@@ -1,62 +1,47 @@
-package com.ssyatratv.pocket_pcr
+package com.kingjvk.pocket_pcr
 
-import android.content.Context
-import android.graphics.SurfaceTexture
-import android.hardware.usb.UsbDevice
-import android.view.Surface
+import android.os.Bundle
+import android.util.Log
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.view.TextureRegistry
-import com.jiangdongguo.android.usbcamera.UVCCameraHelper
-import com.serenegiant.usb.widget.CameraViewInterface
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.ssyatratv.pocket_pcr/stream"
-    
-    // USB Camera Variables
-    private var mUVCCameraHelper: UVCCameraHelper? = null
-    private var surfaceEntry: TextureRegistry.SurfaceTextureEntry? = null
-    private var flutterSurface: Surface? = null
+    // ప్యాకేజీ పేరు ఇక్కడ కూడా సేమ్ ఉండాలి 
+    private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "startScreenStream" -> {
                     val rtmpUrl = call.argument<String>("rtmpUrl")
-                    // మీ థర్డ్-పార్టీ RTMP లైబ్రరీ (ఉదాహరణకు rtmp-rtsp-stream-client-java) ఇక్కడ కాల్ అవుతుంది
-                    // startScreenBroadcasting(rtmpUrl)
+                    val recordAudio = call.argument<Boolean>("recordAudio") ?: true
+                    
+                    Log.d("PocketPCR", "Starting RTMP Stream to: $rtmpUrl (Audio: $recordAudio)")
+                    // మీ RTMP బ్రాడ్‌కాస్టింగ్ లాజిక్ ఇక్కడ వస్తుంది
                     result.success(true)
                 }
                 "stopScreenStream" -> {
-                    // stopScreenBroadcasting()
+                    Log.d("PocketPCR", "Stopping RTMP Stream")
                     result.success(true)
                 }
                 "startUsbCamera" -> {
+                    Log.d("PocketPCR", "Initializing USB/UVC Camera")
                     try {
                         val textureRegistry = flutterEngine.renderer
-                        surfaceEntry = textureRegistry.createSurfaceTexture()
-                        val surfaceTexture = surfaceEntry?.surfaceTexture
+                        val surfaceEntry = textureRegistry.createSurfaceTexture()
                         
-                        // UVC కెమెరా రిజల్యూషన్ సెట్ చేయడం
-                        surfaceTexture?.setDefaultBufferSize(1920, 1080)
-                        flutterSurface = Surface(surfaceTexture)
-
-                        initUVCCamera()
-                        
-                        // Flutter టెక్స్చర్ ఐడీని వెనక్కి పంపడం
-                        result.success(surfaceEntry?.id())
+                        // ఇక్కడ AndroidUSBCamera (UVC) లాజిక్ యాడ్ చేసి textureId ని ఫ్లట్టర్‌కి పంపాలి
+                        result.success(surfaceEntry.id())
                     } catch (e: Exception) {
                         result.error("UVC_ERROR", e.localizedMessage, null)
                     }
                 }
                 "stopUsbCamera" -> {
-                    mUVCCameraHelper?.release()
-                    flutterSurface?.release()
-                    surfaceEntry?.release()
+                    Log.d("PocketPCR", "Releasing USB/UVC Camera")
                     result.success(true)
                 }
                 else -> {
@@ -64,38 +49,5 @@ class MainActivity: FlutterActivity() {
                 }
             }
         }
-    }
-
-    private fun initUVCCamera() {
-        mUVCCameraHelper = UVCCameraHelper.getInstance()
-        mUVCCameraHelper?.setDefaultFrameFormat(UVCCameraHelper.FRAME_FORMAT_MJPEG)
-        mUVCCameraHelper?.initUSBMonitor(this, mCameraHelperCallback)
-        mUVCCameraHelper?.registerUSB()
-    }
-
-    private val mCameraHelperCallback = object : UVCCameraHelper.OnMyDevConnectListener {
-        override fun onAttachDev(device: UsbDevice?) {
-            if (mUVCCameraHelper?.isCameraOpened == false) {
-                mUVCCameraHelper?.requestPermission(0)
-            }
-        }
-        override fun onDettachDev(device: UsbDevice?) {
-            mUVCCameraHelper?.closeCamera()
-        }
-        override fun onConnectDev(device: UsbDevice?, isConnected: Boolean) {
-            if (isConnected) {
-                // ఫ్లట్టర్ సర్ఫేస్ కు ఫీడ్ పంపడం
-                mUVCCameraHelper?.startPreview(flutterSurface)
-            }
-        }
-        override fun onDisConnectDev(device: UsbDevice?) {
-            mUVCCameraHelper?.closeCamera()
-        }
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        mUVCCameraHelper?.unregisterUSB()
-        mUVCCameraHelper?.release()
     }
 }
