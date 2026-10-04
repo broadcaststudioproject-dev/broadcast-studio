@@ -367,6 +367,15 @@ class _StudioScreenState extends State<StudioScreen>
     
     super.dispose();
   }
+  
+  void _videoListener() {
+    final vController = _bulletinVideoController;
+    if (vController == null || !vController.value.isInitialized) return;
+    if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
+      vController.removeListener(_videoListener);
+      setState(() { isNewsBulletinMode = false; });
+    }
+  }
 
   Future<void> _requestPermissions() async {
     await [
