@@ -8,7 +8,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    // ప్యాకేజీ పేరు ఇక్కడ కూడా సేమ్ ఉండాలి 
     private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -21,29 +20,36 @@ class MainActivity: FlutterActivity() {
                     val recordAudio = call.argument<Boolean>("recordAudio") ?: true
                     
                     Log.d("PocketPCR", "Starting RTMP Stream to: $rtmpUrl (Audio: $recordAudio)")
-                    // మీ RTMP బ్రాడ్‌కాస్టింగ్ లాజిక్ ఇక్కడ వస్తుంది
+                    // TODO: Screen capture (MediaProjection) and RTMP streaming logic here
                     result.success(true)
                 }
+                
                 "stopScreenStream" -> {
                     Log.d("PocketPCR", "Stopping RTMP Stream")
+                    // TODO: Stop RTMP streaming
                     result.success(true)
                 }
+                
                 "startUsbCamera" -> {
-                    Log.d("PocketPCR", "Initializing USB/UVC Camera")
+                    Log.d("PocketPCR", "Initializing external USB/UVC Capture Card")
                     try {
                         val textureRegistry = flutterEngine.renderer
                         val surfaceEntry = textureRegistry.createSurfaceTexture()
                         
-                        // ఇక్కడ AndroidUSBCamera (UVC) లాజిక్ యాడ్ చేసి textureId ని ఫ్లట్టర్‌కి పంపాలి
+                        // TODO: Connect USB Camera and map preview to surfaceEntry.surfaceTexture
+                        
                         result.success(surfaceEntry.id())
                     } catch (e: Exception) {
-                        result.error("UVC_ERROR", e.localizedMessage, null)
+                        result.error("UVC_ERROR", "OTG Permission denied or Camera not found", null)
                     }
                 }
+                
                 "stopUsbCamera" -> {
-                    Log.d("PocketPCR", "Releasing USB/UVC Camera")
+                    Log.d("PocketPCR", "Releasing USB/UVC Capture Card")
+                    // TODO: Release UVC Camera resources
                     result.success(true)
                 }
+                
                 else -> {
                     result.notImplemented()
                 }
