@@ -377,6 +377,25 @@ class _StudioScreenState extends State<StudioScreen>
     }
   }
 
+  Future<void> _fetchBreakingNews() async {
+    try {
+      final response = await http.get(Uri.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te'));
+      if (response.statusCode == 200) {
+        final document = XmlDocument.parse(response.body);
+        final items = document.findAllElements('item');
+        List<String> titles = [];
+        for (var item in items.take(20)) {
+          titles.add(item.findElements('title').first.innerText.replaceAll(RegExp(r'^[0-9]+[smh]\s*Trend:\s*', caseSensitive: false), ''));
+        }
+        if (titles.isNotEmpty && mounted) {
+          setState(() {
+            breakingNewsText = titles.join("   ♦   ");
+          });
+        }
+      }
+    } catch (e) {}
+  }
+
   Future<void> _requestPermissions() async {
     await [
       Permission.camera,
@@ -855,7 +874,7 @@ class _StudioScreenState extends State<StudioScreen>
                     TextField(
                       controller: subHeadlineCtrl,
                       style: const TextStyle(color: Colors.cyanAccent),
-                      decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌‌లైన్"),
+                      decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్"),
                     ),
                     const Divider(color: Colors.white24, height: 20),
                     TextField(
