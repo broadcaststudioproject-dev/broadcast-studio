@@ -122,11 +122,8 @@ class _StudioScreenState extends State<StudioScreen>
   // --- External Cams Variables ---
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
-  bool isDroneCamMode = false; // కొత్తగా డ్రోన్ మోడ్ యాడ్ చేయబడింది
   VideoPlayerController? _ipCamController;
-  VideoPlayerController? _droneCamController; // డ్రోన్ కోసం సపరేట్ కంట్రోలర్
   TextEditingController ipCamUrlCtrl = TextEditingController();
-  TextEditingController droneCamUrlCtrl = TextEditingController(); // డ్రోన్ లింక్ కంట్రోలర్
   int? _usbTextureId;
 
   // --- యాడ్స్ డిస్ప్లే & టైమర్ (0=OFF, 1=ON, 2=Auto) ---
@@ -156,7 +153,6 @@ class _StudioScreenState extends State<StudioScreen>
     subHeadlineCtrl.text = splitScreenSubHeadline;
     youtubeUrlController.text = "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
     ipCamUrlCtrl.text = "http://192.168.1.100:8080/video";
-    droneCamUrlCtrl.text = "rtsp://192.168.1.1:554/live";
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -164,11 +160,13 @@ class _StudioScreenState extends State<StudioScreen>
       DeviceOrientation.landscapeRight
     ]);
 
+    // Motion animation initialization
     _motionController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
     
+    // Ticker Background Color cycle
     _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted) {
         setState(() {
@@ -204,7 +202,6 @@ class _StudioScreenState extends State<StudioScreen>
       youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
       networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
       ipCamUrlCtrl.text = prefs.getString('ipCamUrl') ?? "http://192.168.1.100:8080/video";
-      droneCamUrlCtrl.text = prefs.getString('droneCamUrl') ?? "rtsp://192.168.1.1:554/live";
 
       watermarkCtrl.text = watermarkText;
       locCtrl.text = locationText;
@@ -317,7 +314,6 @@ class _StudioScreenState extends State<StudioScreen>
     await prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text);
     await prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text);
     await prefs.setString('ipCamUrl', ipCamUrlCtrl.text);
-    await prefs.setString('droneCamUrl', droneCamUrlCtrl.text);
   }
 
   Future<void> _saveAdPaths(String pos, List<String> paths) async {
@@ -333,7 +329,6 @@ class _StudioScreenState extends State<StudioScreen>
       if (isCameraVisible &&
           !isExternalIpCamMode &&
           !isUsbCamMode &&
-          !isDroneCamMode &&
           (controller == null || !controller!.value.isInitialized)) {
         _initCamera();
       }
@@ -357,13 +352,11 @@ class _StudioScreenState extends State<StudioScreen>
     _rightAdVideoCtrl?.dispose();
     _bottomAdVideoCtrlForAds?.dispose();
     _ipCamController?.dispose();
-    _droneCamController?.dispose();
 
     youtubeUrlController.dispose();
     networkVideoUrlCtrl.dispose();
     youtubeVideoUrlCtrl.dispose();
     ipCamUrlCtrl.dispose();
-    droneCamUrlCtrl.dispose();
     watermarkCtrl.dispose();
     locCtrl.dispose();
     nameCtrl.dispose();
@@ -441,9 +434,9 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   void _switchCamera() async {
-    if (isExternalIpCamMode || isUsbCamMode || isDroneCamMode) {
+    if (isExternalIpCamMode || isUsbCamMode) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ఎక్స్‌టర్నల్ / డ్రోన్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు."))
+        const SnackBar(content: Text("ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు."))
       );
       return;
     }
@@ -462,18 +455,15 @@ class _StudioScreenState extends State<StudioScreen>
       isMenuOpen = false;
     });
 
-    if (isExternalIpCamMode || isUsbCamMode || isDroneCamMode) {
+    if (isExternalIpCamMode || isUsbCamMode) {
       setState(() {
         isExternalIpCamMode = false;
         isUsbCamMode = false;
-        isDroneCamMode = false;
         isCameraVisible = false;
         _usbTextureId = null;
       });
       _ipCamController?.dispose();
       _ipCamController = null;
-      _droneCamController?.dispose();
-      _droneCamController = null;
       try {
         await StreamServiceManager.stopUsbCamera();
       } catch (_) {}
@@ -612,7 +602,6 @@ class _StudioScreenState extends State<StudioScreen>
         setState(() {
           isExternalIpCamMode = true;
           isUsbCamMode = false;
-          isDroneCamMode = false;
           isCameraVisible = true;
           isNewsBulletinMode = false;
           isDualScreenMode = false;
@@ -625,38 +614,9 @@ class _StudioScreenState extends State<StudioScreen>
       });
   }
 
-  Future<void> _startDroneCamera(String url) async {
-    if (url.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("డ్రోన్ సిగ్నల్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange)
-    );
-    
-    _droneCamController?.dispose();
-    _droneCamController = VideoPlayerController.networkUrl(Uri.parse(url))
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() {
-          isDroneCamMode = true;
-          isExternalIpCamMode = false;
-          isUsbCamMode = false;
-          isCameraVisible = true;
-          isNewsBulletinMode = false;
-          isDualScreenMode = false;
-        });
-        _droneCamController?.play();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("డ్రోన్ కనెక్ట్ అయ్యింది! (Live)"), backgroundColor: Colors.green)
-        );
-      }).catchError((e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("డ్రోన్ ఫీడ్ కనెక్ట్ కాలేదు. RTMP/RTSP చెక్ చేయండి."), backgroundColor: Colors.red)
-        );
-      });
-  }
-
   Future<void> _startUsbCamera() async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("USB Capture Card/UVC కోసం వెతుకుతోంది..."), backgroundColor: Colors.orange)
+      const SnackBar(content: Text("USB Capture Card కోసం వెతుకుతోంది..."), backgroundColor: Colors.orange)
     );
     try {
       final int? textureId = await StreamServiceManager.startUsbCamera();
@@ -665,12 +625,11 @@ class _StudioScreenState extends State<StudioScreen>
           _usbTextureId = textureId;
           isUsbCamMode = true;
           isExternalIpCamMode = false;
-          isDroneCamMode = false;
           isCameraVisible = true;
           isNewsBulletinMode = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("USB కెమెరా/UVC కనెక్ట్ అయ్యింది!"), backgroundColor: Colors.green)
+          const SnackBar(content: Text("USB Capture Card కనెక్ట్ అయ్యింది!"), backgroundColor: Colors.green)
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -679,7 +638,7 @@ class _StudioScreenState extends State<StudioScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ఆండ్రాయిడ్ సిస్టమ్ ఎర్రర్."), backgroundColor: Colors.redAccent)
+        const SnackBar(content: Text("Android UVC కోడ్ ఇంకా సెటప్ చేయబడలేదు."), backgroundColor: Colors.redAccent)
       );
     }
   }
@@ -816,7 +775,7 @@ class _StudioScreenState extends State<StudioScreen>
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("External Cameras & Drone Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+              title: const Text("External Cameras Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
               content: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,33 +803,8 @@ class _StudioScreenState extends State<StudioScreen>
                       icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18),
                       label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11)),
                     ),
-                    const Divider(color: Colors.white24, height: 20),
-                    
-                    const Text("2. Drone Camera (DJI / RTMP / RTSP)", style: TextStyle(color: Colors.greenAccent, fontSize: 11)),
-                    const SizedBox(height: 5),
-                    TextField(
-                      controller: droneCamUrlCtrl,
-                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                      decoration: const InputDecoration(
-                        hintText: "rtmp://... or rtsp://...",
-                        hintStyle: TextStyle(color: Colors.white30),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                      onPressed: () async {
-                        await _saveLinks();
-                        Navigator.pop(context);
-                        _startDroneCamera(droneCamUrlCtrl.text.trim());
-                      },
-                      icon: const Icon(Icons.flight, color: Colors.white, size: 18),
-                      label: const Text("Connect Drone", style: TextStyle(color: Colors.white, fontSize: 11)),
-                    ),
-                    
-                    const Divider(color: Colors.white24, height: 20),
-                    const Text("3. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+                    const Divider(color: Colors.white24, height: 30),
+                    const Text("2. USB / Type-C Capture Card", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
                     const SizedBox(height: 10),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent),
@@ -1264,6 +1198,7 @@ class _StudioScreenState extends State<StudioScreen>
     }
   }
 
+  // --- మల్టీ-లేఅవుట్ యానిమేటెడ్ డిస్‌ప్లే ఫంక్షన్ ---
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
     
     Widget actualCameraWidget;
@@ -1272,17 +1207,6 @@ class _StudioScreenState extends State<StudioScreen>
         color: Colors.black,
         child: const Center(
           child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))
-        )
-      );
-    } else if (isDroneCamMode && _droneCamController != null && _droneCamController!.value.isInitialized) {
-      actualCameraWidget = SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _droneCamController!.value.size.width,
-            height: _droneCamController!.value.size.height,
-            child: VideoPlayer(_droneCamController!)
-          )
         )
       );
     } else if (isExternalIpCamMode && _ipCamController != null && _ipCamController!.value.isInitialized) {
@@ -1459,6 +1383,7 @@ class _StudioScreenState extends State<StudioScreen>
 
     if (showAds) {
       if (adShapeMode == 0) { 
+        // L-Band (1 Side + Bottom)
         double adW = screenWidth * 0.20;
         vW = screenWidth - adW; 
         vH = vW * (9 / 16); 
@@ -1479,6 +1404,7 @@ class _StudioScreenState extends State<StudioScreen>
           vLeft = adW; 
         }
       } else if (adShapeMode == 1) { 
+        // 2-Sides (Left & Right Only)
         lAdW = screenWidth * 0.18; 
         rAdW = screenWidth * 0.18;
         vW = screenWidth - lAdW - rAdW; 
@@ -1486,6 +1412,7 @@ class _StudioScreenState extends State<StudioScreen>
         vLeft = lAdW; 
         bAdH = 0;
       } else if (adShapeMode == 2) { 
+        // U-Band (Left, Right, Bottom)
         lAdW = screenWidth * 0.15; 
         rAdW = screenWidth * 0.15;
         vW = screenWidth - lAdW - rAdW; 
@@ -1519,6 +1446,7 @@ class _StudioScreenState extends State<StudioScreen>
       color: Colors.black, 
       child: Stack(
         children: [
+          // 1. మెయిన్ వీడియో (స్మూత్ గా సెంటర్ లో కుంచించుకుపోయి, మళ్లీ 100% అవుతుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
@@ -1560,6 +1488,7 @@ class _StudioScreenState extends State<StudioScreen>
             )
           ),
           
+          // 2. Left Ad (ఎడమవైపు నుండి వస్తుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
@@ -1599,6 +1528,7 @@ class _StudioScreenState extends State<StudioScreen>
             )
           ),
 
+          // 3. Right Ad (కుడివైపు నుండి వస్తుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
@@ -1638,6 +1568,7 @@ class _StudioScreenState extends State<StudioScreen>
             )
           ),
 
+          // 4. Bottom Ad (కింది నుండి వస్తుంది)
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeInOut,
@@ -1734,6 +1665,7 @@ class _StudioScreenState extends State<StudioScreen>
               )
             : const Center(child: CircularProgressIndicator(color: Colors.amber));
 
+    // --- మోషన్ యానిమేటెడ్ రిపోర్టర్ బ్యాడ్జ్ (Pulsing Animation) ---
     Widget animatedReporterBadge = ScaleTransition(
       scale: Tween<double>(begin: 0.96, end: 1.04).animate(
         CurvedAnimation(parent: _motionController, curve: Curves.easeInOut)
@@ -1780,6 +1712,7 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
+    // --- మోషన్ యానిమేటెడ్ ఛానెల్ లోగో (Floating & Rotating) ---
     Widget animatedLogoWidget = SlideTransition(
       position: Tween<Offset>(begin: const Offset(0, -0.05), end: const Offset(0, 0.05)).animate(
         CurvedAnimation(parent: _motionController, curve: Curves.easeInOut)
@@ -1834,6 +1767,7 @@ class _StudioScreenState extends State<StudioScreen>
       return Colors.teal;
     }
 
+    // --- మల్టీ-కలర్ యానిమేటెడ్ బ్యాక్‌గ్రౌండ్ రంగులు ---
     final List<Color> bgColors = [
       const Color(0xFF0D47A1),
       Colors.red.shade900,
@@ -1883,6 +1817,7 @@ class _StudioScreenState extends State<StudioScreen>
                     child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)
                   ),
                   
+                  // --- Swap అయ్యే మోషన్ లోగో ---
                   Positioned(
                     top: 15.0,
                     left: !isReporterLeft ? 15.0 : null,
@@ -1890,6 +1825,7 @@ class _StudioScreenState extends State<StudioScreen>
                     child: animatedLogoWidget
                   ),
 
+                  // --- Swap అయ్యే మోషన్ రిపోర్టర్ బ్యాడ్జ్ (యాడ్స్ లేనప్పుడు మాత్రమే) ---
                   if (!isDualScreenMode && !isAdCurrentlyShowing && !isNewsBulletinMode)
                     Positioned(
                       bottom: 65,
@@ -1898,13 +1834,14 @@ class _StudioScreenState extends State<StudioScreen>
                       child: animatedReporterBadge
                     ),
 
+                  // --- మల్టీ-కలర్ యానిమేటెడ్ బ్రేకింగ్ న్యూస్ బాక్స్ ---
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
                     height: tickerH,
                     child: AnimatedContainer(
-                      duration: const Duration(seconds: 2),
+                      duration: const Duration(seconds: 2), // స్మూత్ కలర్ ఛేంజ్
                       decoration: BoxDecoration(
                         color: bgColors[_tickerBgColorIndex % bgColors.length],
                         border: Border.all(color: Colors.amber.shade400, width: 1.5)
@@ -1924,6 +1861,7 @@ class _StudioScreenState extends State<StudioScreen>
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              // టెక్స్ట్ పైన మల్టీకలర్ యానిమేటెడ్ షైనింగ్ గ్రేడియంట్
                               child: AnimatedBuilder(
                                 animation: _motionController,
                                 builder: (context, child) {
@@ -1989,6 +1927,7 @@ class _StudioScreenState extends State<StudioScreen>
                               ),
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
                               
+                              // --- మల్టీ-లైవ్ మరియు డ్యూయల్ స్క్రీన్ బటన్స్ ---
                               _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
                               _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                               if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
@@ -2041,7 +1980,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 class StreamServiceManager {
-  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
