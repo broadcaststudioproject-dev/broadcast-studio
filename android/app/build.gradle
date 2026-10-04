@@ -44,3 +44,10 @@ dependencies {
     implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
     implementation 'androidx.multidex:multidex:2.0.1'
 }
+    // USB UVC Camera Support Library
+    implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6'
+    
+    // (ఆప్షనల్) RTMP లైవ్ స్ట్రీమింగ్ కోసం
+    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
+}
+
