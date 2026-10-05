@@ -54,7 +54,7 @@ jobs:
           if os.path.exists(kt_dir):
               shutil.rmtree(kt_dir)
 
-          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ రాయడం (ఎలాంటి కంపైల్ ఎర్రర్స్ రాకుండా)
+          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ రాయడం 
           java_dir = "android/app/src/main/java/com/kingjvk/pocket_pcr"
           os.makedirs(java_dir, exist_ok=True)
           java_path = os.path.join(java_dir, "MainActivity.java")
@@ -165,7 +165,12 @@ jobs:
           """
           with open(java_path, "w") as f: f.write(new_content)
 
-          # 3. కెమెరా, ఆడియో & ముఖ్యమైన USB ఫీచర్ పర్మిషన్స్ యాడ్ చేయడం
+          # 3. పాత క్రాష్ అయ్యే ఫైల్స్ డిలీట్ చేయడం (ఉంటే)
+          bad_files = glob.glob("android/app/src/main/kotlin/**/ScreenStreamService.kt", recursive=True)
+          for bad_file in bad_files:
+              os.remove(bad_file)
+
+          # 4. కెమెరా, ఆడియో & ముఖ్యమైన USB ఫీచర్ పర్మిషన్స్ యాడ్ చేయడం
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
@@ -181,21 +186,22 @@ jobs:
               content = content.replace("<application", perms + "\n    <application")
               with open(manifest, "w") as f: f.write(content)
 
-          # 4. సెట్టింగ్స్ లో JitPack లింక్ యాడ్ చేయడం
-          settings = "android/settings.gradle"
-          if os.path.exists(settings):
-              with open(settings, "r") as f: s_content = f.read()
-              s_content = s_content.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
-              with open(settings, "w") as f: f.write(s_content)
+          # 5. సెట్టింగ్స్ లో JitPack లింక్ కరెక్ట్ గా యాడ్ చేయడం
+          for s_file in ["android/settings.gradle", "android/build.gradle"]:
+              if os.path.exists(s_file):
+                  with open(s_file, "r") as f: txt = f.read()
+                  if "jitpack.io" not in txt:
+                      txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
+                  with open(s_file, "w") as f: f.write(txt)
 
-          # 5. డిపెండెన్సీస్ & ఆండ్రాయిడ్ వెర్షన్ అప్డేట్ చేయడం (కొత్త లైబ్రరీ ఇక్కడ యాడ్ చేయబడింది)
+          # 6. డిపెండెన్సీస్ & ఆండ్రాయిడ్ వెర్షన్ అప్డేట్ చేయడం (సరిదిద్దిన సరైన లైబ్రరీ లింక్)
           app_gradle = "android/app/build.gradle"
           if os.path.exists(app_gradle):
               with open(app_gradle, "r") as f: g_content = f.read()
               deps = """
           dependencies {
               implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
-              implementation 'com.herohan:UVCAndroid:1.0.13'
+              implementation 'com.github.herohan:UVCAndroid:1.0.22'
           }
               """
               g_content = g_content.replace("flutter.minSdkVersion", "24")
