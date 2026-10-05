@@ -31,11 +31,21 @@ jobs:
 
       - name: Clean & Recreate Android Folder
         run: |
-          echo "పాత ఆండ్రాయిడ్ ఫోల్డర్ పర్మినెంట్ గా డిలీట్ చేస్తున్నాను..."
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను (Kotlin కోడ్ మరియు యాప్ లోగో)..."
+          mkdir -p /tmp/android_backup
+          cp -r android/app/src/main/kotlin /tmp/android_backup/ || true
+          cp -r android/app/src/main/res /tmp/android_backup/ || true
+          
+          echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
           rm -rf android
           
-          echo "ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
+          echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
           flutter create --org com.kingjvk --project-name pocket_pcr_studio . --platforms=android
+          
+          echo "4. మీ కస్టమ్ కోడ్ మరియు యాప్ లోగో రీస్టోర్ చేస్తున్నాను..."
+          rm -rf android/app/src/main/kotlin
+          cp -r /tmp/android_backup/kotlin android/app/src/main/ || true
+          cp -r /tmp/android_backup/res/* android/app/src/main/res/ || true
 
       - name: Configure Android Project Safely
         run: |
@@ -96,7 +106,7 @@ jobs:
               content = content.replace("<application", perms + "\n    <application")
               with open(manifest, "w") as f: f.write(content)
 
-          # 3. సెట్టింగ్స్ లో JitPack లింక్ యాడ్ చేయడం (Drone, USB కోసం)
+          # 3. సెట్టింగ్స్ లో JitPack లింక్ యాడ్ చేయడం
           settings = "android/settings.gradle"
           if os.path.exists(settings):
               with open(settings, "r") as f: s_content = f.read()
@@ -123,6 +133,9 @@ jobs:
         run: |
           flutter clean
           flutter pub get
+
+      - name: Generate App Icon
+        run: flutter pub run flutter_launcher_icons || true
 
       - name: Build APK (Release Mode)
         run: flutter build apk --release
