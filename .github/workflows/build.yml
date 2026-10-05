@@ -1,4 +1,4 @@
-name: Pocket PCR Studio - Master Build
+name: Pocket PCR Studio - Android Build
 
 on:
   push:
@@ -44,22 +44,22 @@ jobs:
           echo "4. యాప్ లోగో రీస్టోర్ చేస్తున్నాను..."
           cp -r /tmp/android_backup/res/* android/app/src/main/res/ || true
 
-      - name: Master Configuration for Android
+      - name: Configure Android Project Safely
         run: |
           cat << 'EOF' > configure_android.py
-          import os, shutil, re
+          import os, glob, shutil, re
 
-          # 1. పాత Kotlin ఫైల్స్ వల్ల వచ్చే కన్ఫ్యూజన్ లేకుండా వాటిని పూర్తిగా తొలగించడం
+          # 1. పాత Kotlin ఫైల్స్ తొలగించడం
           kt_dir = "android/app/src/main/kotlin"
           if os.path.exists(kt_dir):
               shutil.rmtree(kt_dir)
 
-          # 2. రియల్ USB Camera (UVC) కోసం 100% ఎర్రర్-ఫ్రీ జావా (JAVA) కోడ్
+          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోర్ కోడ్
           java_dir = "android/app/src/main/java/com/kingjvk/pocket_pcr"
           os.makedirs(java_dir, exist_ok=True)
           java_path = os.path.join(java_dir, "MainActivity.java")
           
-          java_code = """package com.kingjvk.pocket_pcr;
+          new_content = """package com.kingjvk.pocket_pcr;
 
           import android.os.Bundle;
           import android.view.Surface;
@@ -70,46 +70,71 @@ jobs:
           import io.flutter.plugin.common.MethodChannel;
           import io.flutter.view.TextureRegistry;
 
-          import com.herohan.uvcapp.CameraHelper;
-          import com.herohan.uvcapp.ICameraHelper;
+          import com.serenegiant.usb.USBMonitor;
+          import com.serenegiant.usb.UVCCamera;
 
           public class MainActivity extends FlutterActivity {
               private static final String CHANNEL = "com.kingjvk.pocket_pcr/stream";
-              private CameraHelper mCameraHelper;
+              private USBMonitor mUSBMonitor;
+              private UVCCamera mUVCCamera;
               private Surface mSurface;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  mCameraHelper = new CameraHelper();
-                  mCameraHelper.setStateCallback(new ICameraHelper.StateCallback() {
-                      @Override
-                      public void onAttach(UsbDevice device) {
-                          if (device != null) {
-                              try { mCameraHelper.selectDevice(device); } catch (Exception e) {}
-                          }
-                      }
-                      @Override
-                      public void onDeviceOpen(UsbDevice device, boolean isFirstOpen) {
-                          try { mCameraHelper.openCamera(); } catch (Exception e) {}
-                      }
-                      @Override
-                      public void onCameraOpen(UsbDevice device) {
-                          try { mCameraHelper.startPreview(); } catch (Exception e) {}
-                          if (mSurface != null) {
-                              try { mCameraHelper.addSurface(mSurface, false); } catch (Exception e) {}
-                          }
-                      }
-                      @Override
-                      public void onCameraClose(UsbDevice device) {}
-                      @Override
-                      public void onDeviceClose(UsbDevice device) {}
-                      @Override
-                      public void onDetach(UsbDevice device) {}
-                      @Override
-                      public void onCancel(UsbDevice device) {}
-                  });
+                  mUSBMonitor = new USBMonitor(this, mOnDeviceConnectListener);
+                  mUSBMonitor.register();
               }
+
+              private final USBMonitor.OnDeviceConnectListener mOnDeviceConnectListener = new USBMonitor.OnDeviceConnectListener() {
+                  @Override
+                  public void onAttach(UsbDevice device) {}
+
+                  @Override
+                  public void onDettach(UsbDevice device) {
+                      if (mUVCCamera != null) {
+                          mUVCCamera.stopPreview();
+                          mUVCCamera.destroy();
+                          mUVCCamera = null;
+                      }
+                  }
+
+                  @Override
+                  public void onConnect(UsbDevice device, USBMonitor.UsbControlBlock controlBlock, boolean createNew) {
+                      new Thread(() -> {
+                          try {
+                              UVCCamera camera = new UVCCamera();
+                              camera.open(controlBlock);
+                              try {
+                                  camera.setPreviewSize(1280, 720, UVCCamera.FRAME_FORMAT_MJPEG);
+                              } catch (Exception e) {
+                                  try {
+                                      camera.setPreviewSize(640, 480, UVCCamera.FRAME_FORMAT_YUYV);
+                                  } catch (Exception e2) {}
+                              }
+                              mUVCCamera = camera;
+                              if (mSurface != null) {
+                                  camera.setPreviewDisplay(mSurface);
+                                  camera.startPreview();
+                              }
+                          } catch (Exception e) {
+                              e.printStackTrace();
+                          }
+                      }).start();
+                  }
+
+                  @Override
+                  public void onDisconnect(UsbDevice device, USBMonitor.UsbControlBlock controlBlock) {
+                      if (mUVCCamera != null) {
+                          mUVCCamera.stopPreview();
+                          mUVCCamera.destroy();
+                          mUVCCamera = null;
+                      }
+                  }
+
+                  @Override
+                  public void onCancel(UsbDevice device) {}
+              };
 
               @Override
               public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
@@ -125,11 +150,14 @@ jobs:
                                   try {
                                       TextureRegistry.SurfaceTextureEntry surfaceEntry = flutterEngine.getRenderer().createSurfaceTexture();
                                       android.graphics.SurfaceTexture surfaceTexture = surfaceEntry.surfaceTexture();
-                                      surfaceTexture.setDefaultBufferSize(1920, 1080);
+                                      surfaceTexture.setDefaultBufferSize(1280, 720);
                                       mSurface = new Surface(surfaceTexture);
                                       
-                                      if (mCameraHelper != null && mCameraHelper.isCameraOpened()) {
-                                          try { mCameraHelper.addSurface(mSurface, false); } catch (Exception e) {}
+                                      if (mUSBMonitor != null) {
+                                          java.util.List<UsbDevice> devices = mUSBMonitor.getDeviceList();
+                                          if (devices != null && !devices.isEmpty()) {
+                                              mUSBMonitor.requestPermission(devices.get(0));
+                                          }
                                       }
                                       
                                       result.success(surfaceEntry.id());
@@ -138,8 +166,8 @@ jobs:
                                   }
                                   break;
                               case "stopUsbCamera":
-                                  if (mCameraHelper != null && mSurface != null) {
-                                      try { mCameraHelper.removeSurface(mSurface); } catch (Exception e) {}
+                                  if (mUVCCamera != null) {
+                                      mUVCCamera.stopPreview();
                                   }
                                   if (mSurface != null) {
                                       mSurface.release();
@@ -157,15 +185,24 @@ jobs:
               @Override
               protected void onDestroy() {
                   super.onDestroy();
-                  if (mCameraHelper != null) {
-                      try { mCameraHelper.release(); } catch (Exception e) {}
+                  if (mUVCCamera != null) {
+                      mUVCCamera.destroy();
+                  }
+                  if (mUSBMonitor != null) {
+                      mUSBMonitor.unregister();
+                      mUSBMonitor.destroy();
                   }
               }
           }
           """
-          with open(java_path, "w") as f: f.write(java_code)
+          with open(java_path, "w") as f: f.write(new_content)
 
-          # 3. పర్మిషన్స్ యాడ్ చేయడం
+          # 3. పాత క్రాష్ అయ్యే ఫైల్స్ డిలీట్ చేయడం
+          bad_files = glob.glob("android/app/src/main/kotlin/**/ScreenStreamService.kt", recursive=True)
+          for bad_file in bad_files:
+              os.remove(bad_file)
+
+          # 4. పర్మిషన్స్
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
@@ -181,11 +218,10 @@ jobs:
               content = content.replace("<application", perms + "\n    <application")
               with open(manifest, "w") as f: f.write(content)
 
-          # 4. Master Fix: JitPack లైబ్రరీని కచ్చితంగా డౌన్లోడ్ చేసేలా రూట్ సెట్టింగ్స్ మార్చడం
+          # 5. JitPack లింక్ కరెక్ట్ గా యాడ్ చేయడం
           settings_file = "android/settings.gradle"
           if os.path.exists(settings_file):
               with open(settings_file, "r") as f: s_content = f.read()
-              # ఫోర్స్ గా అన్ని repositories బ్లాక్స్ లో jitpack యాడ్ చేయడం
               s_content = re.sub(r'(repositories\s*\{)', r'\1\n        maven { url "https://jitpack.io" }', s_content)
               with open(settings_file, "w") as f: f.write(s_content)
               
@@ -194,7 +230,7 @@ jobs:
               with open(build_file, "a") as f:
                   f.write("\nallprojects { repositories { maven { url 'https://jitpack.io' } } }\n")
 
-          # 5. కరెక్ట్ డిపెండెన్సీస్ యాడ్ చేయడం
+          # 6. సరియైన herohan లైబ్రరీ లింక్ తో డిపెండెన్సీస్ యాడ్ చేయడం 
           app_gradle = "android/app/build.gradle"
           if os.path.exists(app_gradle):
               with open(app_gradle, "r") as f: g_content = f.read()
