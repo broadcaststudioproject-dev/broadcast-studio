@@ -49,7 +49,7 @@ jobs:
           cat << 'EOF' > configure_android.py
           import os, glob
 
-          # 1. రియల్ USB Camera (UVC) Kotlin కోడ్ రాయడం
+          # 1. రియల్ USB Camera (UVC) పర్ఫెక్ట్ Kotlin కోడ్ రాయడం
           kt_files = glob.glob("android/app/src/main/kotlin/**/MainActivity.kt", recursive=True)
           if kt_files:
               main_path = kt_files[0]
@@ -80,8 +80,8 @@ jobs:
                   private val mOnDeviceConnectListener = object : USBMonitor.OnDeviceConnectListener {
                       override fun onAttach(device: UsbDevice?) {}
                       override fun onDettach(device: UsbDevice?) {
-                          mUVCCamera?.stopPreview()
-                          mUVCCamera?.destroy()
+                          try { mUVCCamera?.stopPreview() } catch (e: Exception) {}
+                          try { mUVCCamera?.destroy() } catch (e: Exception) {}
                           mUVCCamera = null
                       }
                       override fun onConnect(device: UsbDevice?, controlBlock: USBMonitor.UsbControlBlock?, createNew: Boolean) {
@@ -107,8 +107,8 @@ jobs:
                           }.start()
                       }
                       override fun onDisconnect(device: UsbDevice?, controlBlock: USBMonitor.UsbControlBlock?) {
-                          mUVCCamera?.stopPreview()
-                          mUVCCamera?.destroy()
+                          try { mUVCCamera?.stopPreview() } catch (e: Exception) {}
+                          try { mUVCCamera?.destroy() } catch (e: Exception) {}
                           mUVCCamera = null
                       }
                       override fun onCancel(device: UsbDevice?) {}
@@ -128,12 +128,8 @@ jobs:
                                       mSurface = Surface(surfaceTexture)
                                       
                                       val devices = mUSBMonitor?.deviceList
-                                      if (devices != null) {
-                                          val iterator = devices.iterator()
-                                          if (iterator.hasNext()) {
-                                              val device = iterator.next()
-                                              mUSBMonitor?.requestPermission(device)
-                                          }
+                                      if (devices != null && devices.isNotEmpty()) {
+                                          mUSBMonitor?.requestPermission(devices[0])
                                       }
                                       
                                       result.success(surfaceEntry.id())
@@ -142,7 +138,7 @@ jobs:
                                   }
                               }
                               "stopUsbCamera" -> { 
-                                  mUVCCamera?.stopPreview()
+                                  try { mUVCCamera?.stopPreview() } catch(e: Exception){}
                                   mSurface?.release()
                                   mSurface = null
                                   result.success(true) 
@@ -154,9 +150,9 @@ jobs:
 
                   override fun onDestroy() {
                       super.onDestroy()
-                      mUVCCamera?.destroy()
-                      mUSBMonitor?.unregister()
-                      mUSBMonitor?.destroy()
+                      try { mUVCCamera?.destroy() } catch(e: Exception){}
+                      try { mUSBMonitor?.unregister() } catch(e: Exception){}
+                      try { mUSBMonitor?.destroy() } catch(e: Exception){}
                   }
               }
               """
@@ -190,14 +186,14 @@ jobs:
               s_content = s_content.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
               with open(settings, "w") as f: f.write(s_content)
 
-          # 5. డిపెండెన్సీస్ & ఆండ్రాయిడ్ వెర్షన్ అప్డేట్ చేయడం
+          # 5. డిపెండెన్సీస్ & ఆండ్రాయిడ్ వెర్షన్ అప్డేట్ చేయడం (కొత్త లైబ్రరీ ఇక్కడ యాడ్ చేయబడింది)
           app_gradle = "android/app/build.gradle"
           if os.path.exists(app_gradle):
               with open(app_gradle, "r") as f: g_content = f.read()
               deps = """
           dependencies {
               implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
-              implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6'
+              implementation 'com.herohan:UVCAndroid:1.0.13'
           }
               """
               g_content = g_content.replace("flutter.minSdkVersion", "24")
