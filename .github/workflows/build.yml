@@ -198,7 +198,11 @@ jobs:
           with open(java_path, "w") as f:
               f.write(java_code)
 
-          # 3. Add Permissions
+          # 3. Clean old crash files
+          for fpath in glob.glob("android/app/src/main/kotlin/**/ScreenStreamService.kt", recursive=True):
+              os.remove(fpath)
+
+          # 4. Add Permissions
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
@@ -215,20 +219,20 @@ jobs:
                   content = content.replace("<application", perms + "\n    <application")
                   with open(manifest, "w") as f: f.write(content)
 
-          # 4. Safely add JitPack to settings.gradle or settings.gradle.kts (Line by Line safely)
-          def add_jitpack_to_settings(filepath, jitpack_line):
-              if not os.path.exists(filepath): return
-              with open(filepath, "r") as f: lines = f.readlines()
-              with open(filepath, "w") as f:
-                  for line in lines:
-                      f.write(line)
-                      if "mavenCentral()" in line and "jitpack.io" not in line:
-                          f.write(f"        {jitpack_line}\n")
-                          
-          add_jitpack_to_settings("android/settings.gradle", "maven { url 'https://jitpack.io' }")
-          add_jitpack_to_settings("android/settings.gradle.kts", 'maven { url = uri("https://jitpack.io") }')
+          # 5. SUPER FORCE JITPACK INJECTION (All gradle files)
+          for fpath in glob.glob("android/**/*.gradle*", recursive=True):
+              try:
+                  with open(fpath, "r") as f: txt = f.read()
+                  if "jitpack.io" not in txt and "mavenCentral()" in txt:
+                      if fpath.endswith(".kts"):
+                          txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
+                      else:
+                          txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
+                      with open(fpath, "w") as f: f.write(txt)
+              except Exception:
+                  pass
 
-          # 5. Setup dependencies in build.gradle
+          # 6. Setup dependencies in build.gradle
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r") as f: txt = f.read()
