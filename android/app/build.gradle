@@ -5,7 +5,6 @@ plugins {
 }
 
 android {
-    // మీరు చెప్పిన పేరు ఇక్కడ మార్చబడింది
     namespace "com.kingjvk.pocket_pcr" 
     compileSdk 34 
     ndkVersion "28.2.13676358"
@@ -20,7 +19,6 @@ android {
     }
 
     defaultConfig {
-        // మీరు చెప్పిన పేరు ఇక్కడ కూడా మార్చబడింది
         applicationId "com.kingjvk.pocket_pcr" 
         minSdk 24
         targetSdk 34 
@@ -41,13 +39,11 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
     implementation 'androidx.multidex:multidex:2.0.1'
-}
+    
     // USB UVC Camera Support Library
     implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6'
     
-    // (ఆప్షనల్) RTMP లైవ్ స్ట్రీమింగ్ కోసం
+    // RTMP లైవ్ స్ట్రీమింగ్ కోసం
     implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
 }
-
