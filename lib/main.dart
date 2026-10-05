@@ -83,7 +83,6 @@ class _StudioScreenState extends State<StudioScreen>
   double logoWidth = 70.0;
   double logoHeight = 70.0;
 
-  // లోగో 4 మూలల్లో తిరగడానికి వేరియబుల్ (0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight)
   int logoPosition = 0; 
 
   String watermarkText = "SS YATRA TV";
@@ -109,7 +108,6 @@ class _StudioScreenState extends State<StudioScreen>
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
 
-  // --- మల్టీపుల్ Ads Control Variables ---
   List<String> leftAdPaths = [];
   List<String> rightAdPaths = [];
   List<String> bottomAdPaths = [];
@@ -122,7 +120,6 @@ class _StudioScreenState extends State<StudioScreen>
   VideoPlayerController? _rightAdVideoCtrl;
   VideoPlayerController? _bottomAdVideoCtrlForAds;
 
-  // --- External & Drone Cams Variables ---
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
   bool isDroneCamMode = false;
@@ -132,12 +129,10 @@ class _StudioScreenState extends State<StudioScreen>
   TextEditingController droneCamUrlCtrl = TextEditingController();
   int? _usbTextureId;
 
-  // --- యాడ్స్ డిస్ప్లే & టైమర్ (0=OFF, 1=ON, 2=Auto) ---
   int adDisplayMode = 0;
   bool isAdCurrentlyShowing = false;
   Timer? _adCycleTimer;
 
-  // --- యాడ్స్ షేప్ (0=L-Band, 1=2-Sides, 2=U-Band) ---
   int adShapeMode = 0;
 
   int _tickerBgColorIndex = 0;
@@ -165,13 +160,11 @@ class _StudioScreenState extends State<StudioScreen>
       DeviceOrientation.landscapeRight
     ]);
 
-    // Motion animation initialization (Only for Reporter Badge & Ticker)
     _motionController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
     
-    // Ticker Background Color cycle
     _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted) {
         setState(() {
@@ -591,7 +584,6 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-  // --- లోగోను నాలుగు మూలల్లో మార్చే ఫంక్షన్ ---
   void _changeLogoPosition() async {
     setState(() {
       logoPosition = (logoPosition + 1) % 4;
@@ -694,10 +686,9 @@ class _StudioScreenState extends State<StudioScreen>
     }
   }
 
-  // మల్టీపుల్ యాడ్స్ యాడ్ చేసుకోవడానికి ఫంక్షన్
   Future<void> _pickAds(String pos) async {
     try {
-      final List<XFile> medias = await _picker.pickMultipleMedia(); // ఒకేసారి ఎన్ని వీడియోలైనా సెలెక్ట్ చేయవచ్చు
+      final List<XFile> medias = await _picker.pickMultipleMedia();
       if (medias.isNotEmpty && mounted) {
         setState(() {
           if (pos == 'left') {
@@ -1542,9 +1533,9 @@ class _StudioScreenState extends State<StudioScreen>
             height: showAds ? vH : topAreaH,
             child: Stack(
               children: [
-                Center(
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
+                // 16/9 Ratio Lock ఇక్కడ తీసివేయబడింది! SizedBox.expand వాడబడింది.
+                SizedBox.expand(
+                  child: ClipRect(
                     child: mainPlayer
                   )
                 ),
@@ -1794,7 +1785,6 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
-    // లోగో యానిమేషన్ తీసివేయబడింది (కేవలం స్థిరంగా ఉంటుంది)
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(
             width: logoWidth,
@@ -1888,7 +1878,6 @@ class _StudioScreenState extends State<StudioScreen>
                     child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)
                   ),
                   
-                  // లోగో స్థానం: 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight
                   Positioned(
                     top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
                     bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
@@ -1897,7 +1886,6 @@ class _StudioScreenState extends State<StudioScreen>
                     child: channelLogoWidget
                   ),
 
-                  // రిపోర్టర్ బ్యాడ్జ్ స్థిరంగా ఎడమ వైపు మాత్రమే ఉంటుంది (Swap Sides తీసివేయబడింది)
                   if (!isDualScreenMode && !isAdCurrentlyShowing && !isNewsBulletinMode)
                     Positioned(
                       bottom: 65,
@@ -2005,7 +1993,6 @@ class _StudioScreenState extends State<StudioScreen>
                               _buildControlButton(Icons.visibility, getAdButtonLabel(), _toggleAdMode, getAdButtonColor()),
                               _buildControlButton(Icons.dashboard, getShapeButtonLabel(), _toggleAdShapeMode, getShapeButtonColor()),
                               
-                              // కొత్తగా యాడ్ చేసిన 'Logo Pos' బటన్ (నొక్కిన ప్రతీసారి 4 మూలల్లో తిరుగుతుంది)
                               _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),
                               
                               if (adShapeMode == 0)
