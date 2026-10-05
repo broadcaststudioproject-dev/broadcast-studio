@@ -47,7 +47,7 @@ jobs:
       - name: Configure Android Project Safely
         run: |
           cat << 'EOF' > configure_android.py
-          import os, glob, shutil
+          import os, glob, shutil, re
 
           # 1. పాత Kotlin ఫైల్స్ తొలగించడం
           kt_dir = "android/app/src/main/kotlin"
@@ -186,33 +186,23 @@ jobs:
               content = content.replace("<application", perms + "\n    <application")
               with open(manifest, "w") as f: f.write(content)
 
-          # 5. Settings: .gradle మరియు .kts రెండు ఫార్మాట్స్ కి సపోర్ట్
-          s_kts = "android/settings.gradle.kts"
-          s_gr = "android/settings.gradle"
-          if os.path.exists(s_kts):
-              with open(s_kts, "r") as f: txt = f.read()
-              txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
-              with open(s_kts, "w") as f: f.write(txt)
-          elif os.path.exists(s_gr):
-              with open(s_gr, "r") as f: txt = f.read()
-              txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
-              with open(s_gr, "w") as f: f.write(txt)
+          # 5. Settings: కచ్చితంగా JitPack యాడ్ అయ్యేలా రూట్ సెట్టింగ్స్ మార్చడం
+          settings_file = "android/settings.gradle"
+          if os.path.exists(settings_file):
+              with open(settings_file, "r") as f: s_content = f.read()
+              if "jitpack.io" not in s_content:
+                  s_content = s_content.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
+              with open(settings_file, "w") as f: f.write(s_content)
 
-          # 6. App Gradle: .gradle మరియు .kts రెండు ఫార్మాట్స్ కి సపోర్ట్ చేసి లైబ్రరీలు యాడ్ చేయడం
-          app_kts = "android/app/build.gradle.kts"
-          app_gr = "android/app/build.gradle"
-          if os.path.exists(app_kts):
-              with open(app_kts, "r") as f: txt = f.read()
-              txt = txt.replace("flutter.minSdkVersion", "24")
-              deps = """
-          dependencies {
-              implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")
-              implementation("com.herohan:UVCAndroid:1.0.13")
-          }
-          """
-              with open(app_kts, "w") as f: f.write(txt + "\n" + deps)
-          elif os.path.exists(app_gr):
-              with open(app_gr, "r") as f: txt = f.read()
+          build_file = "android/build.gradle"
+          if os.path.exists(build_file):
+              with open(build_file, "a") as f:
+                  f.write("\nallprojects { repositories { maven { url 'https://jitpack.io' } } }\n")
+
+          # 6. App Gradle: లైబ్రరీలు కరెక్ట్‌గా యాడ్ చేయడం
+          app_gradle = "android/app/build.gradle"
+          if os.path.exists(app_gradle):
+              with open(app_gradle, "r") as f: txt = f.read()
               txt = txt.replace("flutter.minSdkVersion", "24")
               deps = """
           dependencies {
@@ -220,7 +210,7 @@ jobs:
               implementation 'com.herohan:UVCAndroid:1.0.13'
           }
           """
-              with open(app_gr, "w") as f: f.write(txt + "\n" + deps)
+              with open(app_gradle, "w") as f: f.write(txt + "\n" + deps)
           EOF
           python3 configure_android.py
 
