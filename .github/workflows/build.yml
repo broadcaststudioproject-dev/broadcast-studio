@@ -47,14 +47,13 @@ jobs:
       - name: Configure Android Project Safely
         run: |
           cat << 'EOF' > configure_android.py
-          import os, glob
+          import os, glob, shutil
 
           # 1. ప్యాకేజ్ కనుక్కోవడం మరియు MainActivity.java ఓవర్ రైట్ చేయడం
           java_files = glob.glob("android/app/src/main/java/**/MainActivity.java", recursive=True)
           if java_files:
               java_path = java_files[0]
               
-              # ప్యాకేజ్ పేరుని ఫైల్ నుండే చదవడం
               pkg_name = "com.kingjvk.pocket_pcr_studio"
               with open(java_path, "r", encoding="utf-8") as f:
                   for line in f:
@@ -192,7 +191,6 @@ jobs:
           """
                   content = content.replace("<application", perms + "\n    <application")
                   
-              # v2 embedding metadata ని మళ్ళీ కన్ఫర్మ్ చేయడం
               if "flutterEmbedding" not in content:
                   meta = '<meta-data android:name="flutterEmbedding" android:value="2" />\n'
                   content = content.replace("</activity>", "</activity>\n        " + meta)
@@ -217,15 +215,18 @@ jobs:
               except Exception:
                   pass
 
-          # 5. Dependencies మరియు Proguard లింక్ 
-          def setup_app_gradle(filepath, deps_block):
+          # 5. Dependencies మరియు Proguard లింక్ (Syntax Fix)
+          def setup_app_gradle(filepath, deps_block, is_kts):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f: txt = f.read()
               
               txt = txt.replace("flutter.minSdkVersion", "24")
               
               if "proguard-rules.pro" not in txt:
-                  txt = txt.replace("release {", "release {\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'")
+                  if is_kts:
+                      txt = txt.replace("release {", 'release {\n            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")')
+                  else:
+                      txt = txt.replace("release {", "release {\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'")
                   
               if "UVCAndroid" not in txt:
                   txt += deps_block
@@ -235,8 +236,8 @@ jobs:
           deps_gr = "\ndependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
           deps_kts = '\ndependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
           
-          setup_app_gradle("android/app/build.gradle", deps_gr)
-          setup_app_gradle("android/app/build.gradle.kts", deps_kts)
+          setup_app_gradle("android/app/build.gradle", deps_gr, False)
+          setup_app_gradle("android/app/build.gradle.kts", deps_kts, True)
           EOF
           python3 configure_android.py
 
