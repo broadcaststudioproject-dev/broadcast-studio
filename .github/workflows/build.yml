@@ -49,12 +49,12 @@ jobs:
           cat << 'EOF' > configure_android.py
           import os, glob, shutil
 
-          # 1. పాత Kotlin ఫైల్స్ తొలగించడం
+          # 1. Clean old Kotlin files
           kt_dir = "android/app/src/main/kotlin"
           if os.path.exists(kt_dir):
               shutil.rmtree(kt_dir)
 
-          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ 
+          # 2. Write Java UVC Code
           java_dir = "android/app/src/main/java/com/kingjvk/pocket_pcr"
           os.makedirs(java_dir, exist_ok=True)
           java_path = os.path.join(java_dir, "MainActivity.java")
@@ -198,57 +198,59 @@ jobs:
           with open(java_path, "w") as f:
               f.write(java_code)
 
-          # 3. పాత క్రాష్ అయ్యే ఫైల్స్ ఉంటే డిలీట్ చేయడం
-          for fpath in glob.glob("android/app/src/main/kotlin/**/ScreenStreamService.kt", recursive=True):
-              os.remove(fpath)
-
-          # 4. పర్మిషన్స్
+          # 3. Add Permissions
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
               if "android.hardware.usb.host" not in content:
-                  perms = '<uses-feature android:name="android.hardware.usb.host" />\n<uses-permission android:name="android.permission.INTERNET" />\n<uses-permission android:name="android.permission.CAMERA" />\n<uses-permission android:name="android.permission.RECORD_AUDIO" />\n<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />\n<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
-                  content = content.replace("<application", perms + "    <application")
+                  perms = """
+          <uses-feature android:name="android.hardware.usb.host" />
+          <uses-permission android:name="android.permission.INTERNET" />
+          <uses-permission android:name="android.permission.CAMERA" />
+          <uses-permission android:name="android.permission.RECORD_AUDIO" />
+          <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+          <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+          <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+          """
+                  content = content.replace("<application", perms + "\n    <application")
                   with open(manifest, "w") as f: f.write(content)
 
-          # 5. JitPack లింక్ ని పక్కాగా యాడ్ చేసే ఆటోమేటిక్ ఫంక్షన్
-          def ensure_jitpack(filepath):
+          # 4. Safely add JitPack to settings.gradle or settings.gradle.kts (Line by Line safely)
+          def add_jitpack_to_settings(filepath, jitpack_line):
+              if not os.path.exists(filepath): return
+              with open(filepath, "r") as f: lines = f.readlines()
+              with open(filepath, "w") as f:
+                  for line in lines:
+                      f.write(line)
+                      if "mavenCentral()" in line and "jitpack.io" not in line:
+                          f.write(f"        {jitpack_line}\n")
+                          
+          add_jitpack_to_settings("android/settings.gradle", "maven { url 'https://jitpack.io' }")
+          add_jitpack_to_settings("android/settings.gradle.kts", 'maven { url = uri("https://jitpack.io") }')
+
+          # 5. Setup dependencies in build.gradle
+          def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r") as f: txt = f.read()
-              if "jitpack.io" in txt: return
-              
-              if filepath.endswith(".kts"):
-                  jitpack_str = 'maven { url = uri("https://jitpack.io") }'
-              else:
-                  jitpack_str = "maven { url 'https://jitpack.io' }"
-                  
-              if "mavenCentral()" in txt:
-                  txt = txt.replace("mavenCentral()", f"mavenCentral()\\n        {jitpack_str}")
-              else:
-                  txt = txt.replace("repositories {", f"repositories {{\\n        {jitpack_str}")
+              txt = txt.replace("flutter.minSdkVersion", "24")
+              if "UVCAndroid" not in txt:
+                  txt += deps_block
               with open(filepath, "w") as f: f.write(txt)
 
-          ensure_jitpack("android/settings.gradle")
-          ensure_jitpack("android/settings.gradle.kts")
-          ensure_jitpack("android/build.gradle")
-          ensure_jitpack("android/build.gradle.kts")
-
-          # 6. యాప్ Gradle లో కరెక్ట్ లైబ్రరీలు (వెర్షన్ 1.0.13) యాడ్ చేయడం
-          app_gr = "android/app/build.gradle"
-          if os.path.exists(app_gr):
-              with open(app_gr, "r") as f: txt = f.read()
-              txt = txt.replace("flutter.minSdkVersion", "24")
-              if "UVCAndroid" not in txt:
-                  txt += "\ndependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
-              with open(app_gr, "w") as f: f.write(txt)
-
-          app_kts = "android/app/build.gradle.kts"
-          if os.path.exists(app_kts):
-              with open(app_kts, "r") as f: txt = f.read()
-              txt = txt.replace("flutter.minSdkVersion", "24")
-              if "UVCAndroid" not in txt:
-                  txt += '\ndependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
-              with open(app_kts, "w") as f: f.write(txt)
+          deps_gr = """
+          dependencies {
+              implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
+              implementation 'com.herohan:UVCAndroid:1.0.13'
+          }
+          """
+          deps_kts = """
+          dependencies {
+              implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")
+              implementation("com.herohan:UVCAndroid:1.0.13")
+          }
+          """
+          setup_app_gradle("android/app/build.gradle", deps_gr)
+          setup_app_gradle("android/app/build.gradle.kts", deps_kts)
           EOF
           python3 configure_android.py
 
