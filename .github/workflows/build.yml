@@ -1,4 +1,4 @@
-name: Pocket PCR Studio - Android Build
+name: Pocket PCR Studio - Master Build
 
 on:
   push:
@@ -44,22 +44,22 @@ jobs:
           echo "4. యాప్ లోగో రీస్టోర్ చేస్తున్నాను..."
           cp -r /tmp/android_backup/res/* android/app/src/main/res/ || true
 
-      - name: Configure Android Project Safely
+      - name: Master Configuration for Android
         run: |
           cat << 'EOF' > configure_android.py
-          import os, glob, shutil
+          import os, shutil, re
 
-          # 1. పాత Kotlin ఫైల్స్ తొలగించడం
+          # 1. పాత Kotlin ఫైల్స్ వల్ల వచ్చే కన్ఫ్యూజన్ లేకుండా వాటిని పూర్తిగా తొలగించడం
           kt_dir = "android/app/src/main/kotlin"
           if os.path.exists(kt_dir):
               shutil.rmtree(kt_dir)
 
-          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ 
+          # 2. రియల్ USB Camera (UVC) కోసం 100% ఎర్రర్-ఫ్రీ జావా (JAVA) కోడ్
           java_dir = "android/app/src/main/java/com/kingjvk/pocket_pcr"
           os.makedirs(java_dir, exist_ok=True)
           java_path = os.path.join(java_dir, "MainActivity.java")
           
-          new_content = """package com.kingjvk.pocket_pcr;
+          java_code = """package com.kingjvk.pocket_pcr;
 
           import android.os.Bundle;
           import android.view.Surface;
@@ -163,14 +163,9 @@ jobs:
               }
           }
           """
-          with open(java_path, "w") as f: f.write(new_content)
+          with open(java_path, "w") as f: f.write(java_code)
 
-          # 3. పాత క్రాష్ అయ్యే ఫైల్స్ డిలీట్ చేయడం
-          bad_files = glob.glob("android/app/src/main/kotlin/**/ScreenStreamService.kt", recursive=True)
-          for bad_file in bad_files:
-              os.remove(bad_file)
-
-          # 4. పర్మిషన్స్
+          # 3. పర్మిషన్స్ యాడ్ చేయడం
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
@@ -186,15 +181,20 @@ jobs:
               content = content.replace("<application", perms + "\n    <application")
               with open(manifest, "w") as f: f.write(content)
 
-          # 5. JitPack లింక్ కరెక్ట్ గా యాడ్ చేయడం
-          for s_file in ["android/settings.gradle", "android/build.gradle"]:
-              if os.path.exists(s_file):
-                  with open(s_file, "r") as f: txt = f.read()
-                  if "jitpack.io" not in txt:
-                      txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
-                  with open(s_file, "w") as f: f.write(txt)
+          # 4. Master Fix: JitPack లైబ్రరీని కచ్చితంగా డౌన్లోడ్ చేసేలా రూట్ సెట్టింగ్స్ మార్చడం
+          settings_file = "android/settings.gradle"
+          if os.path.exists(settings_file):
+              with open(settings_file, "r") as f: s_content = f.read()
+              # ఫోర్స్ గా అన్ని repositories బ్లాక్స్ లో jitpack యాడ్ చేయడం
+              s_content = re.sub(r'(repositories\s*\{)', r'\1\n        maven { url "https://jitpack.io" }', s_content)
+              with open(settings_file, "w") as f: f.write(s_content)
+              
+          build_file = "android/build.gradle"
+          if os.path.exists(build_file):
+              with open(build_file, "a") as f:
+                  f.write("\nallprojects { repositories { maven { url 'https://jitpack.io' } } }\n")
 
-          # 6. సరియైన herohan లైబ్రరీ లింక్ తో డిపెండెన్సీస్ యాడ్ చేయడం 
+          # 5. కరెక్ట్ డిపెండెన్సీస్ యాడ్ చేయడం
           app_gradle = "android/app/build.gradle"
           if os.path.exists(app_gradle):
               with open(app_gradle, "r") as f: g_content = f.read()
