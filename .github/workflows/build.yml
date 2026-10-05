@@ -31,7 +31,7 @@ jobs:
 
       - name: Clean & Recreate Android Folder
         run: |
-          echo "1. బ్యాకప్ తీసుకుంటున్నాను (యాప్ లోగో మాత్రమే, పాత క్రాష్ ఫైల్స్ కాదు)..."
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను..."
           mkdir -p /tmp/android_backup
           cp -r android/app/src/main/res /tmp/android_backup/ || true
           
@@ -49,21 +49,70 @@ jobs:
           cat << 'EOF' > configure_android.py
           import os, glob
 
-          # 1. Native Kotlin కోడ్ ఆటోమేటిక్ గా రాయడం (మెయిన్ ఆక్టివిటీ మాత్రమే)
+          # 1. రియల్ USB Camera (UVC) Kotlin కోడ్ రాయడం
           kt_files = glob.glob("android/app/src/main/kotlin/**/MainActivity.kt", recursive=True)
           if kt_files:
               main_path = kt_files[0]
-              with open(main_path, "r") as f: lines = f.readlines()
-              package_line = next((line for line in lines if line.startswith("package ")), "package com.kingjvk.pocket_pcr\n")
-              new_content = package_line + """
+              new_content = """package com.kingjvk.pocket_pcr
+
               import android.os.Bundle
+              import android.view.Surface
+              import android.hardware.usb.UsbDevice
               import androidx.annotation.NonNull
               import io.flutter.embedding.android.FlutterActivity
               import io.flutter.embedding.engine.FlutterEngine
               import io.flutter.plugin.common.MethodChannel
+              import com.serenegiant.usb.USBMonitor
+              import com.serenegiant.usb.UVCCamera
 
               class MainActivity: FlutterActivity() {
                   private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
+                  private var mUSBMonitor: USBMonitor? = null
+                  private var mUVCCamera: UVCCamera? = null
+                  private var mSurface: Surface? = null
+
+                  override fun onCreate(savedInstanceState: Bundle?) {
+                      super.onCreate(savedInstanceState)
+                      mUSBMonitor = USBMonitor(this, mOnDeviceConnectListener)
+                      mUSBMonitor?.register()
+                  }
+
+                  private val mOnDeviceConnectListener = object : USBMonitor.OnDeviceConnectListener {
+                      override fun onAttach(device: UsbDevice?) {}
+                      override fun onDettach(device: UsbDevice?) {
+                          mUVCCamera?.stopPreview()
+                          mUVCCamera?.destroy()
+                          mUVCCamera = null
+                      }
+                      override fun onConnect(device: UsbDevice?, controlBlock: USBMonitor.UsbControlBlock?, createNew: Boolean) {
+                          Thread {
+                              try {
+                                  val camera = UVCCamera()
+                                  camera.open(controlBlock)
+                                  try {
+                                      camera.setPreviewSize(1280, 720, UVCCamera.FRAME_FORMAT_MJPEG)
+                                  } catch (e: Exception) {
+                                      try {
+                                          camera.setPreviewSize(640, 480, UVCCamera.FRAME_FORMAT_YUYV)
+                                      } catch (e2: Exception) {}
+                                  }
+                                  mUVCCamera = camera
+                                  if (mSurface != null) {
+                                      camera.setPreviewDisplay(mSurface)
+                                      camera.startPreview()
+                                  }
+                              } catch (e: Exception) {
+                                  e.printStackTrace()
+                              }
+                          }.start()
+                      }
+                      override fun onDisconnect(device: UsbDevice?, controlBlock: USBMonitor.UsbControlBlock?) {
+                          mUVCCamera?.stopPreview()
+                          mUVCCamera?.destroy()
+                          mUVCCamera = null
+                      }
+                      override fun onCancel(device: UsbDevice?) {}
+                  }
 
                   override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
                       super.configureFlutterEngine(flutterEngine)
@@ -74,15 +123,40 @@ jobs:
                               "startUsbCamera" -> {
                                   try {
                                       val surfaceEntry = flutterEngine.renderer.createSurfaceTexture()
+                                      val surfaceTexture = surfaceEntry.surfaceTexture()
+                                      surfaceTexture.setDefaultBufferSize(1280, 720)
+                                      mSurface = Surface(surfaceTexture)
+                                      
+                                      val devices = mUSBMonitor?.deviceList
+                                      if (devices != null) {
+                                          val iterator = devices.iterator()
+                                          if (iterator.hasNext()) {
+                                              val device = iterator.next()
+                                              mUSBMonitor?.requestPermission(device)
+                                          }
+                                      }
+                                      
                                       result.success(surfaceEntry.id())
                                   } catch (e: Exception) {
-                                      result.error("UVC_ERROR", "OTG Permission denied", null)
+                                      result.error("UVC_ERROR", e.message, null)
                                   }
                               }
-                              "stopUsbCamera" -> { result.success(true) }
+                              "stopUsbCamera" -> { 
+                                  mUVCCamera?.stopPreview()
+                                  mSurface?.release()
+                                  mSurface = null
+                                  result.success(true) 
+                              }
                               else -> { result.notImplemented() }
                           }
                       }
+                  }
+
+                  override fun onDestroy() {
+                      super.onDestroy()
+                      mUVCCamera?.destroy()
+                      mUSBMonitor?.unregister()
+                      mUSBMonitor?.destroy()
                   }
               }
               """
@@ -93,11 +167,12 @@ jobs:
           for bad_file in bad_files:
               os.remove(bad_file)
 
-          # 3. కెమెరా & ఆడియో పర్మిషన్స్ యాడ్ చేయడం
+          # 3. కెమెరా, ఆడియో & ముఖ్యమైన USB ఫీచర్ పర్మిషన్స్ యాడ్ చేయడం
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
               perms = """
+          <uses-feature android:name="android.hardware.usb.host" />
           <uses-permission android:name="android.permission.INTERNET" />
           <uses-permission android:name="android.permission.CAMERA" />
           <uses-permission android:name="android.permission.RECORD_AUDIO" />
