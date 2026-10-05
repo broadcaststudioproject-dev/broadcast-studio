@@ -1,9 +1,11 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kingjvk.pocket_pcr"> <!-- 👈 ఇక్కడ ప్యాకేజీ పేరు యాడ్ చేయబడింది -->
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" /> <!-- 👈 కెమెరా పర్మిషన్ యాడ్ చేయబడింది -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
@@ -39,11 +41,8 @@
             android:name="flutterEmbedding"
             value="2" />
 
-        <service
-            android:name=".ScreenStreamService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection|microphone" />
+        <!-- ScreenStreamService ఫైల్ లేనందున ఆ కోడ్ ఇక్కడ నుండి తీసివేయబడింది. దాన్ని ఉంచితే క్రాష్ అవుతుంది -->
+        
     </application>
 
     <queries>
