@@ -47,14 +47,14 @@ jobs:
       - name: Configure Android Project Safely
         run: |
           cat << 'EOF' > configure_android.py
-          import os, glob, shutil, re
+          import os, glob, shutil
 
           # 1. పాత Kotlin ఫైల్స్ తొలగించడం
           kt_dir = "android/app/src/main/kotlin"
           if os.path.exists(kt_dir):
               shutil.rmtree(kt_dir)
 
-          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ (CameraHelper తో)
+          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్
           java_dir = "android/app/src/main/java/com/kingjvk/pocket_pcr"
           os.makedirs(java_dir, exist_ok=True)
           java_path = os.path.join(java_dir, "MainActivity.java")
@@ -165,12 +165,12 @@ jobs:
           """
           with open(java_path, "w") as f: f.write(new_content)
 
-          # 3. పాత క్రాష్ అయ్యే ఫైల్స్ డిలీట్ చేయడం
+          # 3. పాత క్రాష్ అయ్యే ఫైల్స్ ఉంటే డిలీట్ చేయడం
           bad_files = glob.glob("android/app/src/main/kotlin/**/ScreenStreamService.kt", recursive=True)
           for bad_file in bad_files:
               os.remove(bad_file)
 
-          # 4. పర్మిషన్స్
+          # 4. కెమెరా & USB పర్మిషన్స్ యాడ్ చేయడం
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r") as f: content = f.read()
@@ -186,27 +186,41 @@ jobs:
               content = content.replace("<application", perms + "\n    <application")
               with open(manifest, "w") as f: f.write(content)
 
-          # 5. JitPack లింక్ యాడ్ చేయడం
-          for s_file in ["android/settings.gradle", "android/build.gradle"]:
-              if os.path.exists(s_file):
-                  with open(s_file, "r") as f: txt = f.read()
-                  if "jitpack.io" not in txt:
-                      txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
-                  with open(s_file, "w") as f: f.write(txt)
+          # 5. Settings: .gradle మరియు .kts రెండు ఫార్మాట్స్ కి సపోర్ట్
+          s_kts = "android/settings.gradle.kts"
+          s_gr = "android/settings.gradle"
+          if os.path.exists(s_kts):
+              with open(s_kts, "r") as f: txt = f.read()
+              txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
+              with open(s_kts, "w") as f: f.write(txt)
+          elif os.path.exists(s_gr):
+              with open(s_gr, "r") as f: txt = f.read()
+              txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
+              with open(s_gr, "w") as f: f.write(txt)
 
-          # 6. సరియైన herohan లైబ్రరీ లింక్ తో డిపెండెన్సీస్ యాడ్ చేయడం 
-          app_gradle = "android/app/build.gradle"
-          if os.path.exists(app_gradle):
-              with open(app_gradle, "r") as f: g_content = f.read()
+          # 6. App Gradle: .gradle మరియు .kts రెండు ఫార్మాట్స్ కి సపోర్ట్ చేసి లైబ్రరీలు యాడ్ చేయడం
+          app_kts = "android/app/build.gradle.kts"
+          app_gr = "android/app/build.gradle"
+          if os.path.exists(app_kts):
+              with open(app_kts, "r") as f: txt = f.read()
+              txt = txt.replace("flutter.minSdkVersion", "24")
+              deps = """
+          dependencies {
+              implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")
+              implementation("com.herohan:UVCAndroid:1.0.13")
+          }
+          """
+              with open(app_kts, "w") as f: f.write(txt + "\n" + deps)
+          elif os.path.exists(app_gr):
+              with open(app_gr, "r") as f: txt = f.read()
+              txt = txt.replace("flutter.minSdkVersion", "24")
               deps = """
           dependencies {
               implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
-              implementation 'com.herohan:UVCAndroid:1.0.22'
+              implementation 'com.herohan:UVCAndroid:1.0.13'
           }
-              """
-              g_content = g_content.replace("flutter.minSdkVersion", "24")
-              g_content = g_content + "\n" + deps
-              with open(app_gradle, "w") as f: f.write(g_content)
+          """
+              with open(app_gr, "w") as f: f.write(txt + "\n" + deps)
           EOF
           python3 configure_android.py
 
