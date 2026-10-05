@@ -54,7 +54,7 @@ jobs:
           if os.path.exists(kt_dir):
               shutil.rmtree(kt_dir)
 
-          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ (CameraHelper లేకుండా, కేవలం UVCCamera తో)
+          # 2. రియల్ USB Camera (UVC) పర్ఫెక్ట్ JAVA కోడ్ 
           java_dir = "android/app/src/main/java/com/kingjvk/pocket_pcr"
           os.makedirs(java_dir, exist_ok=True)
           java_path = os.path.join(java_dir, "MainActivity.java")
@@ -211,28 +211,35 @@ jobs:
                   content = content.replace("<application", perms + "    <application")
                   with open(manifest, "w") as f: f.write(content)
 
-          # 5. సెట్టింగ్స్ లో JitPack లింక్ (రెండు ఫార్మాట్లలో) యాడ్ చేయడం
-          s_gr = "android/settings.gradle"
-          if os.path.exists(s_gr):
-              with open(s_gr, "r") as f: txt = f.read()
-              if "jitpack.io" not in txt:
-                  txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
-                  with open(s_gr, "w") as f: f.write(txt)
+          # 5. JitPack లింక్ ని పక్కాగా యాడ్ చేసే ఆటోమేటిక్ ఫంక్షన్
+          def ensure_jitpack(filepath):
+              if not os.path.exists(filepath): return
+              with open(filepath, "r") as f: txt = f.read()
+              if "jitpack.io" in txt: return
+              
+              if filepath.endswith(".kts"):
+                  jitpack_str = 'maven { url = uri("https://jitpack.io") }'
+              else:
+                  jitpack_str = "maven { url 'https://jitpack.io' }"
+                  
+              if "mavenCentral()" in txt:
+                  txt = txt.replace("mavenCentral()", f"mavenCentral()\\n        {jitpack_str}")
+              else:
+                  txt = txt.replace("repositories {", f"repositories {{\\n        {jitpack_str}")
+              with open(filepath, "w") as f: f.write(txt)
 
-          s_kts = "android/settings.gradle.kts"
-          if os.path.exists(s_kts):
-              with open(s_kts, "r") as f: txt = f.read()
-              if "jitpack.io" not in txt:
-                  txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
-                  with open(s_kts, "w") as f: f.write(txt)
+          ensure_jitpack("android/settings.gradle")
+          ensure_jitpack("android/settings.gradle.kts")
+          ensure_jitpack("android/build.gradle")
+          ensure_jitpack("android/build.gradle.kts")
 
-          # 6. యాప్ Gradle లో కరెక్ట్ లైబ్రరీలు యాడ్ చేయడం
+          # 6. యాప్ Gradle లో కరెక్ట్ లైబ్రరీలు (వెర్షన్ 1.0.13) యాడ్ చేయడం
           app_gr = "android/app/build.gradle"
           if os.path.exists(app_gr):
               with open(app_gr, "r") as f: txt = f.read()
               txt = txt.replace("flutter.minSdkVersion", "24")
               if "UVCAndroid" not in txt:
-                  txt += "\ndependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.22'\n}\n"
+                  txt += "\ndependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
               with open(app_gr, "w") as f: f.write(txt)
 
           app_kts = "android/app/build.gradle.kts"
@@ -240,7 +247,7 @@ jobs:
               with open(app_kts, "r") as f: txt = f.read()
               txt = txt.replace("flutter.minSdkVersion", "24")
               if "UVCAndroid" not in txt:
-                  txt += '\ndependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.22")\n}\n'
+                  txt += '\ndependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
               with open(app_kts, "w") as f: f.write(txt)
           EOF
           python3 configure_android.py
