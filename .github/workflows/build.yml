@@ -55,25 +55,19 @@ jobs:
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Inject JitPack & Original Stable Library
+      - name: Inject JitPack & Stable Libraries correctly
         run: |
-          echo "JitPack ను అప్లై చేస్తున్నాను..."
-          if [ -f "android/build.gradle.kts" ]; then
-            echo "" >> android/build.gradle.kts
-            echo "allprojects { repositories { maven { url = uri(\"https://jitpack.io\") } } }" >> android/build.gradle.kts
-          elif [ -f "android/build.gradle" ]; then
-            echo "" >> android/build.gradle
-            echo "allprojects { repositories { maven { url 'https://jitpack.io' } } }" >> android/build.gradle
-          fi
+          echo "JitPack ను సరిగ్గా settings.gradle మరియు build.gradle లో యాడ్ చేస్తున్నాను..."
+          
+          # settings.gradle లో యాడ్ చేయడం (కొత్త ఫ్లట్టర్ వెర్షన్స్ కోసం)
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/settings.gradle || true
+          
+          # build.gradle లో యాడ్ చేయడం
+          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/build.gradle || true
 
           echo "RTMP మరియు UVC Camera (USB) లైబ్రరీలు యాడ్ చేస్తున్నాను..."
-          if [ -f "android/app/build.gradle.kts" ]; then
-            echo "" >> android/app/build.gradle.kts
-            echo "dependencies { implementation(\"com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2\"); implementation(\"com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6\") }" >> android/app/build.gradle.kts
-          elif [ -f "android/app/build.gradle" ]; then
-            echo "" >> android/app/build.gradle
-            echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'; implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6' }" >> android/app/build.gradle
-          fi
+          echo "" >> android/app/build.gradle
+          echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'; implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6' }" >> android/app/build.gradle
 
           echo "compileSdk ని 36 కి మరియు targetSdk ని 33 కి సెట్ చేస్తున్నాను..."
           find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.targetSdkVersion/33/g' {} + || true
