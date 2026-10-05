@@ -29,57 +29,100 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Clean & Rebuild Android Folder
+      - name: Clean & Recreate Android Folder
         run: |
-          echo "1. బ్యాకప్ తీసుకుంటున్నాను (Kotlin కోడ్)..."
-          mkdir -p /tmp/android_backup
-          cp -r android/app/src/main/kotlin /tmp/android_backup/ || true
-          
-          echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          echo "పాత ఆండ్రాయిడ్ ఫోల్డర్ పర్మినెంట్ గా డిలీట్ చేస్తున్నాను..."
           rm -rf android
           
-          echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను (సరైన ప్యాకేజీ పేరుతో)..."
-          flutter create --org com.kingjvk . --platforms=android
-          
-          echo "4. మీ కస్టమ్ కోడ్ (Kotlin) రీస్టోర్ చేస్తున్నాను..."
-          rm -rf android/app/src/main/kotlin
-          cp -r /tmp/android_backup/kotlin android/app/src/main/ || true
+          echo "ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
+          flutter create --org com.kingjvk --project-name pocket_pcr_studio . --platforms=android
 
-      - name: Inject Permissions & Service into Manifest safely
+      - name: Configure Android Project Safely
         run: |
-          echo "5. ఫ్లట్టర్ ఫైల్‌ను డిస్టర్బ్ చేయకుండా పర్మిషన్లు యాడ్ చేస్తున్నాను..."
-          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
-          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' android/app/src/main/AndroidManifest.xml
-          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
-          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' android/app/src/main/AndroidManifest.xml
-          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />' android/app/src/main/AndroidManifest.xml
-          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
+          cat << 'EOF' > configure_android.py
+          import os, glob
 
-      - name: Inject JitPack & Stable Libraries correctly
-        run: |
-          echo "JitPack ను సరిగ్గా settings.gradle మరియు build.gradle లో యాడ్ చేస్తున్నాను..."
-          
-          # settings.gradle లో యాడ్ చేయడం (కొత్త ఫ్లట్టర్ వెర్షన్స్ కోసం)
-          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/settings.gradle || true
-          
-          # build.gradle లో యాడ్ చేయడం
-          sed -i 's/mavenCentral()/mavenCentral()\n        maven { url "https:\/\/jitpack.io" }/g' android/build.gradle || true
+          # 1. Native Kotlin కోడ్ ఆటోమేటిక్ గా రాయడం
+          kt_files = glob.glob("android/app/src/main/kotlin/**/MainActivity.kt", recursive=True)
+          if kt_files:
+              main_path = kt_files[0]
+              with open(main_path, "r") as f: lines = f.readlines()
+              package_line = next((line for line in lines if line.startswith("package ")), "package com.kingjvk.pocket_pcr\n")
+              new_content = package_line + """
+              import android.os.Bundle
+              import androidx.annotation.NonNull
+              import io.flutter.embedding.android.FlutterActivity
+              import io.flutter.embedding.engine.FlutterEngine
+              import io.flutter.plugin.common.MethodChannel
 
-          echo "RTMP మరియు UVC Camera (USB) లైబ్రరీలు యాడ్ చేస్తున్నాను..."
-          echo "" >> android/app/build.gradle
-          echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'; implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6' }" >> android/app/build.gradle
+              class MainActivity: FlutterActivity() {
+                  private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
 
-          echo "compileSdk ని 36 కి మరియు targetSdk ని 33 కి సెట్ చేస్తున్నాను..."
-          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.targetSdkVersion/33/g' {} + || true
-          find android -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) -exec sed -i 's/flutter.compileSdkVersion/36/g' {} + || true
+                  override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
+                      super.configureFlutterEngine(flutterEngine)
+                      MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+                          when (call.method) {
+                              "startScreenStream" -> { result.success(true) }
+                              "stopScreenStream" -> { result.success(true) }
+                              "startUsbCamera" -> {
+                                  try {
+                                      val surfaceEntry = flutterEngine.renderer.createSurfaceTexture()
+                                      result.success(surfaceEntry.id())
+                                  } catch (e: Exception) {
+                                      result.error("UVC_ERROR", "OTG Permission denied", null)
+                                  }
+                              }
+                              "stopUsbCamera" -> { result.success(true) }
+                              else -> { result.notImplemented() }
+                          }
+                      }
+                  }
+              }
+              """
+              with open(main_path, "w") as f: f.write(new_content)
+
+          # 2. కెమెరా & ఆడియో పర్మిషన్స్ యాడ్ చేయడం
+          manifest = "android/app/src/main/AndroidManifest.xml"
+          if os.path.exists(manifest):
+              with open(manifest, "r") as f: content = f.read()
+              perms = """
+          <uses-permission android:name="android.permission.INTERNET" />
+          <uses-permission android:name="android.permission.CAMERA" />
+          <uses-permission android:name="android.permission.RECORD_AUDIO" />
+          <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+          <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+          <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              """
+              content = content.replace("<application", perms + "\n    <application")
+              with open(manifest, "w") as f: f.write(content)
+
+          # 3. సెట్టింగ్స్ లో JitPack లింక్ యాడ్ చేయడం (Drone, USB కోసం)
+          settings = "android/settings.gradle"
+          if os.path.exists(settings):
+              with open(settings, "r") as f: s_content = f.read()
+              s_content = s_content.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
+              with open(settings, "w") as f: f.write(s_content)
+
+          # 4. డిపెండెన్సీస్ & ఆండ్రాయిడ్ వెర్షన్ అప్డేట్ చేయడం
+          app_gradle = "android/app/build.gradle"
+          if os.path.exists(app_gradle):
+              with open(app_gradle, "r") as f: g_content = f.read()
+              deps = """
+          dependencies {
+              implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
+              implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6'
+          }
+              """
+              g_content = g_content.replace("flutter.minSdkVersion", "24")
+              g_content = g_content + "\n" + deps
+              with open(app_gradle, "w") as f: f.write(g_content)
+          EOF
+          python3 configure_android.py
 
       - name: Install Dependencies
         run: |
           flutter clean
           flutter pub get
-
-      - name: Generate App Icon
-        run: flutter pub run flutter_launcher_icons || true
 
       - name: Build APK (Release Mode)
         run: flutter build apk --release
