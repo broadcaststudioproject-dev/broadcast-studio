@@ -29,159 +29,157 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Clean & Recreate Android Folder (Java Native)
+        run: |
+          echo "1. బ్యాకప్ తీసుకుంటున్నాను..."
+          mkdir -p /tmp/android_backup
+          cp -r android/app/src/main/res /tmp/android_backup/ || true
+          
+          echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          rm -rf android
+          
+          echo "3. ఫ్లట్టర్ ద్వారా అఫీషియల్ Java ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
+          flutter create --org com.kingjvk --project-name pocket_pcr_studio -a java . --platforms=android
+          
+          echo "4. యాప్ లోగో రీస్టోర్ చేస్తున్నాను..."
+          cp -r /tmp/android_backup/res/* android/app/src/main/res/ || true
+
       - name: Configure Android Project Safely
         run: |
           cat << 'EOF' > configure_android.py
-          import os, glob, shutil
+          import os, glob
 
-          # 1. ఒరిజినల్ ప్యాకేజీ పేరును కనుక్కోవడం (యాప్ క్రాష్ అవ్వకుండా)
-          pkg_name = "com.kingjvk.pocket_pcr"
-          main_files = glob.glob("android/app/src/main/**/MainActivity.*", recursive=True)
-          if main_files:
-              with open(main_files[0], "r", encoding="utf-8") as f:
+          # 1. ప్యాకేజ్ కనుక్కోవడం మరియు MainActivity.java ఓవర్ రైట్ చేయడం
+          java_files = glob.glob("android/app/src/main/java/**/MainActivity.java", recursive=True)
+          if java_files:
+              java_path = java_files[0]
+              
+              # ప్యాకేజ్ పేరుని ఫైల్ నుండే చదవడం
+              pkg_name = "com.kingjvk.pocket_pcr_studio"
+              with open(java_path, "r", encoding="utf-8") as f:
                   for line in f:
                       if line.strip().startswith("package "):
                           pkg_name = line.replace("package", "").replace(";", "").strip()
                           break
+                          
+              java_code = f"""package {pkg_name};
 
-          # 2. పాత Kotlin ఫైల్స్ తొలగించడం
-          kt_dir = "android/app/src/main/kotlin"
-          if os.path.exists(kt_dir):
-              shutil.rmtree(kt_dir)
+              import android.os.Bundle;
+              import android.view.Surface;
+              import android.hardware.usb.UsbDevice;
+              import androidx.annotation.NonNull;
+              import io.flutter.embedding.android.FlutterActivity;
+              import io.flutter.embedding.engine.FlutterEngine;
+              import io.flutter.plugin.common.MethodChannel;
+              import io.flutter.view.TextureRegistry;
 
-          # 3. సేఫ్ JAVA కోడ్ రాయడం 
-          java_dir = os.path.join("android/app/src/main/java", pkg_name.replace(".", "/"))
-          os.makedirs(java_dir, exist_ok=True)
-          java_path = os.path.join(java_dir, "MainActivity.java")
-          
-          java_code = """package PACKAGE_NAME;
+              import com.serenegiant.usb.USBMonitor;
+              import com.serenegiant.usb.UVCCamera;
+              import com.herohan.uvcapp.CameraHelper;
+              import com.herohan.uvcapp.ICameraHelper;
 
-          import android.os.Bundle;
-          import android.view.Surface;
-          import android.hardware.usb.UsbDevice;
-          import androidx.annotation.NonNull;
-          import io.flutter.embedding.android.FlutterActivity;
-          import io.flutter.embedding.engine.FlutterEngine;
-          import io.flutter.plugin.common.MethodChannel;
-          import io.flutter.view.TextureRegistry;
+              public class MainActivity extends FlutterActivity {{
+                  private static final String CHANNEL = "com.kingjvk.pocket_pcr/stream";
+                  private CameraHelper mCameraHelper;
+                  private Surface mSurface;
 
-          import com.herohan.uvcapp.CameraHelper;
-          import com.herohan.uvcapp.ICameraHelper;
+                  private void initCameraHelper() {{
+                      if (mCameraHelper == null) {{
+                          mCameraHelper = new CameraHelper();
+                          mCameraHelper.setStateCallback(new ICameraHelper.StateCallback() {{
+                              @Override
+                              public void onAttach(UsbDevice device) {{
+                                  try {{ mCameraHelper.selectDevice(device); }} catch (Exception e) {{}}
+                              }}
+                              @Override
+                              public void onDeviceOpen(UsbDevice device, boolean isFirstOpen) {{
+                                  try {{ mCameraHelper.openCamera(); }} catch (Exception e) {{}}
+                              }}
+                              @Override
+                              public void onCameraOpen(UsbDevice device) {{
+                                  try {{ mCameraHelper.startPreview(); }} catch (Exception e) {{}}
+                                  if (mSurface != null) {{
+                                      try {{ mCameraHelper.addSurface(mSurface, false); }} catch (Exception e) {{}}
+                                  }}
+                              }}
+                              @Override
+                              public void onCameraClose(UsbDevice device) {{}}
+                              @Override
+                              public void onDeviceClose(UsbDevice device) {{}}
+                              @Override
+                              public void onDetach(UsbDevice device) {{}}
+                              @Override
+                              public void onCancel(UsbDevice device) {{}}
+                          }});
+                      }}
+                  }}
 
-          public class MainActivity extends FlutterActivity {
-              private static final String CHANNEL = "com.kingjvk.pocket_pcr/stream";
-              private CameraHelper mCameraHelper;
-              private Surface mSurface;
+                  @Override
+                  public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {{
+                      super.configureFlutterEngine(flutterEngine);
+                      new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
+                          .setMethodCallHandler((call, result) -> {{
+                              switch (call.method) {{
+                                  case "startScreenStream":
+                                  case "stopScreenStream":
+                                      result.success(true);
+                                      break;
+                                  case "startUsbCamera":
+                                      try {{
+                                          initCameraHelper();
+                                          TextureRegistry.SurfaceTextureEntry surfaceEntry = flutterEngine.getRenderer().createSurfaceTexture();
+                                          android.graphics.SurfaceTexture surfaceTexture = surfaceEntry.surfaceTexture();
+                                          surfaceTexture.setDefaultBufferSize(1280, 720);
+                                          mSurface = new Surface(surfaceTexture);
+                                          
+                                          if (mCameraHelper != null && mCameraHelper.isCameraOpened()) {{
+                                              try {{ mCameraHelper.addSurface(mSurface, false); }} catch (Exception e) {{}}
+                                          }} else if (mCameraHelper != null) {{
+                                              java.util.List<UsbDevice> list = mCameraHelper.getDeviceList();
+                                              if (list != null && list.size() > 0) {{
+                                                  mCameraHelper.selectDevice(list.get(0));
+                                              }}
+                                          }}
+                                          
+                                          result.success(surfaceEntry.id());
+                                      }} catch (Exception e) {{
+                                          result.error("UVC_ERROR", e.getMessage(), null);
+                                      }}
+                                      break;
+                                  case "stopUsbCamera":
+                                      if (mCameraHelper != null && mSurface != null) {{
+                                          try {{ mCameraHelper.removeSurface(mSurface); }} catch (Exception e) {{}}
+                                      }}
+                                      if (mSurface != null) {{
+                                          mSurface.release();
+                                          mSurface = null;
+                                      }}
+                                      result.success(true);
+                                      break;
+                                  default:
+                                      result.notImplemented();
+                                      break;
+                              }}
+                          }});
+                  }}
 
-              private void initCameraHelper() {
-                  if (mCameraHelper == null) {
-                      mCameraHelper = new CameraHelper();
-                      mCameraHelper.setStateCallback(new ICameraHelper.StateCallback() {
-                          @Override
-                          public void onAttach(UsbDevice device) {
-                              try { mCameraHelper.selectDevice(device); } catch (Exception e) {}
-                          }
-                          @Override
-                          public void onDeviceOpen(UsbDevice device, boolean isFirstOpen) {
-                              try { mCameraHelper.openCamera(); } catch (Exception e) {}
-                          }
-                          @Override
-                          public void onCameraOpen(UsbDevice device) {
-                              try { mCameraHelper.startPreview(); } catch (Exception e) {}
-                              if (mSurface != null) {
-                                  try { mCameraHelper.addSurface(mSurface, false); } catch (Exception e) {}
-                              }
-                          }
-                          @Override
-                          public void onCameraClose(UsbDevice device) {}
-                          @Override
-                          public void onDeviceClose(UsbDevice device) {}
-                          @Override
-                          public void onDetach(UsbDevice device) {}
-                          @Override
-                          public void onCancel(UsbDevice device) {}
-                      });
-                  }
-              }
+                  @Override
+                  protected void onDestroy() {{
+                      super.onDestroy();
+                      if (mCameraHelper != null) {{
+                          try {{ mCameraHelper.release(); }} catch (Exception e) {{}}
+                      }}
+                  }}
+              }}
+              """
+              with open(java_path, "w", encoding="utf-8") as f:
+                  f.write(java_code)
 
-              @Override
-              public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
-                  super.configureFlutterEngine(flutterEngine);
-                  new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
-                      .setMethodCallHandler((call, result) -> {
-                          switch (call.method) {
-                              case "startScreenStream":
-                              case "stopScreenStream":
-                                  result.success(true);
-                                  break;
-                              case "startUsbCamera":
-                                  try {
-                                      initCameraHelper();
-                                      TextureRegistry.SurfaceTextureEntry surfaceEntry = flutterEngine.getRenderer().createSurfaceTexture();
-                                      android.graphics.SurfaceTexture surfaceTexture = surfaceEntry.surfaceTexture();
-                                      surfaceTexture.setDefaultBufferSize(1280, 720);
-                                      mSurface = new Surface(surfaceTexture);
-                                      
-                                      if (mCameraHelper != null && mCameraHelper.isCameraOpened()) {
-                                          try { mCameraHelper.addSurface(mSurface, false); } catch (Exception e) {}
-                                      } else if (mCameraHelper != null) {
-                                          java.util.List<UsbDevice> list = mCameraHelper.getDeviceList();
-                                          if (list != null && list.size() > 0) {
-                                              mCameraHelper.selectDevice(list.get(0));
-                                          }
-                                      }
-                                      
-                                      result.success(surfaceEntry.id());
-                                  } catch (Exception e) {
-                                      result.error("UVC_ERROR", e.getMessage(), null);
-                                  }
-                                  break;
-                              case "stopUsbCamera":
-                                  if (mCameraHelper != null && mSurface != null) {
-                                      try { mCameraHelper.removeSurface(mSurface); } catch (Exception e) {}
-                                  }
-                                  if (mSurface != null) {
-                                      mSurface.release();
-                                      mSurface = null;
-                                  }
-                                  result.success(true);
-                                  break;
-                              default:
-                                  result.notImplemented();
-                                  break;
-                          }
-                      });
-              }
-
-              @Override
-              protected void onDestroy() {
-                  super.onDestroy();
-                  if (mCameraHelper != null) {
-                      try { mCameraHelper.release(); } catch (Exception e) {}
-                  }
-              }
-          }
-          """
-          java_code = java_code.replace("PACKAGE_NAME", pkg_name)
-          with open(java_path, "w", encoding="utf-8") as f:
-              f.write(java_code)
-
-          # 4. Proguard (యాప్ క్రాష్ అవ్వకుండా లైబ్రరీని ప్రొటెక్ట్ చేయడం)
-          proguard_path = "android/app/proguard-rules.pro"
-          with open(proguard_path, "a", encoding="utf-8") as f:
-              f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
-
-          app_gr = "android/app/build.gradle"
-          if os.path.exists(app_gr):
-              with open(app_gr, "r") as f: txt = f.read()
-              if "proguard-rules.pro" not in txt:
-                  txt = txt.replace("release {", "release {\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'")
-              with open(app_gr, "w") as f: f.write(txt)
-
-          # 5. Permissions (USB, Camera)
+          # 2. Permissions & v2 embedding metadata యాడ్ చేయడం
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r", encoding="utf-8") as f: content = f.read()
+              
               if "android.hardware.usb.host" not in content:
                   perms = """
           <uses-feature android:name="android.hardware.usb.host" />
@@ -193,9 +191,20 @@ jobs:
           <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
           """
                   content = content.replace("<application", perms + "\n    <application")
-                  with open(manifest, "w", encoding="utf-8") as f: f.write(content)
+                  
+              # v2 embedding metadata ని మళ్ళీ కన్ఫర్మ్ చేయడం
+              if "flutterEmbedding" not in content:
+                  meta = '<meta-data android:name="flutterEmbedding" android:value="2" />\n'
+                  content = content.replace("</activity>", "</activity>\n        " + meta)
 
-          # 6. JitPack Injection
+              with open(manifest, "w", encoding="utf-8") as f: f.write(content)
+
+          # 3. Proguard rules (యాప్ క్రాష్ అవ్వకుండా ఉండటానికి)
+          proguard_path = "android/app/proguard-rules.pro"
+          with open(proguard_path, "a", encoding="utf-8") as f:
+              f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
+
+          # 4. Jitpack ని సురక్షితంగా యాడ్ చేయడం
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
                   with open(fpath, "r", encoding="utf-8") as f: txt = f.read()
@@ -208,17 +217,24 @@ jobs:
               except Exception:
                   pass
 
-          # 7. Setup Dependencies
+          # 5. Dependencies మరియు Proguard లింక్ 
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f: txt = f.read()
+              
               txt = txt.replace("flutter.minSdkVersion", "24")
+              
+              if "proguard-rules.pro" not in txt:
+                  txt = txt.replace("release {", "release {\n            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'")
+                  
               if "UVCAndroid" not in txt:
                   txt += deps_block
+                  
               with open(filepath, "w", encoding="utf-8") as f: f.write(txt)
 
           deps_gr = "\ndependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
           deps_kts = '\ndependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
+          
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
           EOF
