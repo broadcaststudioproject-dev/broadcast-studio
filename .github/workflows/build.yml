@@ -38,8 +38,8 @@ jobs:
           echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
           rm -rf android
           
-          echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
-          flutter create . --platforms=android
+          echo "3. ఫ్రెష్ ఆండ్రాయిడ్ ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను (సరైన ప్యాకేజీ పేరుతో)..."
+          flutter create --org com.kingjvk . --platforms=android
           
           echo "4. మీ కస్టమ్ కోడ్ (Kotlin) రీస్టోర్ చేస్తున్నాను..."
           rm -rf android/app/src/main/kotlin
@@ -47,13 +47,13 @@ jobs:
 
       - name: Inject Permissions & Service into Manifest safely
         run: |
-          echo "5. ఫ్లట్టర్ ఫైల్‌ను డిస్టర్బ్ చేయకుండా పర్మిషన్లు, సర్వీస్ యాడ్ చేస్తున్నాను..."
+          echo "5. ఫ్లట్టర్ ఫైల్‌ను డిస్టర్బ్ చేయకుండా పర్మిషన్లు యాడ్ చేస్తున్నాను..."
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          sed -i -e '/<application/i \    <uses-permission android:name="android.permission.CAMERA" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.RECORD_AUDIO" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />' android/app/src/main/AndroidManifest.xml
           sed -i -e '/<application/i \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' android/app/src/main/AndroidManifest.xml
-          sed -i -e '/<\/application>/i \        <service android:name=".ScreenStreamService" android:enabled="true" android:exported="false" android:foregroundServiceType="mediaProjection" />' android/app/src/main/AndroidManifest.xml
 
       - name: Inject JitPack & Original Stable Library
         run: |
@@ -66,13 +66,13 @@ jobs:
             echo "allprojects { repositories { maven { url 'https://jitpack.io' } } }" >> android/build.gradle
           fi
 
-          echo "పాత మరియు స్థిరమైన RTMP లైబ్రరీ (2.2.2) యాడ్ చేస్తున్నాను..."
+          echo "RTMP మరియు UVC Camera (USB) లైబ్రరీలు యాడ్ చేస్తున్నాను..."
           if [ -f "android/app/build.gradle.kts" ]; then
             echo "" >> android/app/build.gradle.kts
-            echo "dependencies { implementation(\"com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2\") }" >> android/app/build.gradle.kts
+            echo "dependencies { implementation(\"com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2\"); implementation(\"com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6\") }" >> android/app/build.gradle.kts
           elif [ -f "android/app/build.gradle" ]; then
             echo "" >> android/app/build.gradle
-            echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2' }" >> android/app/build.gradle
+            echo "dependencies { implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'; implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6' }" >> android/app/build.gradle
           fi
 
           echo "compileSdk ని 36 కి మరియు targetSdk ని 33 కి సెట్ చేస్తున్నాను..."
@@ -85,14 +85,14 @@ jobs:
           flutter pub get
 
       - name: Generate App Icon
-        run: flutter pub run flutter_launcher_icons
+        run: flutter pub run flutter_launcher_icons || true
 
-      - name: Build APK
-        run: flutter build apk --debug
+      - name: Build APK (Release Mode)
+        run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: pocket-pcr-studio-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: pocket-pcr-studio-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
