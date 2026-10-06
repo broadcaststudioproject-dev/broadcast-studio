@@ -109,6 +109,32 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     await prefs.setString('pcr_bottomAd', bottomAdPath);
   }
 
+  // --- MISSING FUNCTIONS ADDED HERE ---
+  void _changeLogoPosition() {
+    setState(() {
+      logoPosition = (logoPosition + 1) % 4;
+    });
+    _saveSettings();
+    String posName = ["Top Left", "Top Right", "Bottom Left", "Bottom Right"][logoPosition];
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("లోగో స్థానం: $posName"), backgroundColor: Colors.amber));
+  }
+
+  Future<void> _uploadLogo() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          channelLogoPath = image.path;
+        });
+        await _saveSettings();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లోగో అప్‌లోడ్ అయ్యింది!"), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      debugPrint("Logo Upload Error: $e");
+    }
+  }
+  // ------------------------------------
+
   void _initAdPlayer(String pos, String path) {
     if (path.isEmpty || !File(path).existsSync()) return;
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov');
