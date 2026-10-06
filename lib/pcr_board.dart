@@ -34,8 +34,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   bool showControls = true; 
   
   // --- Election Scoreboard Overlay State ---
-  bool showElectionOverlay = false;
-  String electionTitle = "TELANGANA ASSEMBLY ELECTIONS - LIVE TRENDS";
+  bool showElectionOverlay = true; // Default ON so you can see it immediately
+  String electionTitle = "INDIA ELECTIONS - LIVE TRENDS & RESULTS";
   List<Map<String, dynamic>> electionResults = [
     {"party": "INC", "seats": "64", "trend": "+15", "color": Colors.orange},
     {"party": "BRS", "seats": "39", "trend": "-24", "color": Colors.pink},
@@ -62,7 +62,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   final TextEditingController _satKeyCtrl = TextEditingController();
 
   // --- Google News / Election RSS ---
-  String breakingNewsText = "ఎలక్షన్ అప్‌డేట్స్: స్థానిక సంస్థలు, మున్సిపల్ మరియు అసెంబ్లీ ఎన్నికల తాజా ఫలితాలు లోడ్ అవుతున్నాయి...";
+  String breakingNewsText = "ఎలక్షన్ అప్‌డేట్స్: లోకల్ బాడీ, మున్సిపల్ మరియు అసెంబ్లీ ఎన్నికల తాజా ఫలితాలు లోడ్ అవుతున్నాయి...";
   Timer? _newsTimer;
 
   // --- Logo Settings ---
@@ -114,7 +114,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         List<String> titles = items.take(15).map((e) => e.findElements('title').first.innerText).toList();
         if (titles.isNotEmpty && mounted) {
           setState(() {
-            breakingNewsText = "🗳️ ELECTION UPDATES: " + titles.join("   ♦   ");
+            breakingNewsText = "🗳️ ELECTION RESULTS & UPDATES: " + titles.join("   ♦   ");
           });
         }
       }
@@ -441,7 +441,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(liveCameraId)
                   ),
 
-                  // --- ELECTION SCOREBOARD OVERLAY ---
+                  // --- ELECTION SCOREBOARD OVERLAY (TOP BAR) ---
                   if (showElectionOverlay)
                     Positioned(
                       top: 0, left: 0, right: 0,
@@ -454,7 +454,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                             Container(
                               padding: const EdgeInsets.all(4),
                               color: Colors.black45,
-                              child: Text(electionTitle.split("-")[0].trim(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                              child: const Text("ELECTION RESULTS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -513,7 +513,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                       )
                     ),
 
-                  // Top Control Bar
+                  // Top Control Bar (ELECTION BAR button is now FIRST on the left!)
                   AnimatedOpacity(
                     opacity: showControls ? 1.0 : 0.0, 
                     duration: const Duration(milliseconds: 300),
