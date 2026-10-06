@@ -24,7 +24,7 @@ dependencies:
   url_launcher: ^6.2.1
   youtube_explode_dart: ^2.2.2
   shared_preferences: ^2.2.3
-  ed_screen_recorder: any
+  flutter_screen_recording: ^2.0.25
 
 dev_dependencies:
   flutter_test:
