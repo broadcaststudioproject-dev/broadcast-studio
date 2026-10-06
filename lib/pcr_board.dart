@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:video_player/video_player.dart';
 
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
@@ -18,37 +17,30 @@ class MasterPCRBoard extends StatefulWidget {
 }
 
 class _MasterPCRBoardState extends State<MasterPCRBoard> {
-  // --- Native Android USB ఛానెల్ ---
   static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
   int? _usbTextureId; 
 
-  // --- IP / Drone కెమెరాల కంట్రోలర్స్ ---
   final Map<String, VlcPlayerController> _rtspControllers = {};
 
-  // --- Master Controls ---
   bool showControls = true; 
   bool isRecording = false;
   bool showAds = true;
   
-  // --- Studio Multi-View Layout State ---
-  bool isStudioMultiView = true; // డిఫాల్ట్‌గా రిపోర్టర్ + 6 గ్రిడ్ మోడ్
-  int selectedHexIndex = 0; // 6 గ్రిడ్‌‌లో ఏ బాక్స్ సెలెక్ట్ అయ్యింది?
-  List<String> hexCams = ["IP_1", "IP_2", "DRONE_1", "IP_3", "IP_4", "HDMI_1"]; // 6 గ్రిడ్ కెమెరాలు
+  bool isStudioMultiView = true;
+  int selectedHexIndex = 0; 
+  List<String> hexCams = ["IP_1", "IP_2", "DRONE_1", "IP_3", "IP_4", "HDMI_1"];
   
   String liveCameraId = "REPORTER_CAM";
 
-  // --- Google News State ---
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
   Timer? _newsTimer;
 
-  // --- Logo & Settings ---
   String channelLogoPath = "";
-  int logoPosition = 0; // 0: Top Left, 1: Top Right, 2: Bottom Left, 3: Bottom Right
+  int logoPosition = 0; 
   int adShapeMode = 0;
 
   final ImagePicker _picker = ImagePicker();
 
-  // --- 11 Cameras Setup ---
   final List<Map<String, dynamic>> cameraList = [
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "url": ""},
     {"id": "DRONE_1", "name": "DJI Drone", "type": "DRONE", "active": false, "url": "rtsp://192.168.1.1:554/live"}, 
@@ -193,7 +185,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         child: SafeArea(
           child: Stack(
             children: [
-              // --- Main Layout: Reporter View + 6-Cam Grid ---
               Positioned.fill(
                 child: Padding(
                   padding: EdgeInsets.only(bottom: showControls ? 145.0 : 40.0),
@@ -201,7 +192,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                 ),
               ),
 
-              // --- Channel Logo in 4 Corners ---
               Positioned(
                 top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
                 bottom: (logoPosition == 2 || logoPosition == 3) ? 55.0 : null,
@@ -219,7 +209,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                       ),
               ),
 
-              // --- Top Controls ---
               AnimatedOpacity(
                 opacity: showControls ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
@@ -249,7 +238,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                 ),
               ),
 
-              // --- Bottom Camera List (Compact Small Size) ---
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 bottom: showControls ? 40 : -100,
@@ -266,7 +254,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                 ),
               ),
 
-              // --- Google News Scrolling Ticker (Fixed at Bottom 0) ---
               Positioned(
                 bottom: 0, left: 0, right: 0,
                 child: Container(
@@ -300,11 +287,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
 
-  // --- Studio Layout: Left Side Reporter, Right Side 6-Cam Grid ---
   Widget _buildStudioLayout() {
     return Row(
       children: [
-        // Left Side: Main Reporter Cam (Big View)
         Expanded(
           flex: 5,
           child: Container(
@@ -327,7 +312,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           ),
         ),
         Container(width: 2, color: Colors.white24),
-        // Right Side: 6-Cam Grid (2 rows x 3 columns)
         Expanded(
           flex: 6,
           child: Column(
@@ -383,7 +367,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
 
-  // --- Live Feed Router ---
   Widget _buildLiveFeed(String camId) {
     var camData = cameraList.firstWhere((cam) => cam['id'] == camId, orElse: () => cameraList[0]);
     
@@ -454,7 +437,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
 
-  // --- Compact Small Size Camera Box at Bottom ---
   Widget _buildCompactCameraBox(Map<String, dynamic> cam) {
     bool isLive = isStudioMultiView ? hexCams.contains(cam['id']) : (liveCameraId == cam['id']);
     bool isActive = cam['active'];
@@ -502,7 +484,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   onTap: () {
                     setState(() {
                       if (isStudioMultiView) {
-                        hexCams[selectedHexIndex] = cam['id']; // సెలెక్ట్ చేసిన బాక్స్‌కి రూట్ అవుతుంది
+                        hexCams[selectedHexIndex] = cam['id']; 
                       } else {
                         liveCameraId = cam['id']; 
                       }
