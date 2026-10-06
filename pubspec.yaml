@@ -24,7 +24,7 @@ dependencies:
   url_launcher: ^6.2.1
   youtube_explode_dart: ^2.2.2
   shared_preferences: ^2.2.3
-  ed_screen_recorder: ^2.0.1
+  ed_screen_recorder: any
 
 dev_dependencies:
   flutter_test:
@@ -39,4 +39,4 @@ flutter_icons:
 flutter:
   uses-material-design: true
   assets:
-    - logo.png 
+    - logo.png
