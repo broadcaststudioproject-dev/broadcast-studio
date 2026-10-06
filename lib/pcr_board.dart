@@ -8,8 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:camera/camera.dart'; 
 import 'package:video_player/video_player.dart';
-import 'package:flutter_screen_recording/flutter_screen_recording.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -81,24 +79,21 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) => _fetchBreakingNews());
   }
 
-  // --- Screen Recording Logic ---
-  Future<void> _toggleRecord() async {
-    try {
-      if (isRecording) {
-        final String path = await FlutterScreenRecording.stopRecordScreen;
-        setState(() => isRecording = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Video Saved: $path"), backgroundColor: Colors.green));
-      } else {
-        await FlutterScreenRecording.startRecordScreenAndAudio(
-          "PCR_Live_${DateTime.now().millisecondsSinceEpoch}",
-          titleNotification: 'Pocket PCR Studio',
-          messageNotification: 'Recording 4K Broadcast...',
-        );
-        setState(() => isRecording = true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("4K Recording Started!"), backgroundColor: Colors.red));
-      }
-    } catch (e) {
-      debugPrint("Record Error: $e");
+  // --- Smart Record Alert Logic ---
+  void _toggleRecord() {
+    setState(() => isRecording = !isRecording);
+    if (isRecording) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Row(children: [Icon(Icons.warning, color: Colors.amber), SizedBox(width: 10), Text("4K Recording", style: TextStyle(color: Colors.white))]),
+          content: const Text("హై-క్వాలిటీ 4K రికార్డింగ్ కోసం మీ ఫోన్ లోని 'In-built Screen Recorder' లేదా 'Prism Live Studio' యాప్ ఉపయోగించండి. యాప్ లోపల రికార్డ్ చేస్తే కెమెరాలు స్ట్రక్ అయ్యే ప్రమాదం ఉంది.", style: TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK", style: TextStyle(color: Colors.red)))
+          ],
+        )
+      );
     }
   }
 
@@ -441,7 +436,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(color: isRecording ? Colors.red : Colors.grey[800], borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white, width: 1)),
-        child: Row(children: [Icon(Icons.circle, color: isRecording ? Colors.white : Colors.red, size: 10), const SizedBox(width: 5), Text(isRecording ? "STOP REC" : "REC 4K", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))]),
+        child: Row(children: [Icon(Icons.circle, color: isRecording ? Colors.white : Colors.red, size: 10), const SizedBox(width: 5), Text(isRecording ? "REC ON" : "REC 4K", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))]),
       ),
     );
   }
