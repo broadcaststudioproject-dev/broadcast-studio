@@ -254,7 +254,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           ),
         ),
         Positioned(
-          bottom: showControls ? 100 : 20, left: 10, right: 10,
+          bottom: showControls ? 130 : 20, left: 10, right: 10,
           child: Container(
             height: 35, color: Colors.blue[900]?.withOpacity(0.9),
             child: Row(
