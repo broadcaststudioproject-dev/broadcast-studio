@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.2
+  flutter_vlc_player: ^7.3.0    # <-- ఈ లైన్ కొత్తగా యాడ్ చేయాలి (IP/Drone కెమెరాల కోసం)
+    sdk: flutter
   camera: ^0.10.5+9
   permission_handler: ^11.3.0
   marquee: ^2.2.3
@@ -22,6 +25,7 @@ dependencies:
   url_launcher: ^6.2.1
   youtube_explode_dart: ^2.2.2 # <-- వెబ్‌వ్యూ లేని అఫీషియల్ ప్యాకేజీ
   shared_preferences: ^2.2.3
+  
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
