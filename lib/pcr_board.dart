@@ -29,9 +29,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   List<CameraDescription> _cameras = [];
   bool _isFrontCam = true;
 
-  // --- Screen Recorder State ---
+  // --- States ---
   bool isRecording = false;
-
+  bool isLiveStreaming = false; 
   bool showControls = true; 
   
   // --- Studio Multi-View ---
@@ -40,11 +40,22 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   List<String> hexCams = ["IP_1", "IP_2", "DRONE_1", "IP_3", "IP_4", "HDMI_1"]; 
   String liveCameraId = "REPORTER_CAM";
 
+  // --- Multi-Live URL & Stream Keys ---
+  String cableRtmpUrl = "";
+  String cableStreamKey = "";
+  String satelliteSrtUrl = "";
+  String satelliteStreamKey = "";
+
+  final TextEditingController _cableUrlCtrl = TextEditingController();
+  final TextEditingController _cableKeyCtrl = TextEditingController();
+  final TextEditingController _satUrlCtrl = TextEditingController();
+  final TextEditingController _satKeyCtrl = TextEditingController();
+
   // --- Google News ---
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
   Timer? _newsTimer;
 
-  // --- Advanced Logo Settings (JPEG/GIF/MP4) ---
+  // --- Logo Settings ---
   String channelLogoPath = "";
   int logoPosition = 0; 
   VideoPlayerController? _logoVideoCtrl;
@@ -79,6 +90,126 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) => _fetchBreakingNews());
   }
 
+  // --- GO LIVE / Multi-Live Menu Popup (Tap to Open) ---
+  void _showGoLiveMenuModal() {
+    _cableUrlCtrl.text = cableRtmpUrl;
+    _cableKeyCtrl.text = cableStreamKey;
+    _satUrlCtrl.text = satelliteSrtUrl;
+    _satKeyCtrl.text = satelliteStreamKey;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 16, right: 16, top: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.between,
+                children: [
+                  const Text("🔴 PCR Studio Multi-Live Hub", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  IconButton(icon: const Icon(Icons.close, color: Colors.white54), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const Divider(color: Colors.grey),
+              const Text("1. Local Cable / Restream RTMP", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 4),
+              TextField(
+                controller: _cableUrlCtrl, style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(labelText: "RTMP Server URL", labelStyle: const TextStyle(color: Colors.grey), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade700))),
+              ),
+              const SizedBox(height: 4),
+              TextField(
+                controller: _cableKeyCtrl, style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(labelText: "Stream Key", labelStyle: const TextStyle(color: Colors.grey), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade700))),
+              ),
+              const SizedBox(height: 10),
+              const Text("2. Satellite Playout / SRT Hub", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 4),
+              TextField(
+                controller: _satUrlCtrl, style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(labelText: "SRT / RTMP Server URL", labelStyle: const TextStyle(color: Colors.grey), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade700))),
+              ),
+              const SizedBox(height: 4),
+              TextField(
+                controller: _satKeyCtrl, style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(labelText: "Stream Key / Passphrase", labelStyle: const TextStyle(color: Colors.grey), enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade700))),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey).wrap(
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                        onPressed: () async {
+                          setState(() {
+                            cableRtmpUrl = _cableUrlCtrl.text.trim();
+                            cableStreamKey = _cableKeyCtrl.text.trim();
+                            satelliteSrtUrl = _satUrlCtrl.text.trim();
+                            satelliteStreamKey = _satKeyCtrl.text.trim();
+                          });
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('pcr_cableUrl', cableRtmpUrl);
+                          await prefs.setString('pcr_cableKey', cableStreamKey);
+                          await prefs.setString('pcr_satUrl', satelliteSrtUrl);
+                          await prefs.setString('pcr_satKey', satelliteStreamKey);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stream Links Saved!"), backgroundColor: Colors.green));
+                        },
+                        child: const Text("SAVE CONFIG", style: TextStyle(color: Colors.white, fontSize: 12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: isLiveStreaming ? Colors.red : Colors.green),
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _toggleLiveStreamExecution();
+                      },
+                      child: Text(isLiveStreaming ? "STOP LIVE" : "START LIVE NOW", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleLiveStreamExecution() async {
+    if (cableRtmpUrl.isEmpty && satelliteSrtUrl.isEmpty) {
+      _showGoLiveMenuModal();
+      return;
+    }
+
+    setState(() => isLiveStreaming = !isLiveStreaming);
+
+    try {
+      if (isLiveStreaming) {
+        await _channel.invokeMethod('startScreenCaptureStreaming', {
+          'cableRtmp': "$cableRtmpUrl/$cableStreamKey",
+          'satelliteSrt': "$satelliteSrtUrl/$satelliteStreamKey"
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("PCR Studio Output Streaming LIVE to Cable & Satellite!"), backgroundColor: Colors.green));
+      } else {
+        await _channel.invokeMethod('stopScreenCaptureStreaming');
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Live Broadcast Stopped"), backgroundColor: Colors.orange));
+      }
+    } catch (e) {
+      debugPrint("Live Stream Error: $e");
+    }
+  }
+
   // --- Smart Record Alert Logic ---
   void _toggleRecord() {
     setState(() => isRecording = !isRecording);
@@ -88,10 +219,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         builder: (context) => AlertDialog(
           backgroundColor: Colors.grey[900],
           title: const Row(children: [Icon(Icons.warning, color: Colors.amber), SizedBox(width: 10), Text("4K Recording", style: TextStyle(color: Colors.white))]),
-          content: const Text("హై-క్వాలిటీ 4K రికార్డింగ్ కోసం మీ ఫోన్ లోని 'In-built Screen Recorder' లేదా 'Prism Live Studio' యాప్ ఉపయోగించండి. యాప్ లోపల రికార్డ్ చేస్తే కెమెరాలు స్ట్రక్ అయ్యే ప్రమాదం ఉంది.", style: TextStyle(color: Colors.white70)),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK", style: TextStyle(color: Colors.red)))
-          ],
+          content: const Text("హై-క్వాలిటీ 4K రికార్డింగ్ కోసం మీ ఫోన్ లోని 'In-built Screen Recorder' ఉపయోగించండి.", style: TextStyle(color: Colors.white70)),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK", style: TextStyle(color: Colors.red)))]
         )
       );
     }
@@ -117,23 +246,24 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     _setCamera(_isFrontCam ? CameraLensDirection.front : CameraLensDirection.back);
   }
 
-  // --- Logo & Ads Logic ---
+  // --- Settings Loader ---
   Future<void> _loadSavedData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       logoPosition = prefs.getInt('pcr_logoPosition') ?? 0;
       adShapeMode = prefs.getInt('pcr_adShapeMode') ?? 0;
       isLBandRight = prefs.getBool('pcr_isLBandRight') ?? true;
+      
+      cableRtmpUrl = prefs.getString('pcr_cableUrl') ?? "";
+      cableStreamKey = prefs.getString('pcr_cableKey') ?? "";
+      satelliteSrtUrl = prefs.getString('pcr_satUrl') ?? "";
+      satelliteStreamKey = prefs.getString('pcr_satKey') ?? "";
+
       String savedLogo = prefs.getString('pcr_channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
       
-      leftAdPath = prefs.getString('pcr_leftAd') ?? "";
-      rightAdPath = prefs.getString('pcr_rightAd') ?? "";
-      bottomAdPath = prefs.getString('pcr_bottomAd') ?? "";
-      
-      _initAdPlayer('left', leftAdPath);
-      _initAdPlayer('right', rightAdPath);
-      _initAdPlayer('bottom', bottomAdPath);
+      leftAdPath = prefs.getString('pcr_leftAd') ?? ""; rightAdPath = prefs.getString('pcr_rightAd') ?? ""; bottomAdPath = prefs.getString('pcr_bottomAd') ?? "";
+      _initAdPlayer('left', leftAdPath); _initAdPlayer('right', rightAdPath); _initAdPlayer('bottom', bottomAdPath);
     });
   }
 
@@ -155,7 +285,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       setState(() => _setLogo(media.path));
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('pcr_channelLogoPath', media.path);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Logo Updated!"), backgroundColor: Colors.green));
     }
   }
 
@@ -168,15 +297,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('pcr_adShapeMode', adShapeMode);
     await prefs.setBool('pcr_isLBandRight', isLBandRight);
-    await prefs.setString('pcr_leftAd', leftAdPath);
-    await prefs.setString('pcr_rightAd', rightAdPath);
-    await prefs.setString('pcr_bottomAd', bottomAdPath);
+    await prefs.setString('pcr_leftAd', leftAdPath); await prefs.setString('pcr_rightAd', rightAdPath); await prefs.setString('pcr_bottomAd', bottomAdPath);
   }
 
   void _initAdPlayer(String pos, String path) {
     if (path.isEmpty || !File(path).existsSync()) return;
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov');
-    
     if (pos == 'left') {
       _leftAdCtrl?.dispose(); _leftAdCtrl = null;
       if (isVideo) { _leftAdCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { _leftAdCtrl!.setLooping(true); _leftAdCtrl!.setVolume(0.0); _leftAdCtrl!.play(); setState(() {}); }); }
@@ -193,19 +319,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     try {
       final XFile? media = await _picker.pickMedia();
       if (media != null && mounted) {
-        setState(() {
-          if (pos == 'left') leftAdPath = media.path;
-          if (pos == 'right') rightAdPath = media.path;
-          if (pos == 'bottom') bottomAdPath = media.path;
-          _initAdPlayer(pos, media.path);
-        });
+        setState(() { if (pos == 'left') leftAdPath = media.path; if (pos == 'right') rightAdPath = media.path; if (pos == 'bottom') bottomAdPath = media.path; _initAdPlayer(pos, media.path); });
         await _saveSettings();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ad Updated!"), backgroundColor: Colors.green));
       }
     } catch (e) {}
   }
 
-  // --- Camera Power & Mute Toggles ---
   void _toggleRTSPCamera(String camId, String url, bool isActive, bool isMuted) {
     if (isActive) {
       _rtspControllers[camId] = VlcPlayerController.network(url, hwAcc: HwAcc.full, autoPlay: true, options: VlcPlayerOptions());
@@ -218,9 +337,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   void _toggleMute(Map<String, dynamic> cam) {
     setState(() {
       cam['muted'] = !cam['muted'];
-      if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) {
-        _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100);
-      }
+      if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100);
     });
   }
 
@@ -240,6 +357,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   void dispose() {
     _phoneCamCtrl?.dispose(); _logoVideoCtrl?.dispose();
     _leftAdCtrl?.dispose(); _rightAdCtrl?.dispose(); _bottomAdCtrl?.dispose();
+    _cableUrlCtrl.dispose(); _cableKeyCtrl.dispose(); _satUrlCtrl.dispose(); _satKeyCtrl.dispose();
     for (var controller in _rtspControllers.values) { controller.dispose(); }
     super.dispose();
   }
@@ -250,20 +368,14 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       backgroundColor: Colors.black,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          double screenW = constraints.maxWidth;
-          double screenH = constraints.maxHeight;
+          double screenW = constraints.maxWidth; double screenH = constraints.maxHeight;
           double leftPad = 0; double rightPad = 0; double bottomPad = showControls ? 145.0 : 40.0;
           
           if (showAds) {
-            double adWidth = screenW * 0.20;
-            double adHeight = screenH * 0.15;
-            if (adShapeMode == 0) { // L-Band
-              if (isLBandRight) { rightPad = adWidth; bottomPad += adHeight; } else { leftPad = adWidth; bottomPad += adHeight; }
-            } else if (adShapeMode == 1) { // 2-Sides
-              leftPad = adWidth * 0.8; rightPad = adWidth * 0.8;
-            } else if (adShapeMode == 2) { // U-Band
-              leftPad = adWidth * 0.8; rightPad = adWidth * 0.8; bottomPad += adHeight;
-            }
+            double adWidth = screenW * 0.20; double adHeight = screenH * 0.15;
+            if (adShapeMode == 0) { if (isLBandRight) { rightPad = adWidth; bottomPad += adHeight; } else { leftPad = adWidth; bottomPad += adHeight; }
+            } else if (adShapeMode == 1) { leftPad = adWidth * 0.8; rightPad = adWidth * 0.8;
+            } else if (adShapeMode == 2) { leftPad = adWidth * 0.8; rightPad = adWidth * 0.8; bottomPad += adHeight; }
           }
 
           return GestureDetector(
@@ -271,41 +383,36 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             child: SafeArea(
               child: Stack(
                 children: [
-                  // --- 1. Main Live Video Layer ---
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 300),
-                    top: 0, left: leftPad, right: rightPad, bottom: bottomPad,
-                    child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(liveCameraId),
-                  ),
+                  AnimatedPositioned(duration: const Duration(milliseconds: 300), top: 0, left: leftPad, right: rightPad, bottom: bottomPad, child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(liveCameraId)),
 
-                  // --- 2. Ads Layers ---
-                  if (showAds && (adShapeMode == 0 && !isLBandRight || adShapeMode == 1 || adShapeMode == 2))
-                    Positioned(top: 0, left: 0, bottom: bottomPad - (showControls ? 145 : 40), width: leftPad, child: _buildAdBox(leftAdPath, _leftAdCtrl)),
-                  if (showAds && (adShapeMode == 0 && isLBandRight || adShapeMode == 1 || adShapeMode == 2))
-                    Positioned(top: 0, right: 0, bottom: bottomPad - (showControls ? 145 : 40), width: rightPad, child: _buildAdBox(rightAdPath, _rightAdCtrl)),
-                  if (showAds && (adShapeMode == 0 || adShapeMode == 2))
-                    Positioned(left: leftPad, right: rightPad, bottom: showControls ? 145 : 40, height: screenH * 0.15, child: _buildAdBox(bottomAdPath, _bottomAdCtrl)),
+                  // Ads
+                  if (showAds && (adShapeMode == 0 && !isLBandRight || adShapeMode == 1 || adShapeMode == 2)) Positioned(top: 0, left: 0, bottom: bottomPad - (showControls ? 145 : 40), width: leftPad, child: _buildAdBox(leftAdPath, _leftAdCtrl)),
+                  if (showAds && (adShapeMode == 0 && isLBandRight || adShapeMode == 1 || adShapeMode == 2)) Positioned(top: 0, right: 0, bottom: bottomPad - (showControls ? 145 : 40), width: rightPad, child: _buildAdBox(rightAdPath, _rightAdCtrl)),
+                  if (showAds && (adShapeMode == 0 || adShapeMode == 2)) Positioned(left: leftPad, right: rightPad, bottom: showControls ? 145 : 40, height: screenH * 0.15, child: _buildAdBox(bottomAdPath, _bottomAdCtrl)),
 
-                  // --- 3. Advanced Logo ---
+                  // Logo
                   Positioned(
-                    top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
-                    bottom: (logoPosition == 2 || logoPosition == 3) ? (showControls ? 155.0 : 55.0) : null,
-                    left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null,
-                    right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,
+                    top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? (showControls ? 155.0 : 55.0) : null,
+                    left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,
                     child: channelLogoPath.isNotEmpty
-                        ? SizedBox(
-                            width: 70, height: 70, 
-                            child: _logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized 
-                                ? VideoPlayer(_logoVideoCtrl!) 
-                                : Image.file(File(channelLogoPath), fit: BoxFit.contain)
-                          )
+                        ? SizedBox(width: 70, height: 70, child: _logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : Image.file(File(channelLogoPath), fit: BoxFit.contain))
                         : Container(padding: const EdgeInsets.all(5), color: Colors.red[900], child: const Text("SS YATRA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))),
                   ),
 
-                  // --- 4. Top Controls ---
+                  // LIVE Indicator
+                  if (isLiveStreaming)
+                    Positioned(
+                      top: 15, left: (logoPosition == 0) ? 95 : 15,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(4)),
+                        child: const Row(children: [Icon(Icons.sensors, color: Colors.white, size: 14), SizedBox(width: 4), Text("ON AIR (LIVE)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))]),
+                      )
+                    ),
+
+                  // Controls (GO LIVE Hub Button)
                   AnimatedOpacity(
-                    opacity: showControls ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 300),
+                    opacity: showControls ? 1.0 : 0.0, duration: const Duration(milliseconds: 300),
                     child: IgnorePointer(
                       ignoring: !showControls,
                       child: Positioned(
@@ -314,7 +421,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildRecordButton(), const SizedBox(width: 6),
+                              _buildControlButton(isLiveStreaming ? "STOP LIVE" : "GO LIVE", isLiveStreaming ? Colors.red : Colors.green.shade700, _showGoLiveMenuModal, icon: Icons.podcasts), const SizedBox(width: 6),
+                              _buildControlButton(isRecording ? "REC ON" : "REC 4K", isRecording ? Colors.red : Colors.grey.shade800, _toggleRecord, icon: Icons.circle), const SizedBox(width: 6),
                               _buildControlButton("STUDIO VIEW", isStudioMultiView ? Colors.blue.shade800 : Colors.purple.shade800, () => setState(() => isStudioMultiView = !isStudioMultiView)), const SizedBox(width: 6),
                               _buildControlButton(showAds ? "ADS: ON" : "ADS: OFF", showAds ? Colors.green : Colors.orange, () => setState(() => showAds = !showAds)), const SizedBox(width: 6),
                               _buildControlButton(adShapeMode == 0 ? "SHAPE: L-Band" : (adShapeMode == 1 ? "SHAPE: 2-Sides" : "SHAPE: U-Band"), Colors.teal, () { setState(() { adShapeMode = (adShapeMode + 1) % 3; }); _saveSettings(); }), const SizedBox(width: 6),
@@ -331,23 +439,19 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     ),
                   ),
 
-                  // --- 5. Bottom Compact Cameras ---
+                  // Bottom Cameras
                   AnimatedPositioned(
-                    duration: const Duration(milliseconds: 300),
-                    bottom: showControls ? 40 : -100,
-                    left: 0, right: 0,
+                    duration: const Duration(milliseconds: 300), bottom: showControls ? 40 : -100, left: 0, right: 0,
                     child: Container(
                       height: 100, color: Colors.black87.withOpacity(0.95),
                       child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: cameraList.length,
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                         itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index]),
                       ),
                     ),
                   ),
 
-                  // --- 6. Ticker ---
+                  // Ticker
                   Positioned(
                     bottom: 0, left: 0, right: 0,
                     child: Container(
@@ -370,12 +474,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   Widget _buildAdBox(String path, VideoPlayerController? vCtrl) {
-    return Container(
-      color: Colors.black,
-      child: path.isNotEmpty && File(path).existsSync()
-          ? (vCtrl != null && vCtrl.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: vCtrl.value.size.width, height: vCtrl.value.size.height, child: VideoPlayer(vCtrl))) : Image.file(File(path), fit: BoxFit.fill))
-          : const Center(child: Text("AD SPACE", style: TextStyle(color: Colors.white30, fontSize: 10))),
-    );
+    return Container(color: Colors.black, child: path.isNotEmpty && File(path).existsSync() ? (vCtrl != null && vCtrl.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: vCtrl.value.size.width, height: vCtrl.value.size.height, child: VideoPlayer(vCtrl))) : Image.file(File(path), fit: BoxFit.fill)) : const Center(child: Text("AD SPACE", style: TextStyle(color: Colors.white30, fontSize: 10))));
   }
 
   Widget _buildStudioLayout() {
@@ -383,15 +482,10 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       children: [
         Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed("REPORTER_CAM"))),
         Container(width: 2, color: Colors.white24),
-        Expanded(
-          flex: 6,
-          child: Column(
-            children: [
-              Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])),
-              Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))])),
-            ],
-          ),
-        ),
+        Expanded(flex: 6, child: Column(children: [
+          Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])),
+          Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))])),
+        ])),
       ],
     );
   }
@@ -430,19 +524,15 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     return Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10))));
   }
 
-  Widget _buildRecordButton() {
+  Widget _buildControlButton(String title, Color color, VoidCallback onTap, {IconData? icon}) {
     return GestureDetector(
-      onTap: _toggleRecord,
+      onTap: onTap, 
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: isRecording ? Colors.red : Colors.grey[800], borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white, width: 1)),
-        child: Row(children: [Icon(Icons.circle, color: isRecording ? Colors.white : Colors.red, size: 10), const SizedBox(width: 5), Text(isRecording ? "REC ON" : "REC 4K", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))]),
-      ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), 
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4), border: title.contains("REC") || title.contains("LIVE") ? Border.all(color: Colors.white, width: 1) : null), 
+        child: Row(children: [if (icon != null) ...[Icon(icon, color: Colors.white, size: 12), const SizedBox(width: 4)], Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])
+      )
     );
-  }
-
-  Widget _buildControlButton(String title, Color color, VoidCallback onTap) {
-    return GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)), child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))));
   }
 
   Widget _buildCompactCameraBox(Map<String, dynamic> cam) {
@@ -470,12 +560,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               GestureDetector(
-                onTap: () {
-                  setState(() {
-                    cam['active'] = !isActive;
-                    if (cam['type'] == "IP" || cam['type'] == "DRONE") _toggleRTSPCamera(cam['id'], cam['url'], !isActive, cam['muted']);
-                  });
-                },
+                onTap: () { setState(() { cam['active'] = !isActive; if (cam['type'] == "IP" || cam['type'] == "DRONE") _toggleRTSPCamera(cam['id'], cam['url'], !isActive, cam['muted']); }); },
                 child: Icon(isActive ? Icons.power_settings_new : Icons.power_off, color: isActive ? Colors.green : Colors.red, size: 16),
               ),
               const SizedBox(width: 5),
