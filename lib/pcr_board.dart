@@ -110,7 +110,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("🔴 PCR Studio Multi-Live Hub", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   IconButton(icon: const Icon(Icons.close, color: Colors.white54), onPressed: () => Navigator.pop(context)),
@@ -144,25 +144,23 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey).wrap(
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
-                        onPressed: () async {
-                          setState(() {
-                            cableRtmpUrl = _cableUrlCtrl.text.trim();
-                            cableStreamKey = _cableKeyCtrl.text.trim();
-                            satelliteSrtUrl = _satUrlCtrl.text.trim();
-                            satelliteStreamKey = _satKeyCtrl.text.trim();
-                          });
-                          SharedPreferences prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('pcr_cableUrl', cableRtmpUrl);
-                          await prefs.setString('pcr_cableKey', cableStreamKey);
-                          await prefs.setString('pcr_satUrl', satelliteSrtUrl);
-                          await prefs.setString('pcr_satKey', satelliteStreamKey);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stream Links Saved!"), backgroundColor: Colors.green));
-                        },
-                        child: const Text("SAVE CONFIG", style: TextStyle(color: Colors.white, fontSize: 12)),
-                      ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+                      onPressed: () async {
+                        setState(() {
+                          cableRtmpUrl = _cableUrlCtrl.text.trim();
+                          cableStreamKey = _cableKeyCtrl.text.trim();
+                          satelliteSrtUrl = _satUrlCtrl.text.trim();
+                          satelliteStreamKey = _satKeyCtrl.text.trim();
+                        });
+                        SharedPreferences prefs = await SharedPreferences.getInstance();
+                        await prefs.setString('pcr_cableUrl', cableRtmpUrl);
+                        await prefs.setString('pcr_cableKey', cableStreamKey);
+                        await prefs.setString('pcr_satUrl', satelliteSrtUrl);
+                        await prefs.setString('pcr_satKey', satelliteStreamKey);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stream Links Saved!"), backgroundColor: Colors.green));
+                      },
+                      child: const Text("SAVE CONFIG", style: TextStyle(color: Colors.white, fontSize: 12)),
                     ),
                   ),
                   const SizedBox(width: 10),
