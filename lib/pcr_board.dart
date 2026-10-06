@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:camera/camera.dart'; // <--- కొత్తగా యాడ్ చేసిన కెమెరా ప్యాకేజీ
 import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
@@ -22,6 +23,11 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   int? _usbTextureId; 
 
   final Map<String, VlcPlayerController> _rtspControllers = {};
+
+  // --- Phone Camera State ---
+  CameraController? _phoneCamCtrl;
+  List<CameraDescription> _cameras = [];
+  bool _isFrontCam = true;
 
   bool showControls = true; 
   bool isRecording = false;
@@ -72,12 +78,50 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   @override
   void initState() {
     super.initState();
+    _initPhoneCamera();
     _loadSavedData();
     _fetchBreakingNews();
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
     });
   }
+
+  // --- Phone Camera Initialization ---
+  Future<void> _initPhoneCamera() async {
+    try {
+      _cameras = await availableCameras();
+      if (_cameras.isNotEmpty) {
+        _setCamera(_isFrontCam ? CameraLensDirection.front : CameraLensDirection.back);
+      }
+    } catch (e) {
+      debugPrint("Camera Error: $e");
+    }
+  }
+
+  Future<void> _setCamera(CameraLensDirection dir) async {
+    try {
+      CameraDescription? cam;
+      try {
+        cam = _cameras.firstWhere((c) => c.lensDirection == dir);
+      } catch (_) {
+        cam = _cameras.first;
+      }
+      if (cam != null) {
+        _phoneCamCtrl?.dispose();
+        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true);
+        await _phoneCamCtrl!.initialize();
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      debugPrint("Camera Set Error: $e");
+    }
+  }
+
+  void _switchPhoneCamera() {
+    _isFrontCam = !_isFrontCam;
+    _setCamera(_isFrontCam ? CameraLensDirection.front : CameraLensDirection.back);
+  }
+  // ------------------------------------
 
   Future<void> _loadSavedData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -109,7 +153,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     await prefs.setString('pcr_bottomAd', bottomAdPath);
   }
 
-  // --- MISSING FUNCTIONS ADDED HERE ---
   void _changeLogoPosition() {
     setState(() {
       logoPosition = (logoPosition + 1) % 4;
@@ -133,7 +176,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       debugPrint("Logo Upload Error: $e");
     }
   }
-  // ------------------------------------
 
   void _initAdPlayer(String pos, String path) {
     if (path.isEmpty || !File(path).existsSync()) return;
@@ -225,6 +267,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
   @override
   void dispose() {
+    _phoneCamCtrl?.dispose();
     _stopUsbCamera();
     _newsTimer?.cancel();
     _leftAdCtrl?.dispose();
@@ -263,7 +306,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             child: SafeArea(
               child: Stack(
                 children: [
-                  // --- 1. Main Camera View Layer (Auto Resizes for Ads) ---
+                  // --- 1. Main Camera View Layer ---
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 300),
                     top: 0, left: leftPad, right: rightPad, bottom: bottomPad,
@@ -414,9 +457,44 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
   Widget _buildLiveFeed(String camId) {
     var camData = cameraList.firstWhere((cam) => cam['id'] == camId, orElse: () => cameraList[0]);
+    
+    if (camId == "REPORTER_CAM") {
+      if (_phoneCamCtrl != null && _phoneCamCtrl!.value.isInitialized) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _phoneCamCtrl!.value.previewSize?.height ?? 1,
+                  height: _phoneCamCtrl!.value.previewSize?.width ?? 1,
+                  child: CameraPreview(_phoneCamCtrl!),
+                ),
+              ),
+            ),
+            // కెమెరా ఫ్లిప్ బటన్ (ఫ్రంట్/బ్యాక్ మార్చడానికి)
+            Positioned(
+              bottom: 10, right: 10,
+              child: GestureDetector(
+                onTap: _switchPhoneCamera,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                  child: const Icon(Icons.flip_camera_android, color: Colors.white, size: 20),
+                ),
+              ),
+            )
+          ],
+        );
+      }
+      return const Center(child: CircularProgressIndicator(color: Colors.red));
+    }
+
     if (camData['type'] == "USB") return _usbTextureId != null ? Texture(textureId: _usbTextureId!) : _buildNoSignal(camData['name'], Icons.usb);
     else if (camData['type'] == "IP" || camData['type'] == "DRONE") return _rtspControllers.containsKey(camId) ? VlcPlayer(controller: _rtspControllers[camId]!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))) : _buildNoSignal(camData['name'], Icons.wifi);
-    return Container(color: Colors.grey[900], child: const Center(child: Text("REPORTER CAM\n(Front)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12))));
+    
+    return const SizedBox();
   }
 
   Widget _buildNoSignal(String name, IconData icon) {
