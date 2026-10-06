@@ -20,7 +20,6 @@ class MasterPCRBoard extends StatefulWidget {
 
 class _MasterPCRBoardState extends State<MasterPCRBoard> {
   static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
-  int? _usbTextureId; 
 
   final Map<String, VlcPlayerController> _rtspControllers = {};
 
@@ -75,8 +74,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   bool showAds = false;
   int adShapeMode = 0; 
   bool isLBandRight = true;
-  String leftAdPath = ""; String rightAdPath = ""; String bottomAdPath = "";
-  VideoPlayerController? _leftAdCtrl; VideoPlayerController? _rightAdCtrl; VideoPlayerController? _bottomAdCtrl;
+  String leftAdPath = ""; 
+  String rightAdPath = ""; 
+  String bottomAdPath = "";
+  VideoPlayerController? _leftAdCtrl; 
+  VideoPlayerController? _rightAdCtrl; 
+  VideoPlayerController? _bottomAdCtrl;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -140,7 +143,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("🔴 PCR Studio Multi-Live Hub", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   IconButton(icon: const Icon(Icons.close, color: Colors.white54), onPressed: () => Navigator.pop(context)),
@@ -291,8 +294,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       satelliteStreamKey = prefs.getString('pcr_satKey') ?? "";
       String savedLogo = prefs.getString('pcr_channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
-      leftAdPath = prefs.getString('pcr_leftAd') ?? ""; rightAdPath = prefs.getString('pcr_rightAd') ?? ""; bottomAdPath = prefs.getString('pcr_bottomAd') ?? "";
-      _initAdPlayer('left', leftAdPath); _initAdPlayer('right', rightAdPath); _initAdPlayer('bottom', bottomAdPath);
+      leftAdPath = prefs.getString('pcr_leftAd') ?? ""; 
+      rightAdPath = prefs.getString('pcr_rightAd') ?? ""; 
+      bottomAdPath = prefs.getString('pcr_bottomAd') ?? "";
+      _initAdPlayer('left', leftAdPath); 
+      _initAdPlayer('right', rightAdPath); 
+      _initAdPlayer('bottom', bottomAdPath);
     });
   }
 
@@ -324,7 +331,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('pcr_adShapeMode', adShapeMode);
     await prefs.setBool('pcr_isLBandRight', isLBandRight);
-    await prefs.setString('pcr_leftAd', leftAdPath); await prefs.setString('pcr_rightAd', rightAdPath); await prefs.setString('pcr_bottomAd', bottomAdPath);
+    await prefs.setString('pcr_leftAd', leftAdPath); 
+    await prefs.setString('pcr_rightAd', rightAdPath); 
+    await prefs.setString('pcr_bottomAd', bottomAdPath);
   }
 
   void _initAdPlayer(String pos, String path) {
@@ -346,7 +355,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     try {
       final XFile? media = await _picker.pickMedia();
       if (media != null && mounted) {
-        setState(() { if (pos == 'left') leftAdPath = media.path; if (pos == 'right') rightAdPath = media.path; if (pos == 'bottom') bottomAdPath = media.path; _initAdPlayer(pos, media.path); });
+        setState(() { 
+          if (pos == 'left') leftAdPath = media.path; 
+          if (pos == 'right') rightAdPath = media.path; 
+          if (pos == 'bottom') bottomAdPath = media.path; 
+          _initAdPlayer(pos, media.path); 
+        });
         await _saveSettings();
       }
     } catch (e) {}
@@ -356,23 +370,37 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     if (isActive) {
       _rtspControllers[camId] = VlcPlayerController.network(url, hwAcc: HwAcc.full, autoPlay: true, options: VlcPlayerOptions());
       _rtspControllers[camId]?.setVolume(isMuted ? 0 : 100);
-    } else { _rtspControllers[camId]?.stopRendererScanning(); _rtspControllers[camId]?.dispose(); _rtspControllers.remove(camId); }
+    } else { 
+      _rtspControllers[camId]?.stopRendererScanning(); 
+      _rtspControllers[camId]?.dispose(); 
+      _rtspControllers.remove(camId); 
+    }
   }
 
   void _toggleMute(Map<String, dynamic> cam) {
     setState(() {
       cam['muted'] = !cam['muted'];
-      if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100);
+      if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) {
+        _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100);
+      }
     });
   }
 
   @override
   void dispose() {
-    _phoneCamCtrl?.dispose(); _logoVideoCtrl?.dispose();
-    _leftAdCtrl?.dispose(); _rightAdCtrl?.dispose(); _bottomAdCtrl?.dispose();
-    _cableUrlCtrl.dispose(); _cableKeyCtrl.dispose(); _satUrlCtrl.dispose(); _satKeyCtrl.dispose();
+    _phoneCamCtrl?.dispose(); 
+    _logoVideoCtrl?.dispose();
+    _leftAdCtrl?.dispose(); 
+    _rightAdCtrl?.dispose(); 
+    _bottomAdCtrl?.dispose();
+    _cableUrlCtrl.dispose(); 
+    _cableKeyCtrl.dispose(); 
+    _satUrlCtrl.dispose(); 
+    _satKeyCtrl.dispose();
     _newsTimer?.cancel();
-    for (var controller in _rtspControllers.values) { controller.dispose(); }
+    for (var controller in _rtspControllers.values) { 
+      controller.dispose(); 
+    }
     super.dispose();
   }
 
@@ -382,14 +410,23 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       backgroundColor: Colors.black,
       body: LayoutBuilder(
         builder: (context, constraints) {
-          double screenW = constraints.maxWidth; double screenH = constraints.maxHeight;
-          double leftPad = 0; double rightPad = 0; double bottomPad = showControls ? 145.0 : 40.0;
+          double screenW = constraints.maxWidth; 
+          double screenH = constraints.maxHeight;
+          double leftPad = 0; 
+          double rightPad = 0; 
+          double bottomPad = showControls ? 145.0 : 40.0;
           
           if (showAds) {
-            double adWidth = screenW * 0.20; double adHeight = screenH * 0.15;
-            if (adShapeMode == 0) { if (isLBandRight) { rightPad = adWidth; bottomPad += adHeight; } else { leftPad = adWidth; bottomPad += adHeight; }
-            } else if (adShapeMode == 1) { leftPad = adWidth * 0.8; rightPad = adWidth * 0.8;
-            } else if (adShapeMode == 2) { leftPad = adWidth * 0.8; rightPad = adWidth * 0.8; bottomPad += adHeight; }
+            double adWidth = screenW * 0.20; 
+            double adHeight = screenH * 0.15;
+            if (adShapeMode == 0) { 
+              if (isLBandRight) { rightPad = adWidth; bottomPad += adHeight; } 
+              else { leftPad = adWidth; bottomPad += adHeight; }
+            } else if (adShapeMode == 1) { 
+              leftPad = adWidth * 0.8; rightPad = adWidth * 0.8;
+            } else if (adShapeMode == 2) { 
+              leftPad = adWidth * 0.8; rightPad = adWidth * 0.8; bottomPad += adHeight; 
+            }
           }
 
           return GestureDetector(
@@ -404,7 +441,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(liveCameraId)
                   ),
 
-                  // --- ELECTION SCOREBOARD OVERLAY (Top Bar like NDTV) ---
+                  // --- ELECTION SCOREBOARD OVERLAY ---
                   if (showElectionOverlay)
                     Positioned(
                       top: 0, left: 0, right: 0,
@@ -478,7 +515,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
                   // Top Control Bar
                   AnimatedOpacity(
-                    opacity: showControls ? 1.0 : 0.0, duration: const Duration(milliseconds: 300),
+                    opacity: showControls ? 1.0 : 0.0, 
+                    duration: const Duration(milliseconds: 300),
                     child: IgnorePointer(
                       ignoring: !showControls,
                       child: Positioned(
@@ -487,12 +525,18 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _buildControlButton(showElectionOverlay ? "ELECTION BAR: ON" : "ELECTION BAR: OFF", showElectionOverlay ? Colors.amber.shade800 : Colors.blueGrey, () => setState(() => showElectionOverlay = !showElectionOverlay), icon: Icons.how_to_vote), const SizedBox(width: 6),
-                              _buildControlButton(isLiveStreaming ? "STOP LIVE" : "GO LIVE", isLiveStreaming ? Colors.red : Colors.green.shade700, _showGoLiveMenuModal, icon: Icons.podcasts), const SizedBox(width: 6),
-                              _buildControlButton(isRecording ? "REC ON" : "REC 4K", isRecording ? Colors.red : Colors.grey.shade800, _toggleRecord, icon: Icons.circle), const SizedBox(width: 6),
-                              _buildControlButton("STUDIO VIEW", isStudioMultiView ? Colors.blue.shade800 : Colors.purple.shade800, () => setState(() => isStudioMultiView = !isStudioMultiView)), const SizedBox(width: 6),
-                              _buildControlButton(showAds ? "ADS: ON" : "ADS: OFF", showAds ? Colors.green : Colors.orange, () => setState(() => showAds = !showAds)), const SizedBox(width: 6),
-                              _buildControlButton("Logo Pos", Colors.blueAccent, _changeLogoPosition), const SizedBox(width: 6),
+                              _buildControlButton(showElectionOverlay ? "ELECTION BAR: ON" : "ELECTION BAR: OFF", showElectionOverlay ? Colors.amber.shade800 : Colors.blueGrey, () => setState(() => showElectionOverlay = !showElectionOverlay), icon: Icons.how_to_vote), 
+                              const SizedBox(width: 6),
+                              _buildControlButton(isLiveStreaming ? "STOP LIVE" : "GO LIVE", isLiveStreaming ? Colors.red : Colors.green.shade700, _showGoLiveMenuModal, icon: Icons.podcasts), 
+                              const SizedBox(width: 6),
+                              _buildControlButton(isRecording ? "REC ON" : "REC 4K", isRecording ? Colors.red : Colors.grey.shade800, _toggleRecord, icon: Icons.circle), 
+                              const SizedBox(width: 6),
+                              _buildControlButton("STUDIO VIEW", isStudioMultiView ? Colors.blue.shade800 : Colors.purple.shade800, () => setState(() => isStudioMultiView = !isStudioMultiView)), 
+                              const SizedBox(width: 6),
+                              _buildControlButton(showAds ? "ADS: ON" : "ADS: OFF", showAds ? Colors.green : Colors.orange, () => setState(() => showAds = !showAds)), 
+                              const SizedBox(width: 6),
+                              _buildControlButton("Logo Pos", Colors.blueAccent, _changeLogoPosition), 
+                              const SizedBox(width: 6),
                               _buildControlButton("Upload Logo", Colors.indigo, _uploadLogo),
                             ],
                           ),
@@ -503,11 +547,16 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
                   // Bottom Compact Cameras List
                   AnimatedPositioned(
-                    duration: const Duration(milliseconds: 300), bottom: showControls ? 40 : -100, left: 0, right: 0,
+                    duration: const Duration(milliseconds: 300), 
+                    bottom: showControls ? 40 : -100, 
+                    left: 0, right: 0,
                     child: Container(
-                      height: 100, color: Colors.black87.withOpacity(0.95),
+                      height: 100, 
+                      color: Colors.black87.withOpacity(0.95),
                       child: ListView.builder(
-                        scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        scrollDirection: Axis.horizontal, 
+                        itemCount: cameraList.length, 
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                         itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index]),
                       ),
                     ),
@@ -517,11 +566,25 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   Positioned(
                     bottom: 0, left: 0, right: 0,
                     child: Container(
-                      height: 40, color: Colors.blue[900],
+                      height: 40, 
+                      color: Colors.blue[900],
                       child: Row(
                         children: [
-                          Container(color: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 12), alignment: Alignment.center, child: const Text("ELECTION UPDATES", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))),
-                          Expanded(child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0, startPadding: 10.0))
+                          Container(
+                            color: Colors.red, 
+                            padding: const EdgeInsets.symmetric(horizontal: 12), 
+                            alignment: Alignment.center, 
+                            child: const Text("ELECTION UPDATES", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11))
+                          ),
+                          Expanded(
+                            child: Marquee(
+                              text: breakingNewsText, 
+                              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), 
+                              blankSpace: 100.0, 
+                              velocity: 45.0, 
+                              startPadding: 10.0
+                            ),
+                          )
                         ]
                       )
                     ),
@@ -536,18 +599,34 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   Widget _buildAdBox(String path, VideoPlayerController? vCtrl) {
-    return Container(color: Colors.black, child: path.isNotEmpty && File(path).existsSync() ? (vCtrl != null && vCtrl.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: vCtrl.value.size.width, height: vCtrl.value.size.height, child: VideoPlayer(vCtrl))) : Image.file(File(path), fit: BoxFit.fill)) : const Center(child: Text("AD SPACE", style: TextStyle(color: Colors.white30, fontSize: 10))));
+    return Container(
+      color: Colors.black, 
+      child: path.isNotEmpty && File(path.trim()).existsSync() 
+          ? (vCtrl != null && vCtrl.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: vCtrl.value.size.width, height: vCtrl.value.size.height, child: VideoPlayer(vCtrl))) : Image.file(File(path), fit: BoxFit.fill)) 
+          : const Center(child: Text("AD SPACE", style: TextStyle(color: Colors.white30, fontSize: 10)))
+    );
   }
 
   Widget _buildStudioLayout() {
     return Row(
       children: [
-        Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed("REPORTER_CAM"))),
+        Expanded(
+          flex: 5, 
+          child: Container(
+            decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), 
+            child: _buildLiveFeed("REPORTER_CAM")
+          ),
+        ),
         Container(width: 2, color: Colors.white24),
-        Expanded(flex: 6, child: Column(children: [
-          Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])),
-          Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))])),
-        ])),
+        Expanded(
+          flex: 6, 
+          child: Column(
+            children: [
+              Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])),
+              Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))])),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -557,11 +636,22 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     return GestureDetector(
       onTap: () => setState(() => selectedHexIndex = index),
       child: Container(
-        decoration: BoxDecoration(color: Colors.black, border: Border.all(color: isSelected ? Colors.red : Colors.grey.shade800, width: isSelected ? 2.5 : 1)),
+        decoration: BoxDecoration(
+          color: Colors.black, 
+          border: Border.all(color: isSelected ? Colors.red : Colors.grey.shade800, width: isSelected ? 2.5 : 1)
+        ),
         child: Stack(
           children: [
             Positioned.fill(child: _buildLiveFeed(hexCams[index])),
-            if(isSelected) Positioned(top: 2, left: 2, child: Container(padding: const EdgeInsets.all(2), color: Colors.red, child: const Text("SELECTED", style: TextStyle(color: Colors.white, fontSize: 8))))
+            if(isSelected) 
+              Positioned(
+                top: 2, left: 2, 
+                child: Container(
+                  padding: const EdgeInsets.all(2), 
+                  color: Colors.red, 
+                  child: const Text("SELECTED", style: TextStyle(color: Colors.white, fontSize: 8))
+                )
+              )
           ],
         ),
       ),
@@ -575,14 +665,37 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _phoneCamCtrl!.value.previewSize?.height ?? 1, height: _phoneCamCtrl!.value.previewSize?.width ?? 1, child: CameraPreview(_phoneCamCtrl!)))),
-            Positioned(bottom: 10, right: 10, child: GestureDetector(onTap: _switchPhoneCamera, child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.flip_camera_android, color: Colors.white, size: 20))))
+            ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover, 
+                child: SizedBox(
+                  width: _phoneCamCtrl!.value.previewSize?.height ?? 1, 
+                  height: _phoneCamCtrl!.value.previewSize?.width ?? 1, 
+                  child: CameraPreview(_phoneCamCtrl!)
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 10, right: 10, 
+              child: GestureDetector(
+                onTap: _switchPhoneCamera, 
+                child: Container(
+                  padding: const EdgeInsets.all(6), 
+                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), 
+                  child: const Icon(Icons.flip_camera_android, color: Colors.white, size: 20)
+                ),
+              ),
+            )
           ],
         );
       }
       return const Center(child: CircularProgressIndicator(color: Colors.red));
     }
-    if (camData['type'] == "IP" || camData['type'] == "DRONE") return _rtspControllers.containsKey(camId) ? VlcPlayer(controller: _rtspControllers[camId]!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))) : Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10))));
+    if (camData['type'] == "IP" || camData['type'] == "DRONE") {
+      return _rtspControllers.containsKey(camId) 
+          ? VlcPlayer(controller: _rtspControllers[camId]!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))) 
+          : Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10))));
+    }
     return Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10))));
   }
 
@@ -591,15 +704,25 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       onTap: onTap, 
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), 
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4), border: title.contains("REC") || title.contains("LIVE") || title.contains("ELECTION") ? Border.all(color: Colors.white, width: 1) : null), 
-        child: Row(children: [if (icon != null) ...[Icon(icon, color: Colors.white, size: 12), const SizedBox(width: 4)], Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])
-      )
+        decoration: BoxDecoration(
+          color: color, 
+          borderRadius: BorderRadius.circular(4), 
+          border: title.contains("REC") || title.contains("LIVE") || title.contains("ELECTION") ? Border.all(color: Colors.white, width: 1) : null
+        ), 
+        child: Row(
+          children: [
+            if (icon != null) ...[Icon(icon, color: Colors.white, size: 12), const SizedBox(width: 4)], 
+            Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))
+          ]
+        ),
+      ),
     );
   }
 
   Widget _buildCompactCameraBox(Map<String, dynamic> cam) {
     bool isLive = isStudioMultiView ? hexCams.contains(cam['id']) : (liveCameraId == cam['id']);
-    bool isActive = cam['active']; bool isMuted = cam['muted'];
+    bool isActive = cam['active']; 
+    bool isMuted = cam['muted'];
 
     return Container(
       width: 100, margin: const EdgeInsets.only(right: 6),
@@ -607,7 +730,10 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(color: Colors.black, border: Border.all(color: isLive ? Colors.red : (isActive ? Colors.green : Colors.grey.shade800), width: isLive ? 2.5 : 1)),
+              decoration: BoxDecoration(
+                color: Colors.black, 
+                border: Border.all(color: isLive ? Colors.red : (isActive ? Colors.green : Colors.grey.shade800), width: isLive ? 2.5 : 1)
+              ),
               child: Stack(
                 children: [
                   Center(child: Text(isActive ? "Live" : "OFF", style: TextStyle(color: isActive ? Colors.greenAccent : Colors.red, fontSize: 10))),
@@ -622,16 +748,33 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               GestureDetector(
-                onTap: () { setState(() { cam['active'] = !isActive; if (cam['type'] == "IP" || cam['type'] == "DRONE") _toggleRTSPCamera(cam['id'], cam['url'], !isActive, cam['muted']); }); },
+                onTap: () { 
+                  setState(() { 
+                    cam['active'] = !isActive; 
+                    if (cam['type'] == "IP" || cam['type'] == "DRONE") {
+                      _toggleRTSPCamera(cam['id'], cam['url'], !isActive, cam['muted']); 
+                    }
+                  }); 
+                },
                 child: Icon(isActive ? Icons.power_settings_new : Icons.power_off, color: isActive ? Colors.green : Colors.red, size: 16),
               ),
               const SizedBox(width: 5),
-              GestureDetector(onTap: () => _toggleMute(cam), child: Icon(isMuted ? Icons.mic_off : Icons.mic, color: isMuted ? Colors.red : Colors.blueAccent, size: 16)),
+              GestureDetector(
+                onTap: () => _toggleMute(cam), 
+                child: Icon(isMuted ? Icons.mic_off : Icons.mic, color: isMuted ? Colors.red : Colors.blueAccent, size: 16)
+              ),
               const SizedBox(width: 5),
               if (isActive)
                 GestureDetector(
-                  onTap: () => setState(() { if (isStudioMultiView) hexCams[selectedHexIndex] = cam['id']; else liveCameraId = cam['id']; }),
-                  child: Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: isLive ? Colors.red : Colors.grey.shade700, borderRadius: BorderRadius.circular(2)), child: const Text("CUT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8))),
+                  onTap: () => setState(() { 
+                    if (isStudioMultiView) hexCams[selectedHexIndex] = cam['id']; 
+                    else liveCameraId = cam['id']; 
+                  }),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), 
+                    decoration: BoxDecoration(color: isLive ? Colors.red : Colors.grey.shade700, borderRadius: BorderRadius.circular(2)), 
+                    child: const Text("CUT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8))
+                  ),
                 ),
             ],
           )
