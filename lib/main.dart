@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'pcr_board.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -1984,6 +1985,16 @@ class _StudioScreenState extends State<StudioScreen>
                               ),
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
                               
+                              // --- కొత్త PCR Board Button ఇక్కడే యాడ్ చేశాను ---
+                              _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
+                                setState(() { isMenuOpen = false; }); // మెనూ క్లోజ్ అవ్వడానికి
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const MasterPCRBoard()),
+                                );
+                              }, Colors.amberAccent),
+                              // ----------------------------------------------
+
                               _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
                               _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                               if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
