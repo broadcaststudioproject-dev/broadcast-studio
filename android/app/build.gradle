@@ -39,7 +39,7 @@ flutter {
 }
 
 dependencies {
-    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'com.github.pedroSG94.RootEncoder:library:2.5.0'
     
     // USB UVC Camera Support Library
     implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6'
