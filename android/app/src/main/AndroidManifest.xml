@@ -50,5 +50,10 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+  
     </queries>
 </manifest>
+    <service
+        android:name="com.pedro.library.base.recording.RecordService"
+        android:foregroundServiceType="mediaProjection" />
+
