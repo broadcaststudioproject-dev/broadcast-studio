@@ -11,20 +11,23 @@ import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+// --- కొత్తగా యాడ్ చేసిన RTMP లైబ్రరీలు ---
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import com.pedro.library.rtmp.RtmpDisplay
 
-class MainActivity: FlutterActivity() {
+class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
     private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
-    // యూట్యూబ్ / లోకల్ లింక్స్ సేవ్ చేసుకోవడానికి 
     private var currentCableRtmp: String? = null
     private var currentSatSrt: String? = null
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
+    // RTMP డిస్ప్లే ఎన్‌కోడర్ ఆబ్జెక్ట్
+    private var rtmpDisplay: RtmpDisplay? = null 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // ఆండ్రాయిడ్ స్క్రీన్ రికార్డింగ్ సిస్టమ్‌ను యాక్టివేట్ చేయడం
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     }
 
@@ -33,18 +36,16 @@ class MainActivity: FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                // ఫ్లట్టర్ నుండి వచ్చే కరెక్ట్ కమాండ్ ఇదే
                 "startScreenCaptureStreaming" -> {
-                    // ఫ్లట్టర్ నుండి లింక్స్ తీసుకోవడం
                     currentCableRtmp = call.argument<String>("cableRtmp")
                     currentSatSrt = call.argument<String>("satelliteSrt")
 
-                    if (currentCableRtmp.isNullOrEmpty() && currentSatSrt.isNullOrEmpty()) {
+                    if (currentCableRtmp.isNullOrEmpty()) {
                         result.error("INVALID_URL", "RTMP URL is missing", null)
                         return@setMethodCallHandler
                     }
 
-                    // స్టెప్ 1: మొబైల్ స్క్రీన్ రికార్డింగ్ పర్మిషన్ అడగటం (Popup వస్తుంది)
+                    // పర్మిషన్ అడగటం
                     try {
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
@@ -54,15 +55,16 @@ class MainActivity: FlutterActivity() {
                     }
                 }
                 "stopScreenCaptureStreaming" -> {
-                    // TODO: స్ట్రీమింగ్ ఆపడానికి ఇక్కడ లాజిక్ రన్ అవుతుంది
-                    Toast.makeText(this, "Live Broadcast Stopped!", Toast.LENGTH_SHORT).show()
+                    if (rtmpDisplay?.isStreaming == true) {
+                        rtmpDisplay?.stopStream()
+                        Toast.makeText(this, "Live Broadcast Stopped!", Toast.LENGTH_SHORT).show()
+                    }
                     result.success(true)
                 }
                 "pauseScreenCaptureStreaming" -> {
                     Toast.makeText(this, "Live Broadcast Paused!", Toast.LENGTH_SHORT).show()
                     result.success(true)
                 }
-                // మీ పాత USB కెమెరా కోడ్ అలాగే ఉంచాను
                 "startUsbCamera" -> {
                     try {
                         val textureRegistry = flutterEngine.renderer
@@ -82,22 +84,55 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    // పర్మిషన్ పాపప్‌లో యూజర్ 'Start Now' నొక్కగానే ఈ ఫంక్షన్ రన్ అవుతుంది
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
-                Log.d("RTMP_STREAM", "Permission Granted. Starting stream to: $currentCableRtmp")
-                Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ అనుమతించబడింది! YouTube కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "యూట్యూబ్‌కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
 
                 // --------------------------------------------------------
-                // ఇక్కడే ఆండ్రాయిడ్ RTMP లైబ్రరీ ద్వారా స్క్రీన్‌ను యూట్యూబ్‌కు పంపాలి
-                // ఉదాహరణకి: rtmpCamera.startStream(currentCableRtmp) 
+                // ఇక్కడే ఆండ్రాయిడ్ సిస్టమ్ యూట్యూబ్‌కి వీడియోను పంపుతుంది
                 // --------------------------------------------------------
-                
+                rtmpDisplay = RtmpDisplay(this, true, this)
+                rtmpDisplay?.setIntentResult(resultCode, data)
+
+                // 720p HD క్వాలిటీ సెట్టింగ్స్
+                if (rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 320, null) == true &&
+                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true) {
+                    
+                    rtmpDisplay?.startStream(currentCableRtmp)
+                } else {
+                    Toast.makeText(this, "ఎన్‌కోడర్ సెటప్ విఫలమైంది. మీ ఫోన్ మద్దతు ఇవ్వకపోవచ్చు.", Toast.LENGTH_LONG).show()
+                }
             } else {
                 Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ పర్మిషన్ రిజెక్ట్ చేయబడింది", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+    // --- ConnectCheckerRtmp Callbacks (లైవ్ స్టేటస్ చెక్ చేయడానికి) ---
+    override fun onConnectionSuccessRtmp() {
+        runOnUiThread { Toast.makeText(this@MainActivity, "మీరు ఇప్పుడు లైవ్‌లో ఉన్నారు!", Toast.LENGTH_SHORT).show() }
+    }
+
+    override fun onConnectionFailedRtmp(reason: String) {
+        runOnUiThread {
+            Toast.makeText(this@MainActivity, "లైవ్ కనెక్షన్ ఫెయిల్ అయ్యింది: $reason", Toast.LENGTH_LONG).show()
+            rtmpDisplay?.stopStream()
+        }
+    }
+
+    override fun onNewBitrateRtmp(bitrate: Long) {
+        // నెట్‌వర్క్ స్పీడ్ బట్టి వీడియో క్వాలిటీ అడ్జస్ట్మెంట్
+    }
+
+    override fun onDisconnectRtmp() {
+        runOnUiThread { Toast.makeText(this@MainActivity, "లైవ్ కట్ అయ్యింది.", Toast.LENGTH_SHORT).show() }
+    }
+
+    override fun onAuthErrorRtmp() {
+        runOnUiThread { Toast.makeText(this@MainActivity, "యూట్యూబ్ ఆథరైజేషన్ ఎర్రర్.", Toast.LENGTH_SHORT).show() }
+    }
+
+    override fun onAuthSuccessRtmp() {}
 }
