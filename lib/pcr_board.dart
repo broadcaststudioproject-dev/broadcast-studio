@@ -76,6 +76,16 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
   final ImagePicker _picker = ImagePicker();
 
+  // --- Election Overlay State (Inline Overlay for PCR) ---
+  bool showElectionOverlay = false; 
+  List<Map<String, dynamic>> electionResults = [
+    {"party": "INC", "seats": "64", "trend": "+15", "color": Colors.orange},
+    {"party": "BRS", "seats": "39", "trend": "-24", "color": Colors.pink},
+    {"party": "BJP", "seats": "8", "trend": "+7", "color": Colors.deepOrange},
+    {"party": "AIMIM", "seats": "7", "trend": "0", "color": Colors.green},
+    {"party": "OTH", "seats": "1", "trend": "+2", "color": Colors.blueGrey},
+  ];
+
   // --- Cameras List ---
   final List<Map<String, dynamic>> cameraList = [
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
@@ -280,9 +290,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   void dispose() { _phoneCamCtrl?.dispose(); _logoVideoCtrl?.dispose(); _leftAdCtrl?.dispose(); _rightAdCtrl?.dispose(); _bottomAdCtrl?.dispose(); _cableUrlCtrl.dispose(); _cableKeyCtrl.dispose(); _satUrlCtrl.dispose(); _satKeyCtrl.dispose(); _newsTimer?.cancel(); for (var controller in _rtspControllers.values) { controller.dispose(); } super.dispose(); }
 
   // ============================================================================
-  // ఇక్కడ నుండి బిల్డ్ ఫంక్షన్ మొదలవుతుంది (దీనిని ఎట్టి పరిస్థితుల్లోనూ కట్ చేయకండి)
+  // BUILD METHOD (UI DESIGN) - ఇక్కడే కట్ అయ్యింది గతంలో!
   // ============================================================================
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -311,6 +320,40 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(liveCameraId)
                   ),
 
+                  if (showElectionOverlay)
+                    Positioned(
+                      top: 0, left: 0, right: 0,
+                      child: Container(
+                        height: 50, color: Colors.red.shade900, padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          children: [
+                            Container(padding: const EdgeInsets.all(4), color: Colors.black45, child: const Text("ELECTION RESULTS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal, itemCount: electionResults.length,
+                                itemBuilder: (context, index) {
+                                  var res = electionResults[index];
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: res['color'], borderRadius: BorderRadius.circular(4)),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text("${res['party']}: ", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                                        Text(res['seats'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)),
+                                        const SizedBox(width: 4),
+                                        Text("(${res['trend']})", style: const TextStyle(color: Colors.yellowAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+
                   if (showAds && (adShapeMode == 0 && !isLBandRight || adShapeMode == 1 || adShapeMode == 2)) Positioned(top: 0, left: 0, bottom: bottomPad - (showControls ? 145 : 40), width: leftPad, child: _buildAdBox(leftAdPath, _leftAdCtrl)),
                   if (showAds && (adShapeMode == 0 && isLBandRight || adShapeMode == 1 || adShapeMode == 2)) Positioned(top: 0, right: 0, bottom: bottomPad - (showControls ? 145 : 40), width: rightPad, child: _buildAdBox(rightAdPath, _rightAdCtrl)),
 
@@ -331,17 +374,31 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                       ignoring: !showControls,
                       child: Positioned(
                         top: 15, right: 15,
-                        child: GestureDetector(
-                          onTap: _showGoLiveMenuModal,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(color: liveStreamState == 1 ? Colors.red : (liveStreamState == 2 ? Colors.orange : Colors.green), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white, width: 1.5)),
-                            child: Row(children: [
-                              Icon(liveStreamState == 1 ? Icons.stop_circle : (liveStreamState == 2 ? Icons.pause_circle : Icons.podcasts), color: Colors.white, size: 14), 
-                              const SizedBox(width: 4), 
-                              Text(liveStreamState == 1 ? "STOP LIVE" : (liveStreamState == 2 ? "RESUME LIVE" : "GO LIVE"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))
-                            ])
-                          )
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => setState(() => showElectionOverlay = !showElectionOverlay),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(color: showElectionOverlay ? Colors.amber.shade900 : Colors.indigo.shade900, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white, width: 1.5)),
+                                child: const Row(children: [Icon(Icons.bar_chart, color: Colors.white, size: 14), SizedBox(width: 4), Text("ELECTION BAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))])
+                              )
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: _showGoLiveMenuModal,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(color: liveStreamState == 1 ? Colors.red : (liveStreamState == 2 ? Colors.orange : Colors.green), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white, width: 1.5)),
+                                child: Row(children: [
+                                  Icon(liveStreamState == 1 ? Icons.stop_circle : (liveStreamState == 2 ? Icons.pause_circle : Icons.podcasts), color: Colors.white, size: 14), 
+                                  const SizedBox(width: 4), 
+                                  Text(liveStreamState == 1 ? "STOP LIVE" : (liveStreamState == 2 ? "RESUME LIVE" : "GO LIVE"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))
+                                ])
+                              )
+                            ),
+                          ],
                         )
                       )
                     )
