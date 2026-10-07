@@ -2015,7 +2015,7 @@ class _StudioScreenState extends State<StudioScreen>
                               setState(() { isMenuOpen = false; }); // మెనూ క్లోజ్ అవ్వడానికి
                               Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const ElectionBoardScreen()),
+                              MaterialPageRoute(builder: (context) => ElectionBoardScreen())
                               );
                               }, Colors.indigoAccent),
                               // ------------------------------------------------------
