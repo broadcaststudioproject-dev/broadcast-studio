@@ -2011,6 +2011,15 @@ class _StudioScreenState extends State<StudioScreen>
                                 _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
                               
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
+                              // --- కొత్తగా Election Results బటన్ ఇక్కడ యాడ్ చేశాను ---
+                              _buildControlButton(Icons.bar_chart, "Election Results", () {
+                              setState(() { isMenuOpen = false; }); // మెనూ క్లోజ్ అవ్వడానికి
+                              Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ElectionBoardScreen()),
+                              );
+                              }, Colors.indigoAccent),
+                              // ------------------------------------------------------
                             ]
                           ),
                         ),
