@@ -1,140 +1,124 @@
-package com.example.pocket_pcr_studio
+package com.kingjvk.pocket_pcr
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
-import android.content.res.Configuration
-import android.os.Build
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
+import android.media.projection.MediaProjectionManager
+import android.os.Bundle
 import android.widget.Toast
-import androidx.core.app.NotificationCompat
-import com.pedro.rtplibrary.rtmp.RtmpDisplay
+import androidx.annotation.NonNull
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import com.pedro.library.rtmp.RtmpDisplay
 
-class ScreenStreamService : Service(), ConnectCheckerRtmp {
-    private var rtmpDisplay: RtmpDisplay? = null
-    private val channelId = "ScreenStreamChannel"
+class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
+    private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
+    private val SCREEN_RECORD_REQUEST_CODE = 1001
+    
+    private var currentCableRtmp: String? = null
+    private var currentSatSrt: String? = null
 
-    companion object {
-        const val ACTION_START = "START_STREAM"
-        const val ACTION_STOP = "STOP_STREAM"
-        const val EXTRA_URL = "url"
-        const val EXTRA_RESULT_CODE = "resultCode"
-        const val EXTRA_DATA = "data"
+    private lateinit var mediaProjectionManager: MediaProjectionManager
+    private var rtmpDisplay: RtmpDisplay? = null 
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     }
 
-    private fun showMessage(message: String) {
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
-        }
-    }
+    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
 
-    override fun onCreate() {
-        super.onCreate()
-        try {
-            rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-            rtmpDisplay?.setReTries(5)
-        } catch (e: Exception) {
-            showMessage("Library Crash: ${e.message}")
-        }
-    }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startScreenCaptureStreaming" -> {
+                    currentCableRtmp = call.argument<String>("cableRtmp")
+                    currentSatSrt = call.argument<String>("satelliteSrt")
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent == null) return START_NOT_STICKY
-        val action = intent.action
+                    if (currentCableRtmp.isNullOrEmpty()) {
+                        result.error("INVALID_URL", "RTMP URL is missing", null)
+                        return@setMethodCallHandler
+                    }
 
-        if (action == ACTION_START) {
-            val url = intent.getStringExtra(EXTRA_URL) ?: ""
-            val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
-            val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
-
-            if (data != null && url.isNotEmpty() && !url.contains("YOUR_STREAM_KEY_HERE")) {
-                startNotification()
-                val display = rtmpDisplay
-                if (display != null) {
-                    display.setIntentResult(resultCode, data)
-                    Thread {
+                    // స్టెప్ 1: మొబైల్ మెయిన్ థ్రెడ్ మీద పాపప్ ఫోర్స్ చేయడం
+                    runOnUiThread {
                         try {
-                            // పక్కా 720p HD రిజల్యూషన్ లాక్ (బఫరింగ్ మరియు స్ట్రక్ అవ్వకుండా)
-                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-                            val width = if (isPortrait) 720 else 1280
-                            val height = if (isPortrait) 1280 else 720
-
-                            val fps = 30
-                            // 2 Mbps బిట్‌రేట్ సెట్ చేశాం. ఇంటర్నెట్ తక్కువ ఉన్నా స్మూత్ గా వెళ్తుంది.
-                            val bitrate = 2000 * 1024 
-                            val dpi = resources.displayMetrics.densityDpi
-                            
-                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
-                            
-                            // ఆడియో క్వాలిటీ సెట్టింగ్స్ (128kbps, 44.1kHz)
-                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
-
-                            if (videoReady && audioReady) {
-                                display.startStream(url)
-                                showMessage("Live Server Connecting...")
-                            } else {
-                                showMessage("Encoder Failed! Video: $videoReady, Audio: $audioReady")
-                            }
+                            val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
+                            startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
+                            result.success(true)
                         } catch (e: Exception) {
-                            showMessage("Stream Crash: ${e.message}")
+                            result.error("PROJECTION_ERROR", "Cannot start screen capture", null)
                         }
-                    }.start()
+                    }
+                }
+                "stopScreenCaptureStreaming" -> {
+                    runOnUiThread {
+                        if (rtmpDisplay?.isStreaming == true) {
+                            rtmpDisplay?.stopStream()
+                            Toast.makeText(this, "Live Broadcast Stopped!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    result.success(true)
+                }
+                "pauseScreenCaptureStreaming" -> {
+                    result.success(true)
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    // స్టెప్ 2: యూజర్ 'Start Now' నొక్కిన వెంటనే ఆండ్రాయిడ్ ఈ ఫంక్షన్ రన్ చేస్తుంది
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ మొదలైంది! యూట్యూబ్‌కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
+
+                // ఆండ్రాయిడ్ సిస్టమ్ ఎన్‌కోడర్ స్టార్ట్ అవుతుంది
+                rtmpDisplay = RtmpDisplay(this, true, this)
+                rtmpDisplay?.setIntentResult(resultCode, data)
+
+                // HD (720p) వీడియో క్వాలిటీ సెట్టింగ్స్
+                if (rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 320, null) == true &&
+                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true) {
+                    
+                    // యూట్యూబ్‌కి వీడియోను నెట్టడం స్టార్ట్
+                    rtmpDisplay?.startStream(currentCableRtmp)
+                } else {
+                    Toast.makeText(this, "సెటప్ విఫలమైంది. మీ మొబైల్ ఈ రిజల్యూషన్ సపోర్ట్ చేయట్లేదు.", Toast.LENGTH_LONG).show()
                 }
             } else {
-                showMessage("Stream link error. Please provide valid key.")
+                Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ పర్మిషన్ ఇవ్వలేదు, కాబట్టి లైవ్ ఆగిపోయింది.", Toast.LENGTH_SHORT).show()
             }
-        } else if (action == ACTION_STOP) {
-            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-            stopForeground(true)
-            stopSelf()
-            showMessage("Live Stopped.")
-        }
-        return START_NOT_STICKY
-    }
-
-    private fun startNotification() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
-        }
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Pocket PCR Studio")
-            .setContentText("Live Streaming is Active in Background...")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setPriority(NotificationCompat.PRIORITY_LOW) // సైలెంట్ గా బ్యాక్‌గ్రౌండ్ లో ఉంటుంది
-            .setOngoing(true) // యూజర్ పొరపాటున క్లియర్ చేయలేరు
-            .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-        } else {
-            startForeground(1, notification)
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
-    override fun onDestroy() {
-        super.onDestroy()
-        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-    }
-
+    // --- యూట్యూబ్ కనెక్ట్ అయ్యిందో లేదో చెప్పే కంట్రోల్స్ ---
     override fun onConnectionSuccessRtmp() {
-        showMessage("Live Connected Successfully! (Online)")
+        runOnUiThread { Toast.makeText(this@MainActivity, "SUCCESS: మీరు యూట్యూబ్ లైవ్‌లో ఉన్నారు!", Toast.LENGTH_LONG).show() }
     }
-    
+
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("Connection Error: $reason")
+        runOnUiThread {
+            Toast.makeText(this@MainActivity, "FAILED: లైవ్ ఫెయిల్ అయ్యింది. లింక్ చెక్ చేయండి.", Toast.LENGTH_LONG).show()
+            rtmpDisplay?.stopStream()
+        }
     }
-    
+
     override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() { showMessage("Live Disconnected.") }
-    override fun onAuthErrorRtmp() { showMessage("Live Key Error.") }
+    
+    override fun onDisconnectRtmp() {
+        runOnUiThread { Toast.makeText(this@MainActivity, "యూట్యూబ్ లైవ్ కట్ అయ్యింది.", Toast.LENGTH_SHORT).show() }
+    }
+
+    override fun onAuthErrorRtmp() {
+        runOnUiThread { Toast.makeText(this@MainActivity, "యూట్యూబ్ ఆథరైజేషన్ ఎర్రర్.", Toast.LENGTH_SHORT).show() }
+    }
+
     override fun onAuthSuccessRtmp() {}
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
