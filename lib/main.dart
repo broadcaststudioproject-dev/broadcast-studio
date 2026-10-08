@@ -82,11 +82,10 @@ class _StudioScreenState extends State<StudioScreen>
   final ImagePicker _picker = ImagePicker();
 
   String channelLogoPath = "";
-  double logoWidth = 70.0;
-  double logoHeight = 70.0;
+  double logoWidth = 80.0;
+  double logoHeight = 80.0;
   int logoPosition = 0; 
   bool enableWatermarkLogo = true;
-  VideoPlayerController? _logoVideoController; // MP4 లోగో కోసం
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -144,7 +143,6 @@ class _StudioScreenState extends State<StudioScreen>
   int _tickerBgColorIndex = 0;
   Timer? _tickerColorTimer;
   late AnimationController _motionController;
-  late AnimationController _watermarkMotionController;
 
   @override
   void initState() {
@@ -173,12 +171,6 @@ class _StudioScreenState extends State<StudioScreen>
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
-
-    // లోగో వాటర్మార్క్ స్లోగా కదలడానికి యానిమేషన్ కంట్రోలర్
-    _watermarkMotionController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat(reverse: true);
     
     _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted) {
@@ -195,22 +187,6 @@ class _StudioScreenState extends State<StudioScreen>
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
     });
-  }
-
-  void _initLogoVideo(String path) {
-    _logoVideoController?.dispose();
-    _logoVideoController = null;
-    if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) {
-      _logoVideoController = VideoPlayerController.file(File(path))
-        ..initialize().then((_) {
-          if (mounted) {
-            _logoVideoController!.setLooping(true);
-            _logoVideoController!.setVolume(0.0); // లోగో వీడియో మ్యూట్
-            _logoVideoController!.play();
-            setState(() {});
-          }
-        });
-    }
   }
 
   Future<void> _loadSavedData() async {
@@ -246,7 +222,6 @@ class _StudioScreenState extends State<StudioScreen>
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
         channelLogoPath = savedLogo;
-        _initLogoVideo(channelLogoPath);
       }
 
       leftAdPaths = (prefs.getStringList('leftAdPaths') ?? [])
@@ -380,7 +355,6 @@ class _StudioScreenState extends State<StudioScreen>
     _adCycleTimer?.cancel();
     _tickerColorTimer?.cancel();
     _motionController.dispose();
-    _watermarkMotionController.dispose();
 
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
@@ -392,7 +366,6 @@ class _StudioScreenState extends State<StudioScreen>
     _bottomAdVideoCtrlForAds?.dispose();
     _ipCamController?.dispose();
     _droneCamController?.dispose();
-    _logoVideoController?.dispose();
 
     cableRtmpController.dispose();
     cableRtmpsController.dispose();
@@ -956,33 +929,32 @@ class _StudioScreenState extends State<StudioScreen>
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("స్టూడియో సెట్టింగ్స్ (Logo & Watermark)", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("స్టూడియో సెట్టింగ్స్ (JPEG Watermark / Logo)", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // లోగో JPEG, GIF, MP4 సపోర్ట్ కోసం పిక్కర్
+                    // గ్యాలరీ నుండి JPEG వాటర్మార్క్/లోగో అప్లోడ్ చేసుకోవడానికి బటన్
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                       onPressed: () async {
                         try {
-                          final XFile? file = await _picker.pickMedia();
-                          if (file != null) {
+                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
+                          if (image != null) {
                             setState(() {
-                              channelLogoPath = file.path;
+                              channelLogoPath = image.path;
                             });
-                            _initLogoVideo(file.path);
                             SharedPreferences prefs = await SharedPreferences.getInstance();
-                            await prefs.setString('channelLogoPath', file.path);
+                            await prefs.setString('channelLogoPath', image.path);
                             setDialogState(() {});
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("లోగో విజయవంతంగా అప్లోడ్ అయింది!"), backgroundColor: Colors.green)
+                              const SnackBar(content: Text("JPEG లోగో/వాటర్మార్క్ సక్సెస్‌ఫుల్‌గా అప్లోడ్ అయింది!"), backgroundColor: Colors.green)
                             );
                           }
                         } catch (e) {}
                       },
                       icon: const Icon(Icons.upload, color: Colors.white),
-                      label: const Text("లోగో అప్లోడ్ (JPEG/GIF/MP4)", style: TextStyle(color: Colors.white)),
+                      label: const Text("గ్యాలరీ నుండి JPEG లోగో అప్లోడ్", style: TextStyle(color: Colors.white)),
                     ),
                     const SizedBox(height: 10),
                     SwitchListTile(
@@ -1000,7 +972,7 @@ class _StudioScreenState extends State<StudioScreen>
                     TextField(
                       controller: mainHeadlineCtrl,
                       style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌‌లైన్"),
+                      decoration: const InputDecoration(labelText: "మెయిನ್ హెడ్‌‌లైన్"),
                     ),
                     TextField(
                       controller: subHeadlineCtrl,
@@ -1146,7 +1118,6 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  // --- యూట్యూబ్ వీడియో మరియు లైవ్ స్ట్రీమ్స్ రెండింటినీ సపోర్ట్ చేసే ఆటోమేటిక్ URL ఎక్స్‌ట్రాక్షన్ ఫంక్షన్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1189,7 +1160,7 @@ class _StudioScreenState extends State<StudioScreen>
         ytExplode.close();
       } catch (e) {
         ytExplode.close();
-        finalPlayUrl = url; // ఫెయిల్ అయితే డైరెక్ట్ లింక్‌తో ట్రై చేస్తుంది
+        finalPlayUrl = url; 
       }
     }
 
@@ -1878,51 +1849,39 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
-    // లోగో డిస్ప్లే లాజిక్ (MP4 లేదా Images)
-    Widget logoContent;
-    if (channelLogoPath.isNotEmpty) {
-      if (_logoVideoController != null && _logoVideoController!.value.isInitialized) {
-        logoContent = SizedBox(
-          width: logoWidth,
-          height: logoHeight,
-          child: VideoPlayer(_logoVideoController!),
-        );
-      } else {
-        logoContent = SizedBox(
-          width: logoWidth,
-          height: logoHeight,
-          child: Image.file(
-            File(channelLogoPath),
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high
-          ),
-        );
-      }
-    } else {
-      logoContent = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        color: Colors.red[900]?.withOpacity(0.9),
-        child: const Text(
-          "SS YATRA TV",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-      );
-    }
-
-    // లోగో స్క్రీన్ పై స్లోగా కదులుతూ (AnimatedBuilder ద్వారా) ఉండేలా సెట్ చేయబడింది
+    // స్థిరమైన (అటుఇటు కదలకుండా) JPEG వాటర్మార్క్/లోగో డిస్ప్లే లాజిక్
     Widget channelLogoWidget = enableWatermarkLogo
-        ? AnimatedBuilder(
-            animation: _watermarkMotionController,
-            builder: (context, child) {
-              double dx = sin(_watermarkMotionController.value * 2 * 3.1415) * 15.0;
-              double dy = cos(_watermarkMotionController.value * 2 * 3.1415) * 10.0;
-              return Transform.translate(
-                offset: Offset(dx, dy),
-                child: logoContent,
-              );
-            },
-          )
+        ? (channelLogoPath.isNotEmpty && File(channelLogoPath).existsSync()
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    border: Border.all(color: Colors.white24, width: 1.0),
+                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+                  ),
+                  child: Image.file(
+                    File(channelLogoPath),
+                    width: logoWidth,
+                    height: logoHeight,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              )
+            : Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.red[900]?.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(6.0),
+                  border: Border.all(color: Colors.amber, width: 1.0),
+                ),
+                child: const Text(
+                  "SS YATRA TV",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ))
         : const SizedBox.shrink();
 
     final List<Color> bgColors = [
