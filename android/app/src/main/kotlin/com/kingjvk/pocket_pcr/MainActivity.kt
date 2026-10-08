@@ -11,7 +11,7 @@ import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-// --- కొత్తగా యాడ్ చేసిన RTMP లైబ్రరీలు ---
+// --- RTMP లైబ్రరీలు ---
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
 import com.pedro.library.rtmp.RtmpDisplay
 
@@ -20,10 +20,10 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
     private var currentCableRtmp: String? = null
+    private var currentCableRtmps: String? = null
     private var currentSatSrt: String? = null
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
-    // RTMP డిస్ప్లే ఎన్‌కోడర్ ఆబ్జెక్ట్
     private var rtmpDisplay: RtmpDisplay? = null 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,14 +38,20 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
             when (call.method) {
                 "startScreenCaptureStreaming" -> {
                     currentCableRtmp = call.argument<String>("cableRtmp")
+                    currentCableRtmps = call.argument<String>("cableRtmps")
                     currentSatSrt = call.argument<String>("satelliteSrt")
 
-                    if (currentCableRtmp.isNullOrEmpty()) {
-                        result.error("INVALID_URL", "RTMP URL is missing", null)
+                    // కనీసం ఏదో ఒక లింక్ ఉండాలి
+                    val activeStreamUrl = if (!currentCableRtmp.isNullOrEmpty()) currentCableRtmp 
+                                          else if (!currentCableRtmps.isNullOrEmpty()) currentCableRtmps 
+                                          else currentSatSrt
+
+                    if (activeStreamUrl.isNullOrEmpty()) {
+                        result.error("INVALID_URL", "Streaming URL is missing", null)
                         return@setMethodCallHandler
                     }
 
-                    // పర్మిషన్ అడగటం
+                    // స్క్రీన్ క్యాప్చర్ పర్మిషన్ డైలాగ్
                     try {
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
@@ -88,11 +94,8 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
-                Toast.makeText(this, "యూట్యూబ్‌కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "లైవ్‌కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
 
-                // --------------------------------------------------------
-                // ఇక్కడే ఆండ్రాయిడ్ సిస్టమ్ యూట్యూబ్‌కి వీడియోను పంపుతుంది
-                // --------------------------------------------------------
                 rtmpDisplay = RtmpDisplay(this, true, this)
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
@@ -100,9 +103,15 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
                 if (rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 320, null) == true &&
                     rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true) {
                     
-                    rtmpDisplay?.startStream(currentCableRtmp)
+                    // ప్రాధాన్యత క్రమంలో లింక్ తీసుకోవడం (RTMP -> RTMPS)
+                    val targetUrl = if (!currentCableRtmp.isNullOrEmpty()) currentCableRtmp 
+                                    else currentCableRtmps
+
+                    if (!targetUrl.isNullOrEmpty()) {
+                        rtmpDisplay?.startStream(targetUrl)
+                    }
                 } else {
-                    Toast.makeText(this, "ఎన్‌కోడర్ సెటప్ విఫలమైంది. మీ ఫోన్ మద్దతు ఇవ్వకపోవచ్చు.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "ఎన్‌కోడర్ సెటప్ విఫలమైంది.", Toast.LENGTH_LONG).show()
                 }
             } else {
                 Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ పర్మిషన్ రిజెక్ట్ చేయబడింది", Toast.LENGTH_SHORT).show()
@@ -110,7 +119,6 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
         }
     }
 
-    // --- ConnectCheckerRtmp Callbacks (లైవ్ స్టేటస్ చెక్ చేయడానికి) ---
     override fun onConnectionSuccessRtmp() {
         runOnUiThread { Toast.makeText(this@MainActivity, "మీరు ఇప్పుడు లైవ్‌లో ఉన్నారు!", Toast.LENGTH_SHORT).show() }
     }
@@ -122,9 +130,7 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
         }
     }
 
-    override fun onNewBitrateRtmp(bitrate: Long) {
-        // నెట్‌వర్క్ స్పీడ్ బట్టి వీడియో క్వాలిటీ అడ్జస్ట్మెంట్
-    }
+    override fun onNewBitrateRtmp(bitrate: Long) {}
 
     override fun onDisconnectRtmp() {
         runOnUiThread { Toast.makeText(this@MainActivity, "లైవ్ కట్ అయ్యింది.", Toast.LENGTH_SHORT).show() }
