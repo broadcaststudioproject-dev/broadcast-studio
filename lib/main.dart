@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'dart:async';
 import 'dart:io'; 
+import 'dart:math'; // <--- ఎర్రర్ రాకుండా ఈ మ్యాథ్స్ లైబ్రరీ ఇక్కడే జోడించబడింది!
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
@@ -86,10 +87,7 @@ class _StudioScreenState extends State<StudioScreen>
   double logoHeight = 70.0;
   int logoPosition = 0; 
 
-  // లోగో కదిలేందుకు (Moving Logo Animation) వేరియబుల్స్
   late AnimationController _logoMoveController;
-  Animation<double>? _logoAnimX;
-  Animation<double>? _logoAnimY;
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -100,7 +98,6 @@ class _StudioScreenState extends State<StudioScreen>
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
-  // సపరేట్ RTMP / RTMPS / SRT కంట్రోలర్స్
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController satelliteSrtController = TextEditingController();
   TextEditingController networkVideoUrlCtrl = TextEditingController();
@@ -174,7 +171,6 @@ class _StudioScreenState extends State<StudioScreen>
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
-    // లోగో నిదానంగా కదిలేందుకు మోషన్ యానిమేషన్ (Slow Floating Logo)
     _logoMoveController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
@@ -230,7 +226,6 @@ class _StudioScreenState extends State<StudioScreen>
         channelLogoPath = savedLogo;
       }
 
-      // యూజర్ స్వయంగా డిలీట్ చేసే వరకు యాడ్స్ అలాగే ఉండేలా లోడ్ అవుతాయి
       leftAdPaths = (prefs.getStringList('leftAdPaths') ?? [])
           .where((path) => File(path).existsSync())
           .toList();
@@ -942,7 +937,6 @@ class _StudioScreenState extends State<StudioScreen>
                     ElevatedButton.icon(
                       onPressed: () async {
                         try {
-                          // JPEG, GIF, MP3 ఫైల్స్ సెలెక్ట్ చేసుకునేలా సపోర్ట్
                           final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
                           if (file != null) {
                             setState(() {
@@ -961,7 +955,7 @@ class _StudioScreenState extends State<StudioScreen>
                     TextField(
                       controller: mainHeadlineCtrl,
                       style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "మెయిನ್ హెడ్‌‌లైన్"),
+                      decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌‌లైన్"),
                     ),
                     TextField(
                       controller: subHeadlineCtrl,
@@ -1106,7 +1100,7 @@ class _StudioScreenState extends State<StudioScreen>
 
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది... அடு"), backgroundColor: Colors.orange));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
     String finalPlayUrl = url;
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
@@ -1809,12 +1803,11 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
-    // లోగో నిదానంగా కదిలే యానిమేటెడ్ వాటర్మార్క్/లోగో (Floating/Moving Logo)
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? AnimatedBuilder(
             animation: _logoMoveController,
             builder: (context, child) {
-              double dx = sin(_logoMoveController.value * 2 * 3.1415) * 15.0; // అటు ఇటు చిన్న కదలిక
+              double dx = sin(_logoMoveController.value * 2 * 3.1415) * 15.0;
               double dy = cos(_logoMoveController.value * 2 * 3.1415) * 10.0;
               return Transform.translate(
                 offset: Offset(dx, dy),
@@ -1913,7 +1906,6 @@ class _StudioScreenState extends State<StudioScreen>
                     child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)
                   ),
                   
-                  // కదిలే లోగో పొజిషనింగ్
                   Positioned(
                     top: (logoPosition == 0 || logoPosition == 1) ? 20.0 : null,
                     bottom: (logoPosition == 2 || logoPosition == 3) ? 75.0 : null,
