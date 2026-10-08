@@ -39,11 +39,12 @@ flutter {
 }
 
 dependencies {
+    // RootEncoder (Latest PedroSG94 Library)
     implementation 'com.github.pedroSG94.RootEncoder:library:2.5.0'
     
     // USB UVC Camera Support Library
     implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.6'
     
-    // RTMP లైవ్ స్ట్రీమింగ్ కోసం
-    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
+    // RTMP Live Streaming (Updated for Screen Stream Service)
+    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.4.2'
 }
