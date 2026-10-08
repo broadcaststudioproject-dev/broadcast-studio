@@ -46,6 +46,13 @@
             android:name="com.pedro.library.base.recording.RecordService"
             android:foregroundServiceType="mediaProjection"
             android:exported="false" />
+            
+        <!-- కొత్తగా మనం క్రియేట్ చేయబోయే బ్యాక్ గ్రౌండ్ లైవ్ స్ట్రీమింగ్ సర్వీస్ -->
+        <service
+            android:name=".ScreenStreamService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
         
     </application>
 
