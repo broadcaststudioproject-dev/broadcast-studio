@@ -13,6 +13,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'pcr_board.dart';
 import 'election_board.dart';
+import 'dart:math';
 
 List<CameraDescription> cameras = [];
 
