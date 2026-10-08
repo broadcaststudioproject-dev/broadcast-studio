@@ -10,6 +10,7 @@ import 'package:camera/camera.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
