@@ -4,18 +4,15 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-// --- RTMP లైబ్రరీలు ---
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
-import com.pedro.library.rtmp.RtmpDisplay
 
-class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
+class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
@@ -24,7 +21,6 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
     private var currentSatSrt: String? = null
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
-    private var rtmpDisplay: RtmpDisplay? = null 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,10 +57,9 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
                     }
                 }
                 "stopScreenCaptureStreaming" -> {
-                    if (rtmpDisplay?.isStreaming == true) {
-                        rtmpDisplay?.stopStream()
-                        Toast.makeText(this, "Live Broadcast Stopped!", Toast.LENGTH_SHORT).show()
-                    }
+                    val serviceIntent = Intent(this, ScreenStreamService::class.java)
+                    stopService(serviceIntent)
+                    Toast.makeText(this, "Live Broadcast Stopped!", Toast.LENGTH_SHORT).show()
                     result.success(true)
                 }
                 "pauseScreenCaptureStreaming" -> {
@@ -94,51 +89,26 @@ class MainActivity: FlutterActivity(), ConnectCheckerRtmp {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
-                Toast.makeText(this, "లైవ్‌కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "లైవ్‌కి కనెక్ట్ అవుతోంది (Background Service)...", Toast.LENGTH_LONG).show()
 
-                rtmpDisplay = RtmpDisplay(this, true, this)
-                rtmpDisplay?.setIntentResult(resultCode, data)
+                // ప్రాధాన్యత క్రమంలో లింక్ తీసుకోవడం
+                val targetUrl = if (!currentCableRtmp.isNullOrEmpty()) currentCableRtmp 
+                                else currentCableRtmps
 
-                // 720p HD క్వాలిటీ సెట్టింగ్స్
-                if (rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 320, null) == true &&
-                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true) {
-                    
-                    // ప్రాధాన్యత క్రమంలో లింక్ తీసుకోవడం (RTMP -> RTMPS)
-                    val targetUrl = if (!currentCableRtmp.isNullOrEmpty()) currentCableRtmp 
-                                    else currentCableRtmps
-
-                    if (!targetUrl.isNullOrEmpty()) {
-                        rtmpDisplay?.startStream(targetUrl)
-                    }
+                val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
+                    putExtra("resultCode", resultCode)
+                    putExtra("data", data)
+                    putExtra("rtmpUrl", targetUrl)
+                }
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
                 } else {
-                    Toast.makeText(this, "ఎన్‌కోడర్ సెటప్ విఫలమైంది.", Toast.LENGTH_LONG).show()
+                    startService(serviceIntent)
                 }
             } else {
                 Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ పర్మిషన్ రిజెక్ట్ చేయబడింది", Toast.LENGTH_SHORT).show()
             }
         }
     }
-
-    override fun onConnectionSuccessRtmp() {
-        runOnUiThread { Toast.makeText(this@MainActivity, "మీరు ఇప్పుడు లైవ్‌లో ఉన్నారు!", Toast.LENGTH_SHORT).show() }
-    }
-
-    override fun onConnectionFailedRtmp(reason: String) {
-        runOnUiThread {
-            Toast.makeText(this@MainActivity, "లైవ్ కనెక్షన్ ఫెయిల్ అయ్యింది: $reason", Toast.LENGTH_LONG).show()
-            rtmpDisplay?.stopStream()
-        }
-    }
-
-    override fun onNewBitrateRtmp(bitrate: Long) {}
-
-    override fun onDisconnectRtmp() {
-        runOnUiThread { Toast.makeText(this@MainActivity, "లైవ్ కట్ అయ్యింది.", Toast.LENGTH_SHORT).show() }
-    }
-
-    override fun onAuthErrorRtmp() {
-        runOnUiThread { Toast.makeText(this@MainActivity, "యూట్యూబ్ ఆథరైజేషన్ ఎర్రర్.", Toast.LENGTH_SHORT).show() }
-    }
-
-    override fun onAuthSuccessRtmp() {}
 }
