@@ -1146,21 +1146,38 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
+  // --- యూట్యూబ్ వీడియో మరియు లైవ్ స్ట్రీమ్స్ రెండింటినీ సపోర్ట్ చేసే ఆటోమేటిక్ URL ఎక్స్‌ట్రాక్షన్ ఫంక్షన్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange)
+    );
+    
     String finalPlayUrl = url;
+    
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
+      var ytExplode = yt.YoutubeExplode();
       try {
-        var ytExplode = yt.YoutubeExplode(); 
         String? videoId; 
-        try { videoId = yt.VideoId.parseVideoId(url); } catch (_) {}
+        try { 
+          videoId = yt.VideoId.parseVideoId(url); 
+        } catch (_) {}
+        
         if (videoId == null) { 
           RegExp regExp = RegExp(r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})', caseSensitive: false); 
           Match? match = regExp.firstMatch(url); 
-          if (match != null && match.groupCount >= 1) { videoId = match.group(1); } 
+          if (match != null && match.groupCount >= 1) { 
+            videoId = match.group(1); 
+          } 
         }
-        if (videoId == null) { ytExplode.close(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red)); return; }
+        
+        if (videoId == null) { 
+          ytExplode.close(); 
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్. దయచేసి సరైన లింక్ ఇవ్వండి."), backgroundColor: Colors.red)
+          ); 
+          return;
+        }
         
         var video = await ytExplode.videos.get(yt.VideoId(videoId));
         if (video.isLive) { 
@@ -1170,12 +1187,16 @@ class _StudioScreenState extends State<StudioScreen>
           finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
         }
         ytExplode.close();
-      } catch (e) { 
-        finalPlayUrl = url; 
+      } catch (e) {
+        ytExplode.close();
+        finalPlayUrl = url; // ఫెయిల్ అయితే డైరెక్ట్ లింక్‌తో ట్రై చేస్తుంది
       }
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green)
+    );
     
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green));
     _bulletinVideoController?.removeListener(_videoListener); 
     _bulletinVideoController?.dispose();
     
@@ -1183,11 +1204,17 @@ class _StudioScreenState extends State<StudioScreen>
       ..initialize().then((_) { 
         if (!mounted) return; 
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
-        setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; }); 
+        setState(() { 
+          isNewsBulletinMode = true; 
+          isDualScreenMode = false; 
+          hideControls = true; 
+        }); 
         _bulletinVideoController?.play(); 
         _bulletinVideoController?.addListener(_videoListener); 
       }).catchError((e) { 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ / నెట్‌వర్క్ వీడియో ప్లే అవ్వలేదు."), backgroundColor: Colors.red)); 
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. లింక్ లేదా నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red)
+        ); 
       });
   }
 
