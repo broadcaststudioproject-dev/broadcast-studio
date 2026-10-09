@@ -1,4 +1,4 @@
-Import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -86,7 +86,7 @@ class _StudioScreenState extends State<StudioScreen>
   double logoHeight = 80.0;
   int logoPosition = 0; 
   bool enableWatermarkLogo = true;
-  VideoPlayerController? _logoVideoController; // MP4 లేదా GIF లోగోల కోసం
+  VideoPlayerController? _logoVideoController;
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -1245,7 +1245,6 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-  // --- సరిదిద్దబడిన Go Live మరియు స్క్రీన్ రికార్డింగ్ ట్రిగ్గరింగ్ ఫంక్షన్ ---
   Future<void> _startLiveAndLock() async {
     String cableUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
@@ -1265,7 +1264,6 @@ class _StudioScreenState extends State<StudioScreen>
     }
     
     try {
-      // నేటివ్ ఆండ్రాయిడ్ స్క్రీన్ క్యాప్చర్ & రికార్డింగ్ పర్మిషన్ డైలాగ్‌ను ఓపెన్ చేయడం
       bool success = await StreamServiceManager.startLiveStream(cableUrl, rtmpsUrl, satUrl);
       if (success) {
         SystemChrome.setPreferredOrientations([
@@ -1290,7 +1288,7 @@ class _StudioScreenState extends State<StudioScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("లైవ్ ఎర్రర్ సంభవించింది."), backgroundColor: Colors.red)
+        SnackBar(content: Text("లైవ్ ఎర్రర్ సంభవించింది: $e"), backgroundColor: Colors.red)
       );
     }
   }
@@ -2147,7 +2145,6 @@ class StreamServiceManager {
       });
       return true;
     } catch (e) {
-      // అసలైన ఎర్రర్ ఏమిటో డిబగ్ ప్రింట్ మరియు స్నాక్‌బార్ ద్వారా చూడడానికి
       debugPrint("Streaming Platform Exception: $e");
       return false;
     }
