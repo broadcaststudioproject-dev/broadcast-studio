@@ -1245,6 +1245,7 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
+  // --- సరిదిద్దబడిన ఖచ్చితమైన లైవ్ స్టార్ట్ ఫంక్షన్ ---
   Future<void> _startLiveAndLock() async {
     String cableUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
@@ -1281,14 +1282,15 @@ class _StudioScreenState extends State<StudioScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ పర్మిషన్ ప్రారంభమైంది..."), backgroundColor: Colors.orange)
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("లైవ్ ప్రారంభమవడం విఫలమైంది. Android Manifest పర్మిషన్స్ చెక్ చేయండి."), backgroundColor: Colors.red)
-        );
       }
     } catch (e) {
+      // పాత మెసేజ్‌ను తీసేసి, ఆండ్రాయిడ్ సిస్టమ్ ఎర్రర్‌ను నేరుగా ఇక్కడ చూపిస్తున్నాము
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("లైవ్ ఎర్రర్ సంభవించింది: $e"), backgroundColor: Colors.red)
+        SnackBar(
+          content: Text("SYSTEM ERROR: $e", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), 
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 15) // ఈ మెసేజ్ 15 సెకన్లు స్క్రీన్ పై ఉంటుంది
+        )
       );
     }
   }
@@ -2133,6 +2135,7 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
+// --- పర్ఫెక్ట్‌గా ఎర్రర్ హ్యాండిల్ చేయబడిన StreamServiceManager ---
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
@@ -2144,9 +2147,11 @@ class StreamServiceManager {
         'satelliteSrt': satelliteSrt
       });
       return true;
+    } on PlatformException catch (e) {
+      // ఆండ్రాయిడ్ సిస్టమ్ నేటివ్ ఎర్రర్‌ను నేరుగా బయటకు పంపుతున్నాము
+      throw Exception("Native Android Error: ${e.code} - ${e.message}");
     } catch (e) {
-      debugPrint("Streaming Platform Exception: $e");
-      return false;
+      throw Exception("Flutter Error: ${e.toString()}");
     }
   }
   
