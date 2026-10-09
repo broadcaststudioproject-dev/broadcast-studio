@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -34,7 +35,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         
-        startForeground(NOTIFICATION_ID, notification)
+        // Android 14+ కోసం మీడియా ప్రొజెక్షన్ టైప్‌తో ఫోర్‌గ్రౌండ్ సర్వీస్ స్టార్ట్ చేయడం
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
         
         // ఆడియోతో సహా స్క్రీన్ రికార్డ్ చేయడానికి ఎన్‌కోడర్ ఇనిషియలైజ్ 
         rtmpDisplay = RtmpDisplay(baseContext, true, this)
