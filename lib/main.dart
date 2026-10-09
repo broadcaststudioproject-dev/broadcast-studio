@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+Import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -2147,6 +2147,8 @@ class StreamServiceManager {
       });
       return true;
     } catch (e) {
+      // అసలైన ఎర్రర్ ఏమిటో డిబగ్ ప్రింట్ మరియు స్నాక్‌బార్ ద్వారా చూడడానికి
+      debugPrint("Streaming Platform Exception: $e");
       return false;
     }
   }
