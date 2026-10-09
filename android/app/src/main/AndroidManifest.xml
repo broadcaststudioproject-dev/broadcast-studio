@@ -40,14 +40,8 @@
         <meta-data
             android:name="flutterEmbedding"
             value="2" />
-
-        <!-- రికార్డింగ్ మరియు మీడియా ప్రొజెక్షన్ సర్వీస్ (ఇక్కడ అప్లికేషన్ లోపల ఉంచాలి) -->
-        <service
-            android:name="com.pedro.library.base.recording.RecordService"
-            android:foregroundServiceType="mediaProjection"
-            android:exported="false" />
             
-        <!-- కొత్తగా మనం క్రియేట్ చేయబోయే బ్యాక్ గ్రౌండ్ లైవ్ స్ట్రీమింగ్ సర్వీస్ -->
+        <!-- మన స్క్రీన్ క్యాప్చర్ మరియు లైవ్ స్ట్రీమింగ్ సర్వీస్ -->
         <service
             android:name=".ScreenStreamService"
             android:enabled="true"
