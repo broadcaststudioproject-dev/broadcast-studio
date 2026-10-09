@@ -86,6 +86,7 @@ class _StudioScreenState extends State<StudioScreen>
   double logoHeight = 80.0;
   int logoPosition = 0; 
   bool enableWatermarkLogo = true;
+  VideoPlayerController? _logoVideoController; // MP4 లేదా GIF లోగోల కోసం
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -221,6 +222,7 @@ class _StudioScreenState extends State<StudioScreen>
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
         channelLogoPath = savedLogo;
+        _initLogoPlayer(savedLogo);
       }
 
       leftAdPaths = (prefs.getStringList('leftAdPaths') ?? [])
@@ -237,6 +239,23 @@ class _StudioScreenState extends State<StudioScreen>
       if (rightAdPaths.isNotEmpty) _initAdVideo('right');
       if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
     });
+  }
+
+  void _initLogoPlayer(String path) {
+    bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
+    _logoVideoController?.dispose();
+    _logoVideoController = null;
+    if (isVideo) {
+      _logoVideoController = VideoPlayerController.file(File(path))
+        ..initialize().then((_) {
+          if (mounted) {
+            _logoVideoController!.setLooping(true);
+            _logoVideoController!.setVolume(0.0);
+            _logoVideoController!.play();
+            setState(() {});
+          }
+        });
+    }
   }
 
   void _initAdVideo(String pos) {
@@ -359,6 +378,7 @@ class _StudioScreenState extends State<StudioScreen>
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
     _bottomAdVideoController?.dispose();
+    _logoVideoController?.dispose();
 
     _leftAdVideoCtrl?.dispose();
     _rightAdVideoCtrl?.dispose();
@@ -928,31 +948,33 @@ class _StudioScreenState extends State<StudioScreen>
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.grey[900],
-              title: const Text("స్టూడియో సెట్టింగ్స్ (JPEG Watermark / Logo)", style: TextStyle(color: Colors.white, fontSize: 13)),
+              title: const Text("స్టూడియో సెట్టింగ్స్ (MP4 / GIF / JPEG Logo)", style: TextStyle(color: Colors.white, fontSize: 13)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // గ్యాలరీ నుండి MP4, GIF లేదా JPEG లోగో అప్లోడ్ చేసుకోవడానికి
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                       onPressed: () async {
                         try {
-                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                          if (image != null) {
+                          final XFile? media = await _picker.pickMedia(); 
+                          if (media != null) {
                             setState(() {
-                              channelLogoPath = image.path;
+                              channelLogoPath = media.path;
                             });
                             SharedPreferences prefs = await SharedPreferences.getInstance();
-                            await prefs.setString('channelLogoPath', image.path);
+                            await prefs.setString('channelLogoPath', media.path);
+                            _initLogoPlayer(media.path);
                             setDialogState(() {});
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("JPEG లోగో/వాటర్మార్క్ సక్సెస్‌ఫుల్‌గా అప్లోడ్ అయింది!"), backgroundColor: Colors.green)
+                              const SnackBar(content: Text("లోగో/వాటర్మార్క్ (MP4/GIF/JPEG) సక్సెస్‌ఫుల్‌గా అప్లోడ్ అయింది!"), backgroundColor: Colors.green)
                             );
                           }
                         } catch (e) {}
                       },
                       icon: const Icon(Icons.upload, color: Colors.white),
-                      label: const Text("గ్యాలరీ నుండి JPEG లోగో అప్లోడ్", style: TextStyle(color: Colors.white)),
+                      label: const Text("గ్యాలరీ నుండి లోగో (MP4/GIF/JPEG) అప్లోడ్", style: TextStyle(color: Colors.white)),
                     ),
                     const SizedBox(height: 10),
                     SwitchListTile(
@@ -1116,7 +1138,7 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  // --- సరిదిద్దబడిన పర్ఫెక్ట్ యూట్యూబ్ / నెట్‌వర్క్ వీడియో ప్రాసెసింగ్ ఫంక్షన్ ---
+  // --- మెరుగైన YouTube స్ట్రీమ్ ఎక్స్‌ట్రాక్షన్ & ఫాల్‌బ్యాక్ ఫీచర్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1144,7 +1166,7 @@ class _StudioScreenState extends State<StudioScreen>
         if (videoId == null) { 
           ytExplode.close(); 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్. దయచేసి సరైన లింక్ ఇవ్వండి."), backgroundColor: Colors.red)
+            const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red)
           ); 
           return;
         }
@@ -1160,7 +1182,7 @@ class _StudioScreenState extends State<StudioScreen>
       } catch (e) {
         ytExplode.close();
         debugPrint("YouTube Parse Error: $e");
-        finalPlayUrl = url; // ఫెయిల్ అయితే ఒరిజినల్ లింక్ పాస్ చేయడం
+        finalPlayUrl = url; // ఫెయిల్ అయితే ఒరిజినల్ లింక్‌తో ప్రయత్నించడం
       }
     }
 
@@ -1185,7 +1207,7 @@ class _StudioScreenState extends State<StudioScreen>
       }).catchError((e) { 
         debugPrint("Video Player Init Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. లింక్ లేదా నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red)
+          const SnackBar(content: Text("వీడియో డైరెక్ట్ ప్లే కాలేదు. లింక్ లేదా నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red)
         ); 
       });
   }
@@ -1203,7 +1225,7 @@ class _StudioScreenState extends State<StudioScreen>
           setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; }); 
           _bulletinVideoController?.play(); 
           _bulletinVideoController?.addListener(_videoListener); 
-        }).catchError((e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. ఫార్మాట్ సపోర్ట్ చేయకపోవచ్చు."), backgroundColor: Colors.red)); });
+        }).catchError((e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red)); });
       }
     } catch (e) { debugPrint("Gallery Video Error: $e"); }
   }
@@ -1263,14 +1285,10 @@ class _StudioScreenState extends State<StudioScreen>
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("లైవ్ ప్రారంభమవడం విఫలమైంది. లింక్స్ చెక్ చేయండి."), backgroundColor: Colors.red)
+          const SnackBar(content: Text("లైవ్ ప్రారంభమవడం విఫలమైంది."), backgroundColor: Colors.red)
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("లైవ్ ఎర్రర్ సంభవించింది."), backgroundColor: Colors.red)
-      );
-    }
+    } catch (e) {}
   }
 
   Future<void> _stopLiveStream() async {
@@ -1850,23 +1868,35 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
+    // --- MP4 / GIF / JPEG సపోర్ట్ చేసే ఛానల్ లోగో వాటర్మార్క్ విడ్జెట్ ---
     Widget channelLogoWidget = enableWatermarkLogo
         ? (channelLogoPath.isNotEmpty && File(channelLogoPath).existsSync()
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
                 child: Container(
+                  width: logoWidth,
+                  height: logoHeight,
                   decoration: BoxDecoration(
                     color: Colors.black26,
                     border: Border.all(color: Colors.white24, width: 1.0),
                     boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
                   ),
-                  child: Image.file(
-                    File(channelLogoPath),
-                    width: logoWidth,
-                    height: logoHeight,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.high,
-                  ),
+                  child: (_logoVideoController != null && _logoVideoController!.value.isInitialized)
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _logoVideoController!.value.size.width,
+                            height: _logoVideoController!.value.size.height,
+                            child: VideoPlayer(_logoVideoController!),
+                          ),
+                        )
+                      : Image.file(
+                          File(channelLogoPath),
+                          width: logoWidth,
+                          height: logoHeight,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high,
+                        ),
                 ),
               )
             : Container(
