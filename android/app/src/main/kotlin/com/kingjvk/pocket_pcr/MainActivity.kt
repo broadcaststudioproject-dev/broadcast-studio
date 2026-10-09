@@ -13,7 +13,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    // ఫ్లట్టర్ కోడ్‌తో మ్యాచ్ అయ్యేలా ఛానెల్ పేరు మార్చబడింది
     private val CHANNEL = "com.ssyatratv.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
@@ -52,7 +51,7 @@ class MainActivity: FlutterActivity() {
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
                         result.success(true)
                     } catch (e: Exception) {
-                        result.error("PROJECTION_ERROR", "Cannot start screen capture", null)
+                        result.error("PROJECTION_ERROR", e.message ?: "Cannot start screen capture", null)
                     }
                 }
                 "stopScreenCaptureStreaming" -> {
