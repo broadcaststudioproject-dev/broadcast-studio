@@ -2135,9 +2135,10 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
-// --- పర్ఫెక్ట్‌గా ఎర్రర్ హ్యాండిల్ చేయబడిన StreamServiceManager ---
+// సరిదిద్దిన StreamServiceManager క్లాస్
 class StreamServiceManager {
-  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
+  // ఇక్కడ com.ssyatratv బదులు com.kingjvk అని మార్చబడింది 
+  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
     try {
@@ -2148,7 +2149,6 @@ class StreamServiceManager {
       });
       return true;
     } on PlatformException catch (e) {
-      // ఆండ్రాయిడ్ సిస్టమ్ నేటివ్ ఎర్రర్‌ను నేరుగా బయటకు పంపుతున్నాము
       throw Exception("Native Android Error: ${e.code} - ${e.message}");
     } catch (e) {
       throw Exception("Flutter Error: ${e.toString()}");
