@@ -7,14 +7,11 @@ import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugins.GeneratedPluginRegistrant
 
 class MainActivity: FlutterActivity() {
-    // ఇక్కడ కూడా com.ssyatratv బదులు com.kingjvk అని మార్చబడింది
     private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
@@ -26,11 +23,14 @@ class MainActivity: FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // గమనిక: మన ఫైల్ రన్ అవుతుందో లేదో చెక్ చేయడానికి ఈ మెసేజ్ యాడ్ చేశాను
+        Toast.makeText(this, "✅ Kotlin MainActivity రన్ అవుతోంది!", Toast.LENGTH_LONG).show()
+        
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     }
 
-    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
-        GeneratedPluginRegistrant.registerWith(flutterEngine)
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
