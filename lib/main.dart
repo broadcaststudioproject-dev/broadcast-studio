@@ -96,7 +96,6 @@ class _StudioScreenState extends State<StudioScreen>
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
-  // సపరేట్ RTMP & RTMPS లింక్ బాక్సులు
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController cableRtmpsController = TextEditingController();
   TextEditingController satelliteSrtController = TextEditingController();
@@ -934,7 +933,6 @@ class _StudioScreenState extends State<StudioScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // గ్యాలరీ నుండి JPEG వాటర్మార్క్/లోగో అప్లోడ్ చేసుకోవడానికి బటన్
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                       onPressed: () async {
@@ -1118,10 +1116,11 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
+  // --- సరిదిద్దబడిన పర్ఫెక్ట్ యూట్యూబ్ / నెట్‌వర్క్ వీడియో ప్రాసెసింగ్ ఫంక్షన్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange)
+      const SnackBar(content: Text("యూట్యూబ్ లింక్ చెక్ చేయబడుతోంది..."), backgroundColor: Colors.orange)
     );
     
     String finalPlayUrl = url;
@@ -1160,7 +1159,8 @@ class _StudioScreenState extends State<StudioScreen>
         ytExplode.close();
       } catch (e) {
         ytExplode.close();
-        finalPlayUrl = url; 
+        debugPrint("YouTube Parse Error: $e");
+        finalPlayUrl = url; // ఫెయిల్ అయితే ఒరిజినల్ లింక్ పాస్ చేయడం
       }
     }
 
@@ -1183,6 +1183,7 @@ class _StudioScreenState extends State<StudioScreen>
         _bulletinVideoController?.play(); 
         _bulletinVideoController?.addListener(_videoListener); 
       }).catchError((e) { 
+        debugPrint("Video Player Init Error: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. లింక్ లేదా నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red)
         ); 
@@ -1849,7 +1850,6 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
-    // స్థిరమైన (అటుఇటు కదలకుండా) JPEG వాటర్మార్క్/లోగో డిస్ప్లే లాజిక్
     Widget channelLogoWidget = enableWatermarkLogo
         ? (channelLogoPath.isNotEmpty && File(channelLogoPath).existsSync()
             ? ClipRRect(
@@ -2102,7 +2102,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 class StreamServiceManager {
-  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
     try {
