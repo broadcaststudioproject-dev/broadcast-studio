@@ -26,7 +26,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         super.onCreate()
         createNotificationChannel()
         
-        // ఫోన్‌ నోటిఫికేషన్ బార్‌లో లైవ్ నడుస్తున్నట్లు చూపించే నోటిఫికేషన్
+        // ఫోన్ నోటిఫికేషన్ బార్‌లో లైవ్ నడుస్తున్నట్లు చూపించే నోటిఫికేషన్
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Pocket PCR Studio")
             .setContentText("స్క్రీన్ బ్యాక్‌గ్రౌండ్‌లో ప్రసారం అవుతోంది (Live On-Air)")
@@ -43,7 +43,12 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null) {
             val resultCode = intent.getIntExtra("resultCode", -1)
-            val data = intent.getParcelableExtra<Intent>("data")
+            val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra("data", Intent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra("data")
+            }
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
 
             if (resultCode != -1 && data != null && !rtmpUrl.isNullOrEmpty()) {
