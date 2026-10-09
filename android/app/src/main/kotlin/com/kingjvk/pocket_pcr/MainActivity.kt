@@ -13,7 +13,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
+    // ఫ్లట్టర్ కోడ్‌తో మ్యాచ్ అయ్యేలా ఛానెల్ పేరు మార్చబడింది
+    private val CHANNEL = "com.ssyatratv.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
     private var currentCableRtmp: String? = null
@@ -37,7 +38,6 @@ class MainActivity: FlutterActivity() {
                     currentCableRtmps = call.argument<String>("cableRtmps")
                     currentSatSrt = call.argument<String>("satelliteSrt")
 
-                    // కనీసం ఏదో ఒక లింక్ ఉండాలి
                     val activeStreamUrl = if (!currentCableRtmp.isNullOrEmpty()) currentCableRtmp 
                                           else if (!currentCableRtmps.isNullOrEmpty()) currentCableRtmps 
                                           else currentSatSrt
@@ -47,7 +47,6 @@ class MainActivity: FlutterActivity() {
                         return@setMethodCallHandler
                     }
 
-                    // స్క్రీన్ క్యాప్చర్ పర్మిషన్ డైలాగ్
                     try {
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
@@ -91,9 +90,9 @@ class MainActivity: FlutterActivity() {
             if (resultCode == Activity.RESULT_OK && data != null) {
                 Toast.makeText(this, "లైవ్‌కి కనెక్ట్ అవుతోంది (Background Service)...", Toast.LENGTH_LONG).show()
 
-                // ప్రాధాన్యత క్రమంలో లింక్ తీసుకోవడం
                 val targetUrl = if (!currentCableRtmp.isNullOrEmpty()) currentCableRtmp 
-                                else currentCableRtmps
+                                else if (!currentCableRtmps.isNullOrEmpty()) currentCableRtmps
+                                else currentSatSrt
 
                 val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
                     putExtra("resultCode", resultCode)
