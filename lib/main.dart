@@ -953,7 +953,6 @@ class _StudioScreenState extends State<StudioScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // గ్యాలరీ నుండి MP4, GIF లేదా JPEG లోగో అప్లోడ్ చేసుకోవడానికి
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                       onPressed: () async {
@@ -1138,7 +1137,6 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  // --- మెరుగైన YouTube స్ట్రీమ్ ఎక్స్‌ట్రాక్షన్ & ఫాల్‌బ్యాక్ ఫీచర్ ---
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1182,7 +1180,7 @@ class _StudioScreenState extends State<StudioScreen>
       } catch (e) {
         ytExplode.close();
         debugPrint("YouTube Parse Error: $e");
-        finalPlayUrl = url; // ఫెయిల్ అయితే ఒరిజినల్ లింక్‌తో ప్రయత్నించడం
+        finalPlayUrl = url; 
       }
     }
 
@@ -1247,6 +1245,7 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
+  // --- సరిదిద్దబడిన Go Live మరియు స్క్రీన్ రికార్డింగ్ ట్రిగ్గరింగ్ ఫంక్షన్ ---
   Future<void> _startLiveAndLock() async {
     String cableUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
@@ -1266,6 +1265,7 @@ class _StudioScreenState extends State<StudioScreen>
     }
     
     try {
+      // నేటివ్ ఆండ్రాయిడ్ స్క్రీన్ క్యాప్చర్ & రికార్డింగ్ పర్మిషన్ డైలాగ్‌ను ఓపెన్ చేయడం
       bool success = await StreamServiceManager.startLiveStream(cableUrl, rtmpsUrl, satUrl);
       if (success) {
         SystemChrome.setPreferredOrientations([
@@ -1281,14 +1281,18 @@ class _StudioScreenState extends State<StudioScreen>
           isLandscape = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Multi-Live & Screen Broadcasting ప్రారంభమైంది!"), backgroundColor: Colors.green)
+          const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ పర్మిషన్ ప్రారంభమైంది..."), backgroundColor: Colors.orange)
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("లైవ్ ప్రారంభమవడం విఫలమైంది."), backgroundColor: Colors.red)
+          const SnackBar(content: Text("లైవ్ ప్రారంభమవడం విఫలమైంది. Android Manifest పర్మిషన్స్ చెక్ చేయండి."), backgroundColor: Colors.red)
         );
       }
-    } catch (e) {}
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("లైవ్ ఎర్రర్ సంభవించింది."), backgroundColor: Colors.red)
+      );
+    }
   }
 
   Future<void> _stopLiveStream() async {
