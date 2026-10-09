@@ -11,10 +11,11 @@ import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugins.GeneratedPluginRegistrant // ప్లగిన్స్ రిజిస్టర్ అవ్వడానికి ఇది ముఖ్యం
+import io.flutter.plugins.GeneratedPluginRegistrant
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.ssyatratv.pocket_pcr/stream"
+    // ఇక్కడ కూడా com.ssyatratv బదులు com.kingjvk అని మార్చబడింది
+    private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
     private var currentCableRtmp: String? = null
@@ -29,7 +30,6 @@ class MainActivity: FlutterActivity() {
     }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
-        // ఈ కింద ఉన్న లైన్ వల్ల అన్ని ఫ్లట్టర్ ప్లగిన్స్ మరియు ఛానెల్స్ నేటివ్ కి కనెక్ట్ అవుతాయి
         GeneratedPluginRegistrant.registerWith(flutterEngine)
         super.configureFlutterEngine(flutterEngine)
 
