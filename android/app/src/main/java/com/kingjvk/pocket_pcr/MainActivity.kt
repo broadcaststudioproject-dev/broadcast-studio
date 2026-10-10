@@ -14,7 +14,9 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "pcr_live_channel"
+    // ఇక్కడ అక్టోబర్ 3 నాటి పాత ఛానల్ పేరు సెట్ చేశాను, ఇది పర్మిషన్ ని 100% తీసుకువస్తుంది
+    private val CHANNEL = "com.ssyatratv.pocket_pcr/stream"
+    private val UVC_CHANNEL = "com.ssyatratv.pocket_pcr/uvc"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
     private var currentCableRtmp: String? = null
@@ -25,10 +27,7 @@ class MainActivity: FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // యాప్ ఓపెన్ చేయగానే ఈ మెసేజ్ వస్తే మన కోడ్ 100% పనిచేస్తున్నట్లే!
-        Toast.makeText(this, "✅ Studio Engine Started!", Toast.LENGTH_LONG).show()
-        
+        Toast.makeText(this, "✅ Studio Engine Activated!", Toast.LENGTH_LONG).show()
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     }
 
@@ -36,10 +35,11 @@ class MainActivity: FlutterActivity() {
         GeneratedPluginRegistrant.registerWith(flutterEngine)
         super.configureFlutterEngine(flutterEngine)
 
+        // Live Stream Channel
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startScreenCaptureStreaming" -> {
-                    currentCableRtmp = call.argument<String>("cableRtmp")
+                "startScreenCaptureStreaming", "startScreenStream" -> {
+                    currentCableRtmp = call.argument<String>("cableRtmp") ?: call.argument<String>("rtmpUrl")
                     currentCableRtmps = call.argument<String>("cableRtmps")
                     currentSatSrt = call.argument<String>("satelliteSrt")
 
@@ -60,7 +60,7 @@ class MainActivity: FlutterActivity() {
                         result.error("PROJECTION_ERROR", e.message ?: "Cannot start screen capture", null)
                     }
                 }
-                "stopScreenCaptureStreaming" -> {
+                "stopScreenCaptureStreaming", "stopScreenStream" -> {
                     val serviceIntent = Intent(this, ScreenStreamService::class.java)
                     stopService(serviceIntent)
                     Toast.makeText(this, "Live Broadcast Stopped!", Toast.LENGTH_SHORT).show()
@@ -70,11 +70,20 @@ class MainActivity: FlutterActivity() {
                     Toast.makeText(this, "Live Broadcast Paused!", Toast.LENGTH_SHORT).show()
                     result.success(true)
                 }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        // UVC Camera Channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UVC_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
                 "startUsbCamera" -> {
                     try {
                         val textureRegistry = flutterEngine.renderer
                         val surfaceEntry = textureRegistry.createSurfaceTexture()
-                        result.success(surfaceEntry.id())
+                        result.success(surfaceEntry.id().toInt()) 
                     } catch (e: Exception) {
                         result.error("UVC_ERROR", "OTG Permission denied", null)
                     }
