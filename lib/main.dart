@@ -100,6 +100,11 @@ class _StudioScreenState extends State<StudioScreen>
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController cableRtmpsController = TextEditingController();
   TextEditingController satelliteSrtController = TextEditingController();
+    // కొత్తగా యాడ్ చేసిన Cable TV లింక్ కంట్రోలర్
+  TextEditingController cableTvUrlCtrl = TextEditingController();
+  TextEditingController cableRtmpController = TextEditingController();
+  TextEditingController cableRtmpsController = TextEditingController();
+  TextEditingController satelliteSrtController = TextEditingController();
   TextEditingController networkVideoUrlCtrl = TextEditingController();
   TextEditingController youtubeVideoUrlCtrl = TextEditingController();
   
@@ -110,6 +115,9 @@ class _StudioScreenState extends State<StudioScreen>
   TextEditingController manualTickerCtrl = TextEditingController();
   TextEditingController mainHeadlineCtrl = TextEditingController();
   TextEditingController subHeadlineCtrl = TextEditingController();
+
+  // నాయిస్ క్యాన్సిలేషన్ ఆన్/ఆఫ్ కోసం వేరియబుల్
+  bool enableNoiseCancellation = false;
 
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
@@ -1066,7 +1074,7 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-  void _showMultiStreamDialog() {
+    void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
       context: context, 
@@ -1074,21 +1082,39 @@ class _StudioScreenState extends State<StudioScreen>
         return StatefulBuilder(builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: const Text("Live Control Room (Multi-Live & Links)", style: TextStyle(color: Colors.white, fontSize: 15)),
+            title: const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. YouTube / Cable RTMP Link", cableRtmpController, setDialogState),
+                _buildLinkEditor("1. Cable TV RTMP Link", cableTvUrlCtrl, setDialogState),
                 const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("2. Restream RTMPS Link", cableRtmpsController, setDialogState),
+                _buildLinkEditor("2. YouTube RTMP Link", cableRtmpController, setDialogState),
                 const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("3. Satellite/Playout — SRT Link", satelliteSrtController, setDialogState),
+                _buildLinkEditor("3. Restream RTMPS Link", cableRtmpsController, setDialogState),
                 const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("4. YouTube Video Link (Player)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
+                _buildLinkEditor("4. Satellite/Playout — SRT Link", satelliteSrtController, setDialogState),
                 const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("5. Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.yellow, width: 1)),
+                  child: SwitchListTile(
+                    title: const Text("Noise Cancellation", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: const Text("బయటి శబ్దాలు కట్ చేసి, వాయిస్ క్లియర్ చేస్తుంది", style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    activeColor: Colors.yellow,
+                    value: enableNoiseCancellation,
+                    onChanged: (val) {
+                      setState(() { enableNoiseCancellation = val; });
+                      setDialogState(() { enableNoiseCancellation = val; });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                _buildLinkEditor("YouTube Video Link (Player)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
                 const Divider(color: Colors.white24, height: 15),
-                const Text("6. గ్యాలరీ వీడియో (MP4, HD, 4K)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                const SizedBox(height: 8),
+                _buildLinkEditor("Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
+                const Divider(color: Colors.white24, height: 15),
+                
                 SizedBox(
                   width: double.infinity, 
                   child: ElevatedButton.icon(
@@ -1108,12 +1134,13 @@ class _StudioScreenState extends State<StudioScreen>
                   onPressed: () async { 
                     Navigator.pop(context); 
                     if (isLivePaused) { 
-                      String cableUrl = cableRtmpController.text.trim();
+                      String cableUrl = cableTvUrlCtrl.text.trim();
+                      String ytUrl = cableRtmpController.text.trim();
                       String rtmpsUrl = cableRtmpsController.text.trim();
                       String satUrl = satelliteSrtController.text.trim();
-                      String activeUrl = cableUrl.isNotEmpty ? cableUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl);
+                      String activeUrl = cableUrl.isNotEmpty ? cableUrl : (ytUrl.isNotEmpty ? ytUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl));
 
-                      bool success = await StreamServiceManager.startLiveStream(activeUrl); 
+                      bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation); 
                       if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); } 
                     } else { 
                       bool success = await StreamServiceManager.stopLiveStream(); 
@@ -1129,7 +1156,7 @@ class _StudioScreenState extends State<StudioScreen>
         });
       }
     );
-  }
+    }
 
   Widget _buildLinkEditor(String label, TextEditingController controller, StateSetter setDialogState, {VoidCallback? onPlay}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1250,53 +1277,32 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-  Future<void> _startLiveAndLock() async {
-    String cableUrl = cableRtmpController.text.trim();
+    Future<void> _startLiveAndLock() async {
+    String cableTvUrl = cableTvUrlCtrl.text.trim();
+    String ytUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
 
-    String activeUrl = cableUrl.isNotEmpty ? cableUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl);
+    String activeUrl = cableTvUrl.isNotEmpty ? cableTvUrl : (ytUrl.isNotEmpty ? ytUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl));
 
     if (activeUrl.isEmpty) {
       _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("దయచేసి కనీసం ఒక లింక్ (RTMP/RTMPS/SRT) ఇవ్వండి."), backgroundColor: Colors.red)
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కనీసం ఒక లింక్ (Cable/RTMP) ఇవ్వండి."), backgroundColor: Colors.red));
       return;
     }
 
     var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) {
-      micStatus = await Permission.microphone.request();
-    }
+    if (!micStatus.isGranted) { micStatus = await Permission.microphone.request(); }
     
     try {
-      bool success = await StreamServiceManager.startLiveStream(activeUrl);
+      bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation);
       if (success) {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeRight,
-          DeviceOrientation.landscapeLeft
-        ]);
-        setState(() {
-          isLiveBroadcasting = true;
-          isLivePaused = false;
-          isLiveLocked = true;
-          hideControls = true;
-          isMenuOpen = false;
-          isLandscape = true;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ పర్మిషన్ ప్రారంభమైంది..."), backgroundColor: Colors.orange)
-        );
+        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+        setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = true; hideControls = true; isMenuOpen = false; isLandscape = true; });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ ప్రారంభమైంది..."), backgroundColor: Colors.orange));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("SYSTEM ERROR: $e", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), 
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 15)
-        )
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("SYSTEM ERROR: ${e.toString()}"), backgroundColor: Colors.red, duration: const Duration(seconds: 5)));
     }
   }
 
@@ -2142,10 +2148,10 @@ class _StudioScreenState extends State<StudioScreen>
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
-  static Future<bool> startLiveStream(String rtmpUrl) async {
+  static Future<bool> startLiveStream(String rtmpUrl, bool noiseCancellation) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      await platform.invokeMethod('startScreenStream', { 'rtmpUrl': safeUrl, 'recordAudio': true }); 
+      await platform.invokeMethod('startScreenStream', { 'rtmpUrl': safeUrl, 'noiseCancellation': noiseCancellation }); 
       return true; 
     } catch (e) { 
       throw Exception("Error: ${e.toString()}");
@@ -2153,25 +2159,14 @@ class StreamServiceManager {
   }
   
   static Future<bool> stopLiveStream() async {
-    try { 
-      await platform.invokeMethod('stopScreenStream'); 
-      return true; 
-    } catch (e) { 
-      return false; 
-    }
+    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
   }
   
   static Future<int?> startUsbCamera() async {
-    try {
-      return await platform.invokeMethod('startUsbCamera');
-    } catch (e) {
-      return null;
-    }
+    try { return await platform.invokeMethod('startUsbCamera'); } catch (e) { return null; }
   }
   
   static Future<void> stopUsbCamera() async {
-    try {
-      await platform.invokeMethod('stopUsbCamera');
-    } catch (e) {}
+    try { await platform.invokeMethod('stopUsbCamera'); } catch (e) {}
   }
 }
