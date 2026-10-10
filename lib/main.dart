@@ -2135,10 +2135,9 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
-// సరిదిద్దిన StreamServiceManager క్లాస్
+// మీ lib/main.dart ఫైల్ చివర్లో ఈ కోడ్ మాత్రమే అప్‌డేట్ చేయండి
 class StreamServiceManager {
-  // ఇక్కడ com.ssyatratv బదులు com.kingjvk అని మార్చబడింది 
-  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  static const platform = MethodChannel('pcr_live_channel');
   
   static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
     try {
