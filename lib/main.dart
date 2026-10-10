@@ -131,9 +131,9 @@ class _StudioScreenState extends State<StudioScreen>
   bool isDroneCamMode = false;
   VideoPlayerController? _ipCamController;
   VideoPlayerController? _droneCamController;
+  int? _usbTextureId;
   TextEditingController ipCamUrlCtrl = TextEditingController();
   TextEditingController droneCamUrlCtrl = TextEditingController();
-  int? _usbTextureId;
 
   int adDisplayMode = 0;
   bool isAdCurrentlyShowing = false;
@@ -2133,7 +2133,8 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 class StreamServiceManager {
-  static const platform = MethodChannel('pcr_live_channel');
+  // ఈ లైన్ పాత పర్మిషన్ పాపప్ ని 100% ట్రిగ్గర్ చేస్తుంది
+  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
     try {
@@ -2161,7 +2162,7 @@ class StreamServiceManager {
   
   static Future<int?> startUsbCamera() async {
     try {
-      return await platform.invokeMethod('startUsbCamera');
+      return await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera');
     } catch (e) {
       return null;
     }
@@ -2169,7 +2170,7 @@ class StreamServiceManager {
   
   static Future<void> stopUsbCamera() async {
     try {
-      await platform.invokeMethod('stopUsbCamera');
+      await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera');
     } catch (e) {}
   }
 }
