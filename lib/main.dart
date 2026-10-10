@@ -1,4 +1,4 @@
-iimport 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -991,7 +991,7 @@ class _StudioScreenState extends State<StudioScreen>
                     TextField(
                       controller: mainHeadlineCtrl,
                       style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "మెయిನ್ హెడ్‌‌లైన్"),
+                      decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌‌లైన్"),
                     ),
                     TextField(
                       controller: subHeadlineCtrl,
@@ -1245,7 +1245,6 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-  // --- సరిదిద్దబడిన ఖచ్చితమైన లైవ్ స్టార్ట్ ఫంక్షన్ ---
   Future<void> _startLiveAndLock() async {
     String cableUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
@@ -1284,12 +1283,11 @@ class _StudioScreenState extends State<StudioScreen>
         );
       }
     } catch (e) {
-      // పాత మెసేజ్‌ను తీసేసి, ఆండ్రాయిడ్ సిస్టమ్ ఎర్రర్‌ను నేరుగా ఇక్కడ చూపిస్తున్నాము
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("SYSTEM ERROR: $e", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), 
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 15) // ఈ మెసేజ్ 15 సెకన్లు స్క్రీన్ పై ఉంటుంది
+          duration: const Duration(seconds: 15)
         )
       );
     }
@@ -1872,7 +1870,6 @@ class _StudioScreenState extends State<StudioScreen>
       ),
     );
 
-    // --- MP4 / GIF / JPEG సపోర్ట్ చేసే ఛానల్ లోగో వాటర్మార్క్ విడ్జెట్ ---
     Widget channelLogoWidget = enableWatermarkLogo
         ? (channelLogoPath.isNotEmpty && File(channelLogoPath).existsSync()
             ? ClipRRect(
@@ -2135,7 +2132,6 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
-// మీ lib/main.dart ఫైల్ చివర్లో ఈ కోడ్ మాత్రమే అప్‌డేట్ చేయండి
 class StreamServiceManager {
   static const platform = MethodChannel('pcr_live_channel');
   
