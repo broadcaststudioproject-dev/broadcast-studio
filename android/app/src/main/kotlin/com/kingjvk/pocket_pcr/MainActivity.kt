@@ -40,7 +40,7 @@ class MainActivity: FlutterActivity() {
                     }
 
                     try {
-                        // ఈ లైన్ వల్లే మీకు ఆ "Entire Screen" పాపప్ వస్తుంది!
+                        // ఈ కమాండ్ కచ్చితంగా ఆండ్రాయిడ్ సిస్టమ్ స్క్రీన్ పర్మిషన్ పాపప్‌ను బయటికి తెస్తుంది
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
                         result.success(true)
