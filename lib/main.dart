@@ -1108,7 +1108,12 @@ class _StudioScreenState extends State<StudioScreen>
                   onPressed: () async { 
                     Navigator.pop(context); 
                     if (isLivePaused) { 
-                      bool success = await StreamServiceManager.startLiveStream(cableRtmpController.text.trim(), cableRtmpsController.text.trim(), satelliteSrtController.text.trim()); 
+                      String cableUrl = cableRtmpController.text.trim();
+                      String rtmpsUrl = cableRtmpsController.text.trim();
+                      String satUrl = satelliteSrtController.text.trim();
+                      String activeUrl = cableUrl.isNotEmpty ? cableUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl);
+
+                      bool success = await StreamServiceManager.startLiveStream(activeUrl); 
                       if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); } 
                     } else { 
                       bool success = await StreamServiceManager.stopLiveStream(); 
@@ -1250,7 +1255,9 @@ class _StudioScreenState extends State<StudioScreen>
     String rtmpsUrl = cableRtmpsController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
 
-    if (cableUrl.isEmpty && rtmpsUrl.isEmpty && satUrl.isEmpty) {
+    String activeUrl = cableUrl.isNotEmpty ? cableUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl);
+
+    if (activeUrl.isEmpty) {
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("దయచేసి కనీసం ఒక లింక్ (RTMP/RTMPS/SRT) ఇవ్వండి."), backgroundColor: Colors.red)
@@ -1264,7 +1271,7 @@ class _StudioScreenState extends State<StudioScreen>
     }
     
     try {
-      bool success = await StreamServiceManager.startLiveStream(cableUrl, rtmpsUrl, satUrl);
+      bool success = await StreamServiceManager.startLiveStream(activeUrl);
       if (success) {
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeRight,
@@ -2133,13 +2140,11 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 class StreamServiceManager {
-  // అక్టోబర్ 4 నాటి పాత ఛానల్ పేరు
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      // పాత మెథడ్ పేరు
       await platform.invokeMethod('startScreenStream', { 'rtmpUrl': safeUrl, 'recordAudio': true }); 
       return true; 
     } catch (e) { 
@@ -2170,4 +2175,3 @@ class StreamServiceManager {
     } catch (e) {}
   }
 }
-
