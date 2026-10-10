@@ -12,17 +12,16 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    // ఎగ్జాక్ట్‌గా అక్టోబర్ 4 నాటి ఛానల్ పేరు ఇక్కడ వాడాము!
     private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1001
     
     private var currentCableRtmp: String? = null
+    private var isNoiseCancellationEnabled: Boolean = false
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, "✅ Pocket PCR Engine Started!", Toast.LENGTH_LONG).show()
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
     }
 
@@ -33,6 +32,7 @@ class MainActivity: FlutterActivity() {
             when (call.method) {
                 "startScreenStream" -> {
                     currentCableRtmp = call.argument<String>("rtmpUrl")
+                    isNoiseCancellationEnabled = call.argument<Boolean>("noiseCancellation") ?: false
 
                     if (currentCableRtmp.isNullOrEmpty()) {
                         result.error("INVALID_URL", "Streaming URL is missing", null)
@@ -40,7 +40,7 @@ class MainActivity: FlutterActivity() {
                     }
 
                     try {
-                        // ఈ కోడే మీకు 'Entire Screen' పాపప్ తెస్తుంది!
+                        // ఈ లైన్ వల్లే మీకు ఆ "Entire Screen" పాపప్ వస్తుంది!
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
                         result.success(true)
@@ -83,6 +83,7 @@ class MainActivity: FlutterActivity() {
                     putExtra("resultCode", resultCode)
                     putExtra("data", data)
                     putExtra("rtmpUrl", currentCableRtmp)
+                    putExtra("noiseCancellation", isNoiseCancellationEnabled)
                 }
                 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
