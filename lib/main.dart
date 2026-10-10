@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+iimport 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -2135,9 +2135,8 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
-// మీ lib/main.dart ఫైల్ చివర్లో ఈ కోడ్ మాత్రమే అప్‌డేట్ చేయండి
 class StreamServiceManager {
-  static const platform = MethodChannel('pcr_live_channel');
+  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
     try {
@@ -2147,10 +2146,9 @@ class StreamServiceManager {
         'satelliteSrt': satelliteSrt
       });
       return true;
-    } on PlatformException catch (e) {
-      throw Exception("Native Android Error: ${e.code} - ${e.message}");
     } catch (e) {
-      throw Exception("Flutter Error: ${e.toString()}");
+      debugPrint("Stream Error: $e");
+      return false;
     }
   }
   
