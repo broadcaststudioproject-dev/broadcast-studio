@@ -97,9 +97,6 @@ class _StudioScreenState extends State<StudioScreen>
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
-  TextEditingController cableRtmpController = TextEditingController();
-  TextEditingController cableRtmpsController = TextEditingController();
-  TextEditingController satelliteSrtController = TextEditingController();
     // కొత్తగా యాడ్ చేసిన Cable TV లింక్ కంట్రోలర్
   TextEditingController cableTvUrlCtrl = TextEditingController();
   TextEditingController cableRtmpController = TextEditingController();
