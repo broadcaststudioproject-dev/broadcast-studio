@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kingjvk.pocket_pcr">
 
     <!-- Permissions for Live Streaming and Screen Recording -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -7,15 +8,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:label="Pocket PCR Studio"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- ఇది కచ్చితంగా మన కస్టమ్ MainActivity కి కనెక్ట్ అయ్యి ఉండాలి -->
+        <!-- ఆండ్రాయిడ్ సిస్టమ్‌కి మన క్లాస్ ఎక్కడుందో డైరెక్ట్ అడ్రస్ ఇస్తున్నాం -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.kingjvk.pocket_pcr.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
@@ -32,9 +34,9 @@
             </intent-filter>
         </activity>
 
-        <!-- మనం రాసిన బ్యాక్‌గ్రౌండ్ లైవ్ సర్వీస్ రిజిస్ట్రేషన్ -->
+        <!-- లైవ్ బ్యాక్‌గ్రౌండ్‌లో రన్ అవ్వడానికి సర్వీస్ అడ్రస్ -->
         <service
-            android:name=".ScreenStreamService"
+            android:name="com.kingjvk.pocket_pcr.ScreenStreamService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
