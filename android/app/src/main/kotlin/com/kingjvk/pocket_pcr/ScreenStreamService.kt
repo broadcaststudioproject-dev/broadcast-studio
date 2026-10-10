@@ -51,12 +51,15 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
+            // నాయిస్ క్యాన్సిలేషన్ కమాండ్ రిసీవ్ చేసుకోవడం
+            val enableNoiseCancellation = intent.getBooleanExtra("noiseCancellation", false)
 
             if (resultCode != -1 && data != null && !rtmpUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
+                // ఆడియో మరియు వీడియో సెటప్ (Noise Cancellation అప్లై చేయడం)
                 if (rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 320) == true &&
-                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true) {
+                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, enableNoiseCancellation, enableNoiseCancellation) == true) {
                     rtmpDisplay?.startStream(rtmpUrl)
                 } else {
                     mainHandler.post { Toast.makeText(this, "సెటప్ విఫలమైంది. మొబైల్ సపోర్ట్ చేయట్లేదు.", Toast.LENGTH_LONG).show() }
