@@ -2133,36 +2133,32 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 class StreamServiceManager {
-  // ఈ లైన్ పాత పర్మిషన్ పాపప్ ని 100% ట్రిగ్గర్ చేస్తుంది
-  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
+  // అక్టోబర్ 4 నాటి పాత ఛానల్ పేరు
+  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
-  static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
+  static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
-      await platform.invokeMethod('startScreenCaptureStreaming', {
-        'cableRtmp': cableRtmp,
-        'cableRtmps': cableRtmps,
-        'satelliteSrt': satelliteSrt
-      });
-      return true;
-    } on PlatformException catch (e) {
-      throw Exception("Native Android Error: ${e.code} - ${e.message}");
-    } catch (e) {
-      throw Exception("Flutter Error: ${e.toString()}");
+      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
+      // పాత మెథడ్ పేరు
+      await platform.invokeMethod('startScreenStream', { 'rtmpUrl': safeUrl, 'recordAudio': true }); 
+      return true; 
+    } catch (e) { 
+      throw Exception("Error: ${e.toString()}");
     }
   }
   
   static Future<bool> stopLiveStream() async {
-    try {
-      await platform.invokeMethod('stopScreenCaptureStreaming');
-      return true;
-    } catch (e) {
-      return false;
+    try { 
+      await platform.invokeMethod('stopScreenStream'); 
+      return true; 
+    } catch (e) { 
+      return false; 
     }
   }
   
   static Future<int?> startUsbCamera() async {
     try {
-      return await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera');
+      return await platform.invokeMethod('startUsbCamera');
     } catch (e) {
       return null;
     }
@@ -2170,7 +2166,8 @@ class StreamServiceManager {
   
   static Future<void> stopUsbCamera() async {
     try {
-      await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera');
+      await platform.invokeMethod('stopUsbCamera');
     } catch (e) {}
   }
 }
+
