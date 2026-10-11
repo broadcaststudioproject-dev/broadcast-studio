@@ -1274,7 +1274,7 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-    Future<void> _startLiveAndLock() async {
+      Future<void> _startLiveAndLock() async {
     String cableTvUrl = cableTvUrlCtrl.text.trim();
     String ytUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
@@ -1292,16 +1292,32 @@ class _StudioScreenState extends State<StudioScreen>
     if (!micStatus.isGranted) { micStatus = await Permission.microphone.request(); }
     
     try {
+      // 1. ముందుగా స్క్రీన్‌ని అడ్డంగా (Landscape) తిప్పేద్దాం
+      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      
+      // 2. స్క్రీన్ తిరగడానికి సిస్టమ్‌కి కొద్దిగా టైమ్ ఇద్దాం (దీనివల్ల పాపప్ క్యాన్సిల్ అవ్వదు)
+      await Future.delayed(const Duration(milliseconds: 800));
+
+      // 3. ఇప్పుడు సిస్టమ్‌కి కమాండ్ పంపి పాపప్ అడుగుదాం
       bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation);
+      
       if (success) {
-        SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-        setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = true; hideControls = true; isMenuOpen = false; isLandscape = true; });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ ప్రారంభమైంది..."), backgroundColor: Colors.orange));
+        setState(() { 
+          isLiveBroadcasting = true; 
+          isLivePaused = false; 
+          isLiveLocked = true; 
+          hideControls = true; 
+          isMenuOpen = false; 
+          isLandscape = true; 
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("దయచేసి 'Start now' పాపప్ నొక్కండి..."), backgroundColor: Colors.orange)
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("SYSTEM ERROR: ${e.toString()}"), backgroundColor: Colors.red, duration: const Duration(seconds: 5)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("SYSTEM ERROR: $e"), backgroundColor: Colors.red, duration: const Duration(seconds: 5)));
     }
-  }
+      }
 
   Future<void> _stopLiveStream() async {
     try {
