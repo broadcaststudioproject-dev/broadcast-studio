@@ -17,6 +17,9 @@ class MainActivity: FlutterActivity() {
     
     private var currentCableRtmp: String? = null
     private var isNoiseCancellationEnabled: Boolean = false
+    
+    // పాపప్ రిజల్ట్ కోసం పర్ఫెక్ట్ లాక్ వేరియబుల్
+    private var pendingResult: MethodChannel.Result? = null
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
 
@@ -33,19 +36,23 @@ class MainActivity: FlutterActivity() {
                 "startScreenStream" -> {
                     currentCableRtmp = call.argument<String>("rtmpUrl")
                     isNoiseCancellationEnabled = call.argument<Boolean>("noiseCancellation") ?: false
+                    
+                    // రిజల్ట్‌ను హోల్డ్ లో పెడుతున్నాం (యూజర్ "Start now" నొక్కే వరకు వెయిట్ చేస్తుంది)
+                    pendingResult = result
 
                     if (currentCableRtmp.isNullOrEmpty()) {
-                        result.error("INVALID_URL", "Streaming URL is missing", null)
+                        pendingResult?.error("INVALID_URL", "Streaming URL is missing", null)
+                        pendingResult = null
                         return@setMethodCallHandler
                     }
 
                     try {
-                        // ఈ కమాండ్ కచ్చితంగా ఆండ్రాయిడ్ సిస్టమ్ స్క్రీన్ పర్మిషన్ పాపప్‌ను బయటికి తెస్తుంది
+                        // స్క్రీన్ రికార్డింగ్ పాపప్ కమాండ్
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
-                        result.success(true)
                     } catch (e: Exception) {
-                        result.error("PROJECTION_ERROR", e.message ?: "Cannot start screen capture", null)
+                        pendingResult?.error("PROJECTION_ERROR", e.message ?: "Cannot start screen capture", null)
+                        pendingResult = null
                     }
                 }
                 "stopScreenStream" -> {
@@ -75,6 +82,7 @@ class MainActivity: FlutterActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        // యూజర్ "Start now" నొక్కినప్పుడు ఇక్కడ రిసీవ్ అవుతుంది
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
                 Toast.makeText(this, "లైవ్‌కి కనెక్ట్ అవుతోంది...", Toast.LENGTH_LONG).show()
@@ -91,9 +99,14 @@ class MainActivity: FlutterActivity() {
                 } else {
                     startService(serviceIntent)
                 }
+                
+                // పాపప్‌లో "Start now" నొక్కితేనే ఫ్లట్టర్‌కి సక్సెస్ సిగ్నల్ వెళ్తుంది
+                pendingResult?.success(true)
             } else {
                 Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ పర్మిషన్ రిజెక్ట్ చేయబడింది", Toast.LENGTH_SHORT).show()
+                pendingResult?.error("DENIED", "Permission Denied", null)
             }
+            pendingResult = null
         }
     }
 }
