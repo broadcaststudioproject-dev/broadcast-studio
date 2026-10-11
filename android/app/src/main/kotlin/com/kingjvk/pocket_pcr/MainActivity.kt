@@ -13,17 +13,16 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     companion object {
-        // ఛానల్ పేరును kingjvk కి మార్చడం జరిగింది
         private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
         private const val EXTRA_RESULT_CODE = "resultCode"
         private const val EXTRA_DATA = "data"
         private const val EXTRA_RTMP_URL = "rtmpUrl"
-        private const val EXTRA_RECORD_AUDIO = "recordAudio"
+        private const val EXTRA_NOISE_CANCELLATION = "noiseCancellation" // మీ ఫ్లట్టర్ కోడ్‌కి మ్యాచ్ అయ్యేలా మార్చబడింది
     }
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
     private var currentCableRtmp: String? = null
-    private var isRecordAudioEnabled: Boolean = true
+    private var isNoiseCancelEnabled: Boolean = false
     private var pendingResult: MethodChannel.Result? = null
     private var screenCaptureRequestInProgress = false
 
@@ -52,7 +51,7 @@ class MainActivity : FlutterActivity() {
                 putExtra(EXTRA_RESULT_CODE, activityResult.resultCode)
                 putExtra(EXTRA_DATA, activityResult.data)
                 putExtra(EXTRA_RTMP_URL, rtmpUrl)
-                putExtra(EXTRA_RECORD_AUDIO, isRecordAudioEnabled)
+                putExtra(EXTRA_NOISE_CANCELLATION, isNoiseCancelEnabled)
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -90,7 +89,8 @@ class MainActivity : FlutterActivity() {
                     }
 
                     currentCableRtmp = rtmpUrl
-                    isRecordAudioEnabled = call.argument<Boolean>("recordAudio") ?: true
+                    // మీ ఫ్లట్టర్ ఫైల్ పంపుతున్న noiseCancellation ని తీసుకుంటుంది
+                    isNoiseCancelEnabled = call.argument<Boolean>("noiseCancellation") ?: false
                     pendingResult = result
                     screenCaptureRequestInProgress = true
 
@@ -112,15 +112,9 @@ class MainActivity : FlutterActivity() {
                         result.error("STOP_ERROR", e.message, null)
                     }
                 }
-                "startUsbCamera" -> {
-                    result.error("NOT_IMPLEMENTED", "USB Camera Native Code Required", null)
-                }
-                "stopUsbCamera" -> {
-                    result.success(true)
-                }
-                else -> {
-                    result.notImplemented()
-                }
+                "startUsbCamera" -> { result.error("NOT_IMPLEMENTED", "USB Camera Native Code Required", null) }
+                "stopUsbCamera" -> { result.success(true) }
+                else -> { result.notImplemented() }
             }
         }
     }
