@@ -17,16 +17,17 @@ class MainActivity : FlutterActivity() {
         private const val EXTRA_RESULT_CODE = "resultCode"
         private const val EXTRA_DATA = "data"
         private const val EXTRA_RTMP_URL = "rtmpUrl"
-        private const val EXTRA_NOISE_CANCELLATION = "noiseCancellation" // మీ ఫ్లట్టర్ కోడ్‌కి మ్యాచ్ అయ్యేలా మార్చబడింది
+        private const val EXTRA_RTMPS_URL = "rtmpsUrl"
+        private const val EXTRA_SRT_URL = "srtUrl"
     }
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
     private var currentCableRtmp: String? = null
-    private var isNoiseCancelEnabled: Boolean = false
+    private var currentCableRtmps: String? = null
+    private var currentSatSrt: String? = null
     private var pendingResult: MethodChannel.Result? = null
     private var screenCaptureRequestInProgress = false
 
-    // పాపప్ కోసం పర్ఫెక్ట్ లాక్
     private val screenCaptureLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { activityResult ->
@@ -40,7 +41,7 @@ class MainActivity : FlutterActivity() {
             return@registerForActivityResult
         }
 
-        val rtmpUrl = currentCableRtmp
+        val rtmpUrl = if (!currentCableRtmp.isNullOrBlank()) currentCableRtmp else currentCableRtmps
         if (rtmpUrl.isNullOrBlank()) {
             callbackResult?.error("INVALID_URL", "Streaming URL is missing", null)
             return@registerForActivityResult
@@ -51,7 +52,8 @@ class MainActivity : FlutterActivity() {
                 putExtra(EXTRA_RESULT_CODE, activityResult.resultCode)
                 putExtra(EXTRA_DATA, activityResult.data)
                 putExtra(EXTRA_RTMP_URL, rtmpUrl)
-                putExtra(EXTRA_NOISE_CANCELLATION, isNoiseCancelEnabled)
+                putExtra(EXTRA_RTMPS_URL, currentCableRtmps ?: "")
+                putExtra(EXTRA_SRT_URL, currentSatSrt ?: "")
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -76,21 +78,22 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startScreenStream" -> {
+                // ఫ్లట్టర్ పంపుతున్న సరైన మెథడ్ పేరుకి మ్యాచ్ చేయడం జరిగింది
+                "startScreenCaptureStreaming" -> {
                     if (screenCaptureRequestInProgress || pendingResult != null) {
                         result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
                         return@setMethodCallHandler
                     }
 
-                    val rtmpUrl = call.argument<String>("rtmpUrl")?.trim()
-                    if (rtmpUrl.isNullOrBlank()) {
-                        result.error("INVALID_URL", "Streaming URL is missing", null)
+                    currentCableRtmp = call.argument<String>("cableRtmp")?.trim()
+                    currentCableRtmps = call.argument<String>("cableRtmps")?.trim()
+                    currentSatSrt = call.argument<String>("satelliteSrt")?.trim()
+
+                    if (currentCableRtmp.isNullOrBlank() && currentCableRtmps.isNullOrBlank() && currentSatSrt.isNullOrBlank()) {
+                        result.error("INVALID_URL", "Streaming URLs are missing", null)
                         return@setMethodCallHandler
                     }
 
-                    currentCableRtmp = rtmpUrl
-                    // మీ ఫ్లట్టర్ ఫైల్ పంపుతున్న noiseCancellation ని తీసుకుంటుంది
-                    isNoiseCancelEnabled = call.argument<Boolean>("noiseCancellation") ?: false
                     pendingResult = result
                     screenCaptureRequestInProgress = true
 
@@ -103,7 +106,7 @@ class MainActivity : FlutterActivity() {
                         result.error("PROJECTION_ERROR", e.message ?: "Cannot request screen capture", null)
                     }
                 }
-                "stopScreenStream" -> {
+                "stopScreenCaptureStreaming" -> {
                     try {
                         val serviceIntent = Intent(this, ScreenStreamService::class.java)
                         stopService(serviceIntent)
