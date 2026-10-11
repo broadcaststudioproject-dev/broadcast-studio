@@ -1274,7 +1274,7 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-      Future<void> _startLiveAndLock() async {
+          Future<void> _startLiveAndLock() async {
     String cableTvUrl = cableTvUrlCtrl.text.trim();
     String ytUrl = cableRtmpController.text.trim();
     String rtmpsUrl = cableRtmpsController.text.trim();
@@ -1295,10 +1295,10 @@ class _StudioScreenState extends State<StudioScreen>
       // 1. ముందుగా స్క్రీన్‌ని అడ్డంగా (Landscape) తిప్పేద్దాం
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
       
-      // 2. స్క్రీన్ తిరగడానికి సిస్టమ్‌కి కొద్దిగా టైమ్ ఇద్దాం (దీనివల్ల పాపప్ క్యాన్సిల్ అవ్వదు)
-      await Future.delayed(const Duration(milliseconds: 800));
+      // 2. స్క్రీన్ తిరగడానికి సిస్టమ్‌కి సరిగ్గా 1 సెకను టైమ్ ఇద్దాం (దీనివల్ల పాపప్ క్యాన్సిల్ అవ్వదు)
+      await Future.delayed(const Duration(milliseconds: 1000));
 
-      // 3. ఇప్పుడు సిస్టమ్‌కి కమాండ్ పంపి పాపప్ అడుగుదాం
+      // 3. ఇప్పుడు పాపప్ కోసం సిస్టమ్‌కి కమాండ్ పంపుతాం.. మీరు "Start now" నొక్కే వరకు ఇది ఇక్కడే వెయిట్ చేస్తుంది!
       bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation);
       
       if (success) {
@@ -1311,13 +1311,13 @@ class _StudioScreenState extends State<StudioScreen>
           isLandscape = true; 
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("దయచేసి 'Start now' పాపప్ నొక్కండి..."), backgroundColor: Colors.orange)
+          const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ ప్రారంభమైంది..."), backgroundColor: Colors.orange)
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("SYSTEM ERROR: $e"), backgroundColor: Colors.red, duration: const Duration(seconds: 5)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("SYSTEM ERROR / DENIED"), backgroundColor: Colors.red, duration: const Duration(seconds: 3)));
     }
-      }
+  }
 
   Future<void> _stopLiveStream() async {
     try {
