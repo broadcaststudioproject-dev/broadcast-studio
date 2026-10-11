@@ -27,10 +27,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         createNotificationChannel()
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Pocket PCR Studio")
-            .setContentText("లైవ్ స్క్రీన్ రికార్డింగ్ నడుస్తోంది...")
+            .setContentTitle("SS YATRA TV - Live")
+            .setContentText("స్క్రీన్ రికార్డింగ్ ద్వారా లైవ్ నడుస్తోంది...")
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setPriority(NotificationCompat.PRIORITY_HIGH) // ఇక్కడ హై ప్రయారిటీకి మార్చబడింది
+            .setPriority(NotificationCompat.PRIORITY_HIGH) 
             .setOngoing(true)
             .build()
 
@@ -41,7 +41,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 startForeground(NOTIFICATION_ID, notification)
             }
         } catch (e: Exception) {
-            mainHandler.post { Toast.makeText(this, "Service Error: ${e.message}", Toast.LENGTH_LONG).show() }
+            mainHandler.post { Toast.makeText(this, "Notification Error: ${e.message}", Toast.LENGTH_LONG).show() }
         }
 
         rtmpDisplay = RtmpDisplay(baseContext, true, this)
@@ -52,28 +52,37 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
-            val enableNoiseCancellation = intent.getBooleanExtra("noiseCancellation", false)
+            val recordAudio = intent.getBooleanExtra("recordAudio", true)
 
             if (resultCode != -1 && data != null && !rtmpUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                // ఫోన్ సైజును ఆటోమేటిక్ గా కనుక్కొనే లాజిక్
+                // ఫోన్ ఒరిజినల్ స్క్రీన్ సైజును తీసుకోవడం
                 val metrics = resources.displayMetrics
-                var screenW = metrics.widthPixels
-                var screenH = metrics.heightPixels
-                
-                // ఆండ్రాయిడ్ ఎన్‌కోడర్ క్రాష్ అవ్వకుండా ఉండటానికి సైజులను ఈవెన్ నంబర్స్ లోకి మారుస్తున్నాం
+                var rawW = metrics.widthPixels
+                var rawH = metrics.heightPixels
+
+                var screenW = if (rawW > rawH) rawW else rawH
+                var screenH = if (rawW > rawH) rawH else rawW
+
+                val maxRes = 1280
+                if (screenW > maxRes) {
+                    screenH = (screenH * maxRes) / screenW
+                    screenW = maxRes
+                }
+
                 if (screenW % 2 != 0) screenW -= 1
                 if (screenH % 2 != 0) screenH -= 1
 
                 val videoOk = rtmpDisplay?.prepareVideo(screenW, screenH, 30, 2500 * 1024, 0, metrics.densityDpi) == true
-                val audioOk = rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, enableNoiseCancellation, enableNoiseCancellation) == true
+                val audioOk = if (recordAudio) {
+                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true
+                } else true
 
                 if (videoOk && audioOk) {
                     rtmpDisplay?.startStream(rtmpUrl)
                 } else {
-                    // ఒకవేళ ఎక్కడైనా ఫెయిల్ అయితే, ఏది (వీడియోనా/ఆడియోనా) ఫెయిల్ అయిందో స్క్రీన్ మీద చూపిస్తుంది
-                    mainHandler.post { Toast.makeText(this, "సెటప్ ఫెయిల్. ఎర్రర్: Video=$videoOk, Audio=$audioOk", Toast.LENGTH_LONG).show() }
+                    mainHandler.post { Toast.makeText(this, "క్రాష్: Video=$videoOk, Audio=$audioOk. స్క్రీన్ సైజు సెట్ కాలేదు.", Toast.LENGTH_LONG).show() }
                     stopSelf()
                 }
             }
@@ -92,31 +101,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onConnectionSuccessRtmp() {
-        mainHandler.post { Toast.makeText(this, "SUCCESS: మీరు లైవ్‌లో ఉన్నారు!", Toast.LENGTH_LONG).show() }
+        mainHandler.post { Toast.makeText(this, "యూట్యూబ్ లైవ్‌ ప్రారంభమైంది!", Toast.LENGTH_LONG).show() }
     }
 
     override fun onConnectionFailedRtmp(reason: String) {
-        mainHandler.post { Toast.makeText(this, "FAILED: లైవ్ ఫెయిల్ అయ్యింది: $reason", Toast.LENGTH_LONG).show() }
+        mainHandler.post { Toast.makeText(this, "లైవ్ కనెక్ట్ కాలేదు: $reason", Toast.LENGTH_LONG).show() }
         rtmpDisplay?.stopStream()
         stopSelf()
     }
 
     override fun onNewBitrateRtmp(bitrate: Long) {}
-
     override fun onDisconnectRtmp() {
-        mainHandler.post { Toast.makeText(this, "లైవ్ కట్ అయ్యింది.", Toast.LENGTH_SHORT).show() }
+        mainHandler.post { Toast.makeText(this, "లైవ్ ఆగిపోయింది.", Toast.LENGTH_SHORT).show() }
     }
-
-    override fun onAuthErrorRtmp() {
-        mainHandler.post { Toast.makeText(this, "ఆథరైజేషన్ ఎర్రర్.", Toast.LENGTH_SHORT).show() }
-    }
-
+    override fun onAuthErrorRtmp() {}
     override fun onAuthSuccessRtmp() {}
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // ఛానెల్ ప్రయారిటీని కూడా హై కు మార్చబడింది
-            val channel = NotificationChannel(CHANNEL_ID, "PCR Live Stream", NotificationManager.IMPORTANCE_HIGH)
+            val channel = NotificationChannel(CHANNEL_ID, "Pocket PCR Live", NotificationManager.IMPORTANCE_HIGH)
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
