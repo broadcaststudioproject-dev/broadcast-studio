@@ -28,9 +28,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Pocket PCR Studio")
-            .setContentText("స్క్రీన్ బ్యాక్‌గ్రౌండ్‌లో ప్రసారం అవుతోంది")
+            .setContentText("లైవ్ స్క్రీన్ రికార్డింగ్ నడుస్తోంది...")
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // ఇక్కడ హై ప్రయారిటీకి మార్చబడింది
+            .setOngoing(true)
             .build()
 
         try {
@@ -51,18 +52,28 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
-            // నాయిస్ క్యాన్సిలేషన్ (Noise Cancellation) సెట్టింగ్ రిసీవ్ చేసుకోవడం
             val enableNoiseCancellation = intent.getBooleanExtra("noiseCancellation", false)
 
             if (resultCode != -1 && data != null && !rtmpUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                // ఆండ్రాయిడ్ సిస్టమ్ ఆడియో & వీడియోను నాయిస్ సప్రెసర్‌తో ఇనిషియలైజ్ చేయడం
-                if (rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 320) == true &&
-                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, enableNoiseCancellation, enableNoiseCancellation) == true) {
+                // ఫోన్ సైజును ఆటోమేటిక్ గా కనుక్కొనే లాజిక్
+                val metrics = resources.displayMetrics
+                var screenW = metrics.widthPixels
+                var screenH = metrics.heightPixels
+                
+                // ఆండ్రాయిడ్ ఎన్‌కోడర్ క్రాష్ అవ్వకుండా ఉండటానికి సైజులను ఈవెన్ నంబర్స్ లోకి మారుస్తున్నాం
+                if (screenW % 2 != 0) screenW -= 1
+                if (screenH % 2 != 0) screenH -= 1
+
+                val videoOk = rtmpDisplay?.prepareVideo(screenW, screenH, 30, 2500 * 1024, 0, metrics.densityDpi) == true
+                val audioOk = rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, enableNoiseCancellation, enableNoiseCancellation) == true
+
+                if (videoOk && audioOk) {
                     rtmpDisplay?.startStream(rtmpUrl)
                 } else {
-                    mainHandler.post { Toast.makeText(this, "సెటప్ విఫలమైంది. మొబైల్ సపోర్ట్ చేయట్లేదు.", Toast.LENGTH_LONG).show() }
+                    // ఒకవేళ ఎక్కడైనా ఫెయిల్ అయితే, ఏది (వీడియోనా/ఆడియోనా) ఫెయిల్ అయిందో స్క్రీన్ మీద చూపిస్తుంది
+                    mainHandler.post { Toast.makeText(this, "సెటప్ ఫెయిల్. ఎర్రర్: Video=$videoOk, Audio=$audioOk", Toast.LENGTH_LONG).show() }
                     stopSelf()
                 }
             }
@@ -104,7 +115,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(CHANNEL_ID, "PCR Live Stream", NotificationManager.IMPORTANCE_LOW)
+            // ఛానెల్ ప్రయారిటీని కూడా హై కు మార్చబడింది
+            val channel = NotificationChannel(CHANNEL_ID, "PCR Live Stream", NotificationManager.IMPORTANCE_HIGH)
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
