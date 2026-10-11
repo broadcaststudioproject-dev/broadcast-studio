@@ -1127,6 +1127,63 @@ class _StudioScreenState extends State<StudioScreen>
               ])
             ),
             actions: [
+  void _showMultiStreamDialog() {
+    setState(() { isMenuOpen = false; });
+    showDialog(
+      context: context, 
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                
+                // ఇక్కడ ఎక్స్‌ట్రాగా ఉన్న కలర్స్ తీసేశాను, ఇప్పుడు ఎర్రర్ రాదు.
+                _buildLinkEditor("1. Cable TV RTMP Link", cableTvUrlCtrl, setDialogState),
+                const Divider(color: Colors.white24, height: 15),
+                _buildLinkEditor("2. YouTube RTMP Link", cableRtmpController, setDialogState),
+                const Divider(color: Colors.white24, height: 15),
+                _buildLinkEditor("3. Restream RTMPS Link", cableRtmpsController, setDialogState),
+                const Divider(color: Colors.white24, height: 15),
+                _buildLinkEditor("4. Satellite/Playout — SRT Link", satelliteSrtController, setDialogState),
+                const Divider(color: Colors.white24, height: 15),
+
+                // నాయిస్ క్యాన్సిలేషన్ స్విచ్
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.yellow, width: 1)),
+                  child: SwitchListTile(
+                    title: const Text("Noise Cancellation", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: const Text("బయటి శబ్దాలు కట్ చేసి, వాయిస్ క్లియర్ చేస్తుంది", style: TextStyle(color: Colors.grey, fontSize: 10)),
+                    activeColor: Colors.yellow,
+                    value: enableNoiseCancellation,
+                    onChanged: (val) async {
+                      setState(() { enableNoiseCancellation = val; });
+                      setDialogState(() { enableNoiseCancellation = val; });
+                      await _saveTextSettings();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                _buildLinkEditor("YouTube Video Link (Player)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
+                const Divider(color: Colors.white24, height: 15),
+                _buildLinkEditor("Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
+                const Divider(color: Colors.white24, height: 15),
+                
+                SizedBox(
+                  width: double.infinity, 
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 10)), 
+                    onPressed: () { Navigator.pop(context); _playLocalGalleryVideo(); }, 
+                    icon: const Icon(Icons.video_library, color: Colors.white, size: 20), 
+                    label: const Text("గ్యాలరీ నుండి సెలెక్ట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
+                  )
+                ),
+              ])
+            ),
+            actions: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
                 ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () { Navigator.pop(context); _startLiveAndLock(); }, child: const Text("Go Live", style: TextStyle(color: Colors.white, fontSize: 11))),
                 ElevatedButton(
@@ -1140,7 +1197,7 @@ class _StudioScreenState extends State<StudioScreen>
         });
       }
     );
-      }
+  }
 
   Widget _buildLinkEditor(String label, TextEditingController controller, StateSetter setDialogState, {VoidCallback? onPlay}) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
