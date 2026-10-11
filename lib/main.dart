@@ -1072,61 +1072,6 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-      void _showMultiStreamDialog() {
-    setState(() { isMenuOpen = false; });
-    showDialog(
-      context: context, 
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900],
-            title: const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. Cable TV RTMP Link", cableTvUrlCtrl, setDialogState, Colors.greenAccent),
-                const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("2. YouTube RTMP Link", cableRtmpController, setDialogState, Colors.redAccent),
-                const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("3. Restream RTMPS Link", cableRtmpsController, setDialogState, Colors.orangeAccent),
-                const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("4. Satellite/Playout — SRT Link", satelliteSrtController, setDialogState, Colors.blueAccent),
-                const Divider(color: Colors.white24, height: 15),
-
-                // నాయిస్ క్యాన్సిలేషన్ స్విచ్
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.yellow, width: 1)),
-                  child: SwitchListTile(
-                    title: const Text("Noise Cancellation", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                    subtitle: const Text("బయటి శబ్దాలు కట్ చేసి, వాయిస్ క్లియర్ చేస్తుంది", style: TextStyle(color: Colors.grey, fontSize: 10)),
-                    activeColor: Colors.yellow,
-                    value: enableNoiseCancellation,
-                    onChanged: (val) async {
-                      setState(() { enableNoiseCancellation = val; });
-                      setDialogState(() { enableNoiseCancellation = val; });
-                      await _saveTextSettings();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                _buildLinkEditor("YouTube Video Link (Player)", youtubeVideoUrlCtrl, setDialogState, Colors.cyanAccent, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
-                const Divider(color: Colors.white24, height: 15),
-                _buildLinkEditor("Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, Colors.cyanAccent, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
-                const Divider(color: Colors.white24, height: 15),
-                
-                SizedBox(
-                  width: double.infinity, 
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 10)), 
-                    onPressed: () { Navigator.pop(context); _playLocalGalleryVideo(); }, 
-                    icon: const Icon(Icons.video_library, color: Colors.white, size: 20), 
-                    label: const Text("గ్యాలరీ నుండి సెలెక్ట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
-                  )
-                ),
-              ])
-            ),
-            actions: [
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -1138,8 +1083,6 @@ class _StudioScreenState extends State<StudioScreen>
             title: const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                
-                // ఇక్కడ ఎక్స్‌ట్రాగా ఉన్న కలర్స్ తీసేశాను, ఇప్పుడు ఎర్రర్ రాదు.
                 _buildLinkEditor("1. Cable TV RTMP Link", cableTvUrlCtrl, setDialogState),
                 const Divider(color: Colors.white24, height: 15),
                 _buildLinkEditor("2. YouTube RTMP Link", cableRtmpController, setDialogState),
@@ -1149,7 +1092,6 @@ class _StudioScreenState extends State<StudioScreen>
                 _buildLinkEditor("4. Satellite/Playout — SRT Link", satelliteSrtController, setDialogState),
                 const Divider(color: Colors.white24, height: 15),
 
-                // నాయిస్ క్యాన్సిలేషన్ స్విచ్
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.yellow, width: 1)),
@@ -1158,10 +1100,9 @@ class _StudioScreenState extends State<StudioScreen>
                     subtitle: const Text("బయటి శబ్దాలు కట్ చేసి, వాయిస్ క్లియర్ చేస్తుంది", style: TextStyle(color: Colors.grey, fontSize: 10)),
                     activeColor: Colors.yellow,
                     value: enableNoiseCancellation,
-                    onChanged: (val) async {
+                    onChanged: (val) {
                       setState(() { enableNoiseCancellation = val; });
                       setDialogState(() { enableNoiseCancellation = val; });
-                      await _saveTextSettings();
                     },
                   ),
                 ),
@@ -1187,10 +1128,26 @@ class _StudioScreenState extends State<StudioScreen>
               Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
                 ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () { Navigator.pop(context); _startLiveAndLock(); }, child: const Text("Go Live", style: TextStyle(color: Colors.white, fontSize: 11))),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
-                  onPressed: () { Navigator.pop(context); _stopLiveStream(); }, 
-                  child: const Text("Stop Live", style: TextStyle(color: Colors.white, fontSize: 11))
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), 
+                  onPressed: () async { 
+                    Navigator.pop(context); 
+                    if (isLivePaused) { 
+                      String cableUrl = cableTvUrlCtrl.text.trim();
+                      String ytUrl = cableRtmpController.text.trim();
+                      String rtmpsUrl = cableRtmpsController.text.trim();
+                      String satUrl = satelliteSrtController.text.trim();
+                      String activeUrl = cableUrl.isNotEmpty ? cableUrl : (ytUrl.isNotEmpty ? ytUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl));
+
+                      bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation); 
+                      if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); } 
+                    } else { 
+                      bool success = await StreamServiceManager.stopLiveStream(); 
+                      if (success) { setState(() { isLivePaused = true; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."))); } 
+                    } 
+                  }, 
+                  child: Text(isLivePaused ? "Resume Live" : "Live Pause", style: const TextStyle(color: Colors.white, fontSize: 11))
                 ),
+                ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () { Navigator.pop(context); _stopLiveStream(); }, child: const Text("Live Close", style: TextStyle(color: Colors.white, fontSize: 11))),
               ])
             ]
           );
@@ -1199,16 +1156,56 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-  Widget _buildLinkEditor(String label, TextEditingController controller, StateSetter setDialogState, {VoidCallback? onPlay}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-      Row(children: [
-        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { await _saveLinks(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
-        if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
-      ])
-    ]);
+    Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, Color iconColor) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: Colors.white30,
+            child: Icon(icon, color: iconColor, size: 26)
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12)
+          )
+        ]
+      )
+    );
   }
+}
+
+class StreamServiceManager {
+  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  
+  static Future<bool> startLiveStream(String rtmpUrl, bool noiseCancellation) async {
+    try {
+      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
+      await platform.invokeMethod('startScreenStream', { 
+        'rtmpUrl': safeUrl, 
+        'noiseCancellation': noiseCancellation 
+      }); 
+      return true; 
+    } catch (e) { 
+      throw Exception("Error: ${e.toString()}");
+    }
+  }
+  
+  static Future<bool> stopLiveStream() async {
+    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
+  }
+  
+  static Future<int?> startUsbCamera() async {
+    try { return await platform.invokeMethod('startUsbCamera'); } catch (e) { return null; }
+  }
+  
+  static Future<void> stopUsbCamera() async {
+    try { await platform.invokeMethod('stopUsbCamera'); } catch (e) {}
+  }
+}
 
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
