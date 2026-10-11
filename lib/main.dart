@@ -97,7 +97,7 @@ class _StudioScreenState extends State<StudioScreen>
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
-      // కొత్తగా యాడ్ చేసిన Cable TV లింక్ కంట్రోలర్
+  // కొత్తగా యాడ్ చేసిన Cable TV లింక్ కంట్రోలర్
   TextEditingController cableTvUrlCtrl = TextEditingController();
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController cableRtmpsController = TextEditingController();
@@ -161,6 +161,7 @@ class _StudioScreenState extends State<StudioScreen>
     roleCtrl.text = reporterRole;
     mainHeadlineCtrl.text = splitScreenMainHeadline;
     subHeadlineCtrl.text = splitScreenSubHeadline;
+    cableTvUrlCtrl.text = ""; // Initialized Cable TV
     cableRtmpController.text = "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
     cableRtmpsController.text = "";
     satelliteSrtController.text = "";
@@ -209,7 +210,9 @@ class _StudioScreenState extends State<StudioScreen>
       adShapeMode = prefs.getInt('adShapeMode') ?? 0;
       logoPosition = prefs.getInt('logoPosition') ?? 0;
       enableWatermarkLogo = prefs.getBool('enableWatermarkLogo') ?? true;
+      enableNoiseCancellation = prefs.getBool('enableNoiseCancellation') ?? false; // Load Noise Cancellation
 
+      cableTvUrlCtrl.text = prefs.getString('cableTvUrl') ?? ""; // Load Cable TV
       cableRtmpController.text = prefs.getString('cableRtmp') ?? "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
       cableRtmpsController.text = prefs.getString('cableRtmps') ?? "";
       satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
@@ -339,10 +342,12 @@ class _StudioScreenState extends State<StudioScreen>
     await prefs.setInt('adShapeMode', adShapeMode);
     await prefs.setInt('logoPosition', logoPosition);
     await prefs.setBool('enableWatermarkLogo', enableWatermarkLogo);
+    await prefs.setBool('enableNoiseCancellation', enableNoiseCancellation); // Save Noise Cancellation
   }
 
   Future<void> _saveLinks() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cableTvUrl', cableTvUrlCtrl.text); // Save Cable TV
     await prefs.setString('cableRtmp', cableRtmpController.text);
     await prefs.setString('cableRtmps', cableRtmpsController.text);
     await prefs.setString('satelliteSrt', satelliteSrtController.text);
@@ -392,6 +397,7 @@ class _StudioScreenState extends State<StudioScreen>
     _ipCamController?.dispose();
     _droneCamController?.dispose();
 
+    cableTvUrlCtrl.dispose(); // Dispose Cable TV
     cableRtmpController.dispose();
     cableRtmpsController.dispose();
     satelliteSrtController.dispose();
@@ -942,7 +948,6 @@ class _StudioScreenState extends State<StudioScreen>
       },
     );
   }
-
   void _showEditDialog() {
     setState(() {
       isMenuOpen = false;
@@ -979,11 +984,11 @@ class _StudioScreenState extends State<StudioScreen>
                         } catch (e) {}
                       },
                       icon: const Icon(Icons.upload, color: Colors.white),
-                      label: const Text("గ్యాలరీ నుండి లోగో (MP4/GIF/JPEG) అప్లోడ్", style: TextStyle(color: Colors.white)),
+                      label: const Text("గ్యాలరీ నుండి లోగో అప్లోడ్", style: TextStyle(color: Colors.white)),
                     ),
                     const SizedBox(height: 10),
                     SwitchListTile(
-                      title: const Text("స్క్రీన్ పై లోగో వాటర్మార్క్ చూపించు", style: TextStyle(color: Colors.white, fontSize: 12)),
+                      title: const Text("స్క్రీన్ పై లోగో చూపించు", style: TextStyle(color: Colors.white, fontSize: 12)),
                       value: enableWatermarkLogo,
                       onChanged: (val) async {
                         setState(() {
@@ -1156,56 +1161,16 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-    Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, Color iconColor) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: Colors.white30,
-            child: Icon(icon, color: iconColor, size: 26)
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 12)
-          )
-        ]
-      )
-    );
+  Widget _buildLinkEditor(String label, TextEditingController controller, StateSetter setDialogState, {VoidCallback? onPlay}) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+      Row(children: [
+        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { await _saveLinks(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+        if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
+      ])
+    ]);
   }
-}
-
-class StreamServiceManager {
-  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
-  
-  static Future<bool> startLiveStream(String rtmpUrl, bool noiseCancellation) async {
-    try {
-      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      await platform.invokeMethod('startScreenStream', { 
-        'rtmpUrl': safeUrl, 
-        'noiseCancellation': noiseCancellation 
-      }); 
-      return true; 
-    } catch (e) { 
-      throw Exception("Error: ${e.toString()}");
-    }
-  }
-  
-  static Future<bool> stopLiveStream() async {
-    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
-  }
-  
-  static Future<int?> startUsbCamera() async {
-    try { return await platform.invokeMethod('startUsbCamera'); } catch (e) { return null; }
-  }
-  
-  static Future<void> stopUsbCamera() async {
-    try { await platform.invokeMethod('stopUsbCamera'); } catch (e) {}
-  }
-}
 
   Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
@@ -1315,7 +1280,7 @@ class StreamServiceManager {
     });
   }
 
-            // ఇదే అసలైన పరిష్కారం! పాపప్ వచ్చిన తర్వాతే యాప్ స్క్రీన్ అడ్డంగా తిరుగుతుంది.
+  // ఇదే అసలైన పరిష్కారం! పాపప్ వచ్చి 'Start Now' నొక్కిన తర్వాతే యాప్ స్క్రీన్ అడ్డంగా తిరుగుతుంది.
   Future<void> _startLiveAndLock() async {
     String cableTvUrl = cableTvUrlCtrl.text.trim();
     String ytUrl = cableRtmpController.text.trim();
@@ -2194,7 +2159,7 @@ class StreamServiceManager {
       )
     );
   }
-}
+} // ఈ బ్రాకెట్ _StudioScreenState క్లాస్‌ను ఇక్కడ పర్ఫెక్ట్‌గా క్లోజ్ చేస్తుంది!
 
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
