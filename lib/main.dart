@@ -11,7 +11,7 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'master_pcr_board.dart'; // పాత ఫైల్ తీసేసి కొత్తది లింక్ చేశాం
+import 'master_pcr_board.dart'; 
 import 'election_board.dart';
 import 'dart:math';
 
@@ -1075,6 +1075,7 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
+  // Multi-Live డైలాగ్ నుండి బటన్స్ తీసేసి.. కేవలం లింక్స్ సేవ్ చేసుకోవడానికి మాత్రమే ఉంచాను.
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -1083,7 +1084,7 @@ class _StudioScreenState extends State<StudioScreen>
         return StatefulBuilder(builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            title: const Text("Live Links Setup", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                 _buildLinkEditor("1. Cable TV RTMP Link", cableTvUrlCtrl, setDialogState),
@@ -1122,59 +1123,17 @@ class _StudioScreenState extends State<StudioScreen>
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 10)), 
                     onPressed: () { Navigator.pop(context); _playLocalGalleryVideo(); }, 
                     icon: const Icon(Icons.video_library, color: Colors.white, size: 20), 
-                    label: const Text("గ్యాలరీ నుండి సెలెక్ట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
+                    label: const Text("గ్యాలరీ నుండి వీడియో ప్లే చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
                   )
                 ),
               ])
             ),
             actions: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green), 
-                  onPressed: () { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆండ్రాయిడ్ సిస్టమ్ కి సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
-                    Navigator.pop(context); 
-                    _startLiveAndLock(); 
-                  }, 
-                  child: const Text("Go Live", style: TextStyle(color: Colors.white, fontSize: 11))
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), 
-                  onPressed: () async { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
-                    Navigator.pop(context); 
-                    try {
-                      if (isLivePaused) { 
-                        String cableTvUrl = cableTvUrlCtrl.text.trim();
-                        String ytUrl = cableRtmpController.text.trim();
-                        String rtmpsUrl = cableRtmpsController.text.trim();
-                        String satUrl = satelliteSrtController.text.trim();
-
-                        bool success = await StreamServiceManager.startLiveStream(
-                          cableTvUrl.isNotEmpty ? cableTvUrl : ytUrl, 
-                          rtmpsUrl, satUrl, enableNoiseCancellation
-                        );
-                        if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); } 
-                      } else { 
-                        bool success = await StreamServiceManager.stopLiveStream(); 
-                        if (success) { setState(() { isLivePaused = true; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."))); } 
-                      }
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Pause Error: ${e.toString()}"), backgroundColor: Colors.red, duration: const Duration(seconds: 8)));
-                    }
-                  }, 
-                  child: Text(isLivePaused ? "Resume Live" : "Live Pause", style: const TextStyle(color: Colors.white, fontSize: 11))
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
-                  onPressed: () { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
-                    Navigator.pop(context); 
-                    _stopLiveStream(); 
-                  }, 
-                  child: const Text("Live Close", style: TextStyle(color: Colors.white, fontSize: 11))
-                ),
-              ])
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green), 
+                onPressed: () { Navigator.pop(context); }, 
+                child: const Text("Save & Close", style: TextStyle(color: Colors.white, fontSize: 11))
+              ),
             ]
           );
         });
@@ -1311,7 +1270,7 @@ class _StudioScreenState extends State<StudioScreen>
 
     if (activeUrl.isEmpty) {
       _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కనీసం ఒక లింక్ (Cable/RTMP) ఇవ్వండి."), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా కనీసం ఒక లైవ్ లింక్ (Cable/RTMP) ఇవ్వండి."), backgroundColor: Colors.red));
       return;
     }
 
@@ -1341,6 +1300,36 @@ class _StudioScreenState extends State<StudioScreen>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: ${e.toString()}"), backgroundColor: Colors.red, duration: const Duration(seconds: 8)));
+    }
+  }
+
+  // పాజ్ మరియు రెజ్యూమ్ చేసే సపరేట్ ఫంక్షన్
+  Future<void> _toggleLivePause() async {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
+    try {
+      if (isLivePaused) { 
+        String cableTvUrl = cableTvUrlCtrl.text.trim();
+        String ytUrl = cableRtmpController.text.trim();
+        String rtmpsUrl = cableRtmpsController.text.trim();
+        String satUrl = satelliteSrtController.text.trim();
+
+        bool success = await StreamServiceManager.startLiveStream(
+          cableTvUrl.isNotEmpty ? cableTvUrl : ytUrl, 
+          rtmpsUrl, satUrl, enableNoiseCancellation
+        );
+        if (success) { 
+          setState(() { isLivePaused = false; }); 
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); 
+        } 
+      } else { 
+        bool success = await StreamServiceManager.stopLiveStream(); 
+        if (success) { 
+          setState(() { isLivePaused = true; }); 
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.blue)); 
+        } 
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Pause Error: ${e.toString()}"), backgroundColor: Colors.red, duration: const Duration(seconds: 8)));
     }
   }
 
@@ -2089,21 +2078,44 @@ class _StudioScreenState extends State<StudioScreen>
                     ),
                   ),
 
-                  if (!hideControls && !isLiveLocked)
+                  // ఇక్కడ మనం కొత్తగా యాడ్ చేసిన మెయిన్ స్క్రీన్ కంట్రోల్స్ (GO LIVE, PAUSE, STOP, MENU)
+                  if (!hideControls)
                     Positioned(
                       bottom: 75,
-                      right: 20,
-                      child: FloatingActionButton(
-                        backgroundColor: Colors.blueAccent,
-                        onPressed: () {
-                          setState(() {
-                            isMenuOpen = !isMenuOpen;
-                          });
-                        },
-                        child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white)
-                      )
+                      right: 15,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // 1. LIVE CLOSE (లైవ్ నడుస్తున్నప్పుడు మాత్రమే కనిపిస్తుంది)
+                          if (isLiveBroadcasting)
+                            _buildMainScreenButton(Icons.stop, "LIVE CLOSE", Colors.red, () {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
+                              _stopLiveStream();
+                            }),
+                          
+                          // 2. LIVE PAUSE / RESUME (లైవ్ నడుస్తున్నప్పుడు మాత్రమే కనిపిస్తుంది)
+                          if (isLiveBroadcasting)
+                            _buildMainScreenButton(isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "RESUME" : "LIVE PAUSE", Colors.orange, _toggleLivePause),
+                          
+                          // 3. GO LIVE (లైవ్ లేనప్పుడు కనిపిస్తుంది)
+                          if (!isLiveBroadcasting)
+                            _buildMainScreenButton(Icons.sensors, "GO LIVE", Colors.green, () {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆండ్రాయిడ్ సిస్టమ్ కి సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
+                              _startLiveAndLock();
+                            }),
+                          
+                          // 4. MENU బటన్
+                          _buildMainScreenButton(isMenuOpen ? Icons.close : Icons.menu, "MENU", Colors.blueAccent, () {
+                            setState(() {
+                              isMenuOpen = !isMenuOpen;
+                            });
+                          }),
+                        ],
+                      ),
                     ),
 
+                  // పాత మెనూ ఓపెన్ చేసినప్పుడు వచ్చే పాప్-అప్ లిస్ట్
                   if (!hideControls && isMenuOpen && !isLiveLocked)
                     Positioned.fill(
                       child: Container(
@@ -2131,9 +2143,8 @@ class _StudioScreenState extends State<StudioScreen>
                                 );
                               }, Colors.amberAccent),
 
-                              _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
+                              _buildControlButton(Icons.live_tv, "Live Links", _showMultiStreamDialog, Colors.redAccent),
                               _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
-                              if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
 
                               _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
                               _buildControlButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), _toggleAdMode, adDisplayMode == 0 ? Colors.redAccent : (adDisplayMode == 1 ? Colors.blueAccent : Colors.greenAccent)),
@@ -2163,6 +2174,38 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
+  // మెయిన్ స్క్రీన్ మీద కొత్తగా పెట్టబడిన అందమైన రౌండ్ బటన్స్ కోసం
+  Widget _buildMainScreenButton(IconData icon, String label, Color bgColor, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 45,
+              height: 45,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))]
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
+              child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+            )
+          ],
+        )
+      ),
+    );
+  }
+
   Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, Color iconColor) {
     return GestureDetector(
       onTap: onTap,
@@ -2185,7 +2228,6 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
-// ఎలాంటి టైమౌట్ బ్లాక్ లేకుండా ఫ్రీగా వదిలేసిన క్లాస్
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
