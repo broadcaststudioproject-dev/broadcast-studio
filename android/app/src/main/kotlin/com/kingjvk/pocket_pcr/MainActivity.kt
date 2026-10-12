@@ -75,14 +75,13 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                // ఫ్లట్టర్ ఫైల్స్ కి తగ్గట్టుగా పేర్లు పక్కాగా మ్యాచ్ అయ్యేలా మార్చాము
+                // ఇక్కడే ఫ్లట్టర్ ఫైల్ కి మ్యాచ్ అయ్యేలా పేర్లు మార్చాము!
                 "startScreenCaptureStreaming" -> {
                     if (screenCaptureRequestInProgress || pendingResult != null) {
                         result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
                         return@setMethodCallHandler
                     }
 
-                    // ఫ్లట్టర్ పంపుతున్న కేబుల్ లింక్ ని రిసీవ్ చేసుకోవడానికి పేరు మార్చాము
                     val rtmpUrl = call.argument<String>("cableRtmp")?.trim()
                     if (rtmpUrl.isNullOrBlank()) {
                         result.error("INVALID_URL", "Streaming URL is missing", null)
@@ -95,7 +94,6 @@ class MainActivity : FlutterActivity() {
                     screenCaptureRequestInProgress = true
 
                     try {
-                        // స్క్రీన్ రికార్డింగ్ కనెక్ట్ అవ్వగానే మీకు కింద టోస్ట్ మెసేజ్ వస్తుంది
                         Toast.makeText(this, "ఆండ్రాయిడ్ సిస్టమ్ కనెక్ట్ అయ్యింది..", Toast.LENGTH_SHORT).show()
                         
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
