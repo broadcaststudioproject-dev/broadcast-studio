@@ -52,13 +52,12 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
-            // నాయిస్ క్యాన్సిలేషన్ తీసుకునే లాజిక్
-            val noiseCancel = intent.getBooleanExtra("noiseCancellation", false)
+            val recordAudio = intent.getBooleanExtra("recordAudio", true)
 
             if (resultCode != -1 && data != null && !rtmpUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                // ఫోన్ ఒరిజినల్ స్క్రీన్ సైజును తీసుకోవడం (క్రాష్ అవ్వకుండా)
+                // ఫోన్ ఒరిజినల్ స్క్రీన్ సైజును తీసుకోవడం
                 val metrics = resources.displayMetrics
                 var rawW = metrics.widthPixels
                 var rawH = metrics.heightPixels
@@ -76,13 +75,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 if (screenH % 2 != 0) screenH -= 1
 
                 val videoOk = rtmpDisplay?.prepareVideo(screenW, screenH, 30, 2500 * 1024, 0, metrics.densityDpi) == true
-                // ఆడియోకి నాయిస్ క్యాన్సిలేషన్ అప్లై చేయడం
-                val audioOk = rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, noiseCancel, noiseCancel) == true
+                val audioOk = if (recordAudio) {
+                    rtmpDisplay?.prepareAudio(64 * 1024, 32000, true, false, false) == true
+                } else true
 
                 if (videoOk && audioOk) {
                     rtmpDisplay?.startStream(rtmpUrl)
                 } else {
-                    mainHandler.post { Toast.makeText(this, "క్రాష్: Video=$videoOk, Audio=$audioOk. స్క్రీన్/ఆడియో సైజు సెట్ కాలేదు.", Toast.LENGTH_LONG).show() }
+                    mainHandler.post { Toast.makeText(this, "క్రాష్: Video=$videoOk, Audio=$audioOk. స్క్రీన్ సైజు సెట్ కాలేదు.", Toast.LENGTH_LONG).show() }
                     stopSelf()
                 }
             }
