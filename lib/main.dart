@@ -1176,13 +1176,14 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  Future<void> _startNetworkBulletin(String url) async {
+    Future<void> _startNetworkBulletin(String url) async {
     if (url.isEmpty) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("యూట్యూబ్ లింక్ చెక్ చేయబడుతోంది..."), backgroundColor: Colors.orange)
     );
     
     String finalPlayUrl = url;
+    Map<String, String> httpHeaders = {}; // హెడర్స్ సెట్ చేయడానికి
     
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       var ytExplode = yt.YoutubeExplode();
@@ -1203,7 +1204,7 @@ class _StudioScreenState extends State<StudioScreen>
         if (videoId == null) { 
           ytExplode.close(); 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red)
+            const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్. దయచేసి సరైన లింక్ ఇవ్వండి."), backgroundColor: Colors.red)
           ); 
           return;
         }
@@ -1213,9 +1214,17 @@ class _StudioScreenState extends State<StudioScreen>
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id); 
         } else { 
           var manifest = await ytExplode.videos.streamsClient.getManifest(video.id); 
+          // వీడియో మరియు ఆడియో కలిపి ఉన్న (Muxed) హైయెస్ట్ క్వాలిటీ లింక్‌ని తీసుకుంటుంది
           finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
         }
         ytExplode.close();
+
+        // యూట్యూబ్ బ్లాక్ చేయకుండా బ్రౌజర్ లాగా యాక్ట్ చేసే హెడర్స్
+        httpHeaders = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+        };
+
       } catch (e) {
         ytExplode.close();
         debugPrint("YouTube Parse Error: $e");
@@ -1230,8 +1239,11 @@ class _StudioScreenState extends State<StudioScreen>
     _bulletinVideoController?.removeListener(_videoListener); 
     _bulletinVideoController?.dispose();
     
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))
-      ..initialize().then((_) { 
+    // ఇక్కడ ఫైనల్ URL తో పాటు, పైన క్రియేట్ చేసిన హెడర్స్‌ని కూడా పాస్ చేస్తున్నాము
+    _bulletinVideoController = VideoPlayerController.networkUrl(
+      Uri.parse(finalPlayUrl), 
+      httpHeaders: httpHeaders
+    )..initialize().then((_) { 
         if (!mounted) return; 
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
         setState(() { 
@@ -1247,7 +1259,7 @@ class _StudioScreenState extends State<StudioScreen>
           const SnackBar(content: Text("వీడియో డైరెక్ట్ ప్లే కాలేదు. లింక్ లేదా నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red)
         ); 
       });
-  }
+    }
 
   Future<void> _playLocalGalleryVideo() async {
     try {
