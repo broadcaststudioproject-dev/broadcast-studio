@@ -11,7 +11,7 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'pcr_board.dart';
+import 'master_pcr_board.dart';
 import 'election_board.dart';
 import 'dart:math';
 
