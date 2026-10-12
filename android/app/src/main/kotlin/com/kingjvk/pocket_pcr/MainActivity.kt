@@ -13,24 +13,59 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     companion object {
+        // ఛానల్ పేరును kingjvk కి మార్చడం జరిగింది
         private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
-        // పాప్-అప్ కోసం వాడే పక్కా కోడ్
-        private const val REQUEST_CODE_SCREEN_CAPTURE = 10001
         private const val EXTRA_RESULT_CODE = "resultCode"
         private const val EXTRA_DATA = "data"
         private const val EXTRA_RTMP_URL = "rtmpUrl"
-        private const val EXTRA_RTMPS_URL = "rtmpsUrl"
-        private const val EXTRA_SRT_URL = "srtUrl"
-        private const val EXTRA_NOISE_CANCELLATION = "noiseCancellation"
+        private const val EXTRA_RECORD_AUDIO = "recordAudio"
     }
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
     private var currentCableRtmp: String? = null
-    private var currentCableRtmps: String? = null
-    private var currentSatSrt: String? = null
-    private var isNoiseCancelEnabled: Boolean = false
+    private var isRecordAudioEnabled: Boolean = true
     private var pendingResult: MethodChannel.Result? = null
     private var screenCaptureRequestInProgress = false
+
+    // పాపప్ కోసం పర్ఫెక్ట్ లాక్
+    private val screenCaptureLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { activityResult ->
+        screenCaptureRequestInProgress = false
+        val callbackResult = pendingResult
+        pendingResult = null
+
+        if (activityResult.resultCode != Activity.RESULT_OK || activityResult.data == null) {
+            Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ అనుమతి ఇవ్వలేదు", Toast.LENGTH_SHORT).show()
+            callbackResult?.error("DENIED", "User denied screen capture permission", null)
+            return@registerForActivityResult
+        }
+
+        val rtmpUrl = currentCableRtmp
+        if (rtmpUrl.isNullOrBlank()) {
+            callbackResult?.error("INVALID_URL", "Streaming URL is missing", null)
+            return@registerForActivityResult
+        }
+
+        try {
+            val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
+                putExtra(EXTRA_RESULT_CODE, activityResult.resultCode)
+                putExtra(EXTRA_DATA, activityResult.data)
+                putExtra(EXTRA_RTMP_URL, rtmpUrl)
+                putExtra(EXTRA_RECORD_AUDIO, isRecordAudioEnabled)
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+
+            callbackResult?.success(true)
+        } catch (e: Exception) {
+            callbackResult?.error("SERVICE_START_ERROR", e.message ?: "Unable to start streaming", null)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,39 +77,33 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startScreenCaptureStreaming" -> {
-                    // ఫ్లట్టర్ నుండి సిగ్నల్ రాగానే ఈ మెసేజ్ వస్తుంది
-                    Toast.makeText(this, "లైవ్ సిగ్నల్ అందుతోంది..", Toast.LENGTH_SHORT).show()
-
+                "startScreenStream" -> {
                     if (screenCaptureRequestInProgress || pendingResult != null) {
                         result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
                         return@setMethodCallHandler
                     }
 
-                    currentCableRtmp = call.argument<String>("cableRtmp")?.trim()
-                    currentCableRtmps = call.argument<String>("cableRtmps")?.trim()
-                    currentSatSrt = call.argument<String>("satelliteSrt")?.trim()
-                    isNoiseCancelEnabled = call.argument<Boolean>("noiseCancellation") ?: false
-
-                    if (currentCableRtmp.isNullOrBlank() && currentCableRtmps.isNullOrBlank() && currentSatSrt.isNullOrBlank()) {
-                        result.error("INVALID_URL", "Streaming URLs are missing", null)
+                    val rtmpUrl = call.argument<String>("rtmpUrl")?.trim()
+                    if (rtmpUrl.isNullOrBlank()) {
+                        result.error("INVALID_URL", "Streaming URL is missing", null)
                         return@setMethodCallHandler
                     }
 
+                    currentCableRtmp = rtmpUrl
+                    isRecordAudioEnabled = call.argument<Boolean>("recordAudio") ?: true
                     pendingResult = result
                     screenCaptureRequestInProgress = true
 
                     try {
-                        // స్క్రీన్ రికార్డింగ్ పాప్-అప్ ని బలవంతంగా లాంచ్ చేసే పాత & స్ట్రాంగ్ పద్ధతి
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
-                        startActivityForResult(captureIntent, REQUEST_CODE_SCREEN_CAPTURE)
+                        screenCaptureLauncher.launch(captureIntent)
                     } catch (e: Exception) {
                         screenCaptureRequestInProgress = false
                         pendingResult = null
                         result.error("PROJECTION_ERROR", e.message ?: "Cannot request screen capture", null)
                     }
                 }
-                "stopScreenCaptureStreaming" -> {
+                "stopScreenStream" -> {
                     try {
                         val serviceIntent = Intent(this, ScreenStreamService::class.java)
                         stopService(serviceIntent)
@@ -83,49 +112,15 @@ class MainActivity : FlutterActivity() {
                         result.error("STOP_ERROR", e.message, null)
                     }
                 }
-                "startUsbCamera" -> { result.error("NOT_IMPLEMENTED", "USB Camera Native Code Required", null) }
-                "stopUsbCamera" -> { result.success(true) }
-                else -> { result.notImplemented() }
-            }
-        }
-    }
-
-    // "Start Now" నొక్కిన వెంటనే ఈ బ్లాక్ రన్ అవుతుంది (ఇది ఎప్పటికీ ఫెయిల్ అవ్వదు)
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == REQUEST_CODE_SCREEN_CAPTURE) {
-            screenCaptureRequestInProgress = false
-            val callbackResult = pendingResult
-            pendingResult = null
-
-            if (resultCode != Activity.RESULT_OK || data == null) {
-                Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ అనుమతి ఇవ్వలేదు", Toast.LENGTH_SHORT).show()
-                callbackResult?.error("DENIED", "User denied screen capture permission", null)
-                return
-            }
-
-            val rtmpUrl = if (!currentCableRtmp.isNullOrBlank()) currentCableRtmp else currentCableRtmps
-            
-            try {
-                val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                    putExtra(EXTRA_RESULT_CODE, resultCode)
-                    putExtra(EXTRA_DATA, data)
-                    putExtra(EXTRA_RTMP_URL, rtmpUrl)
-                    putExtra(EXTRA_RTMPS_URL, currentCableRtmps ?: "")
-                    putExtra(EXTRA_SRT_URL, currentSatSrt ?: "")
-                    putExtra(EXTRA_NOISE_CANCELLATION, isNoiseCancelEnabled)
+                "startUsbCamera" -> {
+                    result.error("NOT_IMPLEMENTED", "USB Camera Native Code Required", null)
                 }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(serviceIntent)
-                } else {
-                    startService(serviceIntent)
+                "stopUsbCamera" -> {
+                    result.success(true)
                 }
-
-                callbackResult?.success(true)
-            } catch (e: Exception) {
-                callbackResult?.error("SERVICE_START_ERROR", e.message ?: "Unable to start streaming", null)
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
     }
