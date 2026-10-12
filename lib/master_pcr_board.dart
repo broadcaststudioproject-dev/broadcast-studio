@@ -49,7 +49,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
     {"id": "DRONE_1", "name": "DJI Drone", "type": "DRONE", "active": false, "muted": true, "url": "rtsp://192.168.1.1:554/live"}, 
     {"id": "HDMI_1", "name": "Sony Cam 1", "type": "USB", "active": false, "muted": false, "url": ""},
-    {"id": "IP_1", "name": "CCTV Left", "type": "IP", "active": false, "muted": true, "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"}, // ఉదాహరణకు యూట్యూబ్ లింక్
+    {"id": "IP_1", "name": "CCTV Left", "type": "IP", "active": false, "muted": true, "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"}, 
     {"id": "IP_2", "name": "CCTV Right", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.100:8080/video"},
     {"id": "IP_3", "name": "Mobile WiFi 1", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.101:8080/video"},
     {"id": "IP_4", "name": "Mobile WiFi 2", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.102:8080/video"},
@@ -87,7 +87,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     });
   }
 
-  // --- యూట్యూబ్ లింక్ సపోర్ట్ చేసే టోగుల్ కెమెరా ఫంక్షన్ ---
   Future<void> _toggleRTSPCamera(String camId, String url, bool isActive, bool isMuted) async { 
     if (isActive) { 
       String finalUrl = url;
@@ -206,14 +205,37 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                         const SizedBox(width: 6),
                         _buildControlButton("UPLOAD LOGO", Colors.indigo, _uploadLogo),
                         const SizedBox(width: 6),
-                        _buildControlButton("GO LIVE / REC", Colors.red, () {
-                          _channel.invokeMethod('startScreenCaptureStreaming', {'cableRtmp': cableRtmpUrl});
+                        
+                        // ఇక్కడే ఆ 4 పారామీటర్ల లాజిక్ యాడ్ చేసాను!
+                        _buildControlButton(isRecording ? "STOP LIVE" : "GO LIVE / REC", isRecording ? Colors.orange : Colors.red, () async {
+                          if (isRecording) {
+                            try {
+                              await _channel.invokeMethod('stopScreenCaptureStreaming');
+                              setState(() => isRecording = false);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ఆగిపోయింది."), backgroundColor: Colors.blue));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Stop Error: $e"), backgroundColor: Colors.red));
+                            }
+                          } else {
+                            try {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ (Live) కోసం కనెక్ట్ అవుతోంది..."), backgroundColor: Colors.green));
+                              await _channel.invokeMethod('startScreenCaptureStreaming', {
+                                'cableRtmp': cableRtmpUrl,
+                                'cableRtmps': '', 
+                                'satelliteSrt': '', 
+                                'noiseCancellation': false 
+                              });
+                              setState(() => isRecording = true);
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red));
+                            }
+                          }
                         }),
+                        
                       ],
                     ),
                   ),
                 ),
-              // --- కింద కెమెరాల లిస్ట్ బాక్స్ ---
               if (showControls)
                 Positioned(
                   bottom: 40, left: 0, right: 0,
@@ -326,7 +348,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center, 
             children: [
-              // --- పవర్ బటన్ (యూట్యూబ్ లింక్ ప్రాసెస్ అయ్యేలా await జోడించబడింది) ---
               GestureDetector(
                 onTap: () async { 
                   bool willBeActive = !isActive;
