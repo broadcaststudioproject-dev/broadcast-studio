@@ -2164,28 +2164,40 @@ class _StudioScreenState extends State<StudioScreen>
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
-  static Future<bool> startLiveStream(String rtmpUrl, bool noiseCancellation) async {
+  static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
     try {
-      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      await platform.invokeMethod('startScreenStream', { 
-        'rtmpUrl': safeUrl, 
-        'noiseCancellation': noiseCancellation 
-      }); 
-      return true; 
-    } catch (e) { 
-      throw Exception("Error: ${e.toString()}");
+      await platform.invokeMethod('startScreenCaptureStreaming', {
+        'cableRtmp': cableRtmp,
+        'cableRtmps': cableRtmps,
+        'satelliteSrt': satelliteSrt
+      });
+      return true;
+    } catch (e) {
+      debugPrint("Live Stream Error: \${e.toString()}");
+      return false;
     }
   }
   
   static Future<bool> stopLiveStream() async {
-    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
+    try {
+      await platform.invokeMethod('stopScreenCaptureStreaming');
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
   
   static Future<int?> startUsbCamera() async {
-    try { return await platform.invokeMethod('startUsbCamera'); } catch (e) { return null; }
+    try {
+      return await platform.invokeMethod('startUsbCamera');
+    } catch (e) {
+      return null;
+    }
   }
   
   static Future<void> stopUsbCamera() async {
-    try { await platform.invokeMethod('stopUsbCamera'); } catch (e) {}
+    try {
+      await platform.invokeMethod('stopUsbCamera');
+    } catch (e) {}
   }
 }
