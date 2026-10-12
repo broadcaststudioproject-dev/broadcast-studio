@@ -97,7 +97,6 @@ class _StudioScreenState extends State<StudioScreen>
   String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
-  // కొత్తగా యాడ్ చేసిన Cable TV లింక్ కంట్రోలర్
   TextEditingController cableTvUrlCtrl = TextEditingController();
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController cableRtmpsController = TextEditingController();
@@ -113,7 +112,6 @@ class _StudioScreenState extends State<StudioScreen>
   TextEditingController mainHeadlineCtrl = TextEditingController();
   TextEditingController subHeadlineCtrl = TextEditingController();
 
-  // నాయిస్ క్యాన్సిలేషన్ ఆన్/ఆఫ్ కోసం వేరియబుల్
   bool enableNoiseCancellation = false;
 
   Timer? _newsTimer;
@@ -126,7 +124,6 @@ class _StudioScreenState extends State<StudioScreen>
   int leftAdIndex = 0;
   int rightAdIndex = 0;
   int bottomAdIndex = 0;
-
 
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _rightAdVideoCtrl;
@@ -161,7 +158,7 @@ class _StudioScreenState extends State<StudioScreen>
     roleCtrl.text = reporterRole;
     mainHeadlineCtrl.text = splitScreenMainHeadline;
     subHeadlineCtrl.text = splitScreenSubHeadline;
-    cableTvUrlCtrl.text = ""; // Initialized Cable TV
+    cableTvUrlCtrl.text = ""; 
     cableRtmpController.text = "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
     cableRtmpsController.text = "";
     satelliteSrtController.text = "";
@@ -210,9 +207,9 @@ class _StudioScreenState extends State<StudioScreen>
       adShapeMode = prefs.getInt('adShapeMode') ?? 0;
       logoPosition = prefs.getInt('logoPosition') ?? 0;
       enableWatermarkLogo = prefs.getBool('enableWatermarkLogo') ?? true;
-      enableNoiseCancellation = prefs.getBool('enableNoiseCancellation') ?? false; // Load Noise Cancellation
+      enableNoiseCancellation = prefs.getBool('enableNoiseCancellation') ?? false;
 
-      cableTvUrlCtrl.text = prefs.getString('cableTvUrl') ?? ""; // Load Cable TV
+      cableTvUrlCtrl.text = prefs.getString('cableTvUrl') ?? "";
       cableRtmpController.text = prefs.getString('cableRtmp') ?? "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
       cableRtmpsController.text = prefs.getString('cableRtmps') ?? "";
       satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
@@ -342,12 +339,12 @@ class _StudioScreenState extends State<StudioScreen>
     await prefs.setInt('adShapeMode', adShapeMode);
     await prefs.setInt('logoPosition', logoPosition);
     await prefs.setBool('enableWatermarkLogo', enableWatermarkLogo);
-    await prefs.setBool('enableNoiseCancellation', enableNoiseCancellation); // Save Noise Cancellation
+    await prefs.setBool('enableNoiseCancellation', enableNoiseCancellation);
   }
 
   Future<void> _saveLinks() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cableTvUrl', cableTvUrlCtrl.text); // Save Cable TV
+    await prefs.setString('cableTvUrl', cableTvUrlCtrl.text);
     await prefs.setString('cableRtmp', cableRtmpController.text);
     await prefs.setString('cableRtmps', cableRtmpsController.text);
     await prefs.setString('satelliteSrt', satelliteSrtController.text);
@@ -397,7 +394,7 @@ class _StudioScreenState extends State<StudioScreen>
     _ipCamController?.dispose();
     _droneCamController?.dispose();
 
-    cableTvUrlCtrl.dispose(); // Dispose Cable TV
+    cableTvUrlCtrl.dispose();
     cableRtmpController.dispose();
     cableRtmpsController.dispose();
     satelliteSrtController.dispose();
@@ -948,6 +945,7 @@ class _StudioScreenState extends State<StudioScreen>
       },
     );
   }
+
   void _showEditDialog() {
     setState(() {
       isMenuOpen = false;
@@ -1137,13 +1135,19 @@ class _StudioScreenState extends State<StudioScreen>
                   onPressed: () async { 
                     Navigator.pop(context); 
                     if (isLivePaused) { 
-                      String cableUrl = cableTvUrlCtrl.text.trim();
+                      String cableTvUrl = cableTvUrlCtrl.text.trim();
                       String ytUrl = cableRtmpController.text.trim();
                       String rtmpsUrl = cableRtmpsController.text.trim();
                       String satUrl = satelliteSrtController.text.trim();
-                      String activeUrl = cableUrl.isNotEmpty ? cableUrl : (ytUrl.isNotEmpty ? ytUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl));
 
-                      bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation); 
+                      // ఎర్రర్ రాకుండా అన్నీ కరెక్ట్‌గా పంపబడతాయి
+                      bool success = await StreamServiceManager.startLiveStream(
+                        cableTvUrl.isNotEmpty ? cableTvUrl : ytUrl, // Cable కు ప్రాధాన్యత ఇస్తూ లేదంటే YouTube పంపుతుంది
+                        rtmpsUrl,
+                        satUrl,
+                        enableNoiseCancellation
+                      );
+
                       if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); } 
                     } else { 
                       bool success = await StreamServiceManager.stopLiveStream(); 
@@ -1280,7 +1284,6 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
-  // ఇదే అసలైన పరిష్కారం! పాపప్ వచ్చి 'Start Now' నొక్కిన తర్వాతే యాప్ స్క్రీన్ అడ్డంగా తిరుగుతుంది.
   Future<void> _startLiveAndLock() async {
     String cableTvUrl = cableTvUrlCtrl.text.trim();
     String ytUrl = cableRtmpController.text.trim();
@@ -1299,12 +1302,15 @@ class _StudioScreenState extends State<StudioScreen>
     if (!micStatus.isGranted) { micStatus = await Permission.microphone.request(); }
     
     try {
-      // 1. ముందుగా పాపప్ కోసం సిగ్నల్ పంపుతాం (ఈ సమయంలో స్క్రీన్ నిలువుగానే ఉండి పాపప్ చూపిస్తుంది)
-      bool success = await StreamServiceManager.startLiveStream(activeUrl, enableNoiseCancellation);
+      // ఇక్కడ కూడా 4 ఆర్గ్యుమెంట్స్ పంపుతున్నాము (సమస్య పరిష్కారం)
+      bool success = await StreamServiceManager.startLiveStream(
+        cableTvUrl.isNotEmpty ? cableTvUrl : ytUrl, // Cable TV కి ప్రాధాన్యత
+        rtmpsUrl,
+        satUrl,
+        enableNoiseCancellation
+      );
       
-      // 2. మీరు పాపప్ లో 'Start now' నొక్కితే కనుక కింది కోడ్ రన్ అవుతుంది
       if (success) {
-        // పాపప్ సక్సెస్ అయ్యాకే స్క్రీన్‌ని ల్యాండ్‌స్కేప్ కి తిప్పుతాం!
         SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
         
         setState(() { 
@@ -2159,17 +2165,21 @@ class _StudioScreenState extends State<StudioScreen>
       )
     );
   }
-} // ఈ బ్రాకెట్ _StudioScreenState క్లాస్‌ను ఇక్కడ పర్ఫెక్ట్‌గా క్లోజ్ చేస్తుంది!
+}
 
+// -------------------------------------------------------------
+// ఇక్కడ ఛానల్ పేరు మరియు 4 ఆర్గ్యుమెంట్స్ అన్నీ పక్కాగా సరిచేయబడ్డాయి
+// -------------------------------------------------------------
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
-  static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt) async {
+  static Future<bool> startLiveStream(String cableRtmp, String cableRtmps, String satelliteSrt, bool noiseCancellation) async {
     try {
       await platform.invokeMethod('startScreenCaptureStreaming', {
         'cableRtmp': cableRtmp,
         'cableRtmps': cableRtmps,
-        'satelliteSrt': satelliteSrt
+        'satelliteSrt': satelliteSrt,
+        'noiseCancellation': noiseCancellation
       });
       return true;
     } catch (e) {
