@@ -19,12 +19,15 @@ class MainActivity : FlutterActivity() {
         private const val EXTRA_RTMP_URL = "rtmpUrl"
         private const val EXTRA_RTMPS_URL = "rtmpsUrl"
         private const val EXTRA_SRT_URL = "srtUrl"
+        // నాయిస్ క్యాన్సిలేషన్ కోసం కీ యాడ్ చేసాము
+        private const val EXTRA_NOISE_CANCELLATION = "noiseCancellation"
     }
 
     private lateinit var mediaProjectionManager: MediaProjectionManager
     private var currentCableRtmp: String? = null
     private var currentCableRtmps: String? = null
     private var currentSatSrt: String? = null
+    private var isNoiseCancelEnabled: Boolean = false // కొత్త వేరియబుల్
     private var pendingResult: MethodChannel.Result? = null
     private var screenCaptureRequestInProgress = false
 
@@ -54,6 +57,8 @@ class MainActivity : FlutterActivity() {
                 putExtra(EXTRA_RTMP_URL, rtmpUrl)
                 putExtra(EXTRA_RTMPS_URL, currentCableRtmps ?: "")
                 putExtra(EXTRA_SRT_URL, currentSatSrt ?: "")
+                // ఇక్కడ సర్వీస్‌కి నాయిస్ క్యాన్సిలేషన్ డేటా పంపుతున్నాం
+                putExtra(EXTRA_NOISE_CANCELLATION, isNoiseCancelEnabled)
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -78,7 +83,6 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                // ఫ్లట్టర్ పంపుతున్న సరైన మెథడ్ పేరుకి మ్యాచ్ చేయడం జరిగింది
                 "startScreenCaptureStreaming" -> {
                     if (screenCaptureRequestInProgress || pendingResult != null) {
                         result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
@@ -88,6 +92,8 @@ class MainActivity : FlutterActivity() {
                     currentCableRtmp = call.argument<String>("cableRtmp")?.trim()
                     currentCableRtmps = call.argument<String>("cableRtmps")?.trim()
                     currentSatSrt = call.argument<String>("satelliteSrt")?.trim()
+                    // ఫ్లట్టర్ నుండి నాయిస్ క్యాన్సిలేషన్ డేటా రిసీవ్ చేసుకుంటున్నాం
+                    isNoiseCancelEnabled = call.argument<Boolean>("noiseCancellation") ?: false
 
                     if (currentCableRtmp.isNullOrBlank() && currentCableRtmps.isNullOrBlank() && currentSatSrt.isNullOrBlank()) {
                         result.error("INVALID_URL", "Streaming URLs are missing", null)
