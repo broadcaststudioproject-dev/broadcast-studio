@@ -55,7 +55,6 @@ class _StudioScreenState extends State<StudioScreen>
   int currentDualMediaIndex = 0;
   VideoPlayerController? _bottomAdVideoController;
 
-  bool isLiveLocked = false;
   bool hideControls = false;
   bool isMenuOpen = false;
 
@@ -1075,7 +1074,6 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-  // Multi-Live డైలాగ్ నుండి బటన్స్ తీసేసి.. కేవలం లింక్స్ సేవ్ చేసుకోవడానికి మాత్రమే ఉంచాను.
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -1269,8 +1267,7 @@ class _StudioScreenState extends State<StudioScreen>
     String activeUrl = cableTvUrl.isNotEmpty ? cableTvUrl : (ytUrl.isNotEmpty ? ytUrl : (rtmpsUrl.isNotEmpty ? rtmpsUrl : satUrl));
 
     if (activeUrl.isEmpty) {
-      _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా కనీసం ఒక లైవ్ లింక్ (Cable/RTMP) ఇవ్వండి."), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ముందుగా కనీసం ఒక లైవ్ లింక్ (Cable/RTMP) సెట్టింగ్స్ లో ఇవ్వండి."), backgroundColor: Colors.red));
       return;
     }
 
@@ -1291,7 +1288,7 @@ class _StudioScreenState extends State<StudioScreen>
         setState(() { 
           isLiveBroadcasting = true; 
           isLivePaused = false; 
-          isLiveLocked = true; 
+          // బటన్స్ అన్నింటినీ మాయం చేయడానికి ఈ ఆప్షన్
           hideControls = true; 
           isMenuOpen = false; 
           isLandscape = true; 
@@ -1318,13 +1315,13 @@ class _StudioScreenState extends State<StudioScreen>
           rtmpsUrl, satUrl, enableNoiseCancellation
         );
         if (success) { 
-          setState(() { isLivePaused = false; }); 
+          setState(() { isLivePaused = false; hideControls = true; isMenuOpen = false; }); 
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); 
         } 
       } else { 
         bool success = await StreamServiceManager.stopLiveStream(); 
         if (success) { 
-          setState(() { isLivePaused = true; }); 
+          setState(() { isLivePaused = true; hideControls = true; isMenuOpen = false; }); 
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.blue)); 
         } 
       }
@@ -1344,8 +1341,9 @@ class _StudioScreenState extends State<StudioScreen>
         ]);
         setState(() {
           isLiveBroadcasting = false;
-          isLiveLocked = false;
           isLivePaused = false;
+          hideControls = false;
+          isMenuOpen = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("లైవ్ ప్రసారం నిలిపివేయబడింది."), backgroundColor: Colors.blue)
@@ -1971,24 +1969,18 @@ class _StudioScreenState extends State<StudioScreen>
         bottom: true,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
+          
+          // ఇక్కడే ఆ ఆటో-హైడ్ మరియు టాప్ లాజిక్ రాశాను
           onTap: () {
-            if (!isLiveLocked) {
-              setState(() {
-                isMenuOpen ? isMenuOpen = false : hideControls = !hideControls;
-              });
-            }
+            setState(() {
+              if (isMenuOpen) {
+                isMenuOpen = false; // మెనూ ఓపెన్ ఉంటే దాన్ని క్లోజ్ చేస్తుంది
+              } else {
+                hideControls = !hideControls; // బటన్స్ మాయం/కనిపించేలా చేస్తుంది
+              }
+            });
           },
-          onLongPress: () {
-            if (isLiveLocked) {
-              setState(() {
-                isLiveLocked = false;
-                hideControls = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("స్క్రీన్ అన్‌‌లాక్ చేయబడింది."))
-              );
-            }
-          },
+          
           child: LayoutBuilder(
             builder: (context, constraints) {
               double screenW = constraints.maxWidth;
@@ -2078,45 +2070,50 @@ class _StudioScreenState extends State<StudioScreen>
                     ),
                   ),
 
-                  // ఇక్కడ మనం కొత్తగా యాడ్ చేసిన మెయిన్ స్క్రీన్ కంట్రోల్స్ (GO LIVE, PAUSE, STOP, MENU)
+                  // ఇక్కడ మెనూ బటన్ పక్కనే వరుసగా లైవ్ బటన్స్ అమర్చబడ్డాయి (హైడ్ అవ్వకపోతేనే కనిపిస్తాయి)
                   if (!hideControls)
                     Positioned(
-                      bottom: 75,
+                      bottom: 70,
                       right: 15,
-                      child: Column(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // 1. LIVE CLOSE (లైవ్ నడుస్తున్నప్పుడు మాత్రమే కనిపిస్తుంది)
-                          if (isLiveBroadcasting)
-                            _buildMainScreenButton(Icons.stop, "LIVE CLOSE", Colors.red, () {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
-                              _stopLiveStream();
-                            }),
-                          
-                          // 2. LIVE PAUSE / RESUME (లైవ్ నడుస్తున్నప్పుడు మాత్రమే కనిపిస్తుంది)
-                          if (isLiveBroadcasting)
-                            _buildMainScreenButton(isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "RESUME" : "LIVE PAUSE", Colors.orange, _toggleLivePause),
-                          
-                          // 3. GO LIVE (లైవ్ లేనప్పుడు కనిపిస్తుంది)
+                          // 1. GO LIVE (లైవ్ లేనప్పుడు మాత్రమే)
                           if (!isLiveBroadcasting)
-                            _buildMainScreenButton(Icons.sensors, "GO LIVE", Colors.green, () {
+                            _buildRowButton(Icons.sensors, "GO LIVE", Colors.green, () {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆండ్రాయిడ్ సిస్టమ్ కి సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
                               _startLiveAndLock();
                             }),
                           
+                          // 2. LIVE PAUSE (లైవ్ నడుస్తున్నప్పుడు మాత్రమే)
+                          if (isLiveBroadcasting)
+                            _buildRowButton(isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "RESUME" : "PAUSE", Colors.orange, _toggleLivePause),
+                          
+                          // 3. LIVE CLOSE (లైవ్ నడుస్తున్నప్పుడు మాత్రమే)
+                          if (isLiveBroadcasting)
+                            _buildRowButton(Icons.stop, "CLOSE", Colors.red, () {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
+                              _stopLiveStream();
+                            }),
+                            
+                          const SizedBox(width: 8),
+
                           // 4. MENU బటన్
-                          _buildMainScreenButton(isMenuOpen ? Icons.close : Icons.menu, "MENU", Colors.blueAccent, () {
-                            setState(() {
-                              isMenuOpen = !isMenuOpen;
-                            });
-                          }),
+                          FloatingActionButton(
+                            backgroundColor: Colors.blueAccent,
+                            onPressed: () {
+                              setState(() {
+                                isMenuOpen = !isMenuOpen;
+                              });
+                            },
+                            child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white)
+                          )
                         ],
                       ),
                     ),
 
-                  // పాత మెనూ ఓపెన్ చేసినప్పుడు వచ్చే పాప్-అప్ లిస్ట్
-                  if (!hideControls && isMenuOpen && !isLiveLocked)
+                  // మెనూ ఓపెన్ చేసినప్పుడు వచ్చే పాప్-అప్ లిస్ట్ (ఇందులోండి గో లైవ్, ఆపే బటన్స్ తీసేశాం)
+                  if (!hideControls && isMenuOpen)
                     Positioned.fill(
                       child: Container(
                         color: Colors.black87,
@@ -2126,6 +2123,24 @@ class _StudioScreenState extends State<StudioScreen>
                             spacing: 25,
                             runSpacing: 25,
                             children: [
+                              // 1. STREAM SETUP & BOARDS
+                              _buildControlButton(Icons.live_tv, "Live Links", _showMultiStreamDialog, Colors.redAccent),
+                              _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
+                                setState(() { isMenuOpen = false; }); 
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const MasterPCRBoard()),
+                                );
+                              }, Colors.amberAccent),
+                              _buildControlButton(Icons.bar_chart, "Election Results", () {
+                                setState(() { isMenuOpen = false; }); 
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const ElectionBoardScreen())
+                                );
+                              }, Colors.indigoAccent),
+
+                              // 2. CAMERAS & DUAL SCREEN
                               _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                               _buildControlButton(
                                 isCameraVisible ? Icons.videocam_off : Icons.videocam,
@@ -2134,32 +2149,17 @@ class _StudioScreenState extends State<StudioScreen>
                                 isCameraVisible ? Colors.redAccent : Colors.greenAccent
                               ),
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
-                              
-                              _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
-                                setState(() { isMenuOpen = false; }); 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const MasterPCRBoard()),
-                                );
-                              }, Colors.amberAccent),
-
-                              _buildControlButton(Icons.live_tv, "Live Links", _showMultiStreamDialog, Colors.redAccent),
                               _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
 
-                              _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
+                              // 3. LAYOUTS & SETTINGS
                               _buildControlButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), _toggleAdMode, adDisplayMode == 0 ? Colors.redAccent : (adDisplayMode == 1 ? Colors.blueAccent : Colors.greenAccent)),
                               _buildControlButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : (adShapeMode == 1 ? "Shape: 2-Sides" : "Shape: U-Band"), _toggleAdShapeMode, adShapeMode == 0 ? Colors.orange : (adShapeMode == 1 ? Colors.purpleAccent : Colors.teal)),
                               _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),
                               if (adShapeMode == 0)
                                 _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
+                              
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                              _buildControlButton(Icons.bar_chart, "Election Results", () {
-                                setState(() { isMenuOpen = false; }); 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const ElectionBoardScreen())
-                                );
-                              }, Colors.indigoAccent),
+                              _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
                             ]
                           ),
                         ),
@@ -2174,34 +2174,20 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-  // మెయిన్ స్క్రీన్ మీద కొత్తగా పెట్టబడిన అందమైన రౌండ్ బటన్స్ కోసం
-  Widget _buildMainScreenButton(IconData icon, String label, Color bgColor, VoidCallback onTap) {
+  // మెనూ బటన్ పక్కన వరుసగా వచ్చే చిన్న బటన్స్ కోసం డిజైన్
+  Widget _buildRowButton(IconData icon, String label, Color bgColor, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 45,
-              height: 45,
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
-                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))]
-              ),
-              child: Icon(icon, color: Colors.white, size: 22),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
-              child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-            )
-          ],
-        )
+      padding: const EdgeInsets.only(right: 8),
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bgColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          elevation: 5,
+        ),
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white, size: 16),
+        label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
       ),
     );
   }
