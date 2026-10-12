@@ -75,7 +75,7 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                // ఇక్కడే ఫ్లట్టర్ ఫైల్ కి మ్యాచ్ అయ్యేలా పేర్లు మార్చాము!
+                // ఇక్కడే ఫ్లట్టర్ ఫైల్ కి మ్యాచ్ అయ్యేలా పేరు మార్చాము!
                 "startScreenCaptureStreaming" -> {
                     if (screenCaptureRequestInProgress || pendingResult != null) {
                         result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
