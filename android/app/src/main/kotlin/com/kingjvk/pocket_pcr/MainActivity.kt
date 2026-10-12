@@ -13,7 +13,6 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     companion object {
-        // ఛానల్ పేరును kingjvk కి మార్చడం జరిగింది
         private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
         private const val EXTRA_RESULT_CODE = "resultCode"
         private const val EXTRA_DATA = "data"
@@ -27,7 +26,6 @@ class MainActivity : FlutterActivity() {
     private var pendingResult: MethodChannel.Result? = null
     private var screenCaptureRequestInProgress = false
 
-    // పాపప్ కోసం పర్ఫెక్ట్ లాక్
     private val screenCaptureLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { activityResult ->
@@ -77,24 +75,29 @@ class MainActivity : FlutterActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startScreenStream" -> {
+                // ఫ్లట్టర్ ఫైల్స్ కి తగ్గట్టుగా పేర్లు పక్కాగా మ్యాచ్ అయ్యేలా మార్చాము
+                "startScreenCaptureStreaming" -> {
                     if (screenCaptureRequestInProgress || pendingResult != null) {
                         result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
                         return@setMethodCallHandler
                     }
 
-                    val rtmpUrl = call.argument<String>("rtmpUrl")?.trim()
+                    // ఫ్లట్టర్ పంపుతున్న కేబుల్ లింక్ ని రిసీవ్ చేసుకోవడానికి పేరు మార్చాము
+                    val rtmpUrl = call.argument<String>("cableRtmp")?.trim()
                     if (rtmpUrl.isNullOrBlank()) {
                         result.error("INVALID_URL", "Streaming URL is missing", null)
                         return@setMethodCallHandler
                     }
 
                     currentCableRtmp = rtmpUrl
-                    isRecordAudioEnabled = call.argument<Boolean>("recordAudio") ?: true
+                    isRecordAudioEnabled = true
                     pendingResult = result
                     screenCaptureRequestInProgress = true
 
                     try {
+                        // స్క్రీన్ రికార్డింగ్ కనెక్ట్ అవ్వగానే మీకు కింద టోస్ట్ మెసేజ్ వస్తుంది
+                        Toast.makeText(this, "ఆండ్రాయిడ్ సిస్టమ్ కనెక్ట్ అయ్యింది..", Toast.LENGTH_SHORT).show()
+                        
                         val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
                         screenCaptureLauncher.launch(captureIntent)
                     } catch (e: Exception) {
@@ -103,7 +106,7 @@ class MainActivity : FlutterActivity() {
                         result.error("PROJECTION_ERROR", e.message ?: "Cannot request screen capture", null)
                     }
                 }
-                "stopScreenStream" -> {
+                "stopScreenCaptureStreaming" -> {
                     try {
                         val serviceIntent = Intent(this, ScreenStreamService::class.java)
                         stopService(serviceIntent)
