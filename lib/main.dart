@@ -1288,7 +1288,6 @@ class _StudioScreenState extends State<StudioScreen>
         setState(() { 
           isLiveBroadcasting = true; 
           isLivePaused = false; 
-          // బటన్స్ అన్నింటినీ మాయం చేయడానికి ఈ ఆప్షన్
           hideControls = true; 
           isMenuOpen = false; 
           isLandscape = true; 
@@ -1300,7 +1299,6 @@ class _StudioScreenState extends State<StudioScreen>
     }
   }
 
-  // పాజ్ మరియు రెజ్యూమ్ చేసే సపరేట్ ఫంక్షన్
   Future<void> _toggleLivePause() async {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
     try {
@@ -1970,13 +1968,12 @@ class _StudioScreenState extends State<StudioScreen>
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           
-          // ఇక్కడే ఆ ఆటో-హైడ్ మరియు టాప్ లాజిక్ రాశాను
           onTap: () {
             setState(() {
               if (isMenuOpen) {
-                isMenuOpen = false; // మెనూ ఓపెన్ ఉంటే దాన్ని క్లోజ్ చేస్తుంది
+                isMenuOpen = false;
               } else {
-                hideControls = !hideControls; // బటన్స్ మాయం/కనిపించేలా చేస్తుంది
+                hideControls = !hideControls;
               }
             });
           },
@@ -2070,7 +2067,6 @@ class _StudioScreenState extends State<StudioScreen>
                     ),
                   ),
 
-                  // ఇక్కడ మెనూ బటన్ పక్కనే వరుసగా లైవ్ బటన్స్ అమర్చబడ్డాయి (హైడ్ అవ్వకపోతేనే కనిపిస్తాయి)
                   if (!hideControls)
                     Positioned(
                       bottom: 70,
@@ -2078,18 +2074,15 @@ class _StudioScreenState extends State<StudioScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 1. GO LIVE (లైవ్ లేనప్పుడు మాత్రమే)
                           if (!isLiveBroadcasting)
                             _buildRowButton(Icons.sensors, "GO LIVE", Colors.green, () {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆండ్రాయిడ్ సిస్టమ్ కి సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
                               _startLiveAndLock();
                             }),
                           
-                          // 2. LIVE PAUSE (లైవ్ నడుస్తున్నప్పుడు మాత్రమే)
                           if (isLiveBroadcasting)
                             _buildRowButton(isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "RESUME" : "PAUSE", Colors.orange, _toggleLivePause),
                           
-                          // 3. LIVE CLOSE (లైవ్ నడుస్తున్నప్పుడు మాత్రమే)
                           if (isLiveBroadcasting)
                             _buildRowButton(Icons.stop, "CLOSE", Colors.red, () {
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("సిగ్నల్ పంపుతున్నాం..."), backgroundColor: Colors.orange));
@@ -2098,7 +2091,6 @@ class _StudioScreenState extends State<StudioScreen>
                             
                           const SizedBox(width: 8),
 
-                          // 4. MENU బటన్
                           FloatingActionButton(
                             backgroundColor: Colors.blueAccent,
                             onPressed: () {
@@ -2112,7 +2104,6 @@ class _StudioScreenState extends State<StudioScreen>
                       ),
                     ),
 
-                  // మెనూ ఓపెన్ చేసినప్పుడు వచ్చే పాప్-అప్ లిస్ట్ (ఇందులోండి గో లైవ్, ఆపే బటన్స్ తీసేశాం)
                   if (!hideControls && isMenuOpen)
                     Positioned.fill(
                       child: Container(
@@ -2123,7 +2114,6 @@ class _StudioScreenState extends State<StudioScreen>
                             spacing: 25,
                             runSpacing: 25,
                             children: [
-                              // 1. STREAM SETUP & BOARDS
                               _buildControlButton(Icons.live_tv, "Live Links", _showMultiStreamDialog, Colors.redAccent),
                               _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
                                 setState(() { isMenuOpen = false; }); 
@@ -2140,7 +2130,6 @@ class _StudioScreenState extends State<StudioScreen>
                                 );
                               }, Colors.indigoAccent),
 
-                              // 2. CAMERAS & DUAL SCREEN
                               _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
                               _buildControlButton(
                                 isCameraVisible ? Icons.videocam_off : Icons.videocam,
@@ -2151,7 +2140,6 @@ class _StudioScreenState extends State<StudioScreen>
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
                               _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
 
-                              // 3. LAYOUTS & SETTINGS
                               _buildControlButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), _toggleAdMode, adDisplayMode == 0 ? Colors.redAccent : (adDisplayMode == 1 ? Colors.blueAccent : Colors.greenAccent)),
                               _buildControlButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : (adShapeMode == 1 ? "Shape: 2-Sides" : "Shape: U-Band"), _toggleAdShapeMode, adShapeMode == 0 ? Colors.orange : (adShapeMode == 1 ? Colors.purpleAccent : Colors.teal)),
                               _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),
@@ -2174,7 +2162,6 @@ class _StudioScreenState extends State<StudioScreen>
     );
   }
 
-  // మెనూ బటన్ పక్కన వరుసగా వచ్చే చిన్న బటన్స్ కోసం డిజైన్
   Widget _buildRowButton(IconData icon, String label, Color bgColor, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -2214,6 +2201,7 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
+// *** MissingPluginException సేఫ్ హ్యాండ్లింగ్‌తో అప్‌డేట్ చేయబడిన StreamServiceManager ***
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
@@ -2226,6 +2214,9 @@ class StreamServiceManager {
         'noiseCancellation': noiseCancellation
       });
       return true;
+    } on MissingPluginException catch (e) {
+      debugPrint("MissingPluginException caught: ${e.message}");
+      throw Exception("స్ట్రీమింగ్ ప్లగిన్ నేటివ్ కోడ్ రిజిస్టర్ కాలేదు. దయచేసి ప్రాజెక్ట్ రీబిల్డ్ చేయండి.");
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -2235,6 +2226,9 @@ class StreamServiceManager {
     try {
       await platform.invokeMethod('stopScreenCaptureStreaming');
       return true;
+    } on MissingPluginException catch (e) {
+      debugPrint("MissingPluginException caught: ${e.message}");
+      return true; // క్రాష్ కాకుండా సురక్షితంగా ట్రూ రిటర్న్ చేస్తుంది
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -2243,6 +2237,9 @@ class StreamServiceManager {
   static Future<int?> startUsbCamera() async {
     try {
       return await platform.invokeMethod('startUsbCamera');
+    } on MissingPluginException catch (e) {
+      debugPrint("MissingPluginException caught: ${e.message}");
+      return null;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -2251,6 +2248,8 @@ class StreamServiceManager {
   static Future<void> stopUsbCamera() async {
     try {
       await platform.invokeMethod('stopUsbCamera');
+    } on MissingPluginException catch (e) {
+      debugPrint("MissingPluginException caught: ${e.message}");
     } catch (e) {
       throw Exception(e.toString());
     }
