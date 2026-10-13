@@ -4,7 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
-import android.os.Build 
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
@@ -12,124 +12,184 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
     companion object {
         private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
-        private const val EXTRA_RESULT_CODE = "resultCode"
-        private const val EXTRA_DATA = "data"
-        private const val EXTRA_RTMP_URL = "rtmpUrl"
-        private const val EXTRA_RECORD_AUDIO = "recordAudio"
+        private const val REQUEST_RESULT_CODE = "resultCode"
+        private const val REQUEST_DATA = "data"
+        private const val REQUEST_RTMP_URL = "rtmpUrl"
+        private const val REQUEST_RECORD_AUDIO = "recordAudio"
     }
 
-    private lateinit var mediaProjectionManager: MediaProjectionManager
-    private var currentCableRtmp: String? = null
-    private var isRecordAudioEnabled: Boolean = true
+    private lateinit var projectionManager: MediaProjectionManager
+
+    private var currentRtmpUrl: String? = null
     private var pendingResult: MethodChannel.Result? = null
-    private var screenCaptureRequestInProgress = false
+    private var requestInProgress = false
 
-    private val screenCaptureLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { activityResult ->
-        screenCaptureRequestInProgress = false
-        val callbackResult = pendingResult
-        pendingResult = null
+    private val screenCaptureLauncher =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) { result ->
 
-        if (activityResult.resultCode != Activity.RESULT_OK || activityResult.data == null) {
-            Toast.makeText(this, "స్క్రీన్ రికార్డింగ్ అనుమతి ఇవ్వలేదు", Toast.LENGTH_SHORT).show()
-            callbackResult?.error("DENIED", "User denied screen capture permission", null)
-            return@registerForActivityResult
-        }
+            requestInProgress = false
 
-        val rtmpUrl = currentCableRtmp
-        if (rtmpUrl.isNullOrBlank()) {
-            callbackResult?.error("INVALID_URL", "Streaming URL is missing", null)
-            return@registerForActivityResult
-        }
+            val callback = pendingResult
+            pendingResult = null
 
-        try {
-            val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                putExtra(EXTRA_RESULT_CODE, activityResult.resultCode)
-                putExtra(EXTRA_DATA, activityResult.data)
-                putExtra(EXTRA_RTMP_URL, rtmpUrl)
-                putExtra(EXTRA_RECORD_AUDIO, isRecordAudioEnabled)
+            if (result.resultCode != Activity.RESULT_OK || result.data == null) {
+                callback?.error(
+                    "PERMISSION_DENIED",
+                    "స్క్రీన్ క్యాప్చర్ అనుమతి ఇవ్వలేదు.",
+                    null
+                )
+                return@registerForActivityResult
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
+            val rtmpUrl = currentRtmpUrl
+
+            if (rtmpUrl.isNullOrBlank()) {
+                callback?.error(
+                    "INVALID_URL",
+                    "RTMP URL ఖాళీగా ఉంది.",
+                    null
+                )
+                return@registerForActivityResult
             }
 
-            callbackResult?.success(true)
-        } catch (e: Exception) {
-            callbackResult?.error("SERVICE_START_ERROR", e.message ?: "Unable to start streaming", null)
+            try {
+                val serviceIntent = Intent(
+                    this,
+                    ScreenStreamService::class.java
+                ).apply {
+                    putExtra(REQUEST_RESULT_CODE, result.resultCode)
+                    putExtra(REQUEST_DATA, result.data)
+                    putExtra(REQUEST_RTMP_URL, rtmpUrl)
+                    putExtra(REQUEST_RECORD_AUDIO, true)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    startService(serviceIntent)
+                }
+
+                callback?.success(true)
+
+            } catch (e: Exception) {
+                callback?.error(
+                    "SERVICE_START_ERROR",
+                    e.message ?: "లైవ్ సర్వీస్ ప్రారంభం కాలేదు.",
+                    null
+                )
+            }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+
+        projectionManager =
+            getSystemService(Context.MEDIA_PROJECTION_SERVICE)
+                    as MediaProjectionManager
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            CHANNEL
+        ).setMethodCallHandler { call, result ->
+
             when (call.method) {
-                // ఇక్కడే ఫ్లట్టర్ ఫైల్ కి మ్యాచ్ అయ్యేలా పేరు మార్చాము!
+
                 "startScreenCaptureStreaming" -> {
-                    if (screenCaptureRequestInProgress || pendingResult != null) {
-                        result.error("REQUEST_IN_PROGRESS", "A request is already in progress", null)
+
+                    if (requestInProgress || pendingResult != null) {
+                        result.error(
+                            "REQUEST_IN_PROGRESS",
+                            "స్క్రీన్ క్యాప్చర్ అభ్యర్థన ఇప్పటికే కొనసాగుతోంది.",
+                            null
+                        )
                         return@setMethodCallHandler
                     }
 
-                    val rtmpUrl = call.argument<String>("cableRtmp")?.trim()
-                    if (rtmpUrl.isNullOrBlank()) {
-                        result.error("INVALID_URL", "Streaming URL is missing", null)
+                    val url = call.argument<String>("cableRtmp")?.trim()
+
+                    if (url.isNullOrBlank()) {
+                        result.error(
+                            "INVALID_URL",
+                            "YouTube RTMP URL మరియు Stream Key నమోదు చేయండి.",
+                            null
+                        )
                         return@setMethodCallHandler
                     }
 
-                    currentCableRtmp = rtmpUrl
-                    isRecordAudioEnabled = true
+                    currentRtmpUrl = url
                     pendingResult = result
-                    screenCaptureRequestInProgress = true
+                    requestInProgress = true
 
                     try {
-                        Toast.makeText(this, "ఆండ్రాయిడ్ సిస్టమ్ కనెక్ట్ అయ్యింది..", Toast.LENGTH_SHORT).show()
-                        
-                        val captureIntent = mediaProjectionManager.createScreenCaptureIntent()
+                        val captureIntent =
+                            projectionManager.createScreenCaptureIntent()
+
                         screenCaptureLauncher.launch(captureIntent)
+
                     } catch (e: Exception) {
-                        screenCaptureRequestInProgress = false
+                        requestInProgress = false
                         pendingResult = null
-                        result.error("PROJECTION_ERROR", e.message ?: "Cannot request screen capture", null)
+
+                        result.error(
+                            "PROJECTION_ERROR",
+                            e.message ?: "స్క్రీన్ క్యాప్చర్ అనుమతి అడగలేకపోయింది.",
+                            null
+                        )
                     }
                 }
+
                 "stopScreenCaptureStreaming" -> {
                     try {
-                        val serviceIntent = Intent(this, ScreenStreamService::class.java)
-                        stopService(serviceIntent)
+                        stopService(
+                            Intent(this, ScreenStreamService::class.java)
+                        )
                         result.success(true)
+
                     } catch (e: Exception) {
-                        result.error("STOP_ERROR", e.message, null)
+                        result.error(
+                            "STOP_ERROR",
+                            e.message ?: "లైవ్ ఆపలేకపోయింది.",
+                            null
+                        )
                     }
                 }
+
                 "startUsbCamera" -> {
-                    result.error("NOT_IMPLEMENTED", "USB Camera Native Code Required", null)
+                    result.error(
+                        "NOT_IMPLEMENTED",
+                        "USB కెమెరా కోసం ప్రత్యేక అమలు అవసరం.",
+                        null
+                    )
                 }
+
                 "stopUsbCamera" -> {
                     result.success(true)
                 }
-                else -> {
-                    result.notImplemented()
-                }
+
+                else -> result.notImplemented()
             }
         }
     }
 
     override fun onDestroy() {
-        pendingResult?.error("ACTIVITY_DESTROYED", "Activity was destroyed", null)
+        pendingResult?.error(
+            "ACTIVITY_DESTROYED",
+            "యాప్ Activity మూసివేయబడింది.",
+            null
+        )
+
         pendingResult = null
-        screenCaptureRequestInProgress = false
+        requestInProgress = false
+
         super.onDestroy()
     }
 }
