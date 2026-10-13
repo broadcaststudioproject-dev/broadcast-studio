@@ -15,7 +15,7 @@ import 'master_pcr_board.dart';
 import 'election_board.dart';
 import 'dart:math';
 
-List<CameraDescription> cameras = [];
+List<CameraDescription> cameras = []; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
