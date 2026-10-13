@@ -15,16 +15,12 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
-        private const val REQUEST_RESULT_CODE = "resultCode"
-        private const val REQUEST_DATA = "data"
-        private const val REQUEST_RTMP_URL = "rtmpUrl"
-        private const val REQUEST_RECORD_AUDIO = "recordAudio"
+        private const val REQUEST_CODE = 1001
     }
 
     private lateinit var projectionManager: MediaProjectionManager
-
-    private var currentRtmpUrl: String? = null
     private var pendingResult: MethodChannel.Result? = null
+    private var currentRtmpUrl: String? = null
     private var requestInProgress = false
 
     private val screenCaptureLauncher =
@@ -51,7 +47,7 @@ class MainActivity : FlutterActivity() {
             if (rtmpUrl.isNullOrBlank()) {
                 callback?.error(
                     "INVALID_URL",
-                    "RTMP URL ఖాళీగా ఉంది.",
+                    "RTMP URL నమోదు చేయలేదు.",
                     null
                 )
                 return@registerForActivityResult
@@ -62,10 +58,10 @@ class MainActivity : FlutterActivity() {
                     this,
                     ScreenStreamService::class.java
                 ).apply {
-                    putExtra(REQUEST_RESULT_CODE, result.resultCode)
-                    putExtra(REQUEST_DATA, result.data)
-                    putExtra(REQUEST_RTMP_URL, rtmpUrl)
-                    putExtra(REQUEST_RECORD_AUDIO, true)
+                    putExtra("resultCode", result.resultCode)
+                    putExtra("data", result.data)
+                    putExtra("rtmpUrl", rtmpUrl)
+                    putExtra("recordAudio", true)
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -114,18 +110,19 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
 
-                    val url = call.argument<String>("cableRtmp")?.trim()
+                    val rtmpUrl =
+                        call.argument<String>("cableRtmp")?.trim()
 
-                    if (url.isNullOrBlank()) {
+                    if (rtmpUrl.isNullOrBlank()) {
                         result.error(
                             "INVALID_URL",
-                            "YouTube RTMP URL మరియు Stream Key నమోదు చేయండి.",
+                            "cableRtmp ఖాళీగా ఉంది.",
                             null
                         )
                         return@setMethodCallHandler
                     }
 
-                    currentRtmpUrl = url
+                    currentRtmpUrl = rtmpUrl
                     pendingResult = result
                     requestInProgress = true
 
@@ -141,7 +138,7 @@ class MainActivity : FlutterActivity() {
 
                         result.error(
                             "PROJECTION_ERROR",
-                            e.message ?: "స్క్రీన్ క్యాప్చర్ అనుమతి అడగలేకపోయింది.",
+                            e.message ?: "స్క్రీన్ అనుమతి అభ్యర్థన విఫలమైంది.",
                             null
                         )
                     }
@@ -153,11 +150,10 @@ class MainActivity : FlutterActivity() {
                             Intent(this, ScreenStreamService::class.java)
                         )
                         result.success(true)
-
                     } catch (e: Exception) {
                         result.error(
                             "STOP_ERROR",
-                            e.message ?: "లైవ్ ఆపలేకపోయింది.",
+                            e.message ?: "లైవ్ ఆపడం విఫలమైంది.",
                             null
                         )
                     }
@@ -166,7 +162,7 @@ class MainActivity : FlutterActivity() {
                 "startUsbCamera" -> {
                     result.error(
                         "NOT_IMPLEMENTED",
-                        "USB కెమెరా కోసం ప్రత్యేక అమలు అవసరం.",
+                        "USB కెమెరా అమలు చేయలేదు.",
                         null
                     )
                 }
