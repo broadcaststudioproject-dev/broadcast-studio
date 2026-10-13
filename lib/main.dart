@@ -11,8 +11,6 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'pcr_board.dart';
-import 'election_board.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -2013,7 +2011,8 @@ class _StudioScreenState extends State<StudioScreen>
                                 isCameraVisible ? Colors.redAccent : Colors.greenAccent
                               ),
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
-                              
+
+                              // --- PCR Board Button Added Back ---
                               _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
                                 setState(() { isMenuOpen = false; }); 
                                 Navigator.push(
@@ -2037,7 +2036,8 @@ class _StudioScreenState extends State<StudioScreen>
                                 _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
                               
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-                              
+
+                              // --- Election Results Button Added Back ---
                               _buildControlButton(Icons.bar_chart, "Election Results", () {
                                 setState(() { isMenuOpen = false; }); 
                                 Navigator.push(
@@ -2096,5 +2096,132 @@ class StreamServiceManager {
     try {
       await platform.invokeMethod('stopUsbCamera');
     } catch (e) {}
+  }
+}
+
+// ============================================================================
+// --- 1. Master PCR Board Class (పాత pcr_board.dart ఫైల్ లోని కోడ్ బదులు) ---
+// ============================================================================
+
+class MasterPCRBoard extends StatefulWidget {
+  const MasterPCRBoard({Key? key}) : super(key: key);
+
+  @override
+  State<MasterPCRBoard> createState() => _MasterPCRBoardState();
+}
+
+class _MasterPCRBoardState extends State<MasterPCRBoard> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Master PCR Board", style: TextStyle(color: Colors.white, fontSize: 18)),
+        backgroundColor: Colors.grey[900],
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: GridView.count(
+        crossAxisCount: 3,
+        padding: const EdgeInsets.all(16),
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        children: [
+          _pcrBtn(Icons.camera, "CAM 1", Colors.redAccent),
+          _pcrBtn(Icons.camera_alt, "CAM 2", Colors.blueAccent),
+          _pcrBtn(Icons.video_library, "VIDEO 1", Colors.green),
+          _pcrBtn(Icons.mic, "AUDIO MIX", Colors.orange),
+          _pcrBtn(Icons.layers, "GFX ON/OFF", Colors.purpleAccent),
+          _pcrBtn(Icons.swap_calls, "TRANSITION", Colors.teal),
+        ],
+      ),
+    );
+  }
+
+  Widget _pcrBtn(IconData icon, String label, Color color) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.2),
+        side: BorderSide(color: color, width: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      onPressed: () {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$label Activated")));
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white, size: 30),
+          const SizedBox(height: 8),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ============================================================================
+// --- 2. Election Board Screen (పాత election_board.dart ఫైల్ లోని కోడ్ బదులు) ---
+// ============================================================================
+
+class ElectionBoardScreen extends StatefulWidget {
+  const ElectionBoardScreen({Key? key}) : super(key: key);
+
+  @override
+  State<ElectionBoardScreen> createState() => _ElectionBoardScreenState();
+}
+
+class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
+  int congressScore = 64;
+  int brsScore = 39;
+  int bjpScore = 8;
+  int mimScore = 7;
+  int othersScore = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Election Results Board", style: TextStyle(color: Colors.white, fontSize: 18)),
+        backgroundColor: Colors.red[900],
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _partyCard("Congress", Colors.blue, congressScore, (val) => setState(() => congressScore += val)),
+          _partyCard("BRS", Colors.pink, brsScore, (val) => setState(() => brsScore += val)),
+          _partyCard("BJP", Colors.orange, bjpScore, (val) => setState(() => bjpScore += val)),
+          _partyCard("MIM", Colors.green, mimScore, (val) => setState(() => mimScore += val)),
+          _partyCard("Others", Colors.grey, othersScore, (val) => setState(() => othersScore += val)),
+        ],
+      ),
+    );
+  }
+
+  Widget _partyCard(String partyName, Color color, int score, Function(int) onUpdate) {
+    return Card(
+      color: Colors.grey[900],
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        leading: CircleAvatar(backgroundColor: color, radius: 20),
+        title: Text(partyName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
+              onPressed: () { if (score > 0) onUpdate(-1); },
+            ),
+            Text("$score", style: const TextStyle(color: Colors.yellowAccent, fontSize: 22, fontWeight: FontWeight.bold)),
+            IconButton(
+              icon: const Icon(Icons.add_circle, color: Colors.greenAccent),
+              onPressed: () => onUpdate(1),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
