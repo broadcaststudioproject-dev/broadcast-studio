@@ -28,7 +28,7 @@ class MainActivity : FlutterActivity() {
             androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
         ) { result ->
 
-            requestInProgress = false
+            requestInProgress = false 
 
             val callback = pendingResult
             pendingResult = null
