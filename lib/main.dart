@@ -11,12 +11,11 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'pcr_board.dart';
-import 'election_board.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 List<CameraDescription> cameras = [];
 
-Future<void> main() async { 
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   try {
@@ -37,6 +36,10 @@ class PocketPCRApp extends StatelessWidget {
     );
   }
 }
+
+// ============================================================================
+// --- 1. MAIN STUDIO SCREEN 
+// ============================================================================
 
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
@@ -2014,7 +2017,6 @@ class _StudioScreenState extends State<StudioScreen>
                               ),
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
 
-                              // --- PCR Board Button Added Back ---
                               _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
                                 setState(() { isMenuOpen = false; }); 
                                 Navigator.push(
@@ -2039,7 +2041,6 @@ class _StudioScreenState extends State<StudioScreen>
                               
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
 
-                              // --- Election Results Button Added Back ---
                               _buildControlButton(Icons.bar_chart, "Election Results", () {
                                 setState(() { isMenuOpen = false; }); 
                                 Navigator.push(
@@ -2102,7 +2103,7 @@ class StreamServiceManager {
 }
 
 // ============================================================================
-// --- 1. Master PCR Board Class (పాత pcr_board.dart ఫైల్ లోని కోడ్ బదులు) ---
+// --- 2. MASTER PCR BOARD SCREEN
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -2113,57 +2114,380 @@ class MasterPCRBoard extends StatefulWidget {
 }
 
 class _MasterPCRBoardState extends State<MasterPCRBoard> {
+  static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
+
+  final Map<String, VlcPlayerController> _rtspControllers = {};
+  CameraController? _phoneCamCtrl;
+  List<CameraDescription> _cameras = [];
+  bool _isFrontCam = true;
+
+  bool isRecording = false;
+  int liveStreamState = 0; 
+  bool showControls = true; 
+  bool isStudioMultiView = true; 
+  
+  // --- Layout & Swapping State ---
+  int layoutMode = 6; 
+  String mainCameraId = "REPORTER_CAM"; 
+  List<String> hexCams = ["IP_1", "IP_2", "DRONE_1", "IP_3", "IP_4", "HDMI_1"]; 
+
+  String cableRtmpUrl = "rtmp://your-stream-url"; // మీ RTMP URL ఇక్కడ ఇవ్వండి
+
+  // --- Logo Settings ---
+  String channelLogoPath = "";
+  int logoPosition = 0; 
+  VideoPlayerController? _logoVideoCtrl;
+  final ImagePicker _picker = ImagePicker();
+
+  final List<Map<String, dynamic>> cameraList = [
+    {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
+    {"id": "DRONE_1", "name": "DJI Drone", "type": "DRONE", "active": false, "muted": true, "url": "rtsp://192.168.1.1:554/live"}, 
+    {"id": "HDMI_1", "name": "Sony Cam 1", "type": "USB", "active": false, "muted": false, "url": ""},
+    {"id": "IP_1", "name": "CCTV Left", "type": "IP", "active": false, "muted": true, "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"}, 
+    {"id": "IP_2", "name": "CCTV Right", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.100:8080/video"},
+    {"id": "IP_3", "name": "Mobile WiFi 1", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.101:8080/video"},
+    {"id": "IP_4", "name": "Mobile WiFi 2", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.102:8080/video"},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initPhoneCamera();
+    _loadSavedData();
+  }
+
+  Future<void> _initPhoneCamera() async {
+    try { 
+      _cameras = await availableCameras(); 
+      if (_cameras.isNotEmpty) _setCamera(_isFrontCam ? CameraLensDirection.front : CameraLensDirection.back); 
+    } catch (e) {}
+  }
+
+  Future<void> _setCamera(CameraLensDirection dir) async {
+    try {
+      CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == dir, orElse: () => _cameras.first);
+      await _phoneCamCtrl?.dispose(); 
+      _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
+      await _phoneCamCtrl!.initialize(); 
+      if (mounted) setState(() {}); 
+    } catch (e) {}
+  }
+
+  void _swapCamera(int gridIndex) {
+    setState(() {
+      String temp = mainCameraId;
+      mainCameraId = hexCams[gridIndex];
+      hexCams[gridIndex] = temp;
+    });
+  }
+
+  Future<void> _toggleRTSPCamera(String camId, String url, bool isActive, bool isMuted) async { 
+    if (isActive) { 
+      String finalUrl = url;
+      
+      if (url.contains("youtube.com") || url.contains("youtu.be")) {
+        var ytExplode = yt.YoutubeExplode();
+        try {
+          var videoId = yt.VideoId.parseVideoId(url);
+          if (videoId != null) {
+            var video = await ytExplode.videos.get(videoId);
+            if (video.isLive) {
+              finalUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId);
+            } else {
+              var manifest = await ytExplode.videos.streamsClient.getManifest(videoId);
+              var streamInfo = manifest.muxed.withHighestBitrate();
+              finalUrl = streamInfo.url.toString();
+            }
+          }
+        } catch (e) {
+          debugPrint("YouTube Extract Error: $e");
+        } finally {
+          ytExplode.close();
+        }
+      }
+
+      setState(() {
+        _rtspControllers[camId] = VlcPlayerController.network(
+          finalUrl, 
+          hwAcc: HwAcc.full, 
+          autoPlay: true, 
+          options: VlcPlayerOptions()
+        ); 
+        _rtspControllers[camId]?.setVolume(isMuted ? 0 : 100);
+      });
+    } else { 
+      _rtspControllers[camId]?.stopRendererScanning(); 
+      _rtspControllers[camId]?.dispose(); 
+      setState(() {
+        _rtspControllers.remove(camId);
+      });
+    } 
+  }
+
+  void _toggleMute(Map<String, dynamic> cam) { 
+    setState(() { 
+      cam['muted'] = !cam['muted']; 
+      if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) {
+        _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100); 
+      }
+    }); 
+  }
+
+  Future<void> _uploadLogo() async { 
+    final XFile? media = await _picker.pickMedia(); 
+    if (media != null) { 
+      setState(() => _setLogo(media.path)); 
+      SharedPreferences prefs = await SharedPreferences.getInstance(); 
+      await prefs.setString('pcr_channelLogoPath', media.path); 
+    } 
+  }
+
+  void _setLogo(String path) {
+    channelLogoPath = path;
+    if (path.toLowerCase().endsWith('.mp4')) {
+      _logoVideoCtrl?.dispose();
+      _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { 
+        if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); } 
+      });
+    } else { 
+      _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; 
+    }
+  }
+
+  Future<void> _loadSavedData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      logoPosition = prefs.getInt('pcr_logoPosition') ?? 0;
+      layoutMode = prefs.getInt('pcr_layoutMode') ?? 6;
+      String savedLogo = prefs.getString('pcr_channelLogoPath') ?? "";
+      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
+    });
+  }
+
+  @override
+  void dispose() { 
+    _phoneCamCtrl?.dispose(); _logoVideoCtrl?.dispose(); 
+    for (var controller in _rtspControllers.values) { controller.dispose(); } 
+    super.dispose(); 
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("Master PCR Board", style: TextStyle(color: Colors.white, fontSize: 18)),
-        backgroundColor: Colors.grey[900],
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: GridView.count(
-        crossAxisCount: 3,
-        padding: const EdgeInsets.all(16),
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        children: [
-          _pcrBtn(Icons.camera, "CAM 1", Colors.redAccent),
-          _pcrBtn(Icons.camera_alt, "CAM 2", Colors.blueAccent),
-          _pcrBtn(Icons.video_library, "VIDEO 1", Colors.green),
-          _pcrBtn(Icons.mic, "AUDIO MIX", Colors.orange),
-          _pcrBtn(Icons.layers, "GFX ON/OFF", Colors.purpleAccent),
-          _pcrBtn(Icons.swap_calls, "TRANSITION", Colors.teal),
-        ],
+      body: GestureDetector(
+        onDoubleTap: () => setState(() => showControls = !showControls),
+        child: SafeArea(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                top: 0, left: 0, right: 0, bottom: showControls ? 185.0 : 40.0,
+                child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(mainCameraId)
+              ),
+              Positioned(
+                top: 15.0, left: 15.0,
+                child: channelLogoPath.isNotEmpty 
+                  ? SizedBox(width: 80, height: 80, child: _logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : Image.file(File(channelLogoPath), fit: BoxFit.contain)) 
+                  : Container(padding: const EdgeInsets.all(5), color: Colors.red[900], child: const Text("LOGO", style: TextStyle(color: Colors.white, fontSize: 10))),
+              ),
+              if (showControls)
+                Positioned(
+                  top: 15, left: 100, right: 10,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        FloatingActionButton(
+                          mini: true,
+                          backgroundColor: Colors.blueGrey,
+                          onPressed: () => Navigator.pop(context),
+                          child: const Icon(Icons.arrow_back, color: Colors.white),
+                        ),
+                        const SizedBox(width: 10),
+                        _buildControlButton("1+${layoutMode} LAYOUT", Colors.teal, () {
+                          setState(() { layoutMode = layoutMode == 4 ? 6 : 4; });
+                          SharedPreferences.getInstance().then((p) => p.setInt('pcr_layoutMode', layoutMode));
+                        }), 
+                        const SizedBox(width: 6),
+                        _buildControlButton("UPLOAD LOGO", Colors.indigo, _uploadLogo),
+                        const SizedBox(width: 6),
+                        _buildControlButton(isRecording ? "STOP LIVE" : "GO LIVE / REC", isRecording ? Colors.orange : Colors.red, () async {
+                          if (isRecording) {
+                            try {
+                              await _channel.invokeMethod('stopScreenCaptureStreaming');
+                              setState(() => isRecording = false);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ఆగిపోయింది."), backgroundColor: Colors.blue));
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Stop Error: $e"), backgroundColor: Colors.red));
+                            }
+                          } else {
+                            try {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ (Live) కోసం కనెక్ట్ అవుతోంది..."), backgroundColor: Colors.green));
+                              await _channel.invokeMethod('startScreenCaptureStreaming', {
+                                'cableRtmp': cableRtmpUrl,
+                                'cableRtmps': '', 
+                                'satelliteSrt': '', 
+                                'noiseCancellation': false 
+                              });
+                              setState(() => isRecording = true);
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red));
+                            }
+                          }
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              if (showControls)
+                Positioned(
+                  bottom: 40, left: 0, right: 0,
+                  child: Container(
+                    height: 140, color: Colors.black87.withOpacity(0.95),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index]),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _pcrBtn(IconData icon, String label, Color color) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.2),
-        side: BorderSide(color: color, width: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$label Activated")));
-      },
+  Widget _buildStudioLayout() { 
+    return Row(
+      children: [
+        Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), 
+        Container(width: 2, color: Colors.white24), 
+        Expanded(
+          flex: 6, 
+          child: Column(
+            children: layoutMode == 4 
+            ? [
+                Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])),
+                Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))])),
+              ]
+            : [
+                Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])),
+                Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))])),
+              ]
+          )
+        )
+      ]
+    ); 
+  }
+
+  Widget _buildHexBox(int index) { 
+    return GestureDetector(
+      onTap: () => _swapCamera(index),
+      child: Container(
+        decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.grey.shade800, width: 1)), 
+        child: Stack(
+          children: [
+            Positioned.fill(child: _buildLiveFeed(hexCams[index])),
+            Positioned(top: 2, left: 2, child: Container(padding: const EdgeInsets.all(2), color: Colors.black54, child: const Text("TAP TO SWAP", style: TextStyle(color: Colors.white, fontSize: 8))))
+          ]
+        )
+      )
+    ); 
+  }
+
+  Widget _buildLiveFeed(String camId) { 
+    var camData = cameraList.firstWhere((cam) => cam['id'] == camId, orElse: () => cameraList[0]); 
+    if (camId == "REPORTER_CAM") { 
+      if (_phoneCamCtrl != null && _phoneCamCtrl!.value.isInitialized) { 
+        return CameraPreview(_phoneCamCtrl!); 
+      } 
+      return const Center(child: CircularProgressIndicator(color: Colors.red)); 
+    } 
+    if (camData['type'] == "IP" || camData['type'] == "DRONE") { 
+      return _rtspControllers.containsKey(camId) 
+        ? VlcPlayer(controller: _rtspControllers[camId]!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))) 
+        : Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10)))); 
+    } 
+    return Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10)))); 
+  }
+
+  Widget _buildControlButton(String title, Color color, VoidCallback onTap) { 
+    return GestureDetector(
+      onTap: onTap, 
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), 
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)), 
+        child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))
+      )
+    ); 
+  }
+
+  Widget _buildCompactCameraBox(Map<String, dynamic> cam) { 
+    bool isLive = hexCams.contains(cam['id']) || (mainCameraId == cam['id']); 
+    bool isActive = cam['active']; 
+    bool isMuted = cam['muted']; 
+    
+    return Container(
+      width: 100, 
+      margin: const EdgeInsets.only(right: 6), 
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white, size: 30),
-          const SizedBox(height: 8),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black, 
+                border: Border.all(color: isLive ? Colors.red : (isActive ? Colors.green : Colors.grey.shade800), width: isLive ? 2.5 : 1)
+              ), 
+              child: Stack(
+                children: [
+                  Center(child: Text(isActive ? "Live" : "OFF", style: TextStyle(color: isActive ? Colors.greenAccent : Colors.red, fontSize: 10))), 
+                  Positioned(top: 1, left: 1, child: Container(padding: const EdgeInsets.all(1), color: Colors.black54, child: Text(cam['type'], style: const TextStyle(color: Colors.yellow, fontSize: 7))))
+                ]
+              )
+            )
+          ), 
+          const SizedBox(height: 2), 
+          Text(cam['name'], style: const TextStyle(color: Colors.white, fontSize: 9, overflow: TextOverflow.ellipsis)), 
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center, 
+            children: [
+              GestureDetector(
+                onTap: () async { 
+                  bool willBeActive = !isActive;
+                  setState(() { cam['active'] = willBeActive; }); 
+                  if (cam['type'] == "IP" || cam['type'] == "DRONE") { 
+                    await _toggleRTSPCamera(cam['id'], cam['url'], willBeActive, cam['muted']); 
+                  } 
+                }, 
+                child: Icon(isActive ? Icons.power_settings_new : Icons.power_off, color: isActive ? Colors.green : Colors.red, size: 16)
+              ), 
+              const SizedBox(width: 5), 
+              GestureDetector(
+                onTap: () => _toggleMute(cam), 
+                child: Icon(isMuted ? Icons.mic_off : Icons.mic, color: isMuted ? Colors.red : Colors.blueAccent, size: 16)
+              ), 
+              const SizedBox(width: 5), 
+              if (isActive) 
+                GestureDetector(
+                  onTap: () => setState(() { mainCameraId = cam['id']; }), 
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), 
+                    decoration: BoxDecoration(color: Colors.grey.shade700, borderRadius: BorderRadius.circular(2)), 
+                    child: const Text("CUT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8))
+                  )
+                )
+            ]
+          )
+        ]
       ),
-    );
+    ); 
   }
 }
 
-
 // ============================================================================
-// --- 2. Election Board Screen (పాత election_board.dart ఫైల్ లోని కోడ్ బదులు) ---
+// --- 3. ELECTION BOARD SCREEN
 // ============================================================================
 
 class ElectionBoardScreen extends StatefulWidget {
@@ -2174,53 +2498,417 @@ class ElectionBoardScreen extends StatefulWidget {
 }
 
 class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
-  int congressScore = 64;
-  int brsScore = 39;
-  int bjpScore = 8;
-  int mimScore = 7;
-  int othersScore = 1;
+  // ఎలక్షన్ ట్రెండ్స్ డేటా సిమ్యులేషన్
+  int bjpSeats = 150;
+  int tmcSeats = 103;
+  int congSeats = 5;
+  int leftSeats = 2;
+  int othSeats = 2;
+
+  CameraController? _cameraController;
+  List<CameraDescription> _cameras = [];
+  bool _isRecording = false;
+  bool _showControls = false;
+
+  static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
+
+  @override
+  void initState() {
+    super.initState();
+    _initReporterCamera();
+  }
+
+  Future<void> _initReporterCamera() async {
+    try {
+      _cameras = await availableCameras();
+      if (_cameras.isNotEmpty) {
+        CameraDescription? frontCam;
+        for (var cam in _cameras) {
+          if (cam.lensDirection == CameraLensDirection.front) {
+            frontCam = cam;
+            break;
+          }
+        }
+        _cameraController = CameraController(
+          frontCam ?? _cameras.first, 
+          ResolutionPreset.high, 
+          enableAudio: true 
+        );
+        await _cameraController!.initialize();
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint("Camera Init Error: $e");
+    }
+  }
+
+  Future<void> _toggleElectionLive() async {
+    if (_isRecording) {
+      try {
+        await _channel.invokeMethod('stopScreenCaptureStreaming');
+        setState(() => _isRecording = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ఎలక్షన్ లైవ్ ఆగిపోయింది."), backgroundColor: Colors.blue)
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Stop Error: $e"), backgroundColor: Colors.red)
+        );
+      }
+    } else {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ఎలక్షన్ లైవ్ ప్రారంభమవుతోంది..."), backgroundColor: Colors.orange)
+        );
+        
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String rtmp = prefs.getString('cableRtmp') ?? "";
+        String rtmps = prefs.getString('cableRtmps') ?? "";
+        String srt = prefs.getString('satelliteSrt') ?? "";
+        bool noiseCancel = prefs.getBool('enableNoiseCancellation') ?? false;
+
+        await _channel.invokeMethod('startScreenCaptureStreaming', {
+          'cableRtmp': rtmp,
+          'cableRtmps': rtmps,
+          'satelliteSrt': srt,
+          'noiseCancellation': noiseCancel
+        });
+        setState(() => _isRecording = true);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red)
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("Election Results Board", style: TextStyle(color: Colors.white, fontSize: 18)),
-        backgroundColor: Colors.red[900],
-        iconTheme: const IconThemeData(color: Colors.white),
+      body: GestureDetector(
+        onDoubleTap: () {
+          setState(() {
+            _showControls = !_showControls;
+          });
+        },
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    color: Colors.black,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          color: Colors.red.shade900,
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800),
+                              _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800),
+                              _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800),
+                              _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800),
+                              _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Column(
+                            children: [
+                              Text("SS YATRA", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                              Row(
+                                children: [
+                                  Icon(Icons.fiber_manual_record, color: Colors.white, size: 8),
+                                  SizedBox(width: 3),
+                                  Text("LIVE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 170,
+                          color: Colors.grey.shade900,
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                              const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)),
+                              const Divider(color: Colors.white24),
+                              _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800),
+                              _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800),
+                              _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800),
+                              _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800),
+                            ],
+                          ),
+                        ),
+
+                        Expanded(
+                          child: Container(
+                            color: Colors.black,
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 10,
+                                  top: 10,
+                                  bottom: 10,
+                                  width: 140,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.amber, width: 2),
+                                      color: Colors.grey[850],
+                                    ),
+                                    child: _cameraController != null && _cameraController!.value.isInitialized
+                                        ? ClipRect(
+                                            child: FittedBox(
+                                              fit: BoxFit.cover,
+                                              child: SizedBox(
+                                                width: _cameraController!.value.previewSize!.height,
+                                                height: _cameraController!.value.previewSize!.width,
+                                                child: CameraPreview(_cameraController!),
+                                              ),
+                                            ),
+                                          )
+                                        : const Center(child: CircularProgressIndicator(color: Colors.amber)),
+                                  ),
+                                ),
+
+                                Positioned(
+                                  left: 160,
+                                  right: 10,
+                                  top: 20,
+                                  bottom: 20,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.shade800,
+                                      border: Border.all(color: Colors.amber, width: 3),
+                                      boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)],
+                                    ),
+                                    child: const Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                                        SizedBox(height: 15),
+                                        Text(
+                                          "EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        Container(
+                          width: 170,
+                          color: Colors.grey.shade900,
+                          padding: const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                              const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)),
+                              const Divider(color: Colors.white24),
+                              _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800),
+                              _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800),
+                              _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800),
+                              _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    color: Colors.black,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 130,
+                          padding: const EdgeInsets.all(4),
+                          color: Colors.red.shade900,
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber),
+                              _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700),
+                              _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800),
+                              _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    color: Colors.red.shade900,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text("#ResultsWithSSYatra  |  ELECTION RESULTS LIVE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        Text("@SSYatraTV  |  f Facebook", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              
+              if (_showControls)
+                Positioned(
+                  top: 60,
+                  right: 180,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isRecording ? Colors.orange : Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showControls = false; 
+                      });
+                      _toggleElectionLive();
+                    },
+                    icon: Icon(_isRecording ? Icons.stop : Icons.sensors, color: Colors.white),
+                    label: Text(
+                      _isRecording ? "STOP ELECTION LIVE" : "GO LIVE (ELECTION)",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                
+              if (_showControls)
+                Positioned(
+                  top: 60,
+                  left: 20,
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: Colors.blueGrey,
+                    onPressed: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back, color: Colors.white),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    );
+  }
+
+  Widget _buildPartyHeaderItem(String party, String change, String seats, Color bgColor) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        color: bgColor,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(party, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 2),
+                Text(change, style: const TextStyle(color: Colors.white70, fontSize: 8)),
+              ],
+            ),
+            Text(seats, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStateResultRow(String party, String change, String seats, Color bgColor) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      color: bgColor,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _partyCard("Congress", Colors.blue, congressScore, (val) => setState(() => congressScore += val)),
-          _partyCard("BRS", Colors.pink, brsScore, (val) => setState(() => brsScore += val)),
-          _partyCard("BJP", Colors.orange, bjpScore, (val) => setState(() => bjpScore += val)),
-          _partyCard("MIM", Colors.green, mimScore, (val) => setState(() => mimScore += val)),
-          _partyCard("Others", Colors.grey, othersScore, (val) => setState(() => othersScore += val)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9)),
+            ],
+          ),
+          Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
         ],
       ),
     );
   }
 
-  Widget _partyCard(String partyName, Color color, int score, Function(int) onUpdate) {
-    return Card(
-      color: Colors.grey[900],
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: CircleAvatar(backgroundColor: color, radius: 20),
-        title: Text(partyName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+  Widget _buildBottomPartyItem(String party, String change, String seats, Color bgColor) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        color: bgColor,
+        child: Column(
           children: [
-            IconButton(
-              icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
-              onPressed: () { if (score > 0) onUpdate(-1); },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 2),
+                Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9)),
+              ],
             ),
-            Text("$score", style: const TextStyle(color: Colors.yellowAccent, fontSize: 22, fontWeight: FontWeight.bold)),
-            IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.greenAccent),
-              onPressed: () => onUpdate(1),
-            ),
+            Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
