@@ -26,12 +26,45 @@ Future<void> main() async {
   runApp(const PocketPCRApp());
 }
 
+class PocketPCRApp extends StatelessWidget {
+  const PocketPCRApp({Key? key}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: StudioScreen(),
+    );
+  }
+}
+
 // ============================================================================
-// --- USB CAMERA SERVICE MANAGER (Moved to Top for Global Access) ---
+// --- NATIVE STREAMING SERVICE MANAGER
 // ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
+  static Future<bool> startLiveStream(String cableRtmp, String restreamRtmp, String satelliteSrt) async {
+    try {
+      await platform.invokeMethod('startScreenCaptureStreaming', {
+        'cableRtmp': cableRtmp.replaceFirst('rtmps://', 'rtmp://'),
+        'restreamRtmp': restreamRtmp.replaceFirst('rtmps://', 'rtmp://'),
+        'satelliteSrt': satelliteSrt
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  static Future<bool> stopLiveStream() async {
+    try {
+      await platform.invokeMethod('stopScreenCaptureStreaming');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   static Future<int?> startUsbCamera() async {
     try {
       return await platform.invokeMethod('startUsbCamera');
@@ -44,17 +77,6 @@ class StreamServiceManager {
     try {
       await platform.invokeMethod('stopUsbCamera');
     } catch (e) {}
-  }
-}
-
-class PocketPCRApp extends StatelessWidget {
-  const PocketPCRApp({Key? key}) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: StudioScreen(),
-    );
   }
 }
 
@@ -78,7 +100,6 @@ class _StudioScreenState extends State<StudioScreen>
   int currentDualMediaIndex = 0;
   VideoPlayerController? _bottomAdVideoController;
 
-  bool isLiveLocked = false;
   bool hideControls = false;
   bool isMenuOpen = false;
 
@@ -94,9 +115,6 @@ class _StudioScreenState extends State<StudioScreen>
   bool isBulletinMuted = false;
   bool isCameraVisible = false;
   
-  double pipTop = 60.0;
-  double pipLeft = 0.0;
-
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
   double _maxZoomLevel = 8.0;
@@ -108,7 +126,6 @@ class _StudioScreenState extends State<StudioScreen>
   double logoWidth = 70.0;
   double logoHeight = 70.0;
   int logoPosition = 0; 
-  bool enableWatermarkMotion = true;
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -146,6 +163,7 @@ class _StudioScreenState extends State<StudioScreen>
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _rightAdVideoCtrl;
   VideoPlayerController? _bottomAdVideoCtrlForAds;
+  VideoPlayerController? _logoVideoCtrl;
 
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
@@ -164,8 +182,6 @@ class _StudioScreenState extends State<StudioScreen>
 
   int _tickerBgColorIndex = 0;
   Timer? _tickerColorTimer;
-  late AnimationController _motionController;
-  late AnimationController _watermarkMotionController;
 
   @override
   void initState() {
@@ -178,9 +194,6 @@ class _StudioScreenState extends State<StudioScreen>
     roleCtrl.text = reporterRole;
     mainHeadlineCtrl.text = splitScreenMainHeadline;
     subHeadlineCtrl.text = splitScreenSubHeadline;
-    cableRtmpController.text = "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
-    restreamRtmpController.text = "";
-    satelliteSrtController.text = "";
     ipCamUrlCtrl.text = "http://192.168.1.100:8080/video";
     droneCamUrlCtrl.text = "rtsp://192.168.1.1:554/live";
 
@@ -190,31 +203,15 @@ class _StudioScreenState extends State<StudioScreen>
       DeviceOrientation.landscapeRight
     ]);
 
-    _motionController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
-
-    _watermarkMotionController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat(reverse: true);
-    
     _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (mounted) {
-        setState(() {
-          _tickerBgColorIndex++;
-        });
-      }
+      if (mounted) setState(() => _tickerBgColorIndex++);
     });
 
     _loadSavedData();
     _requestPermissions();
     _fetchBreakingNews();
 
-    _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
-      _fetchBreakingNews();
-    });
+    _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { _fetchBreakingNews(); });
   }
 
   Future<void> _loadSavedData() async {
@@ -230,15 +227,12 @@ class _StudioScreenState extends State<StudioScreen>
       
       adShapeMode = prefs.getInt('adShapeMode') ?? 0;
       logoPosition = prefs.getInt('logoPosition') ?? 0;
-      enableWatermarkMotion = prefs.getBool('enableWatermarkMotion') ?? true;
 
       cableRtmpController.text = prefs.getString('cableRtmp') ?? "rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY_HERE";
       restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
       satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
       youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
       networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
-      ipCamUrlCtrl.text = prefs.getString('ipCamUrl') ?? "http://192.168.1.100:8080/video";
-      droneCamUrlCtrl.text = prefs.getString('droneCamUrl') ?? "rtsp://192.168.1.1:554/live";
 
       watermarkCtrl.text = watermarkText;
       locCtrl.text = locationText;
@@ -248,19 +242,11 @@ class _StudioScreenState extends State<StudioScreen>
       subHeadlineCtrl.text = splitScreenSubHeadline;
 
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
-      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
-        channelLogoPath = savedLogo;
-      }
+      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
 
-      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? [])
-          .where((path) => File(path).existsSync())
-          .toList();
-      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? [])
-          .where((path) => File(path).existsSync())
-          .toList();
-      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? [])
-          .where((path) => File(path).existsSync())
-          .toList();
+      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
 
       if (leftAdPaths.isNotEmpty) _initAdVideo('left');
       if (rightAdPaths.isNotEmpty) _initAdVideo('right');
@@ -268,66 +254,35 @@ class _StudioScreenState extends State<StudioScreen>
     });
   }
 
+  void _setLogo(String path) {
+    channelLogoPath = path;
+    if (path.toLowerCase().endsWith('.mp4')) {
+      _logoVideoCtrl?.dispose();
+      _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { 
+        if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); } 
+      });
+    } else { 
+      _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; 
+    }
+  }
+
   void _initAdVideo(String pos) {
     String path = "";
-    if (pos == 'left' && leftAdPaths.isNotEmpty) {
-      if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0;
-      path = leftAdPaths[leftAdIndex];
-    }
-    if (pos == 'right' && rightAdPaths.isNotEmpty) {
-      if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0;
-      path = rightAdPaths[rightAdIndex];
-    }
-    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) {
-      if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0;
-      path = bottomAdPaths[bottomAdIndex];
-    }
-
+    if (pos == 'left' && leftAdPaths.isNotEmpty) path = leftAdPaths[leftAdIndex = leftAdIndex % leftAdPaths.length];
+    if (pos == 'right' && rightAdPaths.isNotEmpty) path = rightAdPaths[rightAdIndex = rightAdIndex % rightAdPaths.length];
+    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) path = bottomAdPaths[bottomAdIndex = bottomAdIndex % bottomAdPaths.length];
     if (path.isEmpty) return;
-    bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
 
+    bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
     if (pos == 'left') {
-      _leftAdVideoCtrl?.dispose();
-      _leftAdVideoCtrl = null;
-      if (isVideo) {
-        _leftAdVideoCtrl = VideoPlayerController.file(File(path))
-          ..initialize().then((_) {
-            if (mounted) {
-              _leftAdVideoCtrl!.setLooping(true);
-              _leftAdVideoCtrl!.setVolume(0.0);
-              _leftAdVideoCtrl!.play();
-              setState(() {});
-            }
-          });
-      }
+      _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;
+      if (isVideo) _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }});
     } else if (pos == 'right') {
-      _rightAdVideoCtrl?.dispose();
-      _rightAdVideoCtrl = null;
-      if (isVideo) {
-        _rightAdVideoCtrl = VideoPlayerController.file(File(path))
-          ..initialize().then((_) {
-            if (mounted) {
-              _rightAdVideoCtrl!.setLooping(true);
-              _rightAdVideoCtrl!.setVolume(0.0);
-              _rightAdVideoCtrl!.play();
-              setState(() {});
-            }
-          });
-      }
+      _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null;
+      if (isVideo) _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState((){}); }});
     } else if (pos == 'bottom') {
-      _bottomAdVideoCtrlForAds?.dispose();
-      _bottomAdVideoCtrlForAds = null;
-      if (isVideo) {
-        _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))
-          ..initialize().then((_) {
-            if (mounted) {
-              _bottomAdVideoCtrlForAds!.setLooping(true);
-              _bottomAdVideoCtrlForAds!.setVolume(0.0);
-              _bottomAdVideoCtrlForAds!.play();
-              setState(() {});
-            }
-          });
-      }
+      _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;
+      if (isVideo) _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }});
     }
   }
 
@@ -342,7 +297,6 @@ class _StudioScreenState extends State<StudioScreen>
     await prefs.setString('breakingNewsText', breakingNewsText);
     await prefs.setInt('adShapeMode', adShapeMode);
     await prefs.setInt('logoPosition', logoPosition);
-    await prefs.setBool('enableWatermarkMotion', enableWatermarkMotion);
   }
 
   Future<void> _saveLinks() async {
@@ -352,8 +306,6 @@ class _StudioScreenState extends State<StudioScreen>
     await prefs.setString('satelliteSrt', satelliteSrtController.text);
     await prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text);
     await prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text);
-    await prefs.setString('ipCamUrl', ipCamUrlCtrl.text);
-    await prefs.setString('droneCamUrl', droneCamUrlCtrl.text);
   }
 
   Future<void> _saveAdPaths(String pos, List<String> paths) async {
@@ -382,8 +334,6 @@ class _StudioScreenState extends State<StudioScreen>
     _newsTimer?.cancel();
     _adCycleTimer?.cancel();
     _tickerColorTimer?.cancel();
-    _motionController.dispose();
-    _watermarkMotionController.dispose();
 
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
@@ -393,23 +343,7 @@ class _StudioScreenState extends State<StudioScreen>
     _leftAdVideoCtrl?.dispose();
     _rightAdVideoCtrl?.dispose();
     _bottomAdVideoCtrlForAds?.dispose();
-    _ipCamController?.dispose();
-    _droneCamController?.dispose();
-
-    cableRtmpController.dispose();
-    restreamRtmpController.dispose();
-    satelliteSrtController.dispose();
-    networkVideoUrlCtrl.dispose();
-    youtubeVideoUrlCtrl.dispose();
-    ipCamUrlCtrl.dispose();
-    droneCamUrlCtrl.dispose();
-    watermarkCtrl.dispose();
-    locCtrl.dispose();
-    nameCtrl.dispose();
-    roleCtrl.dispose();
-    manualTickerCtrl.dispose();
-    mainHeadlineCtrl.dispose();
-    subHeadlineCtrl.dispose();
+    _logoVideoCtrl?.dispose();
     
     super.dispose();
   }
@@ -433,105 +367,58 @@ class _StudioScreenState extends State<StudioScreen>
         for (var item in items.take(20)) {
           titles.add(item.findElements('title').first.innerText.replaceAll(RegExp(r'^[0-9]+[smh]\s*Trend:\s*', caseSensitive: false), ''));
         }
-        if (titles.isNotEmpty && mounted) {
-          setState(() {
-            breakingNewsText = titles.join("   ♦   ");
-          });
-        }
+        if (titles.isNotEmpty && mounted) setState(() => breakingNewsText = titles.join("   ♦   "));
       }
     } catch (e) {}
   }
 
   Future<void> _requestPermissions() async {
-    await [
-      Permission.camera,
-      Permission.microphone,
-      Permission.storage,
-      Permission.photos,
-      Permission.videos
-    ].request();
+    await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos, Permission.videos].request();
   }
 
   Future<void> _initCamera() async {
     if (cameras.isEmpty) return;
     try {
-      if (controller != null) {
-        await controller!.dispose();
-      }
-      final camController = CameraController(
-        cameras[currentCameraIndex],
-        ResolutionPreset.high,
-        enableAudio: true,
-      );
+      if (controller != null) await controller!.dispose();
+      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: true);
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
-      
       _minZoomLevel = await camController.getMinZoomLevel();
       _maxZoomLevel = await camController.getMaxZoomLevel();
       _currentZoomLevel = _minZoomLevel;
-      
-      setState(() {
-        _isCameraInitialized = true;
-      });
-    } catch (e) {
-      debugPrint("Init Camera Error: $e");
-    }
+      setState(() => _isCameraInitialized = true);
+    } catch (e) {}
   }
 
   void _switchCamera() async {
     if (isExternalIpCamMode || isUsbCamMode || isDroneCamMode) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ఎక్స్‌టర్నల్ / డ్రోన్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు."))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఎక్స్‌టర్నల్ / డ్రోన్ మోడ్‌లో కెమెరా స్విచ్ పనిచేయదు.")));
       return;
     }
     if (cameras.length < 2) return;
     currentCameraIndex = currentCameraIndex == 0 ? 1 : 0;
-    if (isCameraVisible) {
-      await _initCamera();
-    }
-    setState(() {
-      isMenuOpen = false;
-    });
+    if (isCameraVisible) await _initCamera();
+    setState(() => isMenuOpen = false);
   }
 
   void _toggleCameraVisibility() async {
-    setState(() {
-      isMenuOpen = false;
-    });
-
+    setState(() => isMenuOpen = false);
     if (isExternalIpCamMode || isUsbCamMode || isDroneCamMode) {
       setState(() {
-        isExternalIpCamMode = false;
-        isUsbCamMode = false;
-        isDroneCamMode = false;
-        isCameraVisible = false;
-        _usbTextureId = null;
+        isExternalIpCamMode = false; isUsbCamMode = false; isDroneCamMode = false; isCameraVisible = false; _usbTextureId = null;
       });
-      _ipCamController?.dispose();
-      _ipCamController = null;
-      _droneCamController?.dispose();
-      _droneCamController = null;
-      try {
-        await StreamServiceManager.stopUsbCamera();
-      } catch (_) {}
+      _ipCamController?.dispose(); _ipCamController = null;
+      _droneCamController?.dispose(); _droneCamController = null;
+      try { await StreamServiceManager.stopUsbCamera(); } catch (_) {}
       return;
     }
-
     if (isCameraVisible) {
-      setState(() {
-        isCameraVisible = false;
-      });
-      await controller?.dispose();
-      controller = null;
-      setState(() {
-        _isCameraInitialized = false;
-      });
+      setState(() => isCameraVisible = false);
+      await controller?.dispose(); controller = null;
+      setState(() => _isCameraInitialized = false);
     } else {
-      setState(() {
-        isCameraVisible = true;
-      });
+      setState(() => isCameraVisible = true);
       await _initCamera();
     }
   }
@@ -541,24 +428,15 @@ class _StudioScreenState extends State<StudioScreen>
       adDisplayMode = (adDisplayMode + 1) % 3;
       isMenuOpen = false;
       _adCycleTimer?.cancel();
-
       if (adDisplayMode == 0) {
         isAdCurrentlyShowing = false;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("యాడ్స్ ఆఫ్ (వీడియో ఫుల్ జూమ్)"), backgroundColor: Colors.red)
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యాడ్స్ ఆఫ్"), backgroundColor: Colors.red));
       } else if (adDisplayMode == 1) {
-        isAdCurrentlyShowing = true;
-        _startPermanentCycle();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("యాడ్స్ ఆన్ (నిరంతరం మారుతాయి)"), backgroundColor: Colors.blueAccent)
-        );
+        isAdCurrentlyShowing = true; _startPermanentCycle();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యాడ్స్ ఆన్ (నిరంతరం)"), backgroundColor: Colors.blueAccent));
       } else if (adDisplayMode == 2) {
-        isAdCurrentlyShowing = true;
-        _startAutoCycle();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ఆటో టైమర్ (20s ON / 40s OFF)"), backgroundColor: Colors.green)
-        );
+        isAdCurrentlyShowing = true; _startAutoCycle();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఆటో టైమర్"), backgroundColor: Colors.green));
       }
     });
   }
@@ -571,9 +449,7 @@ class _StudioScreenState extends State<StudioScreen>
           if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
           if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
           if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
-          _initAdVideo('left');
-          _initAdVideo('right');
-          _initAdVideo('bottom');
+          _initAdVideo('left'); _initAdVideo('right'); _initAdVideo('bottom');
         });
       }
     });
@@ -583,12 +459,7 @@ class _StudioScreenState extends State<StudioScreen>
     _adCycleTimer?.cancel();
     if (isAdCurrentlyShowing) {
       _adCycleTimer = Timer(const Duration(seconds: 20), () {
-        if (mounted && adDisplayMode == 2) {
-          setState(() {
-            isAdCurrentlyShowing = false;
-          });
-          _startAutoCycle();
-        }
+        if (mounted && adDisplayMode == 2) { setState(() => isAdCurrentlyShowing = false); _startAutoCycle(); }
       });
     } else {
       _adCycleTimer = Timer(const Duration(seconds: 40), () {
@@ -598,9 +469,7 @@ class _StudioScreenState extends State<StudioScreen>
             if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
             if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
             if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
-            _initAdVideo('left');
-            _initAdVideo('right');
-            _initAdVideo('bottom');
+            _initAdVideo('left'); _initAdVideo('right'); _initAdVideo('bottom');
           });
           _startAutoCycle();
         }
@@ -609,124 +478,68 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   void _toggleAdShapeMode() async {
-    setState(() {
-      adShapeMode = (adShapeMode + 1) % 3;
-      isMenuOpen = false;
-    });
+    setState(() { adShapeMode = (adShapeMode + 1) % 3; isMenuOpen = false; });
     await _saveTextSettings();
-    String shapeName = adShapeMode == 0 ? "L-Band" : (adShapeMode == 1 ? "2-Sides" : "U-Band");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("డిజైన్ మారింది: $shapeName"), backgroundColor: Colors.purpleAccent)
-    );
   }
 
   void _toggleLBandDirection() {
-    setState(() {
-      isLBandRight = !isLBandRight;
-      isMenuOpen = false;
-    });
+    setState(() { isLBandRight = !isLBandRight; isMenuOpen = false; });
   }
 
   void _changeLogoPosition() async {
-    setState(() {
-      logoPosition = (logoPosition + 1) % 4;
-      isMenuOpen = false;
-    });
+    setState(() { logoPosition = (logoPosition + 1) % 4; isMenuOpen = false; });
     await _saveTextSettings();
-    String posName = "";
-    if (logoPosition == 0) posName = "Top Left";
-    if (logoPosition == 1) posName = "Top Right";
-    if (logoPosition == 2) posName = "Bottom Left";
-    if (logoPosition == 3) posName = "Bottom Right";
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("లోగో స్థానం మారింది: $posName"), backgroundColor: Colors.amber)
-    );
   }
 
   Future<void> _startIpCamera(String url) async {
     if (url.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("IP కెమెరాకు కనెక్ట్ అవుతోంది..."), backgroundColor: Colors.orange)
-    );
-    
     _ipCamController?.dispose();
-    _ipCamController = VideoPlayerController.networkUrl(Uri.parse(url))
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() {
-          isExternalIpCamMode = true;
-          isUsbCamMode = false;
-          isDroneCamMode = false;
-          isCameraVisible = true;
-          isNewsBulletinMode = false;
-          isDualScreenMode = false;
-        });
-        _ipCamController?.play();
-      }).catchError((e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("IP కెమెరా కనెక్ట్ కాలేదు. లింక్ చెక్ చేయండి."), backgroundColor: Colors.red)
-        );
-      });
+    _ipCamController = VideoPlayerController.networkUrl(Uri.parse(url))..initialize().then((_) {
+      if (!mounted) return;
+      setState(() { isExternalIpCamMode = true; isUsbCamMode = false; isDroneCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; isDualScreenMode = false; });
+      _ipCamController?.play();
+    });
   }
 
   Future<void> _startDroneCamera(String url) async {
     if (url.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("డ్రోన్ సిగ్నల్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange)
-    );
-    
     _droneCamController?.dispose();
-    _droneCamController = VideoPlayerController.networkUrl(Uri.parse(url))
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() {
-          isDroneCamMode = true;
-          isExternalIpCamMode = false;
-          isUsbCamMode = false;
-          isCameraVisible = true;
-          isNewsBulletinMode = false;
-          isDualScreenMode = false;
-        });
-        _droneCamController?.play();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("డ్రోన్ కనెక్ట్ అయ్యింది! (Live)"), backgroundColor: Colors.green)
-        );
-      }).catchError((e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("డ్రోన్ ఫీడ్ కనెక్ట్ కాలేదు. RTMP/RTSP చెక్ చేయండి."), backgroundColor: Colors.red)
-        );
-      });
+    _droneCamController = VideoPlayerController.networkUrl(Uri.parse(url))..initialize().then((_) {
+      if (!mounted) return;
+      setState(() { isDroneCamMode = true; isExternalIpCamMode = false; isUsbCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; isDualScreenMode = false; });
+      _droneCamController?.play();
+    });
   }
 
   Future<void> _startUsbCamera() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("USB Capture Card కోసం వెతుకుతోంది..."), backgroundColor: Colors.orange)
-    );
     try {
       final int? textureId = await StreamServiceManager.startUsbCamera();
       if (textureId != null) {
-        setState(() {
-          _usbTextureId = textureId;
-          isUsbCamMode = true;
-          isExternalIpCamMode = false;
-          isDroneCamMode = false;
-          isCameraVisible = true;
-          isNewsBulletinMode = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("USB Capture Card కనెక్ట్ అయ్యింది!"), backgroundColor: Colors.green)
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("USB కెమెరా కనెక్ట్ కాలేదు. OTG చెక్ చేయండి."), backgroundColor: Colors.red)
+        setState(() { _usbTextureId = textureId; isUsbCamMode = true; isExternalIpCamMode = false; isDroneCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; });
+      }
+    } catch (e) {}
+  }
+
+  void _showExternalCamsDialog() {
+    setState(() => isMenuOpen = false);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text("External Cameras & Drone", style: TextStyle(color: Colors.white, fontSize: 15)),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "IP Cam URL")),
+              ElevatedButton(onPressed: () { Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, child: const Text("Connect IP Cam")),
+              TextField(controller: droneCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Drone URL")),
+              ElevatedButton(onPressed: () { Navigator.pop(context); _startDroneCamera(droneCamUrlCtrl.text.trim()); }, child: const Text("Connect Drone")),
+              ElevatedButton(onPressed: () { Navigator.pop(context); _startUsbCamera(); }, child: const Text("Start USB Camera")),
+            ]),
+          ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Android UVC కోడ్ ఇంకా సెటప్ చేయబడలేదు."), backgroundColor: Colors.redAccent)
-      );
-    }
+    );
   }
 
   Future<void> _pickAds(String pos) async {
@@ -734,30 +547,13 @@ class _StudioScreenState extends State<StudioScreen>
       final List<XFile> medias = await _picker.pickMultipleMedia();
       if (medias.isNotEmpty && mounted) {
         setState(() {
-          if (pos == 'left') {
-            leftAdPaths.addAll(medias.map((e) => e.path));
-            leftAdIndex = leftAdPaths.length - 1;
-            _saveAdPaths(pos, leftAdPaths);
-          }
-          if (pos == 'right') {
-            rightAdPaths.addAll(medias.map((e) => e.path));
-            rightAdIndex = rightAdPaths.length - 1;
-            _saveAdPaths(pos, rightAdPaths);
-          }
-          if (pos == 'bottom') {
-            bottomAdPaths.addAll(medias.map((e) => e.path));
-            bottomAdIndex = bottomAdPaths.length - 1;
-            _saveAdPaths(pos, bottomAdPaths);
-          }
+          if (pos == 'left') { leftAdPaths.addAll(medias.map((e) => e.path)); leftAdIndex = leftAdPaths.length - 1; _saveAdPaths(pos, leftAdPaths); }
+          if (pos == 'right') { rightAdPaths.addAll(medias.map((e) => e.path)); rightAdIndex = rightAdPaths.length - 1; _saveAdPaths(pos, rightAdPaths); }
+          if (pos == 'bottom') { bottomAdPaths.addAll(medias.map((e) => e.path)); bottomAdIndex = bottomAdPaths.length - 1; _saveAdPaths(pos, bottomAdPaths); }
           _initAdVideo(pos);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("కొత్త యాడ్స్ విజయవంతంగా యాడ్ అయ్యాయి!"), backgroundColor: Colors.green)
-        );
       }
-    } catch (e) {
-      debugPrint("Pick Ads Error: $e");
-    }
+    } catch (e) {}
   }
 
   void _manageAdsDialog(String pos) {
@@ -769,517 +565,100 @@ class _StudioScreenState extends State<StudioScreen>
     showDialog(
       context: context,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: currentPaths.isEmpty
-                    ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54))
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: currentPaths.length,
-                        itemBuilder: (ctx, idx) {
-                          String path = currentPaths[idx];
-                          bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
-                          return ListTile(
-                            leading: isVideo
-                                ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40)
-                                : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
-                            title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () {
-                                setState(() {
-                                  currentPaths.removeAt(idx);
-                                  _saveAdPaths(pos, currentPaths);
-                                  if (pos == 'left') {
-                                    if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0;
-                                    _initAdVideo('left');
-                                  }
-                                  if (pos == 'right') {
-                                    if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0;
-                                    _initAdVideo('right');
-                                  }
-                                  if (pos == 'bottom') {
-                                    if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0;
-                                    _initAdVideo('bottom');
-                                  }
-                                });
-                                setDialogState(() {});
-                              },
-                            ),
-                          );
-                        },
-                      ),
+        return StatefulBuilder(builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: currentPaths.isEmpty ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54)) : ListView.builder(
+                shrinkWrap: true, itemCount: currentPaths.length, itemBuilder: (ctx, idx) {
+                  String path = currentPaths[idx];
+                  bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
+                  return ListTile(
+                    leading: isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40) : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
+                    title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () {
+                      setState(() {
+                        currentPaths.removeAt(idx); _saveAdPaths(pos, currentPaths);
+                        if (pos == 'left') { if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0; _initAdVideo('left'); }
+                        if (pos == 'right') { if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0; _initAdVideo('right'); }
+                        if (pos == 'bottom') { if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0; _initAdVideo('bottom'); }
+                      });
+                      setDialogState(() {});
+                    }),
+                  );
+                },
               ),
-              actions: [
-                TextButton(
-                  child: const Text("Clear All", style: TextStyle(color: Colors.redAccent)),
-                  onPressed: () {
-                    setState(() {
-                      currentPaths.clear();
-                      _saveAdPaths(pos, currentPaths);
-                      if (pos == 'left') {
-                        leftAdIndex = 0;
-                        _leftAdVideoCtrl?.dispose();
-                        _leftAdVideoCtrl = null;
-                      }
-                      if (pos == 'right') {
-                        rightAdIndex = 0;
-                        _rightAdVideoCtrl?.dispose();
-                        _rightAdVideoCtrl = null;
-                      }
-                      if (pos == 'bottom') {
-                        bottomAdIndex = 0;
-                        _bottomAdVideoCtrlForAds?.dispose();
-                        _bottomAdVideoCtrlForAds = null;
-                      }
-                    });
-                    Navigator.pop(ctx);
-                  },
-                ),
-                TextButton(
-                  child: const Text("Close", style: TextStyle(color: Colors.white)),
-                  onPressed: () => Navigator.pop(ctx),
-                )
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showExternalCamsDialog() {
-    setState(() {
-      isMenuOpen = false;
-    });
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: const Text("External Cameras & Drone Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
-              content: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("1. IP Camera / Wi-Fi CCTV", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    const SizedBox(height: 5),
-                    TextField(
-                      controller: ipCamUrlCtrl,
-                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                      decoration: const InputDecoration(
-                        hintText: "http://... or rtsp://...",
-                        hintStyle: TextStyle(color: Colors.white30),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                      onPressed: () async {
-                        await _saveLinks();
-                        Navigator.pop(context);
-                        _startIpCamera(ipCamUrlCtrl.text.trim());
-                      },
-                      icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18),
-                      label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11)),
-                    ),
-                    const Divider(color: Colors.white24, height: 20),
-                    
-                    const Text("2. Drone Camera (DJI / RTMP / RTSP)", style: TextStyle(color: Colors.greenAccent, fontSize: 11)),
-                    const SizedBox(height: 5),
-                    TextField(
-                      controller: droneCamUrlCtrl,
-                      style: const TextStyle(color: Colors.yellow, fontSize: 12),
-                      decoration: const InputDecoration(
-                        hintText: "rtmp://... or rtsp://...",
-                        hintStyle: TextStyle(color: Colors.white30),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                      onPressed: () async {
-                        await _saveLinks();
-                        Navigator.pop(context);
-                        _startDroneCamera(droneCamUrlCtrl.text.trim());
-                      },
-                      icon: const Icon(Icons.flight, color: Colors.white, size: 18),
-                      label: const Text("Connect Drone", style: TextStyle(color: Colors.white, fontSize: 11)),
-                    ),
-                    
-                    const Divider(color: Colors.white24, height: 20),
-                    const Text("3. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                    const SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _startUsbCamera();
-                      },
-                      icon: const Icon(Icons.usb, color: Colors.white, size: 18),
-                      label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11)),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 11)),
-                )
-              ],
-            );
-          },
-        );
+            ),
+            actions: [
+              TextButton(child: const Text("Clear All", style: TextStyle(color: Colors.redAccent)), onPressed: () {
+                setState(() {
+                  currentPaths.clear(); _saveAdPaths(pos, currentPaths);
+                  if (pos == 'left') { leftAdIndex = 0; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; }
+                  if (pos == 'right') { rightAdIndex = 0; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; }
+                  if (pos == 'bottom') { bottomAdIndex = 0; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; }
+                });
+                Navigator.pop(ctx);
+              }),
+              TextButton(child: const Text("Close", style: TextStyle(color: Colors.white)), onPressed: () => Navigator.pop(ctx))
+            ],
+          );
+        });
       },
     );
   }
 
   void _showEditDialog() {
-    setState(() {
-      isMenuOpen = false;
-    });
+    setState(() => isMenuOpen = false);
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: const Text("స్టూడియో సెట్టింగ్స్ & లోగో", style: TextStyle(color: Colors.white, fontSize: 13)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        try {
-                          final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
-                          if (image != null) {
-                            setState(() {
-                              channelLogoPath = image.path;
-                            });
-                            SharedPreferences prefs = await SharedPreferences.getInstance();
-                            await prefs.setString('channelLogoPath', image.path);
-                            setDialogState(() {});
-                          }
-                        } catch (e) {}
-                      },
-                      icon: const Icon(Icons.upload),
-                      label: const Text("లోగో అప్లోడ్ (JPEG, GIF, MP4)"),
-                    ),
-                    const SizedBox(height: 10),
-                    SwitchListTile(
-                      title: const Text("లోగో స్క్రీన్ పై కదలడానికి (Watermark Motion)", style: TextStyle(color: Colors.white, fontSize: 12)),
-                      value: enableWatermarkMotion,
-                      onChanged: (val) {
-                        setState(() {
-                          enableWatermarkMotion = val;
-                        });
-                        setDialogState(() {});
-                        _saveTextSettings();
-                      },
-                    ),
-                    const Divider(color: Colors.white24, height: 20),
-                    TextField(
-                      controller: mainHeadlineCtrl,
-                      style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌‌లైన్"),
-                    ),
-                    TextField(
-                      controller: subHeadlineCtrl,
-                      style: const TextStyle(color: Colors.cyanAccent),
-                      decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్"),
-                    ),
-                    const Divider(color: Colors.white24, height: 20),
-                    TextField(
-                      controller: manualTickerCtrl,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
-                      onPressed: () async {
-                        if (manualTickerCtrl.text.trim().isNotEmpty) {
-                          setState(() {
-                            breakingNewsText = manualTickerCtrl.text.trim();
-                          });
-                          await _saveTextSettings();
-                          manualTickerCtrl.clear();
-                          setDialogState(() {});
-                        }
-                      },
-                      child: const Text("టిక్కర్ అప్‌‌డేట్ చేయి", style: TextStyle(color: Colors.black)),
-                    ),
-                    TextField(
-                      controller: watermarkCtrl,
-                      style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "వాటర్ మార్క్"),
-                    ),
-                    TextField(
-                      controller: locCtrl,
-                      style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "లొకేషన్"),
-                    ),
-                    TextField(
-                      controller: nameCtrl,
-                      style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు"),
-                    ),
-                    TextField(
-                      controller: roleCtrl,
-                      style: const TextStyle(color: Colors.yellow),
-                      decoration: const InputDecoration(labelText: "హోదా"),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                ElevatedButton(
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: const Text("స్టూడియో సెట్టింగ్స్", style: TextStyle(color: Colors.white, fontSize: 13)),
+            content: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                ElevatedButton.icon(
                   onPressed: () async {
-                    setState(() {
-                      splitScreenMainHeadline = mainHeadlineCtrl.text;
-                      splitScreenSubHeadline = subHeadlineCtrl.text;
-                      watermarkText = watermarkCtrl.text;
-                      locationText = locCtrl.text;
-                      reporterName = nameCtrl.text;
-                      reporterRole = roleCtrl.text;
-                    });
-                    await _saveTextSettings();
-                    Navigator.pop(context);
+                    final XFile? media = await _picker.pickMedia();
+                    if (media != null) {
+                      setState(() => _setLogo(media.path));
+                      SharedPreferences prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('channelLogoPath', media.path);
+                      setDialogState(() {});
+                    }
                   },
-                  child: const Text("Save & Close"),
-                )
-              ],
-            );
-          },
-        );
+                  icon: const Icon(Icons.upload), label: const Text("లోగో అప్లోడ్ (JPEG, GIF, MP4)")
+                ),
+                TextField(controller: watermarkCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "వాటర్ మార్క్")),
+                TextField(controller: locCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "లొకేషన్")),
+                TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
+                TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "హోదా")),
+              ]),
+            ),
+            actions: [
+              ElevatedButton(onPressed: () async {
+                setState(() { watermarkText = watermarkCtrl.text; locationText = locCtrl.text; reporterName = nameCtrl.text; reporterRole = roleCtrl.text; });
+                await _saveTextSettings(); Navigator.pop(context);
+              }, child: const Text("Save & Close"))
+            ],
+          );
+        });
       },
     );
   }
 
-  void _showMultiStreamDialog() {
-    setState(() { isMenuOpen = false; });
-    showDialog(
-      context: context, 
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900],
-            title: const Text("Live Control Room (Multi-Live)", style: TextStyle(color: Colors.white, fontSize: 15)),
-            content: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. YouTube RTMP Link (Primary)", cableRtmpController, setDialogState),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("2. Restream / RTMP / RTMPS Link", restreamRtmpController, setDialogState),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("3. Satellite/Playout — SRT/RTMP", satelliteSrtController, setDialogState),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("4. YouTube Video Link (Player)", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("5. Direct Network Video (MP4)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
-                const Divider(color: Colors.white24, height: 20),
-                const Text("6. గ్యాలరీ వీడియో (MP4, HD, 4K)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity, 
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 10)), 
-                    onPressed: () { Navigator.pop(context); _playLocalGalleryVideo(); }, 
-                    icon: const Icon(Icons.video_library, color: Colors.white, size: 20), 
-                    label: const Text("గ్యాలరీ నుండి సెలెక్ట్ చేయండి", style: TextStyle(color: Colors.white, fontSize: 12))
-                  )
-                ),
-              ])
-            ),
-            actions: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-                ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () { Navigator.pop(context); _startLiveAndLock(); }, child: const Text("Go Live", style: TextStyle(color: Colors.white, fontSize: 11))),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), 
-                  onPressed: () async { 
-                    Navigator.pop(context); 
-                    if (isLivePaused) { 
-                      setState(() { isLivePaused = false; }); 
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); 
-                    } else { 
-                      setState(() { isLivePaused = true; }); 
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."))); 
-                    } 
-                  }, 
-                  child: Text(isLivePaused ? "Resume Live" : "Live Pause", style: const TextStyle(color: Colors.white, fontSize: 11))
-                ),
-                ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () { Navigator.pop(context); _stopLiveStream(); }, child: const Text("Live Close", style: TextStyle(color: Colors.white, fontSize: 11))),
-              ])
-            ]
-          );
-        });
-      }
-    );
-  }
-
-  Widget _buildLinkEditor(String label, TextEditingController controller, StateSetter setDialogState, {VoidCallback? onPlay}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-      Row(children: [
-        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { await _saveLinks(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
-        if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
-      ])
-    ]);
-  }
-
-  Future<void> _startNetworkBulletin(String url) async {
-    if (url.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్రాసెస్ అవుతోంది..."), backgroundColor: Colors.orange));
-    String finalPlayUrl = url;
-    if (url.contains("youtube.com") || url.contains("youtu.be")) {
-      try {
-        var ytExplode = yt.YoutubeExplode(); 
-        String? videoIdStr = yt.VideoId.parseVideoId(url);
-        if (videoIdStr != null) {
-          var vId = yt.VideoId(videoIdStr);
-          var video = await ytExplode.videos.get(vId);
-          if (video.isLive) { 
-            finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId); 
-          } else { 
-            var manifest = await ytExplode.videos.streamsClient.getManifest(vId); 
-            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
-          }
-        }
-        ytExplode.close();
-      } catch (e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ లింక్‌‌ను ప్లే చేయలేము."), backgroundColor: Colors.red)); return; }
-    }
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవుతోంది..."), backgroundColor: Colors.green));
-    _bulletinVideoController?.removeListener(_videoListener); 
-    _bulletinVideoController?.dispose();
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))..initialize().then((_) { 
-      if (!mounted) return; 
-      _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
-      setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; }); 
-      _bulletinVideoController?.play(); 
-      _bulletinVideoController?.addListener(_videoListener); 
-    }).catchError((e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red)); });
-  }
-
-  Future<void> _playLocalGalleryVideo() async {
-    try {
-      final XFile? videoFile = await _picker.pickVideo(source: ImageSource.gallery);
-      if (videoFile != null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("గ్యాలరీ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
-        _bulletinVideoController?.removeListener(_videoListener); 
-        _bulletinVideoController?.dispose();
-        _bulletinVideoController = VideoPlayerController.file(File(videoFile.path))..initialize().then((_) { 
-          if (!mounted) return; 
-          _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
-          setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; }); 
-          _bulletinVideoController?.play(); 
-          _bulletinVideoController?.addListener(_videoListener); 
-        }).catchError((e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. ఫార్మాట్ సపోర్ట్ చేయకపోవచ్చు."), backgroundColor: Colors.red)); });
-      }
-    } catch (e) { debugPrint("Gallery Video Error: $e"); }
-  }
-
-  void _toggleRotation() {
-    setState(() {
-      isMenuOpen = false;
-      isLandscape = !isLandscape;
-      if (isLandscape) {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeRight,
-          DeviceOrientation.landscapeLeft
-        ]);
-      } else {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp
-        ]);
-      }
-    });
-  }
-
-  Future<void> _startLiveAndLock() async {
-    String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
-
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("దయచేసి కనీసం ఒక లింక్ (YouTube/Restream/Satellite) ఇవ్వండి."), backgroundColor: Colors.red)
-      );
-      return;
-    }
-    var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) {
-      micStatus = await Permission.microphone.request();
-    }
-    
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft
-    ]);
-    setState(() {
-      isLiveBroadcasting = true;
-      isLivePaused = false;
-      isLiveLocked = true;
-      hideControls = true;
-      isMenuOpen = false;
-      isLandscape = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("లైవ్ మోడ్ విజయవంతంగా ప్రారంభమైంది!"), backgroundColor: Colors.green)
-    );
-  }
-
-  Future<void> _stopLiveStream() async {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight
-    ]);
-    setState(() {
-      isLiveBroadcasting = false;
-      isLiveLocked = false;
-      isLivePaused = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("లైవ్ ప్రసారం నిలిపివేయబడింది."), backgroundColor: Colors.blue)
-    );
-  }
-
-  Future<void> _toggleDualScreenAndPickMedia() async {
-    setState(() {
-      isMenuOpen = false;
-    });
+  void _toggleDualScreenAndPickMedia() async {
+    setState(() => isMenuOpen = false);
     if (isDualScreenMode) {
-      setState(() {
-        isDualScreenMode = false;
-        dualMediaList.clear();
-        _bottomAdVideoController?.dispose();
-        _bottomAdVideoController = null;
-      });
+      setState(() { isDualScreenMode = false; dualMediaList.clear(); _bottomAdVideoController?.dispose(); _bottomAdVideoController = null; });
       return;
     }
     try {
       final List<XFile> medias = await _picker.pickMultipleMedia();
       if (medias.isNotEmpty && mounted) {
-        dualMediaList = medias.map((e) => e.path).toList();
-        currentDualMediaIndex = 0;
-        setState(() {
-          isDualScreenMode = true;
-          isNewsBulletinMode = false;
-        });
+        dualMediaList = medias.map((e) => e.path).toList(); currentDualMediaIndex = 0;
+        setState(() { isDualScreenMode = true; isNewsBulletinMode = false; });
         _playDualMedia(dualMediaList[currentDualMediaIndex]);
       }
     } catch (e) {}
@@ -1288,20 +667,8 @@ class _StudioScreenState extends State<StudioScreen>
   void _playDualMedia(String path) {
     if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) {
       _bottomAdVideoController?.dispose();
-      _bottomAdVideoController = VideoPlayerController.file(File(path))
-        ..initialize().then((_) {
-          if (mounted) {
-            _bottomAdVideoController!.setLooping(true);
-            _bottomAdVideoController!.setVolume(1.0);
-            _bottomAdVideoController!.play();
-            setState(() {});
-          }
-        });
-    } else {
-      _bottomAdVideoController?.dispose();
-      _bottomAdVideoController = null;
-      setState(() {});
-    }
+      _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { if (mounted) { _bottomAdVideoCtrl!.setLooping(true); _bottomAdVideoCtrl!.setVolume(1.0); _bottomAdVideoCtrl!.play(); setState(() {}); }});
+    } else { _bottomAdVideoController?.dispose(); _bottomAdVideoController = null; setState(() {}); }
   }
 
   void _prevDualMedia() {
@@ -1317,399 +684,26 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   void _toggleDualMediaPause() {
-    if (_bottomAdVideoController != null) {
-      _bottomAdVideoController!.value.isPlaying ? _bottomAdVideoController!.pause() : _bottomAdVideoController!.play();
-      setState(() {});
-    }
+    if (_bottomAdVideoController != null) { _bottomAdVideoController!.value.isPlaying ? _bottomAdVideoController!.pause() : _bottomAdVideoController!.play(); setState(() {}); }
   }
 
-  Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
-    Widget actualCameraWidget;
-    if (isLivePaused) {
-      actualCameraWidget = Container(
-        color: Colors.black,
-        child: const Center(
-          child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))
-        )
-      );
-    } else if (isDroneCamMode && _droneCamController != null && _droneCamController!.value.isInitialized) {
-      actualCameraWidget = SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _droneCamController!.value.size.width,
-            height: _droneCamController!.value.size.height,
-            child: VideoPlayer(_droneCamController!)
-          )
-        )
-      );
-    } else if (isExternalIpCamMode && _ipCamController != null && _ipCamController!.value.isInitialized) {
-      actualCameraWidget = SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _ipCamController!.value.size.width,
-            height: _ipCamController!.value.size.height,
-            child: VideoPlayer(_ipCamController!)
-          )
-        )
-      );
-    } else if (isUsbCamMode && _usbTextureId != null) {
-      actualCameraWidget = SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: 1920,
-            height: 1080,
-            child: Texture(textureId: _usbTextureId!)
-          )
-        )
-      );
-    } else {
-      actualCameraWidget = phoneCameraWidget;
-    }
+  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
+    return FloatingActionButton.extended(
+      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white, size: 20),
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+    );
+  }
 
-    if (isDualScreenMode && dualMediaList.isNotEmpty) {
-      return Container(
-        margin: const EdgeInsets.all(6.0),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          border: Border.all(color: Colors.amberAccent, width: 3.5),
-          boxShadow: const [BoxShadow(color: Colors.redAccent, blurRadius: 10)]
-        ),
-        child: isScreenLandscape
-            ? Row(
-                children: [
-                  Expanded(child: actualCameraWidget),
-                  Container(width: 3, color: Colors.amberAccent),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return GestureDetector(
-                                onTapUp: (details) {
-                                  double dx = details.localPosition.dx;
-                                  if (dx < constraints.maxWidth / 3) {
-                                    _prevDualMedia();
-                                  } else if (dx > constraints.maxWidth * 2 / 3) {
-                                    _nextDualMedia();
-                                  } else {
-                                    _toggleDualMediaPause();
-                                  }
-                                },
-                                child: _bottomAdVideoController != null && _bottomAdVideoController!.value.isInitialized
-                                    ? FittedBox(
-                                        fit: BoxFit.cover,
-                                        child: SizedBox(
-                                          width: _bottomAdVideoController!.value.size.width,
-                                          height: _bottomAdVideoController!.value.size.height,
-                                          child: VideoPlayer(_bottomAdVideoController!)
-                                        )
-                                      )
-                                    : Image.file(
-                                        File(dualMediaList[currentDualMediaIndex]),
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: double.infinity
-                                      )
-                              );
-                            }
-                          )
-                        ),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          color: Colors.amber,
-                          child: Text(
-                            splitScreenMainHeadline,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold)
-                          )
-                        ),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          color: Colors.blueAccent,
-                          child: Text(
-                            splitScreenSubHeadline,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
-                          )
-                        )
-                      ]
-                    )
-                  )
-                ]
-              )
-            : Column(
-                children: [
-                  Expanded(flex: 4, child: actualCameraWidget),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                    color: Colors.amber,
-                    child: Text(
-                      splitScreenMainHeadline,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)
-                    )
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    color: Colors.blueAccent,
-                    child: Text(
-                      splitScreenSubHeadline,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)
-                    )
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return GestureDetector(
-                          onTapUp: (details) {
-                            double dx = details.localPosition.dx;
-                            if (dx < constraints.maxWidth / 3) {
-                              _prevDualMedia();
-                            } else if (dx > constraints.maxWidth * 2 / 3) {
-                              _nextDualMedia();
-                            } else {
-                              _toggleDualMediaPause();
-                            }
-                          },
-                          child: _bottomAdVideoController != null && _bottomAdVideoController!.value.isInitialized
-                              ? FittedBox(
-                                  fit: BoxFit.cover,
-                                  child: SizedBox(
-                                    width: _bottomAdVideoController!.value.size.width,
-                                    height: _bottomAdVideoController!.value.size.height,
-                                    child: VideoPlayer(_bottomAdVideoController!)
-                                  )
-                                )
-                              : Image.file(
-                                  File(dualMediaList[currentDualMediaIndex]),
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity
-                                )
-                        );
-                      }
-                    )
-                  )
-                ]
-              )
-      );
-    }
-
-    bool showAds = isNewsBulletinMode || isAdCurrentlyShowing;
-    double topAreaH = screenHeight; 
-    double lAdW = 0; 
-    double rAdW = 0; 
-    double bAdH = 0;
-    double vW = screenWidth; 
-    double vH = topAreaH;
-    double vLeft = 0;
-
-    if (showAds) {
-      if (adShapeMode == 0) { 
-        double adW = screenWidth * 0.20;
-        vW = screenWidth - adW; 
-        vH = vW * (9 / 16); 
-        bAdH = topAreaH - vH;
-        if (bAdH < topAreaH * 0.15) { 
-          bAdH = topAreaH * 0.15; 
-          vH = topAreaH - bAdH; 
-          vW = vH * (16 / 9); 
-          adW = screenWidth - vW; 
-        }
-        if (isLBandRight) { 
-          lAdW = 0; 
-          rAdW = adW; 
-          vLeft = 0; 
-        } else { 
-          lAdW = adW; 
-          rAdW = 0; 
-          vLeft = adW; 
-        }
-      } else if (adShapeMode == 1) { 
-        lAdW = screenWidth * 0.18; 
-        rAdW = screenWidth * 0.18;
-        vW = screenWidth - lAdW - rAdW; 
-        vH = topAreaH; 
-        vLeft = lAdW; 
-        bAdH = 0;
-      } else if (adShapeMode == 2) { 
-        lAdW = screenWidth * 0.15; 
-        rAdW = screenWidth * 0.15;
-        vW = screenWidth - lAdW - rAdW; 
-        vH = vW * (9 / 16); 
-        bAdH = topAreaH - vH;
-        if (bAdH < topAreaH * 0.15) { 
-          bAdH = topAreaH * 0.15; 
-          vH = topAreaH - bAdH; 
-          vW = vH * (16 / 9); 
-          lAdW = (screenWidth - vW) / 2; 
-          rAdW = lAdW; 
-        }
-        vLeft = lAdW;
-      }
-    }
-
-    Widget mainPlayer = isNewsBulletinMode && (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized)
-        ? SizedBox.expand(
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _bulletinVideoController!.value.size.width,
-                height: _bulletinVideoController!.value.size.height,
-                child: VideoPlayer(_bulletinVideoController!)
-              )
-            )
-          )
-        : actualCameraWidget;
-
-    return Container(
-      color: Colors.black, 
-      child: Stack(
+  Widget _buildMenuButton(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            left: showAds ? vLeft : 0,
-            top: 0,
-            width: showAds ? vW : screenWidth,
-            height: showAds ? vH : topAreaH,
-            child: Stack(
-              children: [
-                SizedBox.expand(
-                  child: ClipRect(
-                    child: mainPlayer
-                  )
-                )
-              ]
-            )
-          ),
-          
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            left: showAds && lAdW > 0 ? 0 : -screenWidth * 0.25,
-            top: 0,
-            width: lAdW > 0 ? lAdW : screenWidth * 0.20,
-            height: topAreaH,
-            child: GestureDetector(
-              onTap: () => _pickAds('left'),
-              onLongPress: () => _manageAdsDialog('left'),
-              child: Container(
-                color: Colors.black,
-                child: leftAdPaths.isNotEmpty
-                    ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized
-                        ? FittedBox(
-                            fit: BoxFit.fill,
-                            child: SizedBox(
-                              width: _leftAdVideoCtrl!.value.size.width,
-                              height: _leftAdVideoCtrl!.value.size.height,
-                              child: VideoPlayer(_leftAdVideoCtrl!)
-                            )
-                          )
-                        : SizedBox.expand(
-                            child: Image.file(
-                              File(leftAdPaths[leftAdIndex]),
-                              fit: BoxFit.fill
-                            )
-                          ))
-                    : Center(
-                        child: Text(
-                          "LEFT ADS (${leftAdPaths.length})\nTap: Add\nLong Press: Edit",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
-                        )
-                      )
-              )
-            )
-          ),
-
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            right: showAds && rAdW > 0 ? 0 : -screenWidth * 0.25,
-            top: 0,
-            width: rAdW > 0 ? rAdW : screenWidth * 0.20,
-            height: topAreaH,
-            child: GestureDetector(
-              onTap: () => _pickAds('right'),
-              onLongPress: () => _manageAdsDialog('right'),
-              child: Container(
-                color: Colors.black,
-                child: rightAdPaths.isNotEmpty
-                    ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized
-                        ? FittedBox(
-                            fit: BoxFit.fill,
-                            child: SizedBox(
-                              width: _rightAdVideoCtrl!.value.size.width,
-                              height: _rightAdVideoCtrl!.value.size.height,
-                              child: VideoPlayer(_rightAdVideoCtrl!)
-                            )
-                          )
-                        : SizedBox.expand(
-                            child: Image.file(
-                              File(rightAdPaths[rightAdIndex]),
-                              fit: BoxFit.fill
-                            )
-                          ))
-                    : Center(
-                        child: Text(
-                          "RIGHT ADS (${rightAdPaths.length})\nTap: Add\nLong Press: Edit",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
-                        )
-                      )
-              )
-            )
-          ),
-
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            left: showAds ? vLeft : 0,
-            top: showAds && bAdH > 0 ? vH : topAreaH + 50,
-            width: showAds ? vW : screenWidth,
-            height: bAdH > 0 ? bAdH : 50,
-            child: GestureDetector(
-              onTap: () => _pickAds('bottom'),
-              onLongPress: () => _manageAdsDialog('bottom'),
-              child: Container(
-                color: Colors.black,
-                child: bottomAdPaths.isNotEmpty
-                    ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized
-                        ? FittedBox(
-                            fit: BoxFit.fill,
-                            child: SizedBox(
-                              width: _bottomAdVideoCtrlForAds!.value.size.width,
-                              height: _bottomAdVideoCtrlForAds!.value.size.height,
-                              child: VideoPlayer(_bottomAdVideoCtrlForAds!)
-                            )
-                          )
-                        : SizedBox.expand(
-                            child: Image.file(
-                              File(bottomAdPaths[bottomAdIndex]),
-                              fit: BoxFit.fill
-                            )
-                          ))
-                    : Center(
-                        child: Text(
-                          "BOTTOM ADS (${bottomAdPaths.length})\nTap to Add | Long Press to Edit",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
-                        )
-                      )
-              )
-            )
-          ),
+          CircleAvatar(radius: 28, backgroundColor: Colors.white24, child: Icon(icon, color: color, size: 28)),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500))
         ]
       )
     );
@@ -1719,391 +713,176 @@ class _StudioScreenState extends State<StudioScreen>
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
-    double camW = 1080;
-    double camH = 1920;
+    double camW = 1080; double camH = 1920;
     if (_isCameraInitialized && controller != null && controller!.value.isInitialized) {
       final previewSize = controller!.value.previewSize;
-      if (previewSize != null) {
-        camW = previewSize.width;
-        camH = previewSize.height;
-        if (camW < camH) {
-          double temp = camW;
-          camW = camH;
-          camH = temp;
-        }
-      }
+      if (previewSize != null) { camW = previewSize.width; camH = previewSize.height; if (camW < camH) { double temp = camW; camW = camH; camH = temp; } }
     }
-    double finalCamW = isScreenLandscape ? camW : camH;
-    double finalCamH = isScreenLandscape ? camH : camW;
+    double finalCamW = isScreenLandscape ? camW : camH; double finalCamH = isScreenLandscape ? camH : camW;
 
-    Widget phoneCameraWidget = (!isCameraVisible)
-        ? Container(color: Colors.transparent)
-        : (_isCameraInitialized && controller != null && controller!.value.isInitialized)
-            ? GestureDetector(
-                onScaleStart: (details) {
-                  _baseScale = _currentZoomLevel;
-                },
-                onScaleUpdate: (details) async {
-                  if (controller == null || !controller!.value.isInitialized) return;
-                  double zoom = _baseScale * details.scale;
-                  if (zoom < _minZoomLevel) zoom = _minZoomLevel;
-                  if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
-                  setState(() {
-                    _currentZoomLevel = zoom;
-                  });
-                  await controller?.setZoomLevel(zoom);
-                },
-                child: ClipRect(
-                  child: SizedBox.expand(
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: finalCamW,
-                        height: finalCamH,
-                        child: CameraPreview(controller!)
-                      )
-                    )
-                  )
-                )
-              )
-            : const Center(child: CircularProgressIndicator(color: Colors.amber));
+    Widget phoneCameraWidget = (!isCameraVisible) ? Container(color: Colors.transparent) : (_isCameraInitialized && controller != null && controller!.value.isInitialized)
+      ? GestureDetector(
+          onScaleStart: (details) => _baseScale = _currentZoomLevel,
+          onScaleUpdate: (details) async {
+            if (controller == null || !controller!.value.isInitialized) return;
+            double zoom = _baseScale * details.scale;
+            if (zoom < _minZoomLevel) zoom = _minZoomLevel; if (zoom > _maxZoomLevel) zoom = _maxZoomLevel;
+            setState(() => _currentZoomLevel = zoom); await controller?.setZoomLevel(zoom);
+          },
+          child: ClipRect(child: SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: finalCamW, height: finalCamH, child: CameraPreview(controller!)))))
+        )
+      : const Center(child: CircularProgressIndicator(color: Colors.amber));
 
-    Widget animatedReporterBadge = ScaleTransition(
-      scale: Tween<double>(begin: 0.96, end: 1.04).animate(
-        CurvedAnimation(parent: _motionController, curve: Curves.easeInOut)
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (watermarkText.isNotEmpty)
-            Container(
-              color: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Text(
-                watermarkText,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)
-              )
-            ),
-          Container(
-            color: Colors.red.shade700,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            child: Text(
-              locationText,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)
-            )
-          ),
-          const SizedBox(height: 2),
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Text(
-              reporterName,
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13.0)
-            )
-          ),
-          Container(
-            color: Colors.red.shade700,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            child: Text(
-              reporterRole,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)
-            )
-          )
-        ]
-      ),
+    Widget actualCameraWidget = isLivePaused 
+      ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))))
+      : (isExternalIpCamMode && _ipCamController != null && _ipCamController!.value.isInitialized) ? SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _ipCamController!.value.size.width, height: _ipCamController!.value.size.height, child: VideoPlayer(_ipCamController!))))
+      : (isDroneCamMode && _droneCamController != null && _droneCamController!.value.isInitialized) ? SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _droneCamController!.value.size.width, height: _droneCamController!.value.size.height, child: VideoPlayer(_droneCamController!))))
+      : (isUsbCamMode && _usbTextureId != null) ? SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: 1920, height: 1080, child: Texture(textureId: _usbTextureId!))))
+      : phoneCameraWidget;
+
+    // Static Watermark & Reporter Details
+    Widget staticReporterBadge = Column(
+      crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min,
+      children: [
+        if (watermarkText.isNotEmpty) Container(color: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), child: Text(watermarkText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0))),
+        Container(color: Colors.red.shade700, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: Text(locationText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0))),
+        const SizedBox(height: 2),
+        Container(color: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: Text(reporterName, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13.0))),
+        Container(color: Colors.red.shade700, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), child: Text(reporterRole, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.0)))
+      ]
     );
 
+    // Static Channel Logo
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
-        ? SizedBox(
-            width: logoWidth,
-            height: logoHeight,
-            child: Image.file(
-              File(channelLogoPath),
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high
-            )
-          )
-        : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            color: Colors.red[900]?.withOpacity(0.9),
-            child: const Text(
-              "SS YATRA TV",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)
-            )
-          );
+        ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
 
     Widget positionedLogoWidget = Positioned(
-      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,
-      bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
-      left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null,
-      right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,
+      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
+      left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,
       child: channelLogoWidget,
     );
 
-    if (enableWatermarkMotion) {
-      positionedLogoWidget = Positioned(
-        top: 20.0,
-        left: 0,
-        right: 0,
-        child: AnimatedBuilder(
-          animation: _watermarkMotionController,
-          builder: (context, child) {
-            double screenW = MediaQuery.of(context).size.width;
-            double offsetX = (_watermarkMotionController.value * (screenW - logoWidth - 40)) - ((screenW - logoWidth - 40) / 2);
-            return Transform.translate(
-              offset: Offset(offsetX, 0),
-              child: Align(alignment: Alignment.topCenter, child: child),
-            );
-          },
-          child: channelLogoWidget,
-        ),
-      );
+    final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
+    double screenW = MediaQuery.of(context).size.width; double screenH = MediaQuery.of(context).size.height;
+    double tickerH = 55.0; double topAreaH = screenH - tickerH;
+
+    bool showAds = isAdCurrentlyShowing;
+    double lAdW = 0, rAdW = 0, bAdH = 0; double vW = screenW, vH = topAreaH, vLeft = 0;
+
+    if (showAds) {
+      if (adShapeMode == 0) { 
+        double adW = screenW * 0.20; vW = screenW - adW; vH = vW * (9 / 16); bAdH = topAreaH - vH;
+        if (bAdH < topAreaH * 0.15) { bAdH = topAreaH * 0.15; vH = topAreaH - bAdH; vW = vH * (16 / 9); adW = screenW - vW; }
+        if (isLBandRight) { lAdW = 0; rAdW = adW; vLeft = 0; } else { lAdW = adW; rAdW = 0; vLeft = adW; }
+      } else if (adShapeMode == 1) { 
+        lAdW = screenW * 0.18; rAdW = screenW * 0.18; vW = screenW - lAdW - rAdW; vH = topAreaH; vLeft = lAdW; bAdH = 0;
+      } else if (adShapeMode == 2) { 
+        lAdW = screenW * 0.15; rAdW = screenW * 0.15; vW = screenW - lAdW - rAdW; vH = vW * (9 / 16); bAdH = topAreaH - vH;
+        if (bAdH < topAreaH * 0.15) { bAdH = topAreaH * 0.15; vH = topAreaH - bAdH; vW = vH * (16 / 9); lAdW = (screenW - vW) / 2; rAdW = lAdW; }
+        vLeft = lAdW;
+      }
     }
 
-    String getAdButtonLabel() {
-      if (adDisplayMode == 0) return "Ads OFF";
-      if (adDisplayMode == 1) return "Ads ON";
-      return "Auto Ads";
-    }
+    Widget mainPlayer = isNewsBulletinMode && (_bulletinVideoController != null && _bulletinVideoController!.value.isInitialized)
+        ? SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bulletinVideoController!.value.size.width, height: _bulletinVideoController!.value.size.height, child: VideoPlayer(_bulletinVideoController!))))
+        : actualCameraWidget;
 
-    Color getAdButtonColor() {
-      if (adDisplayMode == 0) return Colors.redAccent;
-      if (adDisplayMode == 1) return Colors.blueAccent;
-      return Colors.greenAccent;
+    if (isDualScreenMode && dualMediaList.isNotEmpty) {
+      mainPlayer = isScreenLandscape ? Row(children: [Expanded(child: actualCameraWidget), Container(width: 3, color: Colors.amberAccent), Expanded(child: GestureDetector(onTapUp: (details) { double dx = details.localPosition.dx; if (dx < screenW/6) { _prevDualMedia(); } else if (dx > screenW/3) { _nextDualMedia(); } else { _toggleDualMediaPause(); } }, child: _bottomAdVideoController != null && _bottomAdVideoController!.value.isInitialized ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bottomAdVideoController!.value.size.width, height: _bottomAdVideoController!.value.size.height, child: VideoPlayer(_bottomAdVideoController!))) : Image.file(File(dualMediaList[currentDualMediaIndex]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)))]) : Column(children: [Expanded(flex: 4, child: actualCameraWidget), Expanded(flex: 4, child: GestureDetector(onTapUp: (details) { double dx = details.localPosition.dx; if (dx < screenW/3) { _prevDualMedia(); } else if (dx > screenW*2/3) { _nextDualMedia(); } else { _toggleDualMediaPause(); } }, child: _bottomAdVideoController != null && _bottomAdVideoController!.value.isInitialized ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _bottomAdVideoController!.value.size.width, height: _bottomAdVideoController!.value.size.height, child: VideoPlayer(_bottomAdVideoController!))) : Image.file(File(dualMediaList[currentDualMediaIndex]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)))]);
     }
-
-    String getShapeButtonLabel() {
-      if (adShapeMode == 0) return "Shape: L-Band";
-      if (adShapeMode == 1) return "Shape: 2-Sides";
-      return "Shape: U-Band";
-    }
-
-    Color getShapeButtonColor() {
-      if (adShapeMode == 0) return Colors.orange;
-      if (adShapeMode == 1) return Colors.purpleAccent;
-      return Colors.teal;
-    }
-
-    final List<Color> bgColors = [
-      const Color(0xFF0D47A1),
-      Colors.red.shade900,
-      Colors.purple.shade900,
-      Colors.teal.shade900
-    ];
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        top: false,
-        bottom: true,
+        top: false, bottom: true,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {
-            if (!isLiveLocked) {
-              setState(() {
-                isMenuOpen ? isMenuOpen = false : hideControls = !hideControls;
-              });
-            }
-          },
-          onLongPress: () {
-            if (isLiveLocked) {
-              setState(() {
-                isLiveLocked = false;
-                hideControls = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("స్క్రీన్ అన్‌‌లాక్ చేయబడింది."))
-              );
-            }
-          },
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              double screenW = constraints.maxWidth;
-              double screenH = constraints.maxHeight;
-              double tickerH = 55.0;
-              double topAreaH = screenH - tickerH;
+          onTap: () => setState(() { isMenuOpen = false; hideControls = !hideControls; }),
+          child: Stack(
+            children: [
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH, child: ClipRect(child: mainPlayer)),
+              positionedLogoWidget,
+              if (!isNewsBulletinMode && !isDualScreenMode) Positioned(bottom: 65, left: 15.0, child: staticReporterBadge),
+              
+              // Ads
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
 
-              return Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: topAreaH,
-                    child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)
-                  ),
-                  
-                  positionedLogoWidget,
+              // Ticker
+              Positioned(
+                bottom: 0, left: 0, right: 0, height: tickerH,
+                child: Container(
+                  decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),
+                  child: Row(children: [
+                    Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),
+                    Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))
+                  ]),
+                ),
+              ),
 
-                  if (!isDualScreenMode && !isAdCurrentlyShowing && !isNewsBulletinMode)
-                    Positioned(
-                      bottom: 65,
-                      left: 15.0,
-                      child: animatedReporterBadge
-                    ),
-
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: tickerH,
-                    child: AnimatedContainer(
-                      duration: const Duration(seconds: 2),
-                      decoration: BoxDecoration(
-                        color: bgColors[_tickerBgColorIndex % bgColors.length],
-                        border: Border.all(color: Colors.amber.shade400, width: 1.5)
-                      ),
-                      child: Row(
+              // Menu Overlay (Matches the provided image perfectly)
+              if (!hideControls && isMenuOpen)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black87,
+                    child: Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center, spacing: 30, runSpacing: 30,
                         children: [
-                          Container(
-                            width: 95,
-                            color: Colors.red.shade900,
-                            alignment: Alignment.center,
-                            child: const Text(
-                              "BREAKING\nNEWS",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900)
-                            )
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                              child: AnimatedBuilder(
-                                animation: _motionController,
-                                builder: (context, child) {
-                                  return ShaderMask(
-                                    shaderCallback: (bounds) => LinearGradient(
-                                      colors: const [
-                                        Colors.yellowAccent,
-                                        Colors.white,
-                                        Colors.cyanAccent,
-                                        Colors.yellowAccent
-                                      ],
-                                      stops: const [0.0, 0.33, 0.66, 1.0],
-                                      transform: GradientRotation(_motionController.value * 2 * 3.1415),
-                                    ).createShader(bounds),
-                                    child: child,
-                                  );
-                                },
-                                child: Marquee(
-                                  text: breakingNewsText,
-                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                  blankSpace: 100.0,
-                                  velocity: 45.0
-                                ),
-                              ),
-                            )
-                          )
+                          _buildMenuButton(Icons.live_tv, "Live Links", Colors.redAccent, _showMultiStreamDialog),
+                          _buildMenuButton(Icons.dashboard_customize, "PCR Board", Colors.yellowAccent, () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }),
+                          _buildMenuButton(Icons.bar_chart, "Election Results", Colors.blueAccent, () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }),
+                          _buildMenuButton(Icons.flip_camera_android, "Phone Cam", Colors.white, _switchCamera),
+                          _buildMenuButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", Colors.greenAccent, _toggleCameraVisibility),
+                          _buildMenuButton(Icons.video_call, "Ext. Cams", Colors.cyanAccent, _showExternalCamsDialog),
+                          _buildMenuButton(Icons.grid_on, "Dual Screen", Colors.orangeAccent, _toggleDualScreenAndPickMedia),
+                          _buildMenuButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), Colors.redAccent, _toggleAdMode),
+                          _buildMenuButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : (adShapeMode == 1 ? "Shape: 2-Sides" : "Shape: U-Band"), Colors.orangeAccent, _toggleAdShapeMode),
+                          _buildMenuButton(Icons.picture_in_picture_alt, "Logo Pos", Colors.lightGreenAccent, _changeLogoPosition),
+                          if (adShapeMode == 0) _buildMenuButton(Icons.swap_horiz, "L-Band L/R", Colors.orangeAccent, _toggleLBandDirection),
+                          _buildMenuButton(Icons.screen_rotation, "Rotate", Colors.purpleAccent, _toggleRotation),
+                          _buildMenuButton(Icons.settings, "Settings", Colors.blue, _showEditDialog),
                         ]
                       ),
                     ),
                   ),
+                ),
 
-                  if (!hideControls && !isLiveLocked)
-                    Positioned(
-                      bottom: 75,
-                      right: 20,
-                      child: FloatingActionButton(
-                        backgroundColor: Colors.blueAccent,
-                        onPressed: () {
-                          setState(() {
-                            isMenuOpen = !isMenuOpen;
-                          });
-                        },
-                        child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white)
+              // Floating Controls Right (Hideable on Tap and Auto-hide during recording)
+              if (!hideControls)
+                Positioned(
+                  bottom: 75, right: 15,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (isLiveBroadcasting) ...[
+                        _buildFloatingBtn("stop_live", Icons.stop, "Live Stop", Colors.red, _stopLiveStream),
+                        const SizedBox(width: 10),
+                        _buildFloatingBtn("pause_live", isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "Resume" : "Pause", Colors.orange, _togglePauseLive),
+                      ] else ...[
+                        _buildFloatingBtn("go_live", Icons.sensors, "GO LIVE", Colors.green.shade800, _startLiveAndLock),
+                      ],
+                      const SizedBox(width: 10),
+                      FloatingActionButton(
+                        heroTag: 'menu_btn', backgroundColor: Colors.blue.shade900,
+                        onPressed: () => setState(() => isMenuOpen = !isMenuOpen),
+                        child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white),
                       )
-                    ),
-
-                  if (!hideControls && isMenuOpen && !isLiveLocked)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black87,
-                        child: Center(
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 25,
-                            runSpacing: 25,
-                            children: [
-                              _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
-                              _buildControlButton(
-                                isCameraVisible ? Icons.videocam_off : Icons.videocam,
-                                isCameraVisible ? "Cam OFF" : "Cam ON",
-                                _toggleCameraVisibility,
-                                isCameraVisible ? Colors.redAccent : Colors.greenAccent
-                              ),
-                              _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.tealAccent),
-
-                              _buildControlButton(Icons.dashboard_customize, "PCR Board", () {
-                                setState(() { isMenuOpen = false; }); 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const MasterPCRBoard()),
-                                );
-                              }, Colors.amberAccent),
-
-                              _buildControlButton(Icons.live_tv, "Multi-Live", _showMultiStreamDialog, Colors.redAccent),
-                              _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
-                              if (isLiveBroadcasting) _buildControlButton(Icons.stop, "Stop Live", _stopLiveStream, Colors.red),
-
-                              _buildControlButton(Icons.settings, "Settings & Logo", _showEditDialog, Colors.blue),
-                              
-                              _buildControlButton(Icons.visibility, getAdButtonLabel(), _toggleAdMode, getAdButtonColor()),
-                              _buildControlButton(Icons.dashboard, getShapeButtonLabel(), _toggleAdShapeMode, getShapeButtonColor()),
-                              
-                              _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),
-                              
-                              if (adShapeMode == 0)
-                                _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
-                              
-                              _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purple),
-
-                              _buildControlButton(Icons.bar_chart, "Election Results", () {
-                                setState(() { isMenuOpen = false; }); 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const ElectionBoardScreen())
-                                );
-                              }, Colors.indigoAccent),
-                            ]
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            }
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildControlButton(IconData icon, String label, VoidCallback onTap, Color iconColor) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: Colors.white30,
-            child: Icon(icon, color: iconColor, size: 26)
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white, fontSize: 12)
-          )
-        ]
-      )
     );
   }
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN 
+// --- 2. MASTER PCR BOARD SCREEN (With Auto Layout & Hidden Controls)
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -2113,31 +892,51 @@ class MasterPCRBoard extends StatefulWidget {
   State<MasterPCRBoard> createState() => _MasterPCRBoardState();
 }
 
-class _MasterPCRBoardState extends State<MasterPCRBoard> {
-  static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
-
+class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStateMixin {
   final Map<String, VlcPlayerController> _rtspControllers = {};
   CameraController? _phoneCamCtrl;
   List<CameraDescription> _cameras = [];
-  bool _isFrontCam = true;
 
-  bool isRecording = false;
-  int liveStreamState = 0; 
-  bool showControls = true; 
-  bool isStudioMultiView = true; 
+  bool hideControls = false; 
+  bool isLiveBroadcasting = false;
+  bool isLivePaused = false;
   
-  // --- Layout & Swapping State ---
   int layoutMode = 6; 
   String mainCameraId = "REPORTER_CAM"; 
   List<String> hexCams = ["IP_1", "IP_2", "DRONE_1", "IP_3", "IP_4", "HDMI_1"]; 
 
-  String cableRtmpUrl = "rtmp://your-stream-url"; // మీ RTMP URL ఇక్కడ ఇవ్వండి
+  final ImagePicker _picker = ImagePicker();
 
-  // --- Logo Settings ---
   String channelLogoPath = "";
   int logoPosition = 0; 
   VideoPlayerController? _logoVideoCtrl;
-  final ImagePicker _picker = ImagePicker();
+
+  List<String> leftAdPaths = [];
+  List<String> rightAdPaths = [];
+  List<String> bottomAdPaths = [];
+  int leftAdIndex = 0;
+  int rightAdIndex = 0;
+  int bottomAdIndex = 0;
+
+  VideoPlayerController? _leftAdVideoCtrl;
+  VideoPlayerController? _rightAdVideoCtrl;
+  VideoPlayerController? _bottomAdVideoCtrlForAds;
+
+  int adDisplayMode = 0;
+  bool isAdCurrentlyShowing = false;
+  Timer? _adCycleTimer;
+  int adShapeMode = 0;
+  bool isLBandRight = true;
+
+  String breakingNewsText = "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+  int _tickerBgColorIndex = 0;
+  Timer? _tickerColorTimer;
+
+  TextEditingController cableRtmpController = TextEditingController();
+  TextEditingController restreamRtmpController = TextEditingController();
+  TextEditingController satelliteSrtController = TextEditingController();
+
+  final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
   final List<Map<String, dynamic>> cameraList = [
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
@@ -2153,94 +952,52 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   void initState() {
     super.initState();
     _initPhoneCamera();
+    _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) { if (mounted) setState(() => _tickerBgColorIndex++); });
     _loadSavedData();
   }
 
   Future<void> _initPhoneCamera() async {
     try { 
       _cameras = await availableCameras(); 
-      if (_cameras.isNotEmpty) _setCamera(_isFrontCam ? CameraLensDirection.front : CameraLensDirection.back); 
+      if (_cameras.isNotEmpty) {
+        CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => _cameras.first);
+        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
+        await _phoneCamCtrl!.initialize(); 
+        if (mounted) setState(() {}); 
+      }
     } catch (e) {}
   }
 
-  Future<void> _setCamera(CameraLensDirection dir) async {
-    try {
-      CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == dir, orElse: () => _cameras.first);
-      await _phoneCamCtrl?.dispose(); 
-      _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
-      await _phoneCamCtrl!.initialize(); 
-      if (mounted) setState(() {}); 
-    } catch (e) {}
-  }
-
-  void _swapCamera(int gridIndex) {
+  Future<void> _loadSavedData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
-      String temp = mainCameraId;
-      mainCameraId = hexCams[gridIndex];
-      hexCams[gridIndex] = temp;
+      adShapeMode = prefs.getInt('adShapeMode') ?? 0;
+      logoPosition = prefs.getInt('logoPosition') ?? 0;
+      breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+
+      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
+      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
+      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+
+      String savedLogo = prefs.getString('channelLogoPath') ?? "";
+      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
+
+      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+
+      if (leftAdPaths.isNotEmpty) _initAdVideo('left');
+      if (rightAdPaths.isNotEmpty) _initAdVideo('right');
+      if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
     });
   }
 
-  Future<void> _toggleRTSPCamera(String camId, String url, bool isActive, bool isMuted) async { 
-    if (isActive) { 
-      String finalUrl = url;
-      
-      if (url.contains("youtube.com") || url.contains("youtu.be")) {
-        var ytExplode = yt.YoutubeExplode();
-        try {
-          String? videoIdStr = yt.VideoId.parseVideoId(url);
-          if (videoIdStr != null) {
-            var vId = yt.VideoId(videoIdStr); 
-            var video = await ytExplode.videos.get(vId);
-            if (video.isLive) {
-              finalUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId);
-            } else {
-              var manifest = await ytExplode.videos.streamsClient.getManifest(vId);
-              var streamInfo = manifest.muxed.withHighestBitrate();
-              finalUrl = streamInfo.url.toString();
-            }
-          }
-        } catch (e) {
-          debugPrint("YouTube Extract Error: $e");
-        } finally {
-          ytExplode.close();
-        }
-      }
-
-      setState(() {
-        _rtspControllers[camId] = VlcPlayerController.network(
-          finalUrl, 
-          hwAcc: HwAcc.full, 
-          autoPlay: true, 
-          options: VlcPlayerOptions()
-        ); 
-        _rtspControllers[camId]?.setVolume(isMuted ? 0 : 100);
-      });
-    } else { 
-      _rtspControllers[camId]?.stopRendererScanning(); 
-      _rtspControllers[camId]?.dispose(); 
-      setState(() {
-        _rtspControllers.remove(camId);
-      });
-    } 
-  }
-
-  void _toggleMute(Map<String, dynamic> cam) { 
-    setState(() { 
-      cam['muted'] = !cam['muted']; 
-      if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) {
-        _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100); 
-      }
-    }); 
-  }
-
-  Future<void> _uploadLogo() async { 
-    final XFile? media = await _picker.pickMedia(); 
-    if (media != null) { 
-      setState(() => _setLogo(media.path)); 
-      SharedPreferences prefs = await SharedPreferences.getInstance(); 
-      await prefs.setString('pcr_channelLogoPath', media.path); 
-    } 
+  Future<void> _saveLinks() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cableRtmp', cableRtmpController.text);
+    await prefs.setString('restreamRtmp', restreamRtmpController.text);
+    await prefs.setString('satelliteSrt', satelliteSrtController.text);
   }
 
   void _setLogo(String path) {
@@ -2250,107 +1007,321 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { 
         if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); } 
       });
-    } else { 
-      _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; 
+    } else { _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; }
+  }
+
+  void _initAdVideo(String pos) {
+    String path = "";
+    if (pos == 'left' && leftAdPaths.isNotEmpty) path = leftAdPaths[leftAdIndex = leftAdIndex % leftAdPaths.length];
+    if (pos == 'right' && rightAdPaths.isNotEmpty) path = rightAdPaths[rightAdIndex = rightAdIndex % rightAdPaths.length];
+    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) path = bottomAdPaths[bottomAdIndex = bottomAdIndex % bottomAdPaths.length];
+    if (path.isEmpty) return;
+
+    bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
+    if (pos == 'left') {
+      _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;
+      if (isVideo) _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }});
+    } else if (pos == 'right') {
+      _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null;
+      if (isVideo) _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState((){}); }});
+    } else if (pos == 'bottom') {
+      _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;
+      if (isVideo) _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }});
     }
   }
 
-  Future<void> _loadSavedData() async {
+  Future<void> _pickAds(String pos) async {
+    try {
+      final List<XFile> medias = await _picker.pickMultipleMedia();
+      if (medias.isNotEmpty && mounted) {
+        setState(() {
+          if (pos == 'left') { leftAdPaths.addAll(medias.map((e) => e.path)); leftAdIndex = leftAdPaths.length - 1; _saveAdPaths(pos, leftAdPaths); }
+          if (pos == 'right') { rightAdPaths.addAll(medias.map((e) => e.path)); rightAdIndex = rightAdPaths.length - 1; _saveAdPaths(pos, rightAdPaths); }
+          if (pos == 'bottom') { bottomAdPaths.addAll(medias.map((e) => e.path)); bottomAdIndex = bottomAdPaths.length - 1; _saveAdPaths(pos, bottomAdPaths); }
+          _initAdVideo(pos);
+        });
+      }
+    } catch (e) {}
+  }
+
+  void _manageAdsDialog(String pos) {
+    List<String> currentPaths = [];
+    if (pos == 'left') currentPaths = leftAdPaths;
+    if (pos == 'right') currentPaths = rightAdPaths;
+    if (pos == 'bottom') currentPaths = bottomAdPaths;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: currentPaths.isEmpty ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54)) : ListView.builder(
+                shrinkWrap: true, itemCount: currentPaths.length, itemBuilder: (ctx, idx) {
+                  String path = currentPaths[idx];
+                  bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
+                  return ListTile(
+                    leading: isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40) : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
+                    title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () {
+                      setState(() {
+                        currentPaths.removeAt(idx); _saveAdPaths(pos, currentPaths);
+                        if (pos == 'left') { if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0; _initAdVideo('left'); }
+                        if (pos == 'right') { if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0; _initAdVideo('right'); }
+                        if (pos == 'bottom') { if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0; _initAdVideo('bottom'); }
+                      });
+                      setDialogState(() {});
+                    }),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(child: const Text("Clear All", style: TextStyle(color: Colors.redAccent)), onPressed: () {
+                setState(() {
+                  currentPaths.clear(); _saveAdPaths(pos, currentPaths);
+                  if (pos == 'left') { leftAdIndex = 0; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; }
+                  if (pos == 'right') { rightAdIndex = 0; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; }
+                  if (pos == 'bottom') { bottomAdIndex = 0; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; }
+                });
+                Navigator.pop(ctx);
+              }),
+              TextButton(child: const Text("Close", style: TextStyle(color: Colors.white)), onPressed: () => Navigator.pop(ctx))
+            ],
+          );
+        });
+      },
+    );
+  }
+
+  Future<void> _saveAdPaths(String pos, List<String> paths) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      logoPosition = prefs.getInt('pcr_logoPosition') ?? 0;
-      layoutMode = prefs.getInt('pcr_layoutMode') ?? 6;
-      String savedLogo = prefs.getString('pcr_channelLogoPath') ?? "";
-      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
-    });
+    if (pos == 'left') await prefs.setStringList('leftAdPaths', paths);
+    if (pos == 'right') await prefs.setStringList('rightAdPaths', paths);
+    if (pos == 'bottom') await prefs.setStringList('bottomAdPaths', paths);
+  }
+
+  void _swapCamera(int gridIndex) {
+    setState(() { String temp = mainCameraId; mainCameraId = hexCams[gridIndex]; hexCams[gridIndex] = temp; });
+  }
+
+  Future<void> _toggleRTSPCamera(String camId, String url, bool isActive, bool isMuted) async { 
+    if (isActive) { 
+      String finalUrl = url;
+      if (url.contains("youtube.com") || url.contains("youtu.be")) {
+        var ytExplode = yt.YoutubeExplode();
+        try {
+          String? videoIdStr = yt.VideoId.parseVideoId(url);
+          if (videoIdStr != null) {
+            var vId = yt.VideoId(videoIdStr); 
+            var video = await ytExplode.videos.get(vId);
+            if (video.isLive) { finalUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId); } 
+            else { var manifest = await ytExplode.videos.streamsClient.getManifest(vId); finalUrl = manifest.muxed.withHighestBitrate().url.toString(); }
+          }
+        } catch (e) {} finally { ytExplode.close(); }
+      }
+      setState(() { _rtspControllers[camId] = VlcPlayerController.network(finalUrl, hwAcc: HwAcc.full, autoPlay: true, options: VlcPlayerOptions()); _rtspControllers[camId]?.setVolume(isMuted ? 0 : 100); });
+    } else { 
+      _rtspControllers[camId]?.stopRendererScanning(); _rtspControllers[camId]?.dispose(); setState(() => _rtspControllers.remove(camId));
+    } 
+  }
+
+  void _toggleMute(Map<String, dynamic> cam) { 
+    setState(() { cam['muted'] = !cam['muted']; if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) { _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100); } }); 
+  }
+
+  Future<void> _startLiveAndLock() async {
+    String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
+
+    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
+      _showMultiStreamDialog();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+      return;
+    }
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) await Permission.microphone.request();
+    
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
+    if (success) {
+      setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = true; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది!"), backgroundColor: Colors.green));
+    }
+  }
+
+  Future<void> _stopLiveStream() async {
+    bool success = await StreamServiceManager.stopLiveStream();
+    if (success) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      setState(() { isLiveBroadcasting = false; isLivePaused = false; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది."), backgroundColor: Colors.blue));
+    }
+  }
+
+  Future<void> _togglePauseLive() async {
+    setState(() => isLivePaused = !isLivePaused);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
+  }
+
+  void _showMultiStreamDialog() {
+    showDialog(
+      context: context, 
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: const Text("Multi-Live Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+            content: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                _buildLinkEditor("1. Local Cable RTMP", cableRtmpController),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("2. Social Media Restream RTMP", restreamRtmpController),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("3. Satellite SRT", satelliteSrtController),
+              ])
+            ),
+            actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))) ]
+          );
+        });
+      }
+    );
+  }
+
+  Widget _buildLinkEditor(String label, TextEditingController controller) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+      Row(children: [
+        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('restreamRtmp', restreamRtmpController.text); await prefs.setString('satelliteSrt', satelliteSrtController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+      ])
+    ]);
+  }
+
+  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
+    return FloatingActionButton.extended(
+      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white, size: 20),
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+    );
   }
 
   @override
-  void dispose() { 
-    _phoneCamCtrl?.dispose(); _logoVideoCtrl?.dispose(); 
+  void dispose() {
+    _phoneCamCtrl?.dispose();
     for (var controller in _rtspControllers.values) { controller.dispose(); } 
-    super.dispose(); 
+    _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
+    _leftAdVideoCtrl?.dispose(); _rightAdVideoCtrl?.dispose(); _bottomAdVideoCtrlForAds?.dispose(); _logoVideoCtrl?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenW = MediaQuery.of(context).size.width; double screenH = MediaQuery.of(context).size.height;
+    double tickerH = 55.0; double topAreaH = screenH - tickerH;
+
+    bool showAds = isAdCurrentlyShowing;
+    double lAdW = 0, rAdW = 0, bAdH = 0; double vW = screenW, vH = topAreaH, vLeft = 0;
+
+    if (showAds) {
+      if (adShapeMode == 0) { 
+        double adW = screenW * 0.20; vW = screenW - adW; vH = vW * (9 / 16); bAdH = topAreaH - vH;
+        if (bAdH < topAreaH * 0.15) { bAdH = topAreaH * 0.15; vH = topAreaH - bAdH; vW = vH * (16 / 9); adW = screenW - vW; }
+        if (isLBandRight) { lAdW = 0; rAdW = adW; vLeft = 0; } else { lAdW = adW; rAdW = 0; vLeft = adW; }
+      } else if (adShapeMode == 1) { 
+        lAdW = screenW * 0.18; rAdW = screenW * 0.18; vW = screenW - lAdW - rAdW; vH = topAreaH; vLeft = lAdW; bAdH = 0;
+      } else if (adShapeMode == 2) { 
+        lAdW = screenW * 0.15; rAdW = screenW * 0.15; vW = screenW - lAdW - rAdW; vH = vW * (9 / 16); bAdH = topAreaH - vH;
+        if (bAdH < topAreaH * 0.15) { bAdH = topAreaH * 0.15; vH = topAreaH - bAdH; vW = vH * (16 / 9); lAdW = (screenW - vW) / 2; rAdW = lAdW; }
+        vLeft = lAdW;
+      }
+    }
+
+    Widget channelLogoWidget = channelLogoPath.isNotEmpty
+        ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
+
+    Widget positionedLogoWidget = Positioned(
+      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
+      left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,
+      child: channelLogoWidget,
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onDoubleTap: () => setState(() => showControls = !showControls),
+        onTap: () => setState(() => hideControls = !hideControls),
         child: SafeArea(
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Positioned(
-                top: 0, left: 0, right: 0, bottom: showControls ? 185.0 : 40.0,
-                child: isStudioMultiView ? _buildStudioLayout() : _buildLiveFeed(mainCameraId)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
+                left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
+                child: ClipRect(child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Row(
+                  children: [
+                    Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24), 
+                    Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))
+                  ]
+                )),
               ),
+              
+              positionedLogoWidget,
+
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('left'), onLongPress: () => _manageAdsDialog('left'), child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("LEFT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('right'), onLongPress: () => _manageAdsDialog('right'), child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("RIGHT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: GestureDetector(onTap: () => _pickAds('bottom'), onLongPress: () => _manageAdsDialog('bottom'), child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("BOTTOM ADS", style: TextStyle(color: Colors.white, fontSize: 11)))))),
+
               Positioned(
-                top: 15.0, left: 15.0,
-                child: channelLogoPath.isNotEmpty 
-                  ? SizedBox(width: 80, height: 80, child: _logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : Image.file(File(channelLogoPath), fit: BoxFit.contain)) 
-                  : Container(padding: const EdgeInsets.all(5), color: Colors.red[900], child: const Text("LOGO", style: TextStyle(color: Colors.white, fontSize: 10))),
+                bottom: 0, left: 0, right: 0, height: tickerH,
+                child: Container(
+                  decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),
+                  child: Row(children: [
+                    Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),
+                    Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))
+                  ]),
+                ),
               ),
-              if (showControls)
+
+              if (!hideControls)
                 Positioned(
-                  top: 15, left: 100, right: 10,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        FloatingActionButton(
-                          mini: true,
-                          backgroundColor: Colors.blueGrey,
-                          onPressed: () => Navigator.pop(context),
-                          child: const Icon(Icons.arrow_back, color: Colors.white),
-                        ),
-                        const SizedBox(width: 10),
-                        _buildControlButton("1+${layoutMode} LAYOUT", Colors.teal, () {
-                          setState(() { layoutMode = layoutMode == 4 ? 6 : 4; });
-                          SharedPreferences.getInstance().then((p) => p.setInt('pcr_layoutMode', layoutMode));
-                        }), 
-                        const SizedBox(width: 6),
-                        _buildControlButton("UPLOAD LOGO", Colors.indigo, _uploadLogo),
-                        const SizedBox(width: 6),
-                        _buildControlButton(isRecording ? "STOP LIVE" : "GO LIVE / REC", isRecording ? Colors.orange : Colors.red, () async {
-                          if (isRecording) {
-                            try {
-                              await _channel.invokeMethod('stopScreenCaptureStreaming');
-                              setState(() => isRecording = false);
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ఆగిపోయింది."), backgroundColor: Colors.blue));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Stop Error: $e"), backgroundColor: Colors.red));
-                            }
-                          } else {
-                            try {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ (Live) కోసం కనెక్ట్ అవుతోంది..."), backgroundColor: Colors.green));
-                              await _channel.invokeMethod('startScreenCaptureStreaming', {
-                                'cableRtmp': cableRtmpUrl,
-                                'cableRtmps': '', 
-                                'satelliteSrt': '', 
-                                'noiseCancellation': false 
-                              });
-                              setState(() => isRecording = true);
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red));
-                            }
-                          }
-                        }),
-                      ],
-                    ),
+                  top: 15, left: 15,
+                  child: Row(
+                    children: [
+                      FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),
+                      const SizedBox(width: 10),
+                      GestureDetector(onTap: () { setState(() { layoutMode = layoutMode == 4 ? 6 : 4; }); SharedPreferences.getInstance().then((p) => p.setInt('pcr_layoutMode', layoutMode)); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(4)), child: Text("1+${layoutMode} LAYOUT", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)))),
+                    ],
                   ),
                 ),
-              if (showControls)
+
+              if (!hideControls)
                 Positioned(
-                  bottom: 40, left: 0, right: 0,
+                  bottom: tickerH + 5, left: 0, right: 0,
                   child: Container(
                     height: 140, color: Colors.black87.withOpacity(0.95),
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                      itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index]),
-                    ),
+                    child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index])),
+                  ),
+                ),
+
+              if (!hideControls)
+                Positioned(
+                  bottom: 220, right: 15,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (isLiveBroadcasting) ...[
+                        _buildFloatingBtn("pcr_stop_live", Icons.stop, "Live Stop", Colors.red, _stopLiveStream),
+                        const SizedBox(height: 10),
+                        _buildFloatingBtn("pcr_pause_live", isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "Resume" : "Pause", Colors.orange, _togglePauseLive),
+                      ] else ...[
+                        _buildFloatingBtn("pcr_go_live", Icons.sensors, "Go Live", Colors.green, _startLiveAndLock),
+                        const SizedBox(height: 10),
+                        _buildFloatingBtn("pcr_multi_live", Icons.settings_input_antenna, "Multi-Live", Colors.redAccent, _showMultiStreamDialog),
+                      ],
+                    ],
                   ),
                 ),
             ],
@@ -2360,135 +1331,30 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
 
-  Widget _buildStudioLayout() { 
-    return Row(
-      children: [
-        Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), 
-        Container(width: 2, color: Colors.white24), 
-        Expanded(
-          flex: 6, 
-          child: Column(
-            children: layoutMode == 4 
-            ? [
-                Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])),
-                Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))])),
-              ]
-            : [
-                Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])),
-                Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))])),
-              ]
-          )
-        )
-      ]
-    ); 
-  }
-
   Widget _buildHexBox(int index) { 
-    return GestureDetector(
-      onTap: () => _swapCamera(index),
-      child: Container(
-        decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.grey.shade800, width: 1)), 
-        child: Stack(
-          children: [
-            Positioned.fill(child: _buildLiveFeed(hexCams[index])),
-            Positioned(top: 2, left: 2, child: Container(padding: const EdgeInsets.all(2), color: Colors.black54, child: const Text("TAP TO SWAP", style: TextStyle(color: Colors.white, fontSize: 8))))
-          ]
-        )
-      )
-    ); 
+    return GestureDetector(onTap: () => _swapCamera(index), child: Container(decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.grey.shade800, width: 1)), child: Stack(children: [ Positioned.fill(child: _buildLiveFeed(hexCams[index])), Positioned(top: 2, left: 2, child: Container(padding: const EdgeInsets.all(2), color: Colors.black54, child: const Text("TAP TO SWAP", style: TextStyle(color: Colors.white, fontSize: 8)))) ]))); 
   }
 
   Widget _buildLiveFeed(String camId) { 
     var camData = cameraList.firstWhere((cam) => cam['id'] == camId, orElse: () => cameraList[0]); 
     if (camId == "REPORTER_CAM") { 
-      if (_phoneCamCtrl != null && _phoneCamCtrl!.value.isInitialized) { 
-        return CameraPreview(_phoneCamCtrl!); 
-      } 
+      if (_phoneCamCtrl != null && _phoneCamCtrl!.value.isInitialized) return CameraPreview(_phoneCamCtrl!); 
       return const Center(child: CircularProgressIndicator(color: Colors.red)); 
     } 
     if (camData['type'] == "IP" || camData['type'] == "DRONE") { 
-      return _rtspControllers.containsKey(camId) 
-        ? VlcPlayer(controller: _rtspControllers[camId]!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))) 
-        : Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10)))); 
+      return _rtspControllers.containsKey(camId) ? VlcPlayer(controller: _rtspControllers[camId]!, aspectRatio: 16 / 9, placeholder: const Center(child: CircularProgressIndicator(color: Colors.red))) : Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10)))); 
     } 
     return Container(color: Colors.black, child: const Center(child: Text("NO SIGNAL", style: TextStyle(color: Colors.red, fontSize: 10)))); 
   }
 
-  Widget _buildControlButton(String title, Color color, VoidCallback onTap) { 
-    return GestureDetector(
-      onTap: onTap, 
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), 
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)), 
-        child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))
-      )
-    ); 
-  }
-
   Widget _buildCompactCameraBox(Map<String, dynamic> cam) { 
-    bool isLive = hexCams.contains(cam['id']) || (mainCameraId == cam['id']); 
-    bool isActive = cam['active']; 
-    bool isMuted = cam['muted']; 
-    
-    return Container(
-      width: 100, 
-      margin: const EdgeInsets.only(right: 6), 
-      child: Column(
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black, 
-                border: Border.all(color: isLive ? Colors.red : (isActive ? Colors.green : Colors.grey.shade800), width: isLive ? 2.5 : 1)
-              ), 
-              child: Stack(
-                children: [
-                  Center(child: Text(isActive ? "Live" : "OFF", style: TextStyle(color: isActive ? Colors.greenAccent : Colors.red, fontSize: 10))), 
-                  Positioned(top: 1, left: 1, child: Container(padding: const EdgeInsets.all(1), color: Colors.black54, child: Text(cam['type'], style: const TextStyle(color: Colors.yellow, fontSize: 7))))
-                ]
-              )
-            )
-          ), 
-          const SizedBox(height: 2), 
-          Text(cam['name'], style: const TextStyle(color: Colors.white, fontSize: 9, overflow: TextOverflow.ellipsis)), 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center, 
-            children: [
-              GestureDetector(
-                onTap: () async { 
-                  bool willBeActive = !isActive;
-                  setState(() { cam['active'] = willBeActive; }); 
-                  if (cam['type'] == "IP" || cam['type'] == "DRONE") { 
-                    await _toggleRTSPCamera(cam['id'], cam['url'], willBeActive, cam['muted']); 
-                  } 
-                }, 
-                child: Icon(isActive ? Icons.power_settings_new : Icons.power_off, color: isActive ? Colors.green : Colors.red, size: 16)
-              ), 
-              const SizedBox(width: 5), 
-              GestureDetector(
-                onTap: () => _toggleMute(cam), 
-                child: Icon(isMuted ? Icons.mic_off : Icons.mic, color: isMuted ? Colors.red : Colors.blueAccent, size: 16)
-              ), 
-              const SizedBox(width: 5), 
-              if (isActive) 
-                GestureDetector(
-                  onTap: () => setState(() { mainCameraId = cam['id']; }), 
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), 
-                    decoration: BoxDecoration(color: Colors.grey.shade700, borderRadius: BorderRadius.circular(2)), 
-                    child: const Text("CUT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8))
-                  )
-                )
-            ]
-          )
-        ]
-      ),
-    ); 
+    bool isLive = hexCams.contains(cam['id']) || (mainCameraId == cam['id']); bool isActive = cam['active']; bool isMuted = cam['muted']; 
+    return Container(width: 100, margin: const EdgeInsets.only(right: 6), child: Column(children: [ Expanded(child: Container(decoration: BoxDecoration(color: Colors.black, border: Border.all(color: isLive ? Colors.red : (isActive ? Colors.green : Colors.grey.shade800), width: isLive ? 2.5 : 1)), child: Stack(children: [ Center(child: Text(isActive ? "Live" : "OFF", style: TextStyle(color: isActive ? Colors.greenAccent : Colors.red, fontSize: 10))), Positioned(top: 1, left: 1, child: Container(padding: const EdgeInsets.all(1), color: Colors.black54, child: Text(cam['type'], style: const TextStyle(color: Colors.yellow, fontSize: 7)))) ]))), const SizedBox(height: 2), Text(cam['name'], style: const TextStyle(color: Colors.white, fontSize: 9, overflow: TextOverflow.ellipsis)), Row(mainAxisAlignment: MainAxisAlignment.center, children: [ GestureDetector(onTap: () async { bool willBeActive = !isActive; setState(() { cam['active'] = willBeActive; }); if (cam['type'] == "IP" || cam['type'] == "DRONE") await _toggleRTSPCamera(cam['id'], cam['url'], willBeActive, cam['muted']); }, child: Icon(isActive ? Icons.power_settings_new : Icons.power_off, color: isActive ? Colors.green : Colors.red, size: 16)), const SizedBox(width: 5), GestureDetector(onTap: () => _toggleMute(cam), child: Icon(isMuted ? Icons.mic_off : Icons.mic, color: isMuted ? Colors.red : Colors.blueAccent, size: 16)), const SizedBox(width: 5), if (isActive) GestureDetector(onTap: () => setState(() { mainCameraId = cam['id']; }), child: Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.grey.shade700, borderRadius: BorderRadius.circular(2)), child: const Text("CUT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8))))]) ])); 
   }
 }
 
 // ============================================================================
-// --- 3. ELECTION BOARD SCREEN
+// --- 3. ELECTION BOARD SCREEN (With Full Ads, Logo & Ticker Implementation)
 // ============================================================================
 
 class ElectionBoardScreen extends StatefulWidget {
@@ -2499,7 +1365,6 @@ class ElectionBoardScreen extends StatefulWidget {
 }
 
 class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
-  // ఎలక్షన్ ట్రెండ్స్ డేటా సిమ్యులేషన్
   int bjpSeats = 150;
   int tmcSeats = 103;
   int congSeats = 5;
@@ -2508,15 +1373,50 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
-  bool _isRecording = false;
-  bool _showControls = false;
 
-  static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  bool hideControls = false;
+  bool isLiveBroadcasting = false;
+  bool isLivePaused = false;
+
+  final ImagePicker _picker = ImagePicker();
+
+  String channelLogoPath = "";
+  int logoPosition = 0; 
+  VideoPlayerController? _logoVideoCtrl;
+
+  List<String> leftAdPaths = [];
+  List<String> rightAdPaths = [];
+  List<String> bottomAdPaths = [];
+  int leftAdIndex = 0;
+  int rightAdIndex = 0;
+  int bottomAdIndex = 0;
+
+  VideoPlayerController? _leftAdVideoCtrl;
+  VideoPlayerController? _rightAdVideoCtrl;
+  VideoPlayerController? _bottomAdVideoCtrlForAds;
+
+  int adDisplayMode = 0;
+  bool isAdCurrentlyShowing = false;
+  Timer? _adCycleTimer;
+  int adShapeMode = 0;
+  bool isLBandRight = true;
+
+  String breakingNewsText = "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+  int _tickerBgColorIndex = 0;
+  Timer? _tickerColorTimer;
+
+  TextEditingController cableRtmpController = TextEditingController();
+  TextEditingController restreamRtmpController = TextEditingController();
+  TextEditingController satelliteSrtController = TextEditingController();
+
+  final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
   @override
   void initState() {
     super.initState();
     _initReporterCamera();
+    _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) { if (mounted) setState(() => _tickerBgColorIndex++); });
+    _loadSavedData();
   }
 
   Future<void> _initReporterCamera() async {
@@ -2525,321 +1425,383 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       if (_cameras.isNotEmpty) {
         CameraDescription? frontCam;
         for (var cam in _cameras) {
-          if (cam.lensDirection == CameraLensDirection.front) {
-            frontCam = cam;
-            break;
-          }
+          if (cam.lensDirection == CameraLensDirection.front) { frontCam = cam; break; }
         }
-        _cameraController = CameraController(
-          frontCam ?? _cameras.first, 
-          ResolutionPreset.high, 
-          enableAudio: true 
-        );
+        _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: true);
         await _cameraController!.initialize();
-        if (mounted) {
-          setState(() {});
-        }
+        if (mounted) setState(() {});
       }
-    } catch (e) {
-      debugPrint("Camera Init Error: $e");
+    } catch (e) {}
+  }
+
+  Future<void> _loadSavedData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      adShapeMode = prefs.getInt('adShapeMode') ?? 0;
+      logoPosition = prefs.getInt('logoPosition') ?? 0;
+      breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+
+      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
+      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
+      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+
+      String savedLogo = prefs.getString('channelLogoPath') ?? "";
+      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
+
+      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+
+      if (leftAdPaths.isNotEmpty) _initAdVideo('left');
+      if (rightAdPaths.isNotEmpty) _initAdVideo('right');
+      if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
+    });
+  }
+
+  void _setLogo(String path) {
+    channelLogoPath = path;
+    if (path.toLowerCase().endsWith('.mp4')) {
+      _logoVideoCtrl?.dispose();
+      _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { 
+        if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); } 
+      });
+    } else { _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; }
+  }
+
+  void _initAdVideo(String pos) {
+    String path = "";
+    if (pos == 'left' && leftAdPaths.isNotEmpty) path = leftAdPaths[leftAdIndex = leftAdIndex % leftAdPaths.length];
+    if (pos == 'right' && rightAdPaths.isNotEmpty) path = rightAdPaths[rightAdIndex = rightAdIndex % rightAdPaths.length];
+    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) path = bottomAdPaths[bottomAdIndex = bottomAdIndex % bottomAdPaths.length];
+    if (path.isEmpty) return;
+
+    bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
+    if (pos == 'left') {
+      _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;
+      if (isVideo) _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }});
+    } else if (pos == 'right') {
+      _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null;
+      if (isVideo) _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState((){}); }});
+    } else if (pos == 'bottom') {
+      _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;
+      if (isVideo) _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }});
     }
   }
 
-  Future<void> _toggleElectionLive() async {
-    if (_isRecording) {
-      try {
-        await _channel.invokeMethod('stopScreenCaptureStreaming');
-        setState(() => _isRecording = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ఎలక్షన్ లైవ్ ఆగిపోయింది."), backgroundColor: Colors.blue)
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Stop Error: $e"), backgroundColor: Colors.red)
-        );
-      }
-    } else {
-      try {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("ఎలక్షన్ లైవ్ ప్రారంభమవుతోంది..."), backgroundColor: Colors.orange)
-        );
-        
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        String rtmp = prefs.getString('cableRtmp') ?? "";
-        String rtmps = prefs.getString('cableRtmps') ?? "";
-        String srt = prefs.getString('satelliteSrt') ?? "";
-        bool noiseCancel = prefs.getBool('enableNoiseCancellation') ?? false;
+  void _toggleAdMode() {
+    setState(() {
+      adDisplayMode = (adDisplayMode + 1) % 3;
+      _adCycleTimer?.cancel();
+      if (adDisplayMode == 0) isAdCurrentlyShowing = false;
+      else if (adDisplayMode == 1) { isAdCurrentlyShowing = true; _startPermanentCycle(); }
+      else if (adDisplayMode == 2) { isAdCurrentlyShowing = true; _startAutoCycle(); }
+    });
+  }
 
-        await _channel.invokeMethod('startScreenCaptureStreaming', {
-          'cableRtmp': rtmp,
-          'cableRtmps': rtmps,
-          'satelliteSrt': srt,
-          'noiseCancellation': noiseCancel
+  void _startPermanentCycle() {
+    _adCycleTimer?.cancel();
+    _adCycleTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      if (mounted && adDisplayMode == 1) {
+        setState(() {
+          if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
+          if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
+          if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
+          _initAdVideo('left'); _initAdVideo('right'); _initAdVideo('bottom');
         });
-        setState(() => _isRecording = true);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red)
-        );
       }
+    });
+  }
+
+  void _startAutoCycle() {
+    _adCycleTimer?.cancel();
+    if (isAdCurrentlyShowing) {
+      _adCycleTimer = Timer(const Duration(seconds: 20), () {
+        if (mounted && adDisplayMode == 2) { setState(() => isAdCurrentlyShowing = false); _startAutoCycle(); }
+      });
+    } else {
+      _adCycleTimer = Timer(const Duration(seconds: 40), () {
+        if (mounted && adDisplayMode == 2) {
+          setState(() {
+            isAdCurrentlyShowing = true;
+            if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
+            if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
+            if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
+            _initAdVideo('left'); _initAdVideo('right'); _initAdVideo('bottom');
+          });
+          _startAutoCycle();
+        }
+      });
     }
+  }
+
+  Future<void> _pickAds(String pos) async {
+    try {
+      final List<XFile> medias = await _picker.pickMultipleMedia();
+      if (medias.isNotEmpty && mounted) {
+        setState(() {
+          if (pos == 'left') { leftAdPaths.addAll(medias.map((e) => e.path)); leftAdIndex = leftAdPaths.length - 1; _saveAdPaths(pos, leftAdPaths); }
+          if (pos == 'right') { rightAdPaths.addAll(medias.map((e) => e.path)); rightAdIndex = rightAdPaths.length - 1; _saveAdPaths(pos, rightAdPaths); }
+          if (pos == 'bottom') { bottomAdPaths.addAll(medias.map((e) => e.path)); bottomAdIndex = bottomAdPaths.length - 1; _saveAdPaths(pos, bottomAdPaths); }
+          _initAdVideo(pos);
+        });
+      }
+    } catch (e) {}
+  }
+
+  void _manageAdsDialog(String pos) {
+    List<String> currentPaths = [];
+    if (pos == 'left') currentPaths = leftAdPaths;
+    if (pos == 'right') currentPaths = rightAdPaths;
+    if (pos == 'bottom') currentPaths = bottomAdPaths;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: currentPaths.isEmpty ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54)) : ListView.builder(
+                shrinkWrap: true, itemCount: currentPaths.length, itemBuilder: (ctx, idx) {
+                  String path = currentPaths[idx];
+                  bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
+                  return ListTile(
+                    leading: isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40) : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
+                    title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () {
+                      setState(() {
+                        currentPaths.removeAt(idx); _saveAdPaths(pos, currentPaths);
+                        if (pos == 'left') { if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0; _initAdVideo('left'); }
+                        if (pos == 'right') { if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0; _initAdVideo('right'); }
+                        if (pos == 'bottom') { if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0; _initAdVideo('bottom'); }
+                      });
+                      setDialogState(() {});
+                    }),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(child: const Text("Clear All", style: TextStyle(color: Colors.redAccent)), onPressed: () {
+                setState(() {
+                  currentPaths.clear(); _saveAdPaths(pos, currentPaths);
+                  if (pos == 'left') { leftAdIndex = 0; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; }
+                  if (pos == 'right') { rightAdIndex = 0; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; }
+                  if (pos == 'bottom') { bottomAdIndex = 0; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; }
+                });
+                Navigator.pop(ctx);
+              }),
+              TextButton(child: const Text("Close", style: TextStyle(color: Colors.white)), onPressed: () => Navigator.pop(ctx))
+            ],
+          );
+        });
+      },
+    );
+  }
+
+  Future<void> _saveAdPaths(String pos, List<String> paths) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (pos == 'left') await prefs.setStringList('leftAdPaths', paths);
+    if (pos == 'right') await prefs.setStringList('rightAdPaths', paths);
+    if (pos == 'bottom') await prefs.setStringList('bottomAdPaths', paths);
+  }
+
+  Future<void> _startLiveAndLock() async {
+    String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
+
+    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
+      _showMultiStreamDialog();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+      return;
+    }
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) await Permission.microphone.request();
+    
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
+    if (success) {
+      setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = true; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది!"), backgroundColor: Colors.green));
+    }
+  }
+
+  Future<void> _stopLiveStream() async {
+    bool success = await StreamServiceManager.stopLiveStream();
+    if (success) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      setState(() { isLiveBroadcasting = false; isLivePaused = false; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది."), backgroundColor: Colors.blue));
+    }
+  }
+
+  Future<void> _togglePauseLive() async {
+    setState(() => isLivePaused = !isLivePaused);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
+  }
+
+  void _showMultiStreamDialog() {
+    showDialog(
+      context: context, 
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: const Text("Multi-Live Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+            content: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                _buildLinkEditor("1. Local Cable RTMP", cableRtmpController),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("2. Social Media Restream RTMP", restreamRtmpController),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("3. Satellite SRT", satelliteSrtController),
+              ])
+            ),
+            actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))) ]
+          );
+        });
+      }
+    );
+  }
+
+  Widget _buildLinkEditor(String label, TextEditingController controller) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+      Row(children: [
+        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('restreamRtmp', restreamRtmpController.text); await prefs.setString('satelliteSrt', satelliteSrtController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+      ])
+    ]);
+  }
+
+  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
+    return FloatingActionButton.extended(
+      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white, size: 20),
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+    );
   }
 
   @override
   void dispose() {
-    _cameraController?.dispose();
+    _cameraController?.dispose(); _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
+    _leftAdVideoCtrl?.dispose(); _rightAdVideoCtrl?.dispose(); _bottomAdVideoCtrlForAds?.dispose(); _logoVideoCtrl?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenW = MediaQuery.of(context).size.width; double screenH = MediaQuery.of(context).size.height;
+    double tickerH = 55.0; double topAreaH = screenH - tickerH;
+
+    bool showAds = isAdCurrentlyShowing;
+    double lAdW = 0, rAdW = 0, bAdH = 0; double vW = screenW, vH = topAreaH, vLeft = 0;
+
+    if (showAds) {
+      if (adShapeMode == 0) { 
+        double adW = screenW * 0.20; vW = screenW - adW; vH = vW * (9 / 16); bAdH = topAreaH - vH;
+        if (bAdH < topAreaH * 0.15) { bAdH = topAreaH * 0.15; vH = topAreaH - bAdH; vW = vH * (16 / 9); adW = screenW - vW; }
+        if (isLBandRight) { lAdW = 0; rAdW = adW; vLeft = 0; } else { lAdW = adW; rAdW = 0; vLeft = adW; }
+      } else if (adShapeMode == 1) { 
+        lAdW = screenW * 0.18; rAdW = screenW * 0.18; vW = screenW - lAdW - rAdW; vH = topAreaH; vLeft = lAdW; bAdH = 0;
+      } else if (adShapeMode == 2) { 
+        lAdW = screenW * 0.15; rAdW = screenW * 0.15; vW = screenW - lAdW - rAdW; vH = vW * (9 / 16); bAdH = topAreaH - vH;
+        if (bAdH < topAreaH * 0.15) { bAdH = topAreaH * 0.15; vH = topAreaH - bAdH; vW = vH * (16 / 9); lAdW = (screenW - vW) / 2; rAdW = lAdW; }
+        vLeft = lAdW;
+      }
+    }
+
+    Widget channelLogoWidget = channelLogoPath.isNotEmpty
+        ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
+
+    Widget positionedLogoWidget = Positioned(
+      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
+      left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,
+      child: channelLogoWidget,
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onDoubleTap: () {
-          setState(() {
-            _showControls = !_showControls;
-          });
-        },
+        onTap: () => setState(() => hideControls = !hideControls),
         child: SafeArea(
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    color: Colors.black,
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          color: Colors.red.shade900,
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                              Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800),
-                              _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800),
-                              _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800),
-                              _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800),
-                              _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Column(
-                            children: [
-                              Text("SS YATRA", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                              Row(
-                                children: [
-                                  Icon(Icons.fiber_manual_record, color: Colors.white, size: 8),
-                                  SizedBox(width: 3),
-                                  Text("LIVE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                                ],
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
+                left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
+                child: ClipRect(
+                  child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(
+                    children: [
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800), _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800), _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800), ])),
+                            Expanded(
+                              child: Container(
+                                color: Colors.black,
+                                child: Stack(
+                                  children: [
+                                    Positioned(left: 10, top: 10, bottom: 10, width: 140, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2), color: Colors.grey[850]), child: _cameraController != null && _cameraController!.value.isInitialized ? ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _cameraController!.value.previewSize!.height, height: _cameraController!.value.previewSize!.width, child: CameraPreview(_cameraController!)))) : const Center(child: CircularProgressIndicator(color: Colors.amber)))),
+                                    Positioned(left: 160, right: 10, top: 20, bottom: 20, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade800, border: Border.all(color: Colors.amber, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)]), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)), SizedBox(height: 15), Text("EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), ]))),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 170,
-                          color: Colors.grey.shade900,
-                          padding: const EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                              const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)),
-                              const Divider(color: Colors.white24),
-                              _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800),
-                              _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800),
-                              _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800),
-                              _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800),
-                            ],
-                          ),
-                        ),
-
-                        Expanded(
-                          child: Container(
-                            color: Colors.black,
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  left: 10,
-                                  top: 10,
-                                  bottom: 10,
-                                  width: 140,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.amber, width: 2),
-                                      color: Colors.grey[850],
-                                    ),
-                                    child: _cameraController != null && _cameraController!.value.isInitialized
-                                        ? ClipRect(
-                                            child: FittedBox(
-                                              fit: BoxFit.cover,
-                                              child: SizedBox(
-                                                width: _cameraController!.value.previewSize!.height,
-                                                height: _cameraController!.value.previewSize!.width,
-                                                child: CameraPreview(_cameraController!),
-                                              ),
-                                            ),
-                                          )
-                                        : const Center(child: CircularProgressIndicator(color: Colors.amber)),
-                                  ),
-                                ),
-
-                                Positioned(
-                                  left: 160,
-                                  right: 10,
-                                  top: 20,
-                                  bottom: 20,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.shade800,
-                                      border: Border.all(color: Colors.amber, width: 3),
-                                      boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)],
-                                    ),
-                                    child: const Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                                        SizedBox(height: 15),
-                                        Text(
-                                          "EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
-                          ),
+                            Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800), _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800), _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800), ])),
+                          ],
                         ),
-
-                        Container(
-                          width: 170,
-                          color: Colors.grey.shade900,
-                          padding: const EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                              const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)),
-                              const Divider(color: Colors.white24),
-                              _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800),
-                              _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800),
-                              _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800),
-                              _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    color: Colors.black,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 130,
-                          padding: const EdgeInsets.all(4),
-                          color: Colors.red.shade900,
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                              Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber),
-                              _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700),
-                              _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800),
-                              _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    color: Colors.red.shade900,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text("#ResultsWithSSYatra  |  ELECTION RESULTS LIVE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                        Text("@SSYatraTV  |  f Facebook", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              if (_showControls)
-                Positioned(
-                  top: 60,
-                  right: 180,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isRecording ? Colors.orange : Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _showControls = false; 
-                      });
-                      _toggleElectionLive();
-                    },
-                    icon: Icon(_isRecording ? Icons.stop : Icons.sensors, color: Colors.white),
-                    label: Text(
-                      _isRecording ? "STOP ELECTION LIVE" : "GO LIVE (ELECTION)",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
+                      ),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), color: Colors.black, child: Row(children: [ Container(width: 130, padding: const EdgeInsets.all(4), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)), ], )), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber), _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700), _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800), _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700), ], )), ])),
+                    ],
                   ),
                 ),
-                
-              if (_showControls)
+              ),
+
+              positionedLogoWidget,
+
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('left'), onLongPress: () => _manageAdsDialog('left'), child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("LEFT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('right'), onLongPress: () => _manageAdsDialog('right'), child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("RIGHT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: GestureDetector(onTap: () => _pickAds('bottom'), onLongPress: () => _manageAdsDialog('bottom'), child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("BOTTOM ADS", style: TextStyle(color: Colors.white, fontSize: 11)))))),
+
+              Positioned(
+                bottom: 0, left: 0, right: 0, height: tickerH,
+                child: Container(
+                  decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),
+                  child: Row(children: [
+                    Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),
+                    Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))
+                  ]),
+                ),
+              ),
+
+              if (!hideControls)
                 Positioned(
-                  top: 60,
-                  left: 20,
-                  child: FloatingActionButton(
-                    mini: true,
-                    backgroundColor: Colors.blueGrey,
-                    onPressed: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back, color: Colors.white),
+                  top: 15, left: 15,
+                  child: FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),
+                ),
+
+              if (!hideControls)
+                Positioned(
+                  bottom: 75, right: 15,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (isLiveBroadcasting) ...[
+                        _buildFloatingBtn("elec_stop_live", Icons.stop, "Live Stop", Colors.red, _stopLiveStream),
+                        const SizedBox(height: 10),
+                        _buildFloatingBtn("elec_pause_live", isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "Resume" : "Pause", Colors.orange, _togglePauseLive),
+                      ] else ...[
+                        _buildFloatingBtn("elec_go_live", Icons.sensors, "Go Live", Colors.green, _startLiveAndLock),
+                        const SizedBox(height: 10),
+                        _buildFloatingBtn("elec_multi_live", Icons.settings_input_antenna, "Multi-Live", Colors.redAccent, _showMultiStreamDialog),
+                      ],
+                    ],
                   ),
                 ),
             ],
@@ -2850,69 +1812,14 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   }
 
   Widget _buildPartyHeaderItem(String party, String change, String seats, Color bgColor) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        color: bgColor,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(party, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 2),
-                Text(change, style: const TextStyle(color: Colors.white70, fontSize: 8)),
-              ],
-            ),
-            Text(seats, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          ],
-        ),
-      ),
-    );
+    return Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 2), padding: const EdgeInsets.symmetric(vertical: 4), color: bgColor, child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(party, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)), const SizedBox(width: 2), Text(change, style: const TextStyle(color: Colors.white70, fontSize: 8))]), Text(seats, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))])));
   }
 
   Widget _buildStateResultRow(String party, String change, String seats, Color bgColor) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      color: bgColor,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-              Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9)),
-            ],
-          ),
-          Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-        ],
-      ),
-    );
+    return Container(margin: const EdgeInsets.symmetric(vertical: 3), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), color: bgColor, child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9))]), Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))]));
   }
 
   Widget _buildBottomPartyItem(String party, String change, String seats, Color bgColor) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        color: bgColor,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 2),
-                Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9)),
-              ],
-            ),
-            Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-          ],
-        ),
-      ),
-    );
+    return Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 2), padding: const EdgeInsets.symmetric(vertical: 4), color: bgColor, child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), const SizedBox(width: 2), Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9))]), Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))])));
   }
 }
