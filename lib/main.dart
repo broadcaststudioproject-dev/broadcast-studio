@@ -667,7 +667,9 @@ class _StudioScreenState extends State<StudioScreen>
   void _playDualMedia(String path) {
     if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) {
       _bottomAdVideoController?.dispose();
-      _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { if (mounted) { _bottomAdVideoCtrl!.setLooping(true); _bottomAdVideoCtrl!.setVolume(1.0); _bottomAdVideoCtrl!.play(); setState(() {}); }});
+      _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { 
+        if (mounted) { _bottomAdVideoController!.setLooping(true); _bottomAdVideoController!.setVolume(1.0); _bottomAdVideoController!.play(); setState(() {}); }
+      });
     } else { _bottomAdVideoController?.dispose(); _bottomAdVideoController = null; setState(() {}); }
   }
 
@@ -687,47 +689,26 @@ class _StudioScreenState extends State<StudioScreen>
     if (_bottomAdVideoController != null) { _bottomAdVideoController!.value.isPlaying ? _bottomAdVideoController!.pause() : _bottomAdVideoController!.play(); setState(() {}); }
   }
 
-  Future<void> _startLiveAndLock() async {
-    String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
-
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
-      return;
-    }
-    var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) await Permission.microphone.request();
-    
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
-    if (success) {
-      setState(() {
-        isLiveBroadcasting = true;
-        isLivePaused = false;
-        hideControls = true; // ఆటో హైడ్ కంట్రోల్స్
-        isMenuOpen = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! (Controls Hidden)"), backgroundColor: Colors.green));
-    }
+  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
+    return FloatingActionButton.extended(
+      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white, size: 20),
+      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+    );
   }
 
-  Future<void> _stopLiveStream() async {
-    bool success = await StreamServiceManager.stopLiveStream();
-    if (success) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-      setState(() {
-        isLiveBroadcasting = false;
-        isLivePaused = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ప్రసారం నిలిపివేయబడింది."), backgroundColor: Colors.blue));
-    }
-  }
-
-  Future<void> _togglePauseLive() async {
-    setState(() => isLivePaused = !isLivePaused);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
+  Widget _buildMenuButton(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(radius: 28, backgroundColor: Colors.grey.shade800, child: Icon(icon, color: color, size: 28)),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
+        ]
+      )
+    );
   }
 
   void _showMultiStreamDialog() {
@@ -806,21 +787,6 @@ class _StudioScreenState extends State<StudioScreen>
       if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } 
       else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
     });
-  }
-
-  // --- MENU BUTTON WIDGET (Matching the Image) ---
-  Widget _buildMenuButton(IconData icon, String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(radius: 32, backgroundColor: Colors.grey.shade800, child: Icon(icon, color: color, size: 30)),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
-        ]
-      )
-    );
   }
 
   @override
