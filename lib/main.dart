@@ -26,6 +26,27 @@ Future<void> main() async {
   runApp(const PocketPCRApp());
 }
 
+// ============================================================================
+// --- USB CAMERA SERVICE MANAGER (Moved to Top for Global Access) ---
+// ============================================================================
+class StreamServiceManager {
+  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  
+  static Future<int?> startUsbCamera() async {
+    try {
+      return await platform.invokeMethod('startUsbCamera');
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  static Future<void> stopUsbCamera() async {
+    try {
+      await platform.invokeMethod('stopUsbCamera');
+    } catch (e) {}
+  }
+}
+
 class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
@@ -1125,21 +1146,17 @@ class _StudioScreenState extends State<StudioScreen>
     String finalPlayUrl = url;
     if (url.contains("youtube.com") || url.contains("youtu.be")) {
       try {
-        var ytExplode = yt.YoutubeExplode(); String? videoId; 
-        try { videoId = yt.VideoId.parseVideoId(url); } catch (_) {}
-        if (videoId == null) { 
-          RegExp regExp = RegExp(r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})', caseSensitive: false); 
-          Match? match = regExp.firstMatch(url); 
-          if (match != null && match.groupCount >= 1) { videoId = match.group(1); } 
-        }
-        if (videoId == null) { ytExplode.close(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red)); return; }
-        var vId = yt.VideoId(videoId);
-        var video = await ytExplode.videos.get(vId);
-        if (video.isLive) { 
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId); 
-        } else { 
-          var manifest = await ytExplode.videos.streamsClient.getManifest(vId); 
-          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
+        var ytExplode = yt.YoutubeExplode(); 
+        String? videoIdStr = yt.VideoId.parseVideoId(url);
+        if (videoIdStr != null) {
+          var vId = yt.VideoId(videoIdStr);
+          var video = await ytExplode.videos.get(vId);
+          if (video.isLive) { 
+            finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId); 
+          } else { 
+            var manifest = await ytExplode.videos.streamsClient.getManifest(vId); 
+            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
+          }
         }
         ytExplode.close();
       } catch (e) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ లింక్‌‌ను ప్లే చేయలేము."), backgroundColor: Colors.red)); return; }
@@ -2086,7 +2103,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN (Fixed VideoId type error)
+// --- 2. MASTER PCR BOARD SCREEN 
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -2173,7 +2190,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         try {
           String? videoIdStr = yt.VideoId.parseVideoId(url);
           if (videoIdStr != null) {
-            var vId = yt.VideoId(videoIdStr); // <--- ERROR FIXED HERE: Converting String to VideoId format
+            var vId = yt.VideoId(videoIdStr); 
             var video = await ytExplode.videos.get(vId);
             if (video.isLive) {
               finalUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId);
