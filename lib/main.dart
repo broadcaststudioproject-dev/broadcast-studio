@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
-import 'dart:async'; 
-import 'dart:io';  
+import 'dart:async';
+import 'dart:io'; 
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
@@ -1133,11 +1133,12 @@ class _StudioScreenState extends State<StudioScreen>
           if (match != null && match.groupCount >= 1) { videoId = match.group(1); } 
         }
         if (videoId == null) { ytExplode.close(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red)); return; }
-        var video = await ytExplode.videos.get(yt.VideoId(videoId));
+        var vId = yt.VideoId(videoId);
+        var video = await ytExplode.videos.get(vId);
         if (video.isLive) { 
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id); 
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId); 
         } else { 
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id); 
+          var manifest = await ytExplode.videos.streamsClient.getManifest(vId); 
           finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
         }
         ytExplode.close();
@@ -2084,26 +2085,8 @@ class _StudioScreenState extends State<StudioScreen>
   }
 }
 
-class StreamServiceManager {
-  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
-  
-  static Future<int?> startUsbCamera() async {
-    try {
-      return await platform.invokeMethod('startUsbCamera');
-    } catch (e) {
-      return null;
-    }
-  }
-  
-  static Future<void> stopUsbCamera() async {
-    try {
-      await platform.invokeMethod('stopUsbCamera');
-    } catch (e) {}
-  }
-}
-
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN
+// --- 2. MASTER PCR BOARD SCREEN (Fixed VideoId type error)
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -2188,13 +2171,14 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       if (url.contains("youtube.com") || url.contains("youtu.be")) {
         var ytExplode = yt.YoutubeExplode();
         try {
-          var videoId = yt.VideoId.parseVideoId(url);
-          if (videoId != null) {
-            var video = await ytExplode.videos.get(videoId);
+          String? videoIdStr = yt.VideoId.parseVideoId(url);
+          if (videoIdStr != null) {
+            var vId = yt.VideoId(videoIdStr); // <--- ERROR FIXED HERE: Converting String to VideoId format
+            var video = await ytExplode.videos.get(vId);
             if (video.isLive) {
-              finalUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId);
+              finalUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId);
             } else {
-              var manifest = await ytExplode.videos.streamsClient.getManifest(videoId);
+              var manifest = await ytExplode.videos.streamsClient.getManifest(vId);
               var streamInfo = manifest.muxed.withHighestBitrate();
               finalUrl = streamInfo.url.toString();
             }
