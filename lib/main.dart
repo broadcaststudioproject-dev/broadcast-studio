@@ -16,7 +16,7 @@ import 'election_board.dart';
 
 List<CameraDescription> cameras = [];
 
-Future<void> main() async {
+Future<void> main() async { 
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   try {
