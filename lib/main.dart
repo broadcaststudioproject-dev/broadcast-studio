@@ -81,7 +81,7 @@ class StreamServiceManager {
 }
 
 // ============================================================================
-// --- 1. MAIN STUDIO SCREEN 
+// --- 1. MAIN STUDIO SCREEN (With Exact Image UI & Static Elements)
 // ============================================================================
 
 class StudioScreen extends StatefulWidget {
@@ -687,23 +687,137 @@ class _StudioScreenState extends State<StudioScreen>
     if (_bottomAdVideoController != null) { _bottomAdVideoController!.value.isPlaying ? _bottomAdVideoController!.pause() : _bottomAdVideoController!.play(); setState(() {}); }
   }
 
-  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
-    return FloatingActionButton.extended(
-      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white, size: 20),
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+  Future<void> _startLiveAndLock() async {
+    String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
+
+    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
+      _showMultiStreamDialog();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+      return;
+    }
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) await Permission.microphone.request();
+    
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
+    if (success) {
+      setState(() {
+        isLiveBroadcasting = true;
+        isLivePaused = false;
+        hideControls = true; // ఆటో హైడ్ కంట్రోల్స్
+        isMenuOpen = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! (Controls Hidden)"), backgroundColor: Colors.green));
+    }
+  }
+
+  Future<void> _stopLiveStream() async {
+    bool success = await StreamServiceManager.stopLiveStream();
+    if (success) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      setState(() {
+        isLiveBroadcasting = false;
+        isLivePaused = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ప్రసారం నిలిపివేయబడింది."), backgroundColor: Colors.blue));
+    }
+  }
+
+  Future<void> _togglePauseLive() async {
+    setState(() => isLivePaused = !isLivePaused);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
+  }
+
+  void _showMultiStreamDialog() {
+    setState(() => isMenuOpen = false);
+    showDialog(
+      context: context, 
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900],
+            title: const Text("Live Links Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+            content: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                _buildLinkEditor("1. లోకల్ కేబుల్ ఆపరేటర్ లింక్ (Local Cable RTMP)", cableRtmpController, setDialogState),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("2. Social Media Restream (YouTube/FB RTMP)", restreamRtmpController, setDialogState),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("3. Satellite/Playout — SRT Link", satelliteSrtController, setDialogState),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("4. Play YouTube Video", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(youtubeVideoUrlCtrl.text.trim()); }),
+                const Divider(color: Colors.white24, height: 20),
+                _buildLinkEditor("5. Play Network MP4", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkBulletin(networkVideoUrlCtrl.text.trim()); }),
+              ])
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white)))
+            ]
+          );
+        });
+      }
     );
   }
 
+  Widget _buildLinkEditor(String label, TextEditingController controller, StateSetter setDialogState, {VoidCallback? onPlay}) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
+      Row(children: [
+        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { await _saveLinks(); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+        if (onPlay != null) IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 28), onPressed: onPlay)
+      ])
+    ]);
+  }
+
+  Future<void> _startNetworkBulletin(String url) async {
+    if (url.isEmpty) return;
+    String finalPlayUrl = url;
+    if (url.contains("youtube.com") || url.contains("youtu.be")) {
+      try {
+        var ytExplode = yt.YoutubeExplode(); 
+        String? videoIdStr = yt.VideoId.parseVideoId(url);
+        if (videoIdStr != null) {
+          var vId = yt.VideoId(videoIdStr);
+          var video = await ytExplode.videos.get(vId);
+          if (video.isLive) { finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId); } 
+          else { var manifest = await ytExplode.videos.streamsClient.getManifest(vId); finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); }
+        }
+        ytExplode.close();
+      } catch (e) {}
+    }
+    _bulletinVideoController?.removeListener(_videoListener); 
+    _bulletinVideoController?.dispose();
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(finalPlayUrl))..initialize().then((_) { 
+      if (!mounted) return; 
+      _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
+      setState(() { isNewsBulletinMode = true; isDualScreenMode = false; hideControls = true; }); 
+      _bulletinVideoController?.play(); 
+      _bulletinVideoController?.addListener(_videoListener); 
+    });
+  }
+
+  void _toggleRotation() {
+    setState(() {
+      isMenuOpen = false;
+      isLandscape = !isLandscape;
+      if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } 
+      else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
+    });
+  }
+
+  // --- MENU BUTTON WIDGET (Matching the Image) ---
   Widget _buildMenuButton(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 28, backgroundColor: Colors.white24, child: Icon(icon, color: color, size: 28)),
+          CircleAvatar(radius: 32, backgroundColor: Colors.grey.shade800, child: Icon(icon, color: color, size: 30)),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500))
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
         ]
       )
     );
@@ -712,6 +826,8 @@ class _StudioScreenState extends State<StudioScreen>
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    double screenW = MediaQuery.of(context).size.width; double screenH = MediaQuery.of(context).size.height;
+    double tickerH = 55.0; double topAreaH = screenH - tickerH;
 
     double camW = 1080; double camH = 1920;
     if (_isCameraInitialized && controller != null && controller!.value.isInitialized) {
@@ -740,7 +856,7 @@ class _StudioScreenState extends State<StudioScreen>
       : (isUsbCamMode && _usbTextureId != null) ? SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: 1920, height: 1080, child: Texture(textureId: _usbTextureId!))))
       : phoneCameraWidget;
 
-    // Static Watermark & Reporter Details
+    // --- STATIC WATERMARK (No Animation) ---
     Widget staticReporterBadge = Column(
       crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min,
       children: [
@@ -752,10 +868,10 @@ class _StudioScreenState extends State<StudioScreen>
       ]
     );
 
-    // Static Channel Logo
+    // --- STATIC LOGO (No Animation) ---
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)));
 
     Widget positionedLogoWidget = Positioned(
       top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
@@ -764,8 +880,6 @@ class _StudioScreenState extends State<StudioScreen>
     );
 
     final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
-    double screenW = MediaQuery.of(context).size.width; double screenH = MediaQuery.of(context).size.height;
-    double tickerH = 55.0; double topAreaH = screenH - tickerH;
 
     bool showAds = isAdCurrentlyShowing;
     double lAdW = 0, rAdW = 0, bAdH = 0; double vW = screenW, vH = topAreaH, vLeft = 0;
@@ -806,9 +920,9 @@ class _StudioScreenState extends State<StudioScreen>
               if (!isNewsBulletinMode && !isDualScreenMode) Positioned(bottom: 65, left: 15.0, child: staticReporterBadge),
               
               // Ads
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('left'), onLongPress: () => _manageAdsDialog('left'), child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("LEFT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('right'), onLongPress: () => _manageAdsDialog('right'), child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("RIGHT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: GestureDetector(onTap: () => _pickAds('bottom'), onLongPress: () => _manageAdsDialog('bottom'), child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("BOTTOM ADS", style: TextStyle(color: Colors.white, fontSize: 11)))))),
 
               // Ticker
               Positioned(
@@ -822,14 +936,14 @@ class _StudioScreenState extends State<StudioScreen>
                 ),
               ),
 
-              // Menu Overlay (Matches the provided image perfectly)
+              // === MENU OVERLAY (Exactly as per image provided) ===
               if (!hideControls && isMenuOpen)
                 Positioned.fill(
                   child: Container(
                     color: Colors.black87,
                     child: Center(
                       child: Wrap(
-                        alignment: WrapAlignment.center, spacing: 30, runSpacing: 30,
+                        alignment: WrapAlignment.center, spacing: 30, runSpacing: 35,
                         children: [
                           _buildMenuButton(Icons.live_tv, "Live Links", Colors.redAccent, _showMultiStreamDialog),
                           _buildMenuButton(Icons.dashboard_customize, "PCR Board", Colors.yellowAccent, () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }),
@@ -850,7 +964,7 @@ class _StudioScreenState extends State<StudioScreen>
                   ),
                 ),
 
-              // Floating Controls Right (Hideable on Tap and Auto-hide during recording)
+              // === FLOATING CONTROLS (Right Side) ===
               if (!hideControls)
                 Positioned(
                   bottom: 75, right: 15,
@@ -858,17 +972,30 @@ class _StudioScreenState extends State<StudioScreen>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       if (isLiveBroadcasting) ...[
-                        _buildFloatingBtn("stop_live", Icons.stop, "Live Stop", Colors.red, _stopLiveStream),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()),
+                          onPressed: _stopLiveStream, icon: const Icon(Icons.stop, color: Colors.white), label: const Text("STOP LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                        ),
                         const SizedBox(width: 10),
-                        _buildFloatingBtn("pause_live", isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "Resume" : "Pause", Colors.orange, _togglePauseLive),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()),
+                          onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                        ),
                       ] else ...[
-                        _buildFloatingBtn("go_live", Icons.sensors, "GO LIVE", Colors.green.shade800, _startLiveAndLock),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()),
+                          onPressed: _startLiveAndLock, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                        ),
                       ],
-                      const SizedBox(width: 10),
-                      FloatingActionButton(
-                        heroTag: 'menu_btn', backgroundColor: Colors.blue.shade900,
-                        onPressed: () => setState(() => isMenuOpen = !isMenuOpen),
-                        child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white),
+                      const SizedBox(width: 15),
+                      // Close (X) or Menu Button
+                      Container(
+                        decoration: BoxDecoration(color: Colors.blue.shade900, borderRadius: BorderRadius.circular(15)),
+                        child: IconButton(
+                          iconSize: 32,
+                          icon: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white),
+                          onPressed: () => setState(() => isMenuOpen = !isMenuOpen),
+                        ),
                       )
                     ],
                   ),
@@ -882,7 +1009,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN (With Auto Layout & Hidden Controls)
+// --- 2. MASTER PCR BOARD SCREEN (Only Auto Layout & Hidden Controls)
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -892,20 +1019,15 @@ class MasterPCRBoard extends StatefulWidget {
   State<MasterPCRBoard> createState() => _MasterPCRBoardState();
 }
 
-class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStateMixin {
+class _MasterPCRBoardState extends State<MasterPCRBoard> {
   final Map<String, VlcPlayerController> _rtspControllers = {};
   CameraController? _phoneCamCtrl;
   List<CameraDescription> _cameras = [];
 
   bool hideControls = false; 
-  bool isLiveBroadcasting = false;
-  bool isLivePaused = false;
-  
   int layoutMode = 6; 
   String mainCameraId = "REPORTER_CAM"; 
   List<String> hexCams = ["IP_1", "IP_2", "DRONE_1", "IP_3", "IP_4", "HDMI_1"]; 
-
-  final ImagePicker _picker = ImagePicker();
 
   String channelLogoPath = "";
   int logoPosition = 0; 
@@ -931,10 +1053,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
   String breakingNewsText = "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
   int _tickerBgColorIndex = 0;
   Timer? _tickerColorTimer;
-
-  TextEditingController cableRtmpController = TextEditingController();
-  TextEditingController restreamRtmpController = TextEditingController();
-  TextEditingController satelliteSrtController = TextEditingController();
 
   final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
@@ -972,13 +1090,10 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
     SharedPreferences prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
+      layoutMode = prefs.getInt('pcr_layoutMode') ?? 6;
       adShapeMode = prefs.getInt('adShapeMode') ?? 0;
       logoPosition = prefs.getInt('logoPosition') ?? 0;
       breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
-
-      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
 
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
@@ -991,13 +1106,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
       if (rightAdPaths.isNotEmpty) _initAdVideo('right');
       if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
     });
-  }
-
-  Future<void> _saveLinks() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cableRtmp', cableRtmpController.text);
-    await prefs.setString('restreamRtmp', restreamRtmpController.text);
-    await prefs.setString('satelliteSrt', satelliteSrtController.text);
   }
 
   void _setLogo(String path) {
@@ -1030,79 +1138,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
     }
   }
 
-  Future<void> _pickAds(String pos) async {
-    try {
-      final List<XFile> medias = await _picker.pickMultipleMedia();
-      if (medias.isNotEmpty && mounted) {
-        setState(() {
-          if (pos == 'left') { leftAdPaths.addAll(medias.map((e) => e.path)); leftAdIndex = leftAdPaths.length - 1; _saveAdPaths(pos, leftAdPaths); }
-          if (pos == 'right') { rightAdPaths.addAll(medias.map((e) => e.path)); rightAdIndex = rightAdPaths.length - 1; _saveAdPaths(pos, rightAdPaths); }
-          if (pos == 'bottom') { bottomAdPaths.addAll(medias.map((e) => e.path)); bottomAdIndex = bottomAdPaths.length - 1; _saveAdPaths(pos, bottomAdPaths); }
-          _initAdVideo(pos);
-        });
-      }
-    } catch (e) {}
-  }
-
-  void _manageAdsDialog(String pos) {
-    List<String> currentPaths = [];
-    if (pos == 'left') currentPaths = leftAdPaths;
-    if (pos == 'right') currentPaths = rightAdPaths;
-    if (pos == 'bottom') currentPaths = bottomAdPaths;
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900], title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: currentPaths.isEmpty ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54)) : ListView.builder(
-                shrinkWrap: true, itemCount: currentPaths.length, itemBuilder: (ctx, idx) {
-                  String path = currentPaths[idx];
-                  bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
-                  return ListTile(
-                    leading: isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40) : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
-                    title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () {
-                      setState(() {
-                        currentPaths.removeAt(idx); _saveAdPaths(pos, currentPaths);
-                        if (pos == 'left') { if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0; _initAdVideo('left'); }
-                        if (pos == 'right') { if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0; _initAdVideo('right'); }
-                        if (pos == 'bottom') { if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0; _initAdVideo('bottom'); }
-                      });
-                      setDialogState(() {});
-                    }),
-                  );
-                },
-              ),
-            ),
-            actions: [
-              TextButton(child: const Text("Clear All", style: TextStyle(color: Colors.redAccent)), onPressed: () {
-                setState(() {
-                  currentPaths.clear(); _saveAdPaths(pos, currentPaths);
-                  if (pos == 'left') { leftAdIndex = 0; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; }
-                  if (pos == 'right') { rightAdIndex = 0; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; }
-                  if (pos == 'bottom') { bottomAdIndex = 0; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; }
-                });
-                Navigator.pop(ctx);
-              }),
-              TextButton(child: const Text("Close", style: TextStyle(color: Colors.white)), onPressed: () => Navigator.pop(ctx))
-            ],
-          );
-        });
-      },
-    );
-  }
-
-  Future<void> _saveAdPaths(String pos, List<String> paths) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (pos == 'left') await prefs.setStringList('leftAdPaths', paths);
-    if (pos == 'right') await prefs.setStringList('rightAdPaths', paths);
-    if (pos == 'bottom') await prefs.setStringList('bottomAdPaths', paths);
-  }
-
   void _swapCamera(int gridIndex) {
     setState(() { String temp = mainCameraId; mainCameraId = hexCams[gridIndex]; hexCams[gridIndex] = temp; });
   }
@@ -1130,82 +1165,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
 
   void _toggleMute(Map<String, dynamic> cam) { 
     setState(() { cam['muted'] = !cam['muted']; if (cam['active'] && (cam['type'] == 'IP' || cam['type'] == 'DRONE')) { _rtspControllers[cam['id']]?.setVolume(cam['muted'] ? 0 : 100); } }); 
-  }
-
-  Future<void> _startLiveAndLock() async {
-    String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
-
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
-      return;
-    }
-    var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) await Permission.microphone.request();
-    
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
-    if (success) {
-      setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = true; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది!"), backgroundColor: Colors.green));
-    }
-  }
-
-  Future<void> _stopLiveStream() async {
-    bool success = await StreamServiceManager.stopLiveStream();
-    if (success) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-      setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది."), backgroundColor: Colors.blue));
-    }
-  }
-
-  Future<void> _togglePauseLive() async {
-    setState(() => isLivePaused = !isLivePaused);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
-  }
-
-  void _showMultiStreamDialog() {
-    showDialog(
-      context: context, 
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900], title: const Text("Multi-Live Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
-            content: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. Local Cable RTMP", cableRtmpController),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("2. Social Media Restream RTMP", restreamRtmpController),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("3. Satellite SRT", satelliteSrtController),
-              ])
-            ),
-            actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))) ]
-          );
-        });
-      }
-    );
-  }
-
-  Widget _buildLinkEditor(String label, TextEditingController controller) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-      Row(children: [
-        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('restreamRtmp', restreamRtmpController.text); await prefs.setString('satelliteSrt', satelliteSrtController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
-      ])
-    ]);
-  }
-
-  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
-    return FloatingActionButton.extended(
-      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white, size: 20),
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-    );
   }
 
   @override
@@ -1241,7 +1200,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)));
 
     Widget positionedLogoWidget = Positioned(
       top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
@@ -1260,7 +1219,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
-                child: ClipRect(child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Row(
+                child: ClipRect(child: Row(
                   children: [
                     Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24), 
                     Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))
@@ -1270,9 +1229,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
               
               positionedLogoWidget,
 
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('left'), onLongPress: () => _manageAdsDialog('left'), child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("LEFT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('right'), onLongPress: () => _manageAdsDialog('right'), child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("RIGHT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: GestureDetector(onTap: () => _pickAds('bottom'), onLongPress: () => _manageAdsDialog('bottom'), child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("BOTTOM ADS", style: TextStyle(color: Colors.white, fontSize: 11)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
 
               Positioned(
                 bottom: 0, left: 0, right: 0, height: tickerH,
@@ -1305,25 +1264,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
                     child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index])),
                   ),
                 ),
-
-              if (!hideControls)
-                Positioned(
-                  bottom: 220, right: 15,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (isLiveBroadcasting) ...[
-                        _buildFloatingBtn("pcr_stop_live", Icons.stop, "Live Stop", Colors.red, _stopLiveStream),
-                        const SizedBox(height: 10),
-                        _buildFloatingBtn("pcr_pause_live", isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "Resume" : "Pause", Colors.orange, _togglePauseLive),
-                      ] else ...[
-                        _buildFloatingBtn("pcr_go_live", Icons.sensors, "Go Live", Colors.green, _startLiveAndLock),
-                        const SizedBox(height: 10),
-                        _buildFloatingBtn("pcr_multi_live", Icons.settings_input_antenna, "Multi-Live", Colors.redAccent, _showMultiStreamDialog),
-                      ],
-                    ],
-                  ),
-                ),
             ],
           ),
         ),
@@ -1354,7 +1294,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> with TickerProviderStat
 }
 
 // ============================================================================
-// --- 3. ELECTION BOARD SCREEN (With Full Ads, Logo & Ticker Implementation)
+// --- 3. ELECTION BOARD SCREEN (Only Hidden Back Button)
 // ============================================================================
 
 class ElectionBoardScreen extends StatefulWidget {
@@ -1375,10 +1315,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   List<CameraDescription> _cameras = [];
 
   bool hideControls = false;
-  bool isLiveBroadcasting = false;
-  bool isLivePaused = false;
-
-  final ImagePicker _picker = ImagePicker();
 
   String channelLogoPath = "";
   int logoPosition = 0; 
@@ -1404,10 +1340,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   String breakingNewsText = "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
   int _tickerBgColorIndex = 0;
   Timer? _tickerColorTimer;
-
-  TextEditingController cableRtmpController = TextEditingController();
-  TextEditingController restreamRtmpController = TextEditingController();
-  TextEditingController satelliteSrtController = TextEditingController();
 
   final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
@@ -1441,10 +1373,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       adShapeMode = prefs.getInt('adShapeMode') ?? 0;
       logoPosition = prefs.getInt('logoPosition') ?? 0;
       breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
-
-      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
 
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
@@ -1489,204 +1417,10 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }
   }
 
-  void _toggleAdMode() {
-    setState(() {
-      adDisplayMode = (adDisplayMode + 1) % 3;
-      _adCycleTimer?.cancel();
-      if (adDisplayMode == 0) isAdCurrentlyShowing = false;
-      else if (adDisplayMode == 1) { isAdCurrentlyShowing = true; _startPermanentCycle(); }
-      else if (adDisplayMode == 2) { isAdCurrentlyShowing = true; _startAutoCycle(); }
-    });
-  }
-
-  void _startPermanentCycle() {
-    _adCycleTimer?.cancel();
-    _adCycleTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
-      if (mounted && adDisplayMode == 1) {
-        setState(() {
-          if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
-          if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
-          if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
-          _initAdVideo('left'); _initAdVideo('right'); _initAdVideo('bottom');
-        });
-      }
-    });
-  }
-
-  void _startAutoCycle() {
-    _adCycleTimer?.cancel();
-    if (isAdCurrentlyShowing) {
-      _adCycleTimer = Timer(const Duration(seconds: 20), () {
-        if (mounted && adDisplayMode == 2) { setState(() => isAdCurrentlyShowing = false); _startAutoCycle(); }
-      });
-    } else {
-      _adCycleTimer = Timer(const Duration(seconds: 40), () {
-        if (mounted && adDisplayMode == 2) {
-          setState(() {
-            isAdCurrentlyShowing = true;
-            if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length;
-            if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length;
-            if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length;
-            _initAdVideo('left'); _initAdVideo('right'); _initAdVideo('bottom');
-          });
-          _startAutoCycle();
-        }
-      });
-    }
-  }
-
-  Future<void> _pickAds(String pos) async {
-    try {
-      final List<XFile> medias = await _picker.pickMultipleMedia();
-      if (medias.isNotEmpty && mounted) {
-        setState(() {
-          if (pos == 'left') { leftAdPaths.addAll(medias.map((e) => e.path)); leftAdIndex = leftAdPaths.length - 1; _saveAdPaths(pos, leftAdPaths); }
-          if (pos == 'right') { rightAdPaths.addAll(medias.map((e) => e.path)); rightAdIndex = rightAdPaths.length - 1; _saveAdPaths(pos, rightAdPaths); }
-          if (pos == 'bottom') { bottomAdPaths.addAll(medias.map((e) => e.path)); bottomAdIndex = bottomAdPaths.length - 1; _saveAdPaths(pos, bottomAdPaths); }
-          _initAdVideo(pos);
-        });
-      }
-    } catch (e) {}
-  }
-
-  void _manageAdsDialog(String pos) {
-    List<String> currentPaths = [];
-    if (pos == 'left') currentPaths = leftAdPaths;
-    if (pos == 'right') currentPaths = rightAdPaths;
-    if (pos == 'bottom') currentPaths = bottomAdPaths;
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(builder: (ctx, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900], title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: currentPaths.isEmpty ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54)) : ListView.builder(
-                shrinkWrap: true, itemCount: currentPaths.length, itemBuilder: (ctx, idx) {
-                  String path = currentPaths[idx];
-                  bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
-                  return ListTile(
-                    leading: isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40) : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
-                    title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
-                    trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () {
-                      setState(() {
-                        currentPaths.removeAt(idx); _saveAdPaths(pos, currentPaths);
-                        if (pos == 'left') { if (leftAdIndex >= leftAdPaths.length) leftAdIndex = 0; _initAdVideo('left'); }
-                        if (pos == 'right') { if (rightAdIndex >= rightAdPaths.length) rightAdIndex = 0; _initAdVideo('right'); }
-                        if (pos == 'bottom') { if (bottomAdIndex >= bottomAdPaths.length) bottomAdIndex = 0; _initAdVideo('bottom'); }
-                      });
-                      setDialogState(() {});
-                    }),
-                  );
-                },
-              ),
-            ),
-            actions: [
-              TextButton(child: const Text("Clear All", style: TextStyle(color: Colors.redAccent)), onPressed: () {
-                setState(() {
-                  currentPaths.clear(); _saveAdPaths(pos, currentPaths);
-                  if (pos == 'left') { leftAdIndex = 0; _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null; }
-                  if (pos == 'right') { rightAdIndex = 0; _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null; }
-                  if (pos == 'bottom') { bottomAdIndex = 0; _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null; }
-                });
-                Navigator.pop(ctx);
-              }),
-              TextButton(child: const Text("Close", style: TextStyle(color: Colors.white)), onPressed: () => Navigator.pop(ctx))
-            ],
-          );
-        });
-      },
-    );
-  }
-
-  Future<void> _saveAdPaths(String pos, List<String> paths) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (pos == 'left') await prefs.setStringList('leftAdPaths', paths);
-    if (pos == 'right') await prefs.setStringList('rightAdPaths', paths);
-    if (pos == 'bottom') await prefs.setStringList('bottomAdPaths', paths);
-  }
-
-  Future<void> _startLiveAndLock() async {
-    String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
-
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
-      return;
-    }
-    var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) await Permission.microphone.request();
-    
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
-    if (success) {
-      setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = true; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది!"), backgroundColor: Colors.green));
-    }
-  }
-
-  Future<void> _stopLiveStream() async {
-    bool success = await StreamServiceManager.stopLiveStream();
-    if (success) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-      setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది."), backgroundColor: Colors.blue));
-    }
-  }
-
-  Future<void> _togglePauseLive() async {
-    setState(() => isLivePaused = !isLivePaused);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
-  }
-
-  void _showMultiStreamDialog() {
-    showDialog(
-      context: context, 
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900], title: const Text("Multi-Live Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
-            content: SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. Local Cable RTMP", cableRtmpController),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("2. Social Media Restream RTMP", restreamRtmpController),
-                const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("3. Satellite SRT", satelliteSrtController),
-              ])
-            ),
-            actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))) ]
-          );
-        });
-      }
-    );
-  }
-
-  Widget _buildLinkEditor(String label, TextEditingController controller) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
-      Row(children: [
-        Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('restreamRtmp', restreamRtmpController.text); await prefs.setString('satelliteSrt', satelliteSrtController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
-      ])
-    ]);
-  }
-
-  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
-    return FloatingActionButton.extended(
-      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white, size: 20),
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-    );
-  }
-
   @override
   void dispose() {
-    _cameraController?.dispose(); _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
+    _cameraController?.dispose(); 
+    _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
     _leftAdVideoCtrl?.dispose(); _rightAdVideoCtrl?.dispose(); _bottomAdVideoCtrlForAds?.dispose(); _logoVideoCtrl?.dispose();
     super.dispose();
   }
@@ -1715,7 +1449,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)));
 
     Widget positionedLogoWidget = Positioned(
       top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
@@ -1735,7 +1469,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
                 child: ClipRect(
-                  child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(
+                  child: Column(
                     children: [
                       Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),
                       Expanded(
@@ -1765,9 +1499,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
               positionedLogoWidget,
 
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('left'), onLongPress: () => _manageAdsDialog('left'), child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("LEFT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: GestureDetector(onTap: () => _pickAds('right'), onLongPress: () => _manageAdsDialog('right'), child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("RIGHT ADS", style: TextStyle(color: Colors.white, fontSize: 10)))))),
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: GestureDetector(onTap: () => _pickAds('bottom'), onLongPress: () => _manageAdsDialog('bottom'), child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const Center(child: Text("BOTTOM ADS", style: TextStyle(color: Colors.white, fontSize: 11)))))),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
+              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const SizedBox())),
 
               Positioned(
                 bottom: 0, left: 0, right: 0, height: tickerH,
@@ -1784,25 +1518,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                 Positioned(
                   top: 15, left: 15,
                   child: FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),
-                ),
-
-              if (!hideControls)
-                Positioned(
-                  bottom: 75, right: 15,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (isLiveBroadcasting) ...[
-                        _buildFloatingBtn("elec_stop_live", Icons.stop, "Live Stop", Colors.red, _stopLiveStream),
-                        const SizedBox(height: 10),
-                        _buildFloatingBtn("elec_pause_live", isLivePaused ? Icons.play_arrow : Icons.pause, isLivePaused ? "Resume" : "Pause", Colors.orange, _togglePauseLive),
-                      ] else ...[
-                        _buildFloatingBtn("elec_go_live", Icons.sensors, "Go Live", Colors.green, _startLiveAndLock),
-                        const SizedBox(height: 10),
-                        _buildFloatingBtn("elec_multi_live", Icons.settings_input_antenna, "Multi-Live", Colors.redAccent, _showMultiStreamDialog),
-                      ],
-                    ],
-                  ),
                 ),
             ],
           ),
