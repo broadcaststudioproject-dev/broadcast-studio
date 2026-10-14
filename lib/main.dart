@@ -181,6 +181,8 @@ class _StudioScreenState extends State<StudioScreen>
   int adDisplayMode = 0;
   bool isAdCurrentlyShowing = false;
   Timer? _adCycleTimer;
+  Timer? _newsTimer;
+                                                            
 
   int adShapeMode = 0;
 
