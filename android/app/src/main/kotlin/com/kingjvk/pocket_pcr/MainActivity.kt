@@ -14,53 +14,13 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
+        private const val SCREEN_RECORD_REQUEST_CODE = 1000
     }
 
     private lateinit var projectionManager: MediaProjectionManager
     private var pendingResult: MethodChannel.Result? = null
     private var currentRtmpUrl: String? = null
     private var requestInProgress = false
-
-    private val screenCaptureLauncher =
-        registerForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-
-            requestInProgress = false 
-            val callback = pendingResult
-            pendingResult = null
-
-            if (result.resultCode != Activity.RESULT_OK || result.data == null) {
-                callback?.error("PERMISSION_DENIED", "స్క్రీన్ క్యాప్చర్ అనుమతి ఇవ్వలేదు.", null)
-                return@registerForActivityResult
-            }
-
-            val rtmpUrl = currentRtmpUrl
-
-            if (rtmpUrl.isNullOrBlank()) {
-                callback?.error("INVALID_URL", "RTMP URL నమోదు చేయలేదు.", null)
-                return@registerForActivityResult
-            }
-
-            try {
-                val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                    putExtra("resultCode", result.resultCode)
-                    putExtra("data", result.data)
-                    putExtra("rtmpUrl", rtmpUrl)
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(serviceIntent)
-                } else {
-                    startService(serviceIntent)
-                }
-
-                callback?.success(true)
-
-            } catch (e: Exception) {
-                callback?.error("SERVICE_START_ERROR", e.message ?: "లైవ్ సర్వీస్ ప్రారంభం కాలేదు.", null)
-            }
-        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,7 +46,7 @@ class MainActivity : FlutterActivity() {
                     val rtmpUrl = listOf(cableRtmp, restreamRtmp, satelliteSrt).firstOrNull { it.isNotEmpty() }
 
                     if (rtmpUrl.isNullOrBlank()) {
-                        result.error("INVALID_URL", "లైవ్ లింక్ ఏదీ ఇవ్వలేదు.", null)
+                        result.error("INVALID_URL", "RTMP లింక్ ఏదీ ఇవ్వలేదు.", null)
                         return@setMethodCallHandler
                     }
 
@@ -96,7 +56,8 @@ class MainActivity : FlutterActivity() {
 
                     try {
                         val captureIntent = projectionManager.createScreenCaptureIntent()
-                        screenCaptureLauncher.launch(captureIntent)
+                        // ఇక్కడే సిస్టమ్ స్క్రీన్ రికార్డింగ్ పర్మిషన్ అడుగుతుంది
+                        startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
                     } catch (e: Exception) {
                         requestInProgress = false
                         pendingResult = null
@@ -116,6 +77,41 @@ class MainActivity : FlutterActivity() {
                 "startUsbCamera" -> result.error("NOT_IMPLEMENTED", "USB కెమెరా అమలు చేయలేదు.", null)
                 "stopUsbCamera" -> result.success(true)
                 else -> result.notImplemented()
+            }
+        }
+    }
+
+    // పర్మిషన్ ఇచ్చిన వెంటనే లైవ్ స్టార్ట్ చేసే కోడ్ ఇది
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
+            val callback = pendingResult
+            pendingResult = null
+            requestInProgress = false
+
+            if (resultCode != Activity.RESULT_OK || data == null) {
+                callback?.error("PERMISSION_DENIED", "స్క్రీన్ క్యాప్చర్ అనుమతి ఇవ్వలేదు.", null)
+                return
+            }
+
+            try {
+                val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
+                    putExtra("resultCode", resultCode)
+                    putExtra("data", data)
+                    putExtra("rtmpUrl", currentRtmpUrl)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
+                } else {
+                    startService(serviceIntent)
+                }
+
+                callback?.success(true)
+
+            } catch (e: Exception) {
+                callback?.error("SERVICE_START_ERROR", e.message ?: "లైవ్ సర్వీస్ ప్రారంభం కాలేదు.", null)
             }
         }
     }
