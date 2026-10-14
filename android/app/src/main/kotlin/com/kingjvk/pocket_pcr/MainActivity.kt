@@ -11,115 +11,73 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
+    private val SCREEN_RECORD_REQUEST_CODE = 1000
 
-    companion object {
-        private const val CHANNEL = "com.kingjvk.pocket_pcr/stream"
-        private const val SCREEN_RECORD_REQUEST_CODE = 1000
-    }
-
-    private lateinit var projectionManager: MediaProjectionManager
     private var pendingResult: MethodChannel.Result? = null
     private var currentRtmpUrl: String? = null
-    private var requestInProgress = false
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-
+        
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "startScreenCaptureStreaming" -> {
-                    if (requestInProgress || pendingResult != null) {
-                        result.error("REQUEST_IN_PROGRESS", "స్క్రీన్ క్యాప్చర్ అభ్యర్థన ఇప్పటికే కొనసాగుతోంది.", null)
+                    val cable = call.argument<String>("cableRtmp")?.trim() ?: ""
+                    val restream = call.argument<String>("restreamRtmp")?.trim() ?: ""
+                    val srt = call.argument<String>("satelliteSrt")?.trim() ?: ""
+                    
+                    val url = listOf(cable, restream, srt).firstOrNull { it.isNotEmpty() }
+                    
+                    if (url.isNullOrEmpty()) {
+                        result.error("NO_URL", "దయచేసి RTMP లింక్ ఇవ్వండి", null)
                         return@setMethodCallHandler
                     }
 
-                    // ఏ లింక్ ఇచ్చినా తీసుకునేలా మార్పు (Cable లేదా Restream లేదా SRT)
-                    val cableRtmp = call.argument<String>("cableRtmp")?.trim() ?: ""
-                    val restreamRtmp = call.argument<String>("restreamRtmp")?.trim() ?: ""
-                    val satelliteSrt = call.argument<String>("satelliteSrt")?.trim() ?: ""
-
-                    val rtmpUrl = listOf(cableRtmp, restreamRtmp, satelliteSrt).firstOrNull { it.isNotEmpty() }
-
-                    if (rtmpUrl.isNullOrBlank()) {
-                        result.error("INVALID_URL", "RTMP లింక్ ఏదీ ఇవ్వలేదు.", null)
-                        return@setMethodCallHandler
-                    }
-
-                    currentRtmpUrl = rtmpUrl
+                    currentRtmpUrl = url
                     pendingResult = result
-                    requestInProgress = true
 
                     try {
-                        val captureIntent = projectionManager.createScreenCaptureIntent()
-                        // ఇక్కడే సిస్టమ్ స్క్రీన్ రికార్డింగ్ పర్మిషన్ అడుగుతుంది
-                        startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
+                        val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                        startActivityForResult(projectionManager.createScreenCaptureIntent(), SCREEN_RECORD_REQUEST_CODE)
                     } catch (e: Exception) {
-                        requestInProgress = false
+                        pendingResult?.error("PROJECTION_FAIL", e.message, null)
                         pendingResult = null
-                        result.error("PROJECTION_ERROR", e.message ?: "స్క్రీన్ అనుమతి అభ్యర్థన విఫలమైంది.", null)
                     }
                 }
-
                 "stopScreenCaptureStreaming" -> {
-                    try {
-                        stopService(Intent(this, ScreenStreamService::class.java))
-                        result.success(true)
-                    } catch (e: Exception) {
-                        result.error("STOP_ERROR", e.message ?: "లైవ్ ఆపడం విఫలమైంది.", null)
-                    }
+                    stopService(Intent(this, ScreenStreamService::class.java))
+                    result.success(true)
                 }
-
-                "startUsbCamera" -> result.error("NOT_IMPLEMENTED", "USB కెమెరా అమలు చేయలేదు.", null)
+                "startUsbCamera" -> result.error("NOT_IMPLEMENTED", "USB Not Implemented", null)
                 "stopUsbCamera" -> result.success(true)
                 else -> result.notImplemented()
             }
         }
     }
 
-    // పర్మిషన్ ఇచ్చిన వెంటనే లైవ్ స్టార్ట్ చేసే కోడ్ ఇది
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
-            val callback = pendingResult
-            pendingResult = null
-            requestInProgress = false
-
-            if (resultCode != Activity.RESULT_OK || data == null) {
-                callback?.error("PERMISSION_DENIED", "స్క్రీన్ క్యాప్చర్ అనుమతి ఇవ్వలేదు.", null)
-                return
-            }
-
-            try {
+            if (resultCode == Activity.RESULT_OK && data != null) {
                 val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
                     putExtra("resultCode", resultCode)
                     putExtra("data", data)
                     putExtra("rtmpUrl", currentRtmpUrl)
                 }
-
+                
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(serviceIntent)
                 } else {
                     startService(serviceIntent)
                 }
-
-                callback?.success(true)
-
-            } catch (e: Exception) {
-                callback?.error("SERVICE_START_ERROR", e.message ?: "లైవ్ సర్వీస్ ప్రారంభం కాలేదు.", null)
+                
+                pendingResult?.success(true)
+            } else {
+                pendingResult?.error("DENIED", "స్క్రీన్ రికార్డింగ్ పర్మిషన్ ఇవ్వలేదు", null)
             }
+            pendingResult = null
         }
-    }
-
-    override fun onDestroy() {
-        pendingResult?.error("ACTIVITY_DESTROYED", "యాప్ Activity మూసివేయబడింది.", null)
-        pendingResult = null
-        requestInProgress = false
-        super.onDestroy()
     }
 }
