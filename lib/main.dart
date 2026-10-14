@@ -234,13 +234,6 @@ class _StudioScreenState extends State<StudioScreen>
       youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
       networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
 
-      watermarkCtrl.text = watermarkText;
-      locCtrl.text = locationText;
-      nameCtrl.text = reporterName;
-      roleCtrl.text = reporterRole;
-      mainHeadlineCtrl.text = splitScreenMainHeadline;
-      subHeadlineCtrl.text = splitScreenSubHeadline;
-
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
 
@@ -689,26 +682,46 @@ class _StudioScreenState extends State<StudioScreen>
     if (_bottomAdVideoController != null) { _bottomAdVideoController!.value.isPlaying ? _bottomAdVideoController!.pause() : _bottomAdVideoController!.play(); setState(() {}); }
   }
 
-  Widget _buildFloatingBtn(String heroTag, IconData icon, String label, Color color, VoidCallback onPressed) {
-    return FloatingActionButton.extended(
-      heroTag: heroTag, backgroundColor: color, onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white, size: 20),
-      label: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-    );
+  Future<void> _startLiveAndLock() async {
+    String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
+
+    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
+      _showMultiStreamDialog();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కేబుల్ లేదా రిస్ట్రీమ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+      return;
+    }
+    var micStatus = await Permission.microphone.status;
+    if (!micStatus.isGranted) await Permission.microphone.request();
+    
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl);
+    if (success) {
+      setState(() {
+        isLiveBroadcasting = true;
+        isLivePaused = false;
+        hideControls = true; 
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! (Controls Hidden)"), backgroundColor: Colors.green));
+    }
   }
 
-  Widget _buildMenuButton(IconData icon, String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(radius: 28, backgroundColor: Colors.grey.shade800, child: Icon(icon, color: color, size: 28)),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
-        ]
-      )
-    );
+  Future<void> _stopLiveStream() async {
+    bool success = await StreamServiceManager.stopLiveStream();
+    if (success) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      setState(() {
+        isLiveBroadcasting = false;
+        isLivePaused = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ ప్రసారం నిలిపివేయబడింది."), backgroundColor: Colors.blue));
+    }
+  }
+
+  Future<void> _togglePauseLive() async {
+    setState(() => isLivePaused = !isLivePaused);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
   }
 
   void _showMultiStreamDialog() {
@@ -787,6 +800,21 @@ class _StudioScreenState extends State<StudioScreen>
       if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } 
       else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); }
     });
+  }
+
+  // --- MENU BUTTON WIDGET (Matching the Image) ---
+  Widget _buildMenuButton(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(radius: 32, backgroundColor: Colors.grey.shade800, child: Icon(icon, color: color, size: 30)),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))
+        ]
+      )
+    );
   }
 
   @override
@@ -909,7 +937,7 @@ class _StudioScreenState extends State<StudioScreen>
                     color: Colors.black87,
                     child: Center(
                       child: Wrap(
-                        alignment: WrapAlignment.center, spacing: 30, runSpacing: 35,
+                        alignment: WrapAlignment.center, spacing: 30, runSpacing: 30,
                         children: [
                           _buildMenuButton(Icons.live_tv, "Live Links", Colors.redAccent, _showMultiStreamDialog),
                           _buildMenuButton(Icons.dashboard_customize, "PCR Board", Colors.yellowAccent, () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }),
