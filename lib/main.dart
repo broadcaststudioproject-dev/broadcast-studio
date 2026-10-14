@@ -886,7 +886,7 @@ class _StudioScreenState extends State<StudioScreen>
         ytExplode.close();
       } catch (e) {
         setState(() { isYoutubeLoading = false; isNewsBulletinMode = false; hideControls = false; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు: $e"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ బ్లాక్ చేయబడింది! దయచేసి గ్యాలరీ వీడియో వాడండి."), backgroundColor: Colors.red));
         return;
       }
       setState(() => isYoutubeLoading = false);
@@ -895,11 +895,16 @@ class _StudioScreenState extends State<StudioScreen>
     _bulletinVideoController?.stopRendererScanning(); 
     _bulletinVideoController?.dispose();
     
+    // ఇక్కడే మనం HwAcc.auto మరియు Network Caching జోడించాము
     _bulletinVideoController = VlcPlayerController.network(
       finalPlayUrl,
-      hwAcc: HwAcc.full,
+      hwAcc: HwAcc.auto,
       autoPlay: true,
-      options: VlcPlayerOptions(),
+      options: VlcPlayerOptions(
+        advanced: VlcAdvancedOptions([
+          VlcAdvancedOptions.networkCaching(2000), 
+        ]),
+      ),
     );
     
     setState(() { 
@@ -1076,6 +1081,7 @@ class _StudioScreenState extends State<StudioScreen>
                           _buildMenuButton(Icons.bar_chart, "Election Results", Colors.blueAccent, () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }),
                           _buildMenuButton(Icons.flip_camera_android, "Phone Cam", Colors.white, _switchCamera),
                           _buildMenuButton(isCameraVisible ? Icons.videocam_off : Icons.videocam, isCameraVisible ? "Cam OFF" : "Cam ON", Colors.greenAccent, _toggleCameraVisibility),
+                          _buildMenuButton(Icons.video_call, "Ext. Cams", Colors.cyanAccent, _showExternalCamsDialog),
                           _buildMenuButton(Icons.grid_on, "Dual Screen", Colors.orangeAccent, _toggleDualScreenAndPickMedia),
                           _buildMenuButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), Colors.redAccent, _toggleAdMode),
                           _buildMenuButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : (adShapeMode == 1 ? "Shape: 2-Sides" : "Shape: U-Band"), Colors.orangeAccent, _toggleAdShapeMode),
@@ -1120,7 +1126,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN
+// --- 2. MASTER PCR BOARD SCREEN 
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -1672,6 +1678,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
   }
 
+  // --- UPDATED DIALOG FOR RTMP/RTMPS/SRT/HLS ---
   void _showMultiStreamDialog() {
     showDialog(
       context: context, 
