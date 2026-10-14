@@ -45,7 +45,6 @@ class StreamServiceManager {
   
   static Future<bool> startLiveStream(String cableRtmp, String restreamRtmp, String satelliteSrt) async {
     try {
-      // RTMP, RTMPS, SRT, HLS అన్నీ నేరుగా వెళ్లేలా మార్పు చేయబడింది
       await platform.invokeMethod('startScreenCaptureStreaming', {
         'cableRtmp': cableRtmp.trim(),
         'restreamRtmp': restreamRtmp.trim(),
@@ -101,7 +100,6 @@ class _StudioScreenState extends State<StudioScreen>
   int currentDualMediaIndex = 0;
   VideoPlayerController? _bottomAdVideoController;
 
-  // Gallery Playlist Variables
   List<String> localVideoPlaylist = [];
   int currentLocalVideoIndex = 0;
   bool isLocalPlaylistPlaying = false;
@@ -140,9 +138,6 @@ class _StudioScreenState extends State<StudioScreen>
   String reporterRole = "SPECIAL CORRESPONDENT";
   String breakingNewsText = "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
 
-  String splitScreenMainHeadline = "రైతు పొలంలో కలకలం.. గట్లపై భారీ పులి అడుగుల గుర్తులు!";
-  String splitScreenSubHeadline = "వార్తా అప్డేట్";
-
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController restreamRtmpController = TextEditingController();
   TextEditingController satelliteSrtController = TextEditingController();
@@ -152,10 +147,14 @@ class _StudioScreenState extends State<StudioScreen>
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
-    TextEditingController ipCamUrlCtrl = TextEditingController(text: "http://192.168.1.100:8080/video");
-  TextEditingController droneCamUrlCtrl = TextEditingController(text: "rtsp://192.168.1.1:554/live"
+
+  TextEditingController ipCamUrlCtrl = TextEditingController();
+  TextEditingController droneCamUrlCtrl = TextEditingController();
 
   Timer? _newsTimer;
+  Timer? _adCycleTimer;
+  Timer? _tickerColorTimer;
+  
   bool _isCameraInitialized = false;
 
   List<String> leftAdPaths = [];
@@ -180,19 +179,16 @@ class _StudioScreenState extends State<StudioScreen>
 
   int adDisplayMode = 0;
   bool isAdCurrentlyShowing = false;
-  Timer? _adCycleTimer;
-  Timer? _newsTimer;
-                                                            
-
   int adShapeMode = 0;
-
   int _tickerBgColorIndex = 0;
-  Timer? _tickerColorTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    ipCamUrlCtrl.text = "http://192.168.1.100:8080/video";
+    droneCamUrlCtrl.text = "rtsp://192.168.1.1:554/live";
 
     watermarkCtrl.text = watermarkText;
     locCtrl.text = locationText;
@@ -334,6 +330,8 @@ class _StudioScreenState extends State<StudioScreen>
     _rightAdVideoCtrl?.dispose();
     _bottomAdVideoCtrlForAds?.dispose();
     _logoVideoCtrl?.dispose();
+    _ipCamController?.dispose();
+    _droneCamController?.dispose();
     
     super.dispose();
   }
@@ -713,9 +711,6 @@ class _StudioScreenState extends State<StudioScreen>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
   }
 
-  // ===============================================
-  // GALLERY PLAYLIST (HD, 4K, 8K) LOGIC
-  // ===============================================
   Future<void> _pickLocalGalleryVideos(StateSetter setDialogState) async {
     try {
       final List<XFile> medias = await _picker.pickMultipleMedia();
@@ -737,7 +732,7 @@ class _StudioScreenState extends State<StudioScreen>
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ముందుగా గ్యాలరీ నుండి వీడియోలు ఎంచుకోండి."), backgroundColor: Colors.red));
       return;
     }
-    Navigator.pop(context); // Close the dialog
+    Navigator.pop(context); 
     _startVlcPlayback(File(localVideoPlaylist[currentLocalVideoIndex]));
   }
 
@@ -786,7 +781,6 @@ class _StudioScreenState extends State<StudioScreen>
     }
   }
 
-  // --- UPDATED DIALOG FOR RTMP/RTMPS/SRT/HLS ---
   void _showMultiStreamDialog() {
     setState(() => isMenuOpen = false);
     showDialog(
@@ -1126,7 +1120,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN 
+// --- 2. MASTER PCR BOARD SCREEN
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -1330,7 +1324,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
   }
 
-  // --- UPDATED DIALOG FOR RTMP/RTMPS/SRT/HLS ---
   void _showMultiStreamDialog() {
     showDialog(
       context: context, 
@@ -1679,7 +1672,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isLivePaused ? "లైవ్ పాజ్ చేయబడింది." : "లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.orange));
   }
 
-  // --- UPDATED DIALOG FOR RTMP/RTMPS/SRT/HLS ---
   void _showMultiStreamDialog() {
     showDialog(
       context: context, 
