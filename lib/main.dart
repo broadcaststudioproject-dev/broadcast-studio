@@ -152,6 +152,8 @@ class _StudioScreenState extends State<StudioScreen>
   TextEditingController locCtrl = TextEditingController();
   TextEditingController nameCtrl = TextEditingController();
   TextEditingController roleCtrl = TextEditingController();
+    TextEditingController ipCamUrlCtrl = TextEditingController(text: "http://192.168.1.100:8080/video");
+  TextEditingController droneCamUrlCtrl = TextEditingController(text: "rtsp://192.168.1.1:554/live"
 
   Timer? _newsTimer;
   bool _isCameraInitialized = false;
