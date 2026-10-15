@@ -37,6 +37,9 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
+// ============================================================================
+// --- NATIVE STREAMING SERVICE MANAGER
+// ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
@@ -53,6 +56,9 @@ class StreamServiceManager {
   }
 }
 
+// ============================================================================
+// --- 1. MAIN STUDIO SCREEN
+// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -112,6 +118,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String splitScreenMainHeadline = "తాజా వార్తలు";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
+  // Live Links Controllers (Cable, Satellite Uplink/Downlink)
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController satelliteUplinkController = TextEditingController();
   TextEditingController satelliteDownlinkController = TextEditingController();
@@ -242,6 +249,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (rightAdPaths.isNotEmpty) _initAdVideo('right');
       if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
     });
+  }
+
+  void _setLogo(String path) {
+    channelLogoPath = path;
+    if (path.toLowerCase().endsWith('.mp4')) {
+      _logoVideoCtrl?.dispose();
+      _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { 
+        if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); } 
+      });
+    } else { 
+      _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; 
+    }
   }
 
   void _initAdVideo(String pos) {
@@ -524,6 +543,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // --- RESTORED: Oct 3rd Working yt.VideoId.parseVideoId and Regex Method ---
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim(); 
@@ -839,6 +859,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ElevatedButton.icon(
                     onPressed: () async {
                       try {
+                        // Supports MP4, GIF, and JPEG
                         final XFile? media = await _picker.pickMedia();
                         if (media != null) { 
                           setState(() { channelLogoPath = media.path; }); 
@@ -1345,7 +1366,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         Expanded(
                           child: Container(
                             color: const Color(0xFF1A1A2E), 
-                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
+                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.grey, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
                           )
                         )
                       ]
@@ -1436,7 +1457,7 @@ class MasterPCRBoard extends StatefulWidget {
 
 class _MasterPCRBoardState extends State<MasterPCRBoard> {
   final Map<String, VlcPlayerController> _rtspControllers = {};
-  CameraController? _cameraController;
+  CameraController? _phoneCamCtrl;
   List<CameraDescription> _cameras = [];
 
   bool hideControls = false; 
@@ -1502,8 +1523,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _cameras = await availableCameras(); 
       if (_cameras.isNotEmpty) {
         CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => _cameras.first);
-        _cameraController = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
-        await _cameraController!.initialize(); 
+        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
+        await _phoneCamCtrl!.initialize(); 
         if (mounted) setState(() {}); 
       }
     } catch (e) {}
@@ -1670,7 +1691,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
   @override
   void dispose() {
-    _cameraController?.dispose();
+    _phoneCamCtrl?.dispose();
     for (var controller in _rtspControllers.values) { controller.dispose(); } 
     _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
     _leftAdVideoCtrl?.dispose(); _rightAdVideoCtrl?.dispose(); _bottomAdVideoCtrlForAds?.dispose(); _logoVideoCtrl?.dispose();
@@ -1723,7 +1744,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                 child: ClipRect(
                   child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(
                     children: [
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "150", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "103", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "5", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "2", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "2", Colors.grey.shade700), ], )), ])),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),
                       Expanded(
                         child: Row(
                           children: [
