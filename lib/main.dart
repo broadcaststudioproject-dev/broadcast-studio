@@ -118,7 +118,9 @@ class _StudioScreenState extends State<StudioScreen>
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  bool isCameraVisible = false;
+  
+  // FIX: Camera is now VISIBLE by default when app opens!
+  bool isCameraVisible = true; 
   bool isYoutubeLoading = false;
   
   bool isNoiseCancellationEnabled = true;
@@ -209,7 +211,7 @@ class _StudioScreenState extends State<StudioScreen>
     });
 
     _loadSavedData();
-    _requestPermissions();
+    _requestPermissions(); // Requests permissions and then starts camera
     _fetchBreakingNews();
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { _fetchBreakingNews(); });
@@ -356,8 +358,10 @@ class _StudioScreenState extends State<StudioScreen>
     } catch (e) {}
   }
 
+  // FIX: Camera is initialized automatically after permissions are granted
   Future<void> _requestPermissions() async {
     await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos, Permission.videos].request();
+    await _initCamera();
   }
 
   Future<void> _initCamera() async {
@@ -897,7 +901,7 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  // --- NEW REGEX YOUTUBE METHOD WITH TIMEOUT ---
+  // --- NEW ADVANCED REGEX YOUTUBE PARSER WITH FALLBACK ---
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim(); 
@@ -906,16 +910,24 @@ class _StudioScreenState extends State<StudioScreen>
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ప్రభుత్వ / పబ్లిక్ యూట్యూబ్ లైవ్ లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
     
     try {
-      RegExp regExp = RegExp(r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})');
-      Match? match = regExp.firstMatch(cleanUrl);
-      String? extractedId = match?.group(1);
+      var ytExplode = yt.YoutubeExplode(); 
+      yt.VideoId? videoId;
 
-      if (extractedId == null || extractedId.isEmpty) {
-        throw Exception("లింక్‌లో సరైన యూట్యూబ్ ID లేదు.");
+      try {
+        videoId = yt.VideoId(cleanUrl);
+      } catch(e) {
+        // Fallback to advanced Regex if standard parser fails
+        RegExp regExp = RegExp(r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})');
+        Match? match = regExp.firstMatch(cleanUrl);
+        String? extractedId = match?.group(1);
+        if (extractedId != null) {
+          videoId = yt.VideoId(extractedId);
+        }
       }
 
-      var ytExplode = yt.YoutubeExplode(); 
-      var videoId = yt.VideoId(extractedId);
+      if (videoId == null) {
+        throw Exception("లింక్‌లో సరైన యూట్యూబ్ ID లేదు.");
+      }
       
       var video = await ytExplode.videos.get(videoId).timeout(const Duration(seconds: 15));
       String finalPlayUrl = "";
@@ -939,7 +951,7 @@ class _StudioScreenState extends State<StudioScreen>
       }
     } catch (e) {
       setState(() { isYoutubeLoading = false; isNewsBulletinMode = false; hideControls = false; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు (Error: $e)"), backgroundColor: Colors.red, duration: const Duration(seconds: 6)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు. (కారణం: YouTube Security). MP4 లేదా గ్యాలరీ వీడియో వాడండి!"), backgroundColor: Colors.red, duration: const Duration(seconds: 5)));
     }
   }
 
@@ -1820,7 +1832,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)));
 
     Widget positionedLogoWidget = Positioned(
       top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
