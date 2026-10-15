@@ -41,7 +41,7 @@ class PocketPCRApp extends StatelessWidget {
 // --- NATIVE STREAMING SERVICE MANAGER
 // ============================================================================
 class StreamServiceManager {
-  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String cableRtmp, String restreamRtmp, String satelliteSrt, bool noiseCancel) async {
     try {
@@ -118,8 +118,6 @@ class _StudioScreenState extends State<StudioScreen>
 
   bool isNewsBulletinMode = false;
   bool isBulletinMuted = false;
-  
-  // FIX: Camera is now VISIBLE by default when app opens!
   bool isCameraVisible = true; 
   bool isYoutubeLoading = false;
   
@@ -211,7 +209,7 @@ class _StudioScreenState extends State<StudioScreen>
     });
 
     _loadSavedData();
-    _requestPermissions(); // Requests permissions and then starts camera
+    _requestPermissionsAndInitCamera();
     _fetchBreakingNews();
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { _fetchBreakingNews(); });
@@ -358,13 +356,16 @@ class _StudioScreenState extends State<StudioScreen>
     } catch (e) {}
   }
 
-  // FIX: Camera is initialized automatically after permissions are granted
-  Future<void> _requestPermissions() async {
+  Future<void> _requestPermissionsAndInitCamera() async {
     await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos, Permission.videos].request();
+    setState(() { isCameraVisible = true; });
     await _initCamera();
   }
 
   Future<void> _initCamera() async {
+    if (cameras.isEmpty) {
+      try { cameras = await availableCameras(); } catch (e) { debugPrint("Cam fetch error: $e"); }
+    }
     if (cameras.isEmpty) return;
     try {
       if (controller != null) await controller!.dispose();
@@ -901,57 +902,63 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  // --- NEW ADVANCED REGEX YOUTUBE PARSER WITH FALLBACK ---
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim(); 
     
     setState(() => isYoutubeLoading = true);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ప్రభుత్వ / పబ్లిక్ యూట్యూబ్ లైవ్ లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ప్రభుత్వ / పబ్లిక్ యూట్యూబ్ లైవ్ లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
     
     try {
-      var ytExplode = yt.YoutubeExplode(); 
-      yt.VideoId? videoId;
+      String finalPlayUrl = "";
 
       try {
-        videoId = yt.VideoId(cleanUrl);
-      } catch(e) {
-        // Fallback to advanced Regex if standard parser fails
+        final response = await http.get(Uri.parse(cleanUrl), headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }).timeout(const Duration(seconds: 10));
+        
+        if (response.statusCode == 200) {
+          var hlsMatch = RegExp(r'"hlsManifestUrl":"([^"]+)"').firstMatch(response.body);
+          if (hlsMatch != null) {
+            finalPlayUrl = hlsMatch.group(1)!.replaceAll('\\/', '/');
+          }
+        }
+      } catch (e) {
+        debugPrint("HTML Extractor Failed: $e");
+      }
+
+      if (finalPlayUrl.isEmpty) {
         RegExp regExp = RegExp(r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})');
         Match? match = regExp.firstMatch(cleanUrl);
         String? extractedId = match?.group(1);
-        if (extractedId != null) {
-          videoId = yt.VideoId(extractedId);
+
+        if (extractedId != null && extractedId.isNotEmpty) {
+          var ytExplode = yt.YoutubeExplode(); 
+          var videoId = yt.VideoId(extractedId);
+          var video = await ytExplode.videos.get(videoId).timeout(const Duration(seconds: 10));
+          
+          if (video.isLive) { 
+            finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId).timeout(const Duration(seconds: 10)); 
+          } else { 
+            var manifest = await ytExplode.videos.streamsClient.getManifest(videoId).timeout(const Duration(seconds: 10)); 
+            if (manifest.muxed.isNotEmpty) {
+              finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
+            } else {
+              finalPlayUrl = manifest.audioOnly.first.url.toString(); 
+            }
+          }
+          ytExplode.close();
         }
       }
 
-      if (videoId == null) {
-        throw Exception("లింక్‌లో సరైన యూట్యూబ్ ID లేదు.");
-      }
-      
-      var video = await ytExplode.videos.get(videoId).timeout(const Duration(seconds: 15));
-      String finalPlayUrl = "";
-      
-      if (video.isLive) { 
-        finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId).timeout(const Duration(seconds: 15)); 
-      } else { 
-        var manifest = await ytExplode.videos.streamsClient.getManifest(videoId).timeout(const Duration(seconds: 15)); 
-        if (manifest.muxed.isNotEmpty) {
-          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
-        } else {
-          finalPlayUrl = manifest.audioOnly.first.url.toString(); 
-        }
-      }
-      ytExplode.close();
-      
       if (finalPlayUrl.isNotEmpty) {
          _playInVlc(finalPlayUrl);
       } else {
-         throw Exception("URL దొరకలేదు");
+         throw Exception("Live Stream URL దొరకలేదు");
       }
     } catch (e) {
       setState(() { isYoutubeLoading = false; isNewsBulletinMode = false; hideControls = false; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు. (కారణం: YouTube Security). MP4 లేదా గ్యాలరీ వీడియో వాడండి!"), backgroundColor: Colors.red, duration: const Duration(seconds: 5)));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ఈ యూట్యూబ్ లింక్ ప్లే కావడం లేదు. MP4 / గ్యాలరీ వీడియో వాడండి."), backgroundColor: Colors.red, duration: Duration(seconds: 6)));
     }
   }
 
@@ -960,7 +967,6 @@ class _StudioScreenState extends State<StudioScreen>
     _playInVlc(url);
   }
 
-  // --- COMMON VLC PLAYER LOGIC WITH HTTP RECONNECT ---
   void _playInVlc(String playUrl) {
     _bulletinVideoController?.stopRendererScanning(); 
     _bulletinVideoController?.dispose();
@@ -1201,7 +1207,7 @@ class _StudioScreenState extends State<StudioScreen>
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN 
+// --- 2. MASTER PCR BOARD SCREEN
 // ============================================================================
 
 class MasterPCRBoard extends StatefulWidget {
@@ -1832,7 +1838,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)));
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
 
     Widget positionedLogoWidget = Positioned(
       top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
