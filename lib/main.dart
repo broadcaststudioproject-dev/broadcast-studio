@@ -897,44 +897,49 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
-  // --- NEW ROBUST YOUTUBE METHOD WITH 15 SEC TIMEOUT ---
+  // --- NEW REGEX YOUTUBE METHOD WITH TIMEOUT ---
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
+    String cleanUrl = url.trim(); 
+    
     setState(() => isYoutubeLoading = true);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ప్రభుత్వ / పబ్లిక్ యూట్యూబ్ లైవ్ లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
     
     try {
+      RegExp regExp = RegExp(r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})');
+      Match? match = regExp.firstMatch(cleanUrl);
+      String? extractedId = match?.group(1);
+
+      if (extractedId == null || extractedId.isEmpty) {
+        throw Exception("లింక్‌లో సరైన యూట్యూబ్ ID లేదు.");
+      }
+
       var ytExplode = yt.YoutubeExplode(); 
-      String? videoIdStr = yt.VideoId.parseVideoId(url);
-      if (videoIdStr != null) {
-        var vId = yt.VideoId(videoIdStr);
-        // పెంచిన 15 సెకన్ల టైమౌట్
-        var video = await ytExplode.videos.get(vId).timeout(const Duration(seconds: 15));
-        String finalPlayUrl = "";
-        
-        if (video.isLive) { 
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId).timeout(const Duration(seconds: 15)); 
-        } else { 
-          var manifest = await ytExplode.videos.streamsClient.getManifest(vId).timeout(const Duration(seconds: 15)); 
-          if (manifest.muxed.isNotEmpty) {
-            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
-          } else {
-            finalPlayUrl = manifest.audioOnly.first.url.toString(); 
-          }
-        }
-        ytExplode.close();
-        
-        if (finalPlayUrl.isNotEmpty) {
-           _playInVlc(finalPlayUrl);
+      var videoId = yt.VideoId(extractedId);
+      
+      var video = await ytExplode.videos.get(videoId).timeout(const Duration(seconds: 15));
+      String finalPlayUrl = "";
+      
+      if (video.isLive) { 
+        finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId).timeout(const Duration(seconds: 15)); 
+      } else { 
+        var manifest = await ytExplode.videos.streamsClient.getManifest(videoId).timeout(const Duration(seconds: 15)); 
+        if (manifest.muxed.isNotEmpty) {
+          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
         } else {
-           throw Exception("URL దొరకలేదు");
+          finalPlayUrl = manifest.audioOnly.first.url.toString(); 
         }
+      }
+      ytExplode.close();
+      
+      if (finalPlayUrl.isNotEmpty) {
+         _playInVlc(finalPlayUrl);
       } else {
-         throw Exception("తప్పు యూట్యూబ్ లింక్");
+         throw Exception("URL దొరకలేదు");
       }
     } catch (e) {
       setState(() { isYoutubeLoading = false; isNewsBulletinMode = false; hideControls = false; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ లోడ్ అవ్వలేదు. దయచేసి 'flutter pub upgrade' కమాండ్ వాడండి. (Error: $e)"), backgroundColor: Colors.red, duration: const Duration(seconds: 6)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే అవ్వలేదు (Error: $e)"), backgroundColor: Colors.red, duration: const Duration(seconds: 6)));
     }
   }
 
@@ -948,13 +953,12 @@ class _StudioScreenState extends State<StudioScreen>
     _bulletinVideoController?.stopRendererScanning(); 
     _bulletinVideoController?.dispose();
     
-    // యూట్యూబ్ లైవ్ కనెక్షన్ కట్ కాకుండా ఉండటానికి సెట్టింగ్స్
     final options = VlcPlayerOptions(
       advanced: VlcAdvancedOptions([
-        VlcAdvancedOptions.networkCaching(3000), // 3 సెకన్ల బఫర్
+        VlcAdvancedOptions.networkCaching(3000), 
       ]),
       http: VlcHttpOptions([
-        VlcHttpOptions.httpReconnect(true), // ఆటో రీకనెక్ట్
+        VlcHttpOptions.httpReconnect(true), 
       ]),
     );
     
@@ -1816,7 +1820,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty
         ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)));
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red.shade900, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.white24)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));
 
     Widget positionedLogoWidget = Positioned(
       top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,
