@@ -37,39 +37,22 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// --- NATIVE STREAMING SERVICE MANAGER
-// ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String rtmpUrl, {bool noiseCancel = true}) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      await platform.invokeMethod('startScreenStream', {
-        'rtmpUrl': safeUrl,
-        'recordAudio': true,
-        'noiseCancel': noiseCancel
-      }); 
+      await platform.invokeMethod('startScreenStream', { 'rtmpUrl': safeUrl, 'recordAudio': true, 'noiseCancel': noiseCancel }); 
       return true; 
-    } catch (e) {
-      return false;
-    }
+    } catch (e) { return false; }
   }
   
   static Future<bool> stopLiveStream() async {
-    try {
-      await platform.invokeMethod('stopScreenStream');
-      return true;
-    } catch (e) {
-      return false;
-    }
+    try { await platform.invokeMethod('stopScreenStream'); return true; } catch (e) { return false; }
   }
 }
 
-// ============================================================================
-// --- 1. MAIN STUDIO SCREEN
-// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -119,7 +102,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String channelLogoPath = "";
   double logoWidth = 70.0;
   double logoHeight = 70.0;
-  VideoPlayerController? _logoVideoCtrl; // Added missing controller
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -158,6 +140,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _rightAdVideoCtrl;
   VideoPlayerController? _bottomAdVideoCtrlForAds; 
+  VideoPlayerController? _logoVideoCtrl;
 
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
@@ -238,7 +221,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _loadSavedData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
     setState(() {
       watermarkText = prefs.getString('watermarkText') ?? "SS YATRA TV";
       locationText = prefs.getString('locationText') ?? "LIVE KOTHAKOTA";
@@ -642,7 +624,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       isDualScreenMode = false; 
       hideControls = true; 
       isYoutubeLoading = false;
-      isCameraVisible = false; 
+      isCameraVisible = false; // వీడియో ప్లే అయ్యేటప్పుడు కెమెరా ఆటోమేటిక్‌గా హైడ్ అవుతుంది
     }); 
   }
 
@@ -667,7 +649,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               isNetworkVideoMode = false;
               isDualScreenMode = false; 
               hideControls = true; 
-              isCameraVisible = false; 
+              isCameraVisible = false; // గ్యాలరీ వీడియో ప్లే అయ్యేటప్పుడు కెమెరా హైడ్ అవుతుంది
             });
             _bulletinVideoController?.play();
             _bulletinVideoController?.addListener(_videoListener);
@@ -687,9 +669,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       vController.removeListener(_videoListener);
       setState(() { 
         isNewsBulletinMode = false; 
-        isCameraVisible = true; 
+        isCameraVisible = true; // వీడియో పూర్తయిన తర్వాత మళ్ళీ కెమెరా ఆన్ అవుతుంది
       });
     }
+  }
+
+  void _toggleMute() {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      isBulletinMuted = !isBulletinMuted;
+      if (isNewsBulletinMode && _bulletinVideoController != null) {
+        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);
+      }
+      if (isNetworkVideoMode && _networkVideoController != null) {
+        _networkVideoController?.setVolume(isBulletinMuted ? 0 : 100);
+      }
+    });
   }
 
   void _showMultiStreamDialog() {
@@ -1467,7 +1462,7 @@ class MasterPCRBoard extends StatefulWidget {
 
 class _MasterPCRBoardState extends State<MasterPCRBoard> {
   final Map<String, VlcPlayerController> _rtspControllers = {};
-  CameraController? _cameraController;
+  CameraController? _phoneCamCtrl;
   List<CameraDescription> _cameras = [];
 
   bool hideControls = false; 
@@ -1505,8 +1500,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   Timer? _tickerColorTimer;
 
   TextEditingController cableRtmpController = TextEditingController();
-  TextEditingController restreamRtmpController = TextEditingController();
-  TextEditingController satelliteSrtController = TextEditingController();
+  TextEditingController satelliteUplinkController = TextEditingController();
+  TextEditingController satelliteDownlinkController = TextEditingController();
 
   final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
@@ -1533,8 +1528,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _cameras = await availableCameras(); 
       if (_cameras.isNotEmpty) {
         CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => _cameras.first);
-        _cameraController = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
-        await _cameraController!.initialize(); 
+        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true); 
+        await _phoneCamCtrl!.initialize(); 
         if (mounted) setState(() {}); 
       }
     } catch (e) {}
@@ -1551,8 +1546,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
 
       cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+      satelliteUplinkController.text = prefs.getString('satelliteUplink') ?? "";
+      satelliteDownlinkController.text = prefs.getString('satelliteDownlink') ?? "";
 
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
@@ -1629,14 +1624,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   Future<void> _startLiveAndLock() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
-    await prefs.setString('restreamRtmp', restreamRtmpController.text);
-    await prefs.setString('satelliteSrt', satelliteSrtController.text);
+    await prefs.setString('satelliteUplink', satelliteUplinkController.text);
+    await prefs.setString('satelliteDownlink', satelliteDownlinkController.text);
 
     String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
 
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
+    if (cableUrl.isEmpty) {
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
@@ -1675,11 +1668,11 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
             backgroundColor: Colors.grey[900], title: const Text("Live Links Setup", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. Primary Live Stream (RTMP / RTMPS / SRT / HLS)", cableRtmpController),
+                _buildLinkEditor("1. Cable TV (RTMP/RTMPS/SRT/HLS)", cableRtmpController),
                 const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("2. Secondary Live Stream (RTMP / RTMPS / SRT / HLS)", restreamRtmpController),
+                _buildLinkEditor("2. Satellite TV Uplink (RTMP/SRT)", satelliteUplinkController),
                 const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("3. Satellite / Backup Stream (RTMP / RTMPS / SRT / HLS)", satelliteSrtController),
+                _buildLinkEditor("3. Satellite TV Downlink", satelliteDownlinkController),
               ])
             ),
             actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))) ]
@@ -1694,14 +1687,14 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
       Row(children: [
         Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste stream URL here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('restreamRtmp', restreamRtmpController.text); await prefs.setString('satelliteSrt', satelliteSrtController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('satelliteUplink', satelliteUplinkController.text); await prefs.setString('satelliteDownlink', satelliteDownlinkController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
       ])
     ]);
   }
 
   @override
   void dispose() {
-    _cameraController?.dispose();
+    _phoneCamCtrl?.dispose();
     for (var controller in _rtspControllers.values) { controller.dispose(); } 
     _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
     _leftAdVideoCtrl?.dispose(); _rightAdVideoCtrl?.dispose(); _bottomAdVideoCtrlForAds?.dispose(); _logoVideoCtrl?.dispose();
@@ -1797,6 +1790,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   ),
                 ),
 
+              // === FLOATING CONTROLS IN PCR BOARD ===
               if (!hideControls)
                 Positioned(
                   bottom: 160, right: 15,
@@ -1829,7 +1823,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   Widget _buildLiveFeed(String camId) { 
     var camData = cameraList.firstWhere((cam) => cam['id'] == camId, orElse: () => cameraList[0]); 
     if (camId == "REPORTER_CAM") { 
-      if (_cameraController != null && _cameraController!.value.isInitialized) return CameraPreview(_cameraController!); 
+      if (_phoneCamCtrl != null && _phoneCamCtrl!.value.isInitialized) return CameraPreview(_phoneCamCtrl!); 
       return const Center(child: CircularProgressIndicator(color: Colors.red)); 
     } 
     if (camData['type'] == "IP" || camData['type'] == "DRONE") { 
@@ -1847,6 +1841,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 // ============================================================================
 // --- 3. ELECTION BOARD SCREEN
 // ============================================================================
+
 class ElectionBoardScreen extends StatefulWidget {
   const ElectionBoardScreen({Key? key}) : super(key: key);
 
@@ -1895,8 +1890,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   Timer? _tickerColorTimer;
 
   TextEditingController cableRtmpController = TextEditingController();
-  TextEditingController restreamRtmpController = TextEditingController();
-  TextEditingController satelliteSrtController = TextEditingController();
+  TextEditingController satelliteUplinkController = TextEditingController();
+  TextEditingController satelliteDownlinkController = TextEditingController();
 
   final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
@@ -1933,8 +1928,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
 
       cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+      satelliteUplinkController.text = prefs.getString('satelliteUplink') ?? "";
+      satelliteDownlinkController.text = prefs.getString('satelliteDownlink') ?? "";
 
       String savedLogo = prefs.getString('channelLogoPath') ?? "";
       if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
@@ -1982,14 +1977,12 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   Future<void> _startLiveAndLock() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
-    await prefs.setString('restreamRtmp', restreamRtmpController.text);
-    await prefs.setString('satelliteSrt', satelliteSrtController.text);
+    await prefs.setString('satelliteUplink', satelliteUplinkController.text);
+    await prefs.setString('satelliteDownlink', satelliteDownlinkController.text);
 
     String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
 
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
+    if (cableUrl.isEmpty) {
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
@@ -2028,11 +2021,11 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
             backgroundColor: Colors.grey[900], title: const Text("Live Links Setup", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                _buildLinkEditor("1. Primary Live Stream (RTMP / RTMPS / SRT / HLS)", cableRtmpController),
+                _buildLinkEditor("1. Cable TV (RTMP/RTMPS/SRT/HLS)", cableRtmpController),
                 const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("2. Secondary Live Stream (RTMP / RTMPS / SRT / HLS)", restreamRtmpController),
+                _buildLinkEditor("2. Satellite TV Uplink (RTMP/SRT)", satelliteUplinkController),
                 const Divider(color: Colors.white24, height: 20),
-                _buildLinkEditor("3. Satellite / Backup Stream (RTMP / RTMPS / SRT / HLS)", satelliteSrtController),
+                _buildLinkEditor("3. Satellite TV Downlink", satelliteDownlinkController),
               ])
             ),
             actions: [ TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white))) ]
@@ -2047,7 +2040,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 11)),
       Row(children: [
         Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste stream URL here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('restreamRtmp', restreamRtmpController.text); await prefs.setString('satelliteSrt', satelliteSrtController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('cableRtmp', cableRtmpController.text); await prefs.setString('satelliteUplink', satelliteUplinkController.text); await prefs.setString('satelliteDownlink', satelliteDownlinkController.text); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved!"))); }),
       ])
     ]);
   }
@@ -2155,6 +2148,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                   child: FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),
                 ),
 
+              // === FLOATING CONTROLS IN ELECTION BOARD ===
               if (!hideControls)
                 Positioned(
                   bottom: 75, right: 15,
