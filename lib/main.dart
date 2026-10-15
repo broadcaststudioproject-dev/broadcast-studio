@@ -49,7 +49,7 @@ class StreamServiceManager {
         'cableRtmp': cableRtmp.trim(),
         'restreamRtmp': restreamRtmp.trim(),
         'satelliteSrt': satelliteSrt.trim(),
-        'noiseCancel': noiseCancel // Passes Noise Cancellation flag to Native Android
+        'noiseCancel': noiseCancel
       });
       return true;
     } catch (e) {
@@ -121,7 +121,6 @@ class _StudioScreenState extends State<StudioScreen>
   bool isCameraVisible = false;
   bool isYoutubeLoading = false;
   
-  // Noise Cancellation Toggle
   bool isNoiseCancellationEnabled = true;
 
   double _currentZoomLevel = 1.0;
@@ -620,7 +619,6 @@ class _StudioScreenState extends State<StudioScreen>
                 TextField(controller: nameCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "రిపోర్టర్ పేరు")),
                 TextField(controller: roleCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "హోదా")),
                 const Divider(color: Colors.white24, height: 20),
-                // NEW: Noise Cancellation Toggle Switch
                 SwitchListTile(
                   title: const Text("Noise Cancellation\n(ఆడియో నాయిస్ క్యాన్సిలేషన్)", style: TextStyle(color: Colors.white, fontSize: 12)),
                   value: isNoiseCancellationEnabled,
@@ -686,7 +684,6 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   Future<void> _startLiveAndLock() async {
-    // FIX 1: Auto-Save all links forcefully before checking!
     await _saveLinks();
     
     String cableUrl = cableRtmpController.text.trim();
@@ -703,7 +700,6 @@ class _StudioScreenState extends State<StudioScreen>
     
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
     
-    // Pass Noise Cancellation Flag to the Native Android Setup
     bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl, isNoiseCancellationEnabled);
     if (success) {
       setState(() {
@@ -845,7 +841,7 @@ class _StudioScreenState extends State<StudioScreen>
 
                 const Divider(color: Colors.white24, height: 15),
                 
-                const Text("5. Play YouTube Video", style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                const Text("5. Play YouTube Video (Govt/Public Live)", style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 5),
                 Row(children: [
                   Expanded(child: TextField(controller: youtubeVideoUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste YouTube Link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
@@ -901,23 +897,25 @@ class _StudioScreenState extends State<StudioScreen>
     ]);
   }
 
+  // --- NEW ROBUST YOUTUBE METHOD WITH 15 SEC TIMEOUT ---
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     setState(() => isYoutubeLoading = true);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("ప్రభుత్వ / పబ్లిక్ యూట్యూబ్ లైవ్ లోడ్ అవుతోంది... దయచేసి వేచి ఉండండి."), backgroundColor: Colors.orange));
     
     try {
       var ytExplode = yt.YoutubeExplode(); 
       String? videoIdStr = yt.VideoId.parseVideoId(url);
       if (videoIdStr != null) {
         var vId = yt.VideoId(videoIdStr);
-        var video = await ytExplode.videos.get(vId).timeout(const Duration(seconds: 10));
+        // పెంచిన 15 సెకన్ల టైమౌట్
+        var video = await ytExplode.videos.get(vId).timeout(const Duration(seconds: 15));
         String finalPlayUrl = "";
         
         if (video.isLive) { 
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId).timeout(const Duration(seconds: 10)); 
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId).timeout(const Duration(seconds: 15)); 
         } else { 
-          var manifest = await ytExplode.videos.streamsClient.getManifest(vId).timeout(const Duration(seconds: 10)); 
+          var manifest = await ytExplode.videos.streamsClient.getManifest(vId).timeout(const Duration(seconds: 15)); 
           if (manifest.muxed.isNotEmpty) {
             finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString(); 
           } else {
@@ -928,13 +926,15 @@ class _StudioScreenState extends State<StudioScreen>
         
         if (finalPlayUrl.isNotEmpty) {
            _playInVlc(finalPlayUrl);
+        } else {
+           throw Exception("URL దొరకలేదు");
         }
       } else {
-         throw Exception("Invalid YouTube Link");
+         throw Exception("తప్పు యూట్యూబ్ లింక్");
       }
     } catch (e) {
       setState(() { isYoutubeLoading = false; isNewsBulletinMode = false; hideControls = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ సెక్యూరిటీ లేదా ఇంటర్నెట్ వల్ల వీడియో బ్లాక్ చేయబడింది. దయచేసి MP4 లేదా గ్యాలరీ వీడియో వాడండి."), backgroundColor: Colors.red, duration: Duration(seconds: 5)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("యూట్యూబ్ లింక్ లోడ్ అవ్వలేదు. దయచేసి 'flutter pub upgrade' కమాండ్ వాడండి. (Error: $e)"), backgroundColor: Colors.red, duration: const Duration(seconds: 6)));
     }
   }
 
@@ -943,19 +943,26 @@ class _StudioScreenState extends State<StudioScreen>
     _playInVlc(url);
   }
 
+  // --- COMMON VLC PLAYER LOGIC WITH HTTP RECONNECT ---
   void _playInVlc(String playUrl) {
     _bulletinVideoController?.stopRendererScanning(); 
     _bulletinVideoController?.dispose();
+    
+    // యూట్యూబ్ లైవ్ కనెక్షన్ కట్ కాకుండా ఉండటానికి సెట్టింగ్స్
+    final options = VlcPlayerOptions(
+      advanced: VlcAdvancedOptions([
+        VlcAdvancedOptions.networkCaching(3000), // 3 సెకన్ల బఫర్
+      ]),
+      http: VlcHttpOptions([
+        VlcHttpOptions.httpReconnect(true), // ఆటో రీకనెక్ట్
+      ]),
+    );
     
     _bulletinVideoController = VlcPlayerController.network(
       playUrl,
       hwAcc: HwAcc.auto,
       autoPlay: true,
-      options: VlcPlayerOptions(
-        advanced: VlcAdvancedOptions([
-          VlcAdvancedOptions.networkCaching(2000), 
-        ]),
-      ),
+      options: options,
     );
     
     setState(() { 
@@ -1350,7 +1357,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   Future<void> _startLiveAndLock() async {
-    // FIX 1: Auto Save
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
     await prefs.setString('restreamRtmp', restreamRtmpController.text);
@@ -1706,7 +1712,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   }
 
   Future<void> _startLiveAndLock() async {
-    // FIX 1: Auto Save
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
     await prefs.setString('restreamRtmp', restreamRtmpController.text);
