@@ -37,9 +37,6 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// ============================================================================
-// --- NATIVE STREAMING SERVICE MANAGER
-// ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
@@ -56,9 +53,6 @@ class StreamServiceManager {
   }
 }
 
-// ============================================================================
-// --- 1. MAIN STUDIO SCREEN
-// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -118,7 +112,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String splitScreenMainHeadline = "తాజా వార్తలు";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
-  // Live Control Room & Streaming Links Controllers
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController satelliteUplinkController = TextEditingController();
   TextEditingController satelliteDownlinkController = TextEditingController();
@@ -1730,7 +1723,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                 child: ClipRect(
                   child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(
                     children: [
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "150", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "103", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "5", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "2", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "2", Colors.grey.shade700), ], )), ])),
                       Expanded(
                         child: Row(
                           children: [
