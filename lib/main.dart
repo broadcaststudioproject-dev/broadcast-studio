@@ -1173,8 +1173,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 width: leftAdWidth,
                 height: availableHeight,
                 child: GestureDetector(
-                  onTap: leftAdPath.isEmpty ? () => _pickAds('left') : null,
-                  onLongPress: leftAdPath.isNotEmpty ? () => _manageAdsDialog('left') : null,
+                  onTap: leftAdPaths.isEmpty ? () => _pickAds('left') : null,
+                  onLongPress: leftAdPaths.isNotEmpty ? () => _manageAdsDialog('left') : null,
                   child: Container(
                     color: Colors.black, 
                     child: leftAdPaths.isNotEmpty 
@@ -1193,8 +1193,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 width: videoWidth, 
                 height: bottomAdHeight,
                 child: GestureDetector(
-                  onTap: bottomAdPath.isEmpty ? () => _pickAds('bottom') : null,
-                  onLongPress: bottomAdPath.isNotEmpty ? () => _manageAdsDialog('bottom') : null,
+                  onTap: bottomAdPaths.isEmpty ? () => _pickAds('bottom') : null,
+                  onLongPress: bottomAdPaths.isNotEmpty ? () => _manageAdsDialog('bottom') : null,
                   child: Container(
                     color: Colors.black, 
                     child: bottomAdPaths.isNotEmpty 
