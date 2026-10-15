@@ -1345,7 +1345,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         Expanded(
                           child: Container(
                             color: const Color(0xFF1A1A2E), 
-                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.grey, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
+                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
                           )
                         )
                       ]
@@ -1436,7 +1436,7 @@ class MasterPCRBoard extends StatefulWidget {
 
 class _MasterPCRBoardState extends State<MasterPCRBoard> {
   final Map<String, VlcPlayerController> _rtspControllers = {};
-  CameraController? _cameraController; // Fixed variable name to match build references
+  CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
 
   bool hideControls = false; 
@@ -1802,7 +1802,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     return Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 2), padding: const EdgeInsets.symmetric(vertical: 4), color: bgColor, child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(party, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)), const SizedBox(width: 2), Text(change, style: const TextStyle(color: Colors.white70, fontSize: 8))]), Text(seats, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))])));
   }
 
-  Widget _buildStateResultRow(String party, and change, String seats, Color bgColor) {
+  Widget _buildStateResultRow(String party, String change, String seats, Color bgColor) {
     return Container(margin: const EdgeInsets.symmetric(vertical: 3), padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), color: bgColor, child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9))]), Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))]));
   }
 
