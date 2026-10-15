@@ -37,6 +37,9 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
+// ============================================================================
+// --- NATIVE STREAMING SERVICE MANAGER
+// ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
   
@@ -53,6 +56,9 @@ class StreamServiceManager {
   }
 }
 
+// ============================================================================
+// --- 1. MAIN STUDIO SCREEN
+// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -112,6 +118,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   String splitScreenMainHeadline = "తాజా వార్తలు";
   String splitScreenSubHeadline = "వార్తా అప్డేట్";
 
+  // Live Control Room & Streaming Links Controllers
   TextEditingController cableRtmpController = TextEditingController();
   TextEditingController satelliteUplinkController = TextEditingController();
   TextEditingController satelliteDownlinkController = TextEditingController();
