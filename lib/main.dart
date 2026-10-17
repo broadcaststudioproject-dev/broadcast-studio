@@ -657,6 +657,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { 
               FocusScope.of(context).unfocus(); // కీబోర్డ్ క్లోజ్ చేయడానికి
               await _saveLinks(); 
+              
+              // డైలాగ్ వెనుక దాక్కోకుండా, స్క్రీన్ పైన పైకి కనిపించేలా SnackBar
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text("లింక్ విజయవంతంగా సేవ్ అయ్యింది! ✔️", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
@@ -775,9 +777,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   // ============================================================================
   Future<void> _startLiveAndLock() async {
     await _saveLinks();
-    String fullRtmpUrl = restreamRtmpController.text.trim();
-    if (fullRtmpUrl.isEmpty) fullRtmpUrl = cableRtmpController.text.trim();
-    if (fullRtmpUrl.isEmpty) fullRtmpUrl = satelliteSrtController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String cableUrl = cableRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
+
+    String fullRtmpUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
 
     if (fullRtmpUrl.isEmpty) { 
       _showMultiStreamDialog();
@@ -1147,9 +1151,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
                               onPressed: () async {
                                 if (isLivePaused) {
-                                  String targetUrl = restreamRtmpController.text.trim();
-                                  if (targetUrl.isEmpty) targetUrl = cableRtmpController.text.trim();
-                                  if (targetUrl.isEmpty) targetUrl = satelliteSrtController.text.trim();
+                                  String restreamUrl = restreamRtmpController.text.trim();
+                                  String cableUrl = cableRtmpController.text.trim();
+                                  String satUrl = satelliteSrtController.text.trim();
                                   
                                   // ఇక్కడ ఫిల్టర్ చేసిన లింక్ ని పంపుతున్నాం
                                   String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
@@ -1230,7 +1234,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN ---
+// --- 2. MASTER PCR BOARD SCREEN (ఇక్కడ కూడా లాకింగ్ తీసేయబడింది) ---
 // ============================================================================
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
@@ -1377,6 +1381,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     setState(() { cam['muted'] = !cam['muted']; }); 
   }
 
+  // GO LIVE బటన్ ఫిక్స్ (హైడ్ అవ్వకుండా)
   Future<void> _startLiveAndLock() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
@@ -1400,7 +1405,11 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
     bool success = await StreamServiceManager.startLiveStream(fullUrl);
     if (success) {
-      setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
+      setState(() { 
+        isLiveBroadcasting = true; 
+        isLivePaused = false; 
+        hideControls = false; // బటన్స్ కనబడేలా 
+      });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
@@ -1749,6 +1758,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }
   }
 
+  // GO LIVE బటన్ ఫిక్స్ (హైడ్ అవ్వకుండా)
   Future<void> _startLiveAndLock() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
@@ -1772,7 +1782,11 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
     bool success = await StreamServiceManager.startLiveStream(fullUrl);
     if (success) {
-      setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
+      setState(() { 
+        isLiveBroadcasting = true; 
+        isLivePaused = false; 
+        hideControls = false; 
+      });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
