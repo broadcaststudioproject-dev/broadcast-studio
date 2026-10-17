@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart'; 
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -37,36 +38,59 @@ class PocketPCRApp extends StatelessWidget {
 }
 
 // ============================================================================
-// CRITICAL FIX: మీ కొత్త ఆండ్రాయిడ్ కనెక్షన్స్ & కమాండ్స్
+// CRITICAL FIX: మీ ఒరిజినల్ ఆండ్రాయిడ్ కనెక్షన్స్ & కమాండ్స్ (kingjvk)
 // ============================================================================
 class StreamServiceManager {
-  static const platform = MethodChannel('com.ssyatratv.pocket_pcr/stream');
+  static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
-  static Future<bool> startLiveStream(String rtmpUrl, {bool noiseCancel = true}) async {
+  static Future<bool> startLiveStream(String cableRtmp, String restreamRtmp, String satelliteSrt, {bool noiseCancel = true}) async {
     try {
-      String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      // ఇక్కడ మీ కొత్త 'startScreenStream' కమాండ్ వాడబడింది
-      await platform.invokeMethod('startScreenStream', { 
-        'rtmpUrl': safeUrl, 
-        'recordAudio': true, 
-        'noiseCancel': noiseCancel 
-      }); 
-      return true; 
-    } catch (e) { 
-      debugPrint("Native Live Start Error: $e");
-      return false; 
+      String mainRtmp = restreamRtmp.isNotEmpty ? restreamRtmp : (cableRtmp.isNotEmpty ? cableRtmp : satelliteSrt);
+      String safeUrl = mainRtmp.replaceFirst('rtmps://', 'rtmp://');
+      
+      await platform.invokeMethod('startScreenCaptureStreaming', {
+        'cableRtmp': safeUrl,
+        'restreamRtmp': restreamRtmp,
+        'satelliteSrt': satelliteSrt,
+        'noiseCancel': noiseCancel
+      });
+      return true;
+    } catch (e) {
+      debugPrint("Native Stream Error: $e");
+      return false;
     }
   }
   
   static Future<bool> stopLiveStream() async {
-    try { 
-      // ఇక్కడ మీ కొత్త 'stopScreenStream' కమాండ్ వాడబడింది
-      await platform.invokeMethod('stopScreenStream'); 
-      return true; 
-    } catch (e) { 
-      debugPrint("Native Live Stop Error: $e");
-      return false; 
+    try {
+      await platform.invokeMethod('stopScreenCaptureStreaming');
+      return true;
+    } catch (e) {
+      return false;
     }
+  }
+
+  static Future<bool> pauseLiveStream() async {
+    try {
+      await platform.invokeMethod('pauseScreenCaptureStreaming');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  static Future<int?> startUsbCamera() async {
+    try {
+      return await platform.invokeMethod('startUsbCamera');
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  static Future<void> stopUsbCamera() async {
+    try {
+      await platform.invokeMethod('stopUsbCamera');
+    } catch (e) {}
   }
 }
 
@@ -163,6 +187,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   VideoPlayerController? _ipCamController;
   TextEditingController ipCamUrlCtrl = TextEditingController();
   TextEditingController usbCamUrlCtrl = TextEditingController();
+  int? _usbTextureId;
 
   @override
   void initState() {
@@ -400,9 +425,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _toggleCameraVisibility() async {
     setState(() { isMenuOpen = false; });
     if (isExternalIpCamMode || isUsbCamMode) {
-      setState(() { isExternalIpCamMode = false; isUsbCamMode = false; isCameraVisible = false; });
+      setState(() { isExternalIpCamMode = false; isUsbCamMode = false; isCameraVisible = false; _usbTextureId = null; });
       _ipCamController?.dispose(); _ipCamController = null;
-      try { await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera'); } catch (_) {}
+      try { await StreamServiceManager.stopUsbCamera(); } catch (_) {}
       return;
     }
 
@@ -430,15 +455,18 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       });
   }
 
-  Future<void> _startUsbCamera(String url) async {
+  Future<void> _startUsbCamera() async {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB Capture Card కోసం వెతుకుతోంది..."), backgroundColor: Colors.orange));
     try {
-      final String result = await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera', {'url': url});
-      if (result == 'success') {
-        setState(() { isUsbCamMode = true; isExternalIpCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; isNetworkVideoMode = false; });
+      final int? textureId = await StreamServiceManager.startUsbCamera();
+      if (textureId != null) {
+        setState(() { _usbTextureId = textureId; isUsbCamMode = true; isExternalIpCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; isNetworkVideoMode = false; });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB Capture Card కనెక్ట్ అయ్యింది!"), backgroundColor: Colors.green));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB కెమెరా కనెక్ట్ కాలేదు."), backgroundColor: Colors.red));
       }
-    } on PlatformException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB క్యాప్చర్ కార్డ్ కనెక్ట్ కావాలంటే నేటివ్ UVC కోడ్ అవసరం."), backgroundColor: Colors.redAccent));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB ఎర్రర్."), backgroundColor: Colors.redAccent));
     }
   }
 
@@ -460,7 +488,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   const Divider(color: Colors.white24, height: 30),
                   const Text("2. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
                   TextField(controller: usbCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "/dev/video0 or Link", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
-                  ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent), onPressed: () { Navigator.pop(context); _startUsbCamera(usbCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.usb, color: Colors.white, size: 18), label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))),
+                  ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent), onPressed: () { Navigator.pop(context); _startUsbCamera(); }, icon: const Icon(Icons.usb, color: Colors.white, size: 18), label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))),
                 ]
               )
             ),
@@ -775,7 +803,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (!micStatus.isGranted) { await Permission.microphone.request(); }
 
     try {
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl, noiseCancel: isNoiseCancellationEnabled);
+      bool success = await StreamServiceManager.startLiveStream(cableRtmpController.text.trim(), restreamRtmpController.text.trim(), satelliteSrtController.text.trim(), noiseCancel: isNoiseCancellationEnabled);
       if (success) {
         SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
         setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = true; hideControls = true; isMenuOpen = false; isLandscape = true; });
@@ -830,8 +858,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       actualCameraWidget = Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))));
     } else if (isExternalIpCamMode && _ipCamController != null && _ipCamController!.value.isInitialized) {
       actualCameraWidget = SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _ipCamController!.value.size.width, height: _ipCamController!.value.size.height, child: VideoPlayer(_ipCamController!))));
-    } else if (isUsbCamMode) {
-      actualCameraWidget = Container(color: Colors.black, child: const Center(child: Text("USB CAMERA ACTIVE", style: TextStyle(color: Colors.greenAccent, fontSize: 20))));
+    } else if (isUsbCamMode && _usbTextureId != null) {
+      actualCameraWidget = SizedBox.expand(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: 1920, height: 1080, child: Texture(textureId: _usbTextureId!))));
     } else {
       actualCameraWidget = phoneCameraWidget;
     }
@@ -1127,11 +1155,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   String targetUrl = restreamRtmpController.text.trim();
                                   if (targetUrl.isEmpty) targetUrl = cableRtmpController.text.trim();
                                   if (targetUrl.isEmpty) targetUrl = satelliteSrtController.text.trim();
-                                  bool success = await StreamServiceManager.startLiveStream(targetUrl, noiseCancel: isNoiseCancellationEnabled);
+                                  bool success = await StreamServiceManager.startLiveStream(cableRtmpController.text.trim(), restreamRtmpController.text.trim(), satelliteSrtController.text.trim(), noiseCancel: isNoiseCancellationEnabled);
                                   if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); }
                                 } else {
-                                  // ఇక్కడ మీ కొత్త 'stopScreenStream' కమాండ్ తో పాజ్ జరుగుతుంది
-                                  bool success = await StreamServiceManager.stopLiveStream();
+                                  bool success = await StreamServiceManager.pauseLiveStream();
                                   if (success) { setState(() { isLivePaused = true; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."))); }
                                 }
                               }, 
@@ -1374,12 +1401,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     if (!micStatus.isGranted) await Permission.microphone.request();
     
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(fullUrl, noiseCancel: isNoiseCancellationEnabled);
+    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl, noiseCancel: isNoiseCancellationEnabled);
     if (success) {
       setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = true; });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red));
     }
   }
 
@@ -1399,10 +1426,10 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       String satUrl = satelliteSrtController.text.trim();
       String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
       
-      bool success = await StreamServiceManager.startLiveStream(fullUrl, noiseCancel: isNoiseCancellationEnabled);
+      bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl, noiseCancel: isNoiseCancellationEnabled);
       if (success) { setState(() => isLivePaused = false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
     } else {
-      bool success = await StreamServiceManager.stopLiveStream();
+      bool success = await StreamServiceManager.pauseLiveStream();
       if (success) { setState(() => isLivePaused = true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.orange)); }
     }
   }
@@ -1748,7 +1775,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     if (!micStatus.isGranted) await Permission.microphone.request();
     
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(fullUrl, noiseCancel: isNoiseCancellationEnabled);
+    bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl, noiseCancel: isNoiseCancellationEnabled);
     if (success) {
       setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = true; });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
@@ -1773,10 +1800,10 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       String satUrl = satelliteSrtController.text.trim();
       String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
       
-      bool success = await StreamServiceManager.startLiveStream(fullUrl, noiseCancel: isNoiseCancellationEnabled);
+      bool success = await StreamServiceManager.startLiveStream(cableUrl, restreamUrl, satUrl, noiseCancel: isNoiseCancellationEnabled);
       if (success) { setState(() => isLivePaused = false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
     } else {
-      bool success = await StreamServiceManager.stopLiveStream();
+      bool success = await StreamServiceManager.pauseLiveStream();
       if (success) { setState(() => isLivePaused = true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.orange)); }
     }
   }
