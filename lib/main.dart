@@ -551,60 +551,71 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // UPDATED YouTube Play Function with proper Error Handling and Timeout
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
-    String cleanUrl = url.trim(); 
-    
+    String cleanUrl = url.trim();
+
+    // లోడింగ్ స్టార్ట్ చేయడం
     setState(() => isYoutubeLoading = true);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లైవ్ లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
-    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది. దయచేసి వేచి ఉండండి..."), backgroundColor: Colors.orange)
+    );
+
     try {
-      var ytExplode = yt.YoutubeExplode();
-      String? videoIdStr;
-
-      try {
-        videoIdStr = yt.VideoId.parseVideoId(cleanUrl);
-      } catch (_) {}
-
-      if (videoIdStr == null) {
-        RegExp regExp = RegExp(r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})', caseSensitive: false);
-        Match? match = regExp.firstMatch(cleanUrl);
-        if (match != null && match.groupCount >= 1) {
-          videoIdStr = match.group(1);
-        }
-      }
-
-      if (videoIdStr == null) {
-        ytExplode.close();
-        setState(() => isYoutubeLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
-        return; 
-      }
-
-      var vId = yt.VideoId(videoIdStr);
-      var video = await ytExplode.videos.get(vId);
       String finalPlayUrl = "";
+      var ytExplode = yt.YoutubeExplode();
 
-      if (video.isLive) {
-        finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(vId);
-      } else {
-        var manifest = await ytExplode.videos.streamsClient.getManifest(vId);
-        if (manifest.muxed.isNotEmpty) {
-          finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
-        } else if (manifest.videoOnly.isNotEmpty) {
-          finalPlayUrl = manifest.videoOnly.first.url.toString();
+      // యూట్యూబ్ లింక్ నుండి Video ID ని కచ్చితంగా తీయడానికి Regex
+      RegExp regExp = RegExp(r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})');
+      Match? match = regExp.firstMatch(cleanUrl);
+      String? videoIdStr = match?.group(1);
+
+      if (videoIdStr != null && videoIdStr.isNotEmpty) {
+        var videoId = yt.VideoId(videoIdStr);
+        // 15 సెకన్లలో డేటా రాకపోతే ఆటోమేటిక్ గా ఆగిపోవడానికి timeout సెట్ చేయబడింది
+        var video = await ytExplode.videos.get(videoId).timeout(const Duration(seconds: 15));
+
+        if (video.isLive) {
+          // లైవ్ స్ట్రీమ్ అయితే
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId).timeout(const Duration(seconds: 15));
+        } else {
+          // సాధారణ వీడియో అయితే
+          var manifest = await ytExplode.videos.streamsClient.getManifest(videoId).timeout(const Duration(seconds: 15));
+          if (manifest.muxed.isNotEmpty) {
+            finalPlayUrl = manifest.muxed.withHighestBitrate().url.toString();
+          } else if (manifest.audioOnly.isNotEmpty) {
+            finalPlayUrl = manifest.audioOnly.first.url.toString();
+          }
         }
       }
       ytExplode.close();
 
+      // ఫైనల్ లింక్ దొరికితే VLC లో ప్లే చేయి
       if (finalPlayUrl.isNotEmpty) {
         _playNetworkVideoInVlc(finalPlayUrl);
       } else {
-        throw Exception("Stream URL దొరకలేదు");
+        throw Exception("ఈ వీడియోకి డైరెక్ట్ లింక్ యాక్సెస్ లేదు.");
       }
+
     } catch (e) {
-      setState(() { isYoutubeLoading = false; isNewsBulletinMode = false; isNetworkVideoMode = false; hideControls = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ లింక్ ప్లే కాలేదు. గ్యాలరీ వీడియో వాడండి."), backgroundColor: Colors.red));
+      debugPrint("YouTube Play Error: $e");
+      // ఎర్రర్ వస్తే కచ్చితంగా లోడింగ్ ఆపేసి నార్మల్ కెమెరా మోడ్ కి రావాలి
+      if (mounted) {
+        setState(() {
+          isYoutubeLoading = false;
+          isNewsBulletinMode = false;
+          isNetworkVideoMode = false;
+          hideControls = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("యూట్యూబ్ సెక్యూరిటీ వల్ల వీడియో ప్లే కాలేదు. గ్యాలరీ వీడియో లేదా MP4 వాడండి."),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5)
+          )
+        );
+      }
     }
   }
 
@@ -697,7 +708,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
   }
 
-  // UPDATED DIALOG: Added Restream Box, Removed bottom buttons
   void _showMultiStreamDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
