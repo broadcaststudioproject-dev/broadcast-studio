@@ -38,8 +38,7 @@ class PocketPCRApp extends StatelessWidget {
 }
 
 // ============================================================================
-// CRITICAL FIX: MainActivity.kt కి 100% మ్యాచ్ అయ్యే కమాండ్స్!
-// இதன்వల్ల కచ్చితంగా స్క్రీన్ రికార్డింగ్ పాప్-అప్ వస్తుంది.
+// STREAM SERVICE MANAGER (Screen Recording & Multi-Live RTMP)
 // ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
@@ -47,7 +46,7 @@ class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      // మీ MainActivity.kt లో ఉన్న "startScreenStream" కమాండ్ మరియు "rtmpUrl" పారామీటర్!
+      // Android MainActivity.kt లోని startScreenStream ని ట్రిగ్గర్ చేస్తుంది
       await platform.invokeMethod('startScreenStream', {
         'rtmpUrl': safeUrl
       });
@@ -60,7 +59,6 @@ class StreamServiceManager {
   
   static Future<bool> stopLiveStream() async {
     try {
-      // మీ MainActivity.kt లో ఉన్న "stopScreenStream" కమాండ్!
       await platform.invokeMethod('stopScreenStream');
       return true;
     } catch (e) {
@@ -70,7 +68,7 @@ class StreamServiceManager {
 
   static Future<bool> pauseLiveStream() async {
     try {
-      await platform.invokeMethod('stopScreenStream'); // తాత్కాలికంగా ఆపడానికి స్టాప్ వాడాం
+      await platform.invokeMethod('stopScreenStream'); // తాత్కాలికంగా ఆపడానికి
       return true;
     } catch (e) {
       return false;
@@ -92,6 +90,9 @@ class StreamServiceManager {
   }
 }
 
+// ============================================================================
+// --- 1. STUDIO SCREEN ---
+// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -670,7 +671,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { 
               FocusScope.of(context).unfocus(); 
               await _saveLinks(); 
-              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text("లింక్ విజయవంతంగా సేవ్ అయ్యింది! ✔️", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
@@ -785,7 +785,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _toggleRotation() { setState(() { isMenuOpen = false; isLandscape = !isLandscape; if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); } }); }
 
   // ============================================================================
-  // CRITICAL FIX: "GO LIVE" నొక్కగానే నేరుగా ఆండ్రాయిడ్ సిస్టమ్ పాప్-అప్ రావడానికి
+  // GO LIVE Logic (Screen Recording Trigger)
   // ============================================================================
   Future<void> _startLiveAndLock() async {
     await _saveLinks();
@@ -802,7 +802,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
 
     try {
-      // ఎలాంటి ఆలస్యం లేకుండా నేరుగా అక్టోబర్ 2 నాటి కమాండ్ తో రికార్డింగ్ పాప్-అప్ ని ట్రిగ్గర్ చేస్తున్నాం
       bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
       
       if (success) {
@@ -1145,9 +1144,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     )
                   ),
 
-                  // ============================================================================
-                  // GO LIVE బటన్స్ ఇక్కడే ఉన్నాయి (ఇప్పుడు ఎప్పటికీ హైడ్ కావు)
-                  // ============================================================================
                   if (!hideControls && !isLiveLocked)
                     Positioned(
                       bottom: 75, right: 20, 
@@ -1252,7 +1248,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN (ఇక్కడ కూడా కనెక్షన్స్ ఫిక్స్ చేయబడ్డాయి) ---
+// --- 2. MASTER PCR BOARD SCREEN ---
 // ============================================================================
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
@@ -1399,6 +1395,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     setState(() { cam['muted'] = !cam['muted']; }); 
   }
 
+  // GO LIVE in Master PCR
   Future<void> _startLiveAndLock() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
@@ -1640,7 +1637,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 }
 
 // ============================================================================
-// --- 3. ELECTION BOARD SCREEN (ఇక్కడ కూడా లాకింగ్ తీసేయబడింది) ---
+// --- 3. ELECTION BOARD SCREEN ---
 // ============================================================================
 
 class ElectionBoardScreen extends StatefulWidget {
@@ -1775,7 +1772,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }
   }
 
-  // GO LIVE బటన్ ఫిక్స్ (హైడ్ అవ్వకుండా)
+  // GO LIVE in Election Board
   Future<void> _startLiveAndLock() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('cableRtmp', cableRtmpController.text);
