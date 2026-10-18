@@ -21,9 +21,7 @@ class MainActivity : FlutterActivity() {
         
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                // ఫ్లట్టర్ లో ఉన్న పేరుకు మ్యాచ్ అయ్యేలా 'startScreenStream' గా మార్చబడింది
                 "startScreenStream" -> { 
-                    // ఫ్లట్టర్ నుండి మనం నేరుగా 'rtmpUrl' అనే పారామీటర్ ని పంపుతున్నాము, కాబట్టి దాన్ని రిసీవ్ చేసుకోవాలి
                     val url = call.argument<String>("rtmpUrl")?.trim()
                     
                     if (url.isNullOrEmpty()) {
@@ -36,7 +34,7 @@ class MainActivity : FlutterActivity() {
 
                     try {
                         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        // స్క్రీన్ రికార్డింగ్ పాప్-అప్ ని పిలుస్తున్నాం
+                        // ముందు పాప్-అప్ పిలుస్తున్నాం (సర్వీస్ ఇంకా స్టార్ట్ చేయలేదు)
                         startActivityForResult(projectionManager.createScreenCaptureIntent(), SCREEN_RECORD_REQUEST_CODE)
                     } catch (e: Exception) {
                         pendingResult?.error("PROJECTION_FAIL", e.message, null)
@@ -44,7 +42,6 @@ class MainActivity : FlutterActivity() {
                     }
                 }
                 
-                // ఫ్లట్టర్ లో ఉన్న పేరుకు మ్యాచ్ అయ్యేలా 'stopScreenStream' గా మార్చబడింది
                 "stopScreenStream" -> {
                     stopService(Intent(this, ScreenStreamService::class.java))
                     result.success(true)
@@ -61,8 +58,8 @@ class MainActivity : FlutterActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
+            // యూజర్ "Start Now" నొక్కితేనే (RESULT_OK) సర్వీస్ స్టార్ట్ అవుతుంది
             if (resultCode == Activity.RESULT_OK && data != null) {
-                // యూజర్ పాప్-అప్ ని అనుమతించిన తర్వాత సర్వీస్ స్టార్ట్ అవుతుంది
                 val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
                     putExtra("resultCode", resultCode)
                     putExtra("data", data)
