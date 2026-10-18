@@ -187,8 +187,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController usbCamUrlCtrl = TextEditingController();
   int? _usbTextureId;
 
-  // -- Notification variables
-  static const MethodChannel _notificationChannel = MethodChannel('com.kingjvk.pocket_pcr/notifications');
+  // నోటిఫికేషన్ ఛానెల్ ఇక్కడ నుండి తొలగించబడింది
 
   @override
   void initState() {
@@ -805,20 +804,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
 
-    if (selectedLiveUrl.isEmpty) {
+    if (selectedLiveUrl.isEmpty) { 
       _showMultiStreamDialog();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
-      return;
-    }
-
-    try {
-      await _notificationChannel.invokeMethod('createNotificationChannel');
-      await _notificationChannel.invokeMethod('showNotification', {
-        'title': 'SS YATRA PCR',
-        'body': 'లైవ్ ప్రసారం అవుతోంది...',
-      });
-    } on PlatformException catch (e) {
-      debugPrint("Failed to create/show notification: '${e.message}'.");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ (Restream/Cable/Sat) ఇవ్వండి."), backgroundColor: Colors.red)); 
+      return; 
     }
 
     var micStatus = await Permission.microphone.status;
@@ -1332,9 +1321,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     {"id": "IP_4", "name": "Mobile WiFi 2", "type": "IP", "active": false, "muted": true, "url": "rtsp://192.168.1.102:8080/video"},
   ];
 
-  // -- Notification variables --
-  static const MethodChannel _notificationChannel = MethodChannel('com.kingjvk.pocket_pcr/notifications');
-
   @override
   void initState() {
     super.initState();
@@ -1478,16 +1464,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
-    }
-
-    try {
-      await _notificationChannel.invokeMethod('createNotificationChannel');
-      await _notificationChannel.invokeMethod('showNotification', {
-        'title': 'SS YATRA PCR',
-        'body': 'లైవ్ ప్రసారం అవుతోంది...',
-      });
-    } on PlatformException catch (e) {
-      debugPrint("Failed to create/show notification: '${e.message}'.");
     }
 
     var micStatus = await Permission.microphone.status;
