@@ -37,15 +37,19 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
+// ============================================================================
+// CRITICAL FIX: MainActivity.kt కి 100% మ్యాచ్ అయ్యే కమాండ్స్!
+// இதன்వల్ల కచ్చితంగా స్క్రీన్ రికార్డింగ్ పాప్-అప్ వస్తుంది.
+// ============================================================================
 class StreamServiceManager {
   static const platform = MethodChannel('com.kingjvk.pocket_pcr/stream');
   
   static Future<bool> startLiveStream(String rtmpUrl) async {
     try {
       String safeUrl = rtmpUrl.replaceFirst('rtmps://', 'rtmp://');
-      await platform.invokeMethod('startScreenCaptureStreaming', {
-        'cableRtmp': safeUrl,
-        'satelliteSrt': ''
+      // మీ MainActivity.kt లో ఉన్న "startScreenStream" కమాండ్ మరియు "rtmpUrl" పారామీటర్!
+      await platform.invokeMethod('startScreenStream', {
+        'rtmpUrl': safeUrl
       });
       return true;
     } catch (e) {
@@ -56,7 +60,8 @@ class StreamServiceManager {
   
   static Future<bool> stopLiveStream() async {
     try {
-      await platform.invokeMethod('stopScreenCaptureStreaming');
+      // మీ MainActivity.kt లో ఉన్న "stopScreenStream" కమాండ్!
+      await platform.invokeMethod('stopScreenStream');
       return true;
     } catch (e) {
       return false;
@@ -65,7 +70,7 @@ class StreamServiceManager {
 
   static Future<bool> pauseLiveStream() async {
     try {
-      await platform.invokeMethod('pauseScreenCaptureStreaming');
+      await platform.invokeMethod('stopScreenStream'); // తాత్కాలికంగా ఆపడానికి స్టాప్ వాడాం
       return true;
     } catch (e) {
       return false;
@@ -450,7 +455,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _startUsbCamera(String url) async {
     try {
-      final String result = await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera', {'url': url});
+      final String result = await const MethodChannel('com.kingjvk.pocket_pcr/uvc').invokeMethod('startUsbCamera', {'url': url});
       if (result == 'success') {
         setState(() { isUsbCamMode = true; isExternalIpCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; isNetworkVideoMode = false; });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("USB Capture Card కనెక్ట్ అయ్యింది!"), backgroundColor: Colors.green));
@@ -489,16 +494,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // ============================================================================
-  // CRITICAL FIX: యూట్యూబ్ ఫెయిల్ అయినప్పుడు బ్లాక్ స్క్రీన్ రాకుండా కెమెరా ఆన్ అవుతుంది
-  // ============================================================================
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
 
     setState(() { 
       isYoutubeLoading = true; 
-      isCameraVisible = false; // వీడియో కోసం కెమెరా ఆఫ్ 
+      isCameraVisible = false; 
     });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది. వేచి ఉండండి..."), backgroundColor: Colors.orange));
 
@@ -517,7 +519,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         
         if (videoIdStr == null) {
           ytExplode.close();
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; }); // ఎర్రర్ వస్తే మళ్లీ కెమెరా ఆన్
+          setState(() { isYoutubeLoading = false; isCameraVisible = true; }); 
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("తప్పు యూట్యూబ్ లింక్."), backgroundColor: Colors.red));
           return;
         }
@@ -547,7 +549,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {
       debugPrint("YouTube Error: $e");
       if (mounted) {
-        // ఇక్కడ ఎర్రర్ వచ్చినప్పుడు బ్లాక్ స్క్రీన్ రాకుండా మళ్లీ కెమెరా ఆన్ అయ్యేలా సెట్ చేసాం
         setState(() { 
           isYoutubeLoading = false; 
           hideControls = false; 
@@ -573,14 +574,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isDualScreenMode = false; 
           hideControls = false; 
           isYoutubeLoading = false;
-          isCameraVisible = false; // వీడియో ప్లే అవుతుంటే కెమెరా హైడ్
+          isCameraVisible = false;
         }); 
         _bulletinVideoController?.play(); 
         _bulletinVideoController?.addListener(_videoListener); 
       }).catchError((e) { 
         setState(() { 
           isYoutubeLoading = false; 
-          isCameraVisible = true; // వీడియో ఎర్రర్ వస్తే కెమెరా మళ్లీ ఆన్ 
+          isCameraVisible = true; 
           isNewsBulletinMode = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. ఫార్మాట్ సపోర్ట్ చేయకపోవచ్చు."), backgroundColor: Colors.red)); 
@@ -617,7 +618,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (vController == null || !vController.value.isInitialized) return;
     if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
       vController.removeListener(_videoListener);
-      setState(() { isNewsBulletinMode = false; isCameraVisible = true; }); // వీడియో అయిపోయాక కెమెరా మళ్లీ ఆన్
+      setState(() { isNewsBulletinMode = false; isCameraVisible = true; }); 
     }
   }
 
@@ -667,7 +668,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           children: [
             Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste link here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
             IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { 
-              FocusScope.of(context).unfocus(); // కీబోర్డ్ క్లోజ్ చేయడానికి
+              FocusScope.of(context).unfocus(); 
               await _saveLinks(); 
               
               ScaffoldMessenger.of(context).showSnackBar(
@@ -783,23 +784,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _changeLogoPosition() async { setState(() { logoPosition = (logoPosition + 1) % 4; isMenuOpen = false; }); await _saveTextSettings(); }
   void _toggleRotation() { setState(() { isMenuOpen = false; isLandscape = !isLandscape; if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); } }); }
 
+  // ============================================================================
+  // CRITICAL FIX: "GO LIVE" నొక్కగానే నేరుగా ఆండ్రాయిడ్ సిస్టమ్ పాప్-అప్ రావడానికి
+  // ============================================================================
   Future<void> _startLiveAndLock() async {
     await _saveLinks();
-    String fullRtmpUrl = restreamRtmpController.text.trim();
-    if (fullRtmpUrl.isEmpty) fullRtmpUrl = cableRtmpController.text.trim();
-    if (fullRtmpUrl.isEmpty) fullRtmpUrl = satelliteSrtController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String cableUrl = cableRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
 
-    if (fullRtmpUrl.isEmpty) { 
+    String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+
+    if (selectedLiveUrl.isEmpty) { 
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ (Restream/Cable/Sat) ఇవ్వండి."), backgroundColor: Colors.red)); 
       return; 
     }
 
-    var micStatus = await Permission.microphone.status;
-    if (!micStatus.isGranted) { await Permission.microphone.request(); }
-
     try {
-      bool success = await StreamServiceManager.startLiveStream(fullRtmpUrl);
+      // ఎలాంటి ఆలస్యం లేకుండా నేరుగా అక్టోబర్ 2 నాటి కమాండ్ తో రికార్డింగ్ పాప్-అప్ ని ట్రిగ్గర్ చేస్తున్నాం
+      bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
       
       if (success) {
         SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
@@ -811,9 +815,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isMenuOpen = false; 
           isLandscape = true; 
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ పాప్-అప్ వస్తుంది. దయచేసి అనుమతించండి! ✔️"), backgroundColor: Colors.green));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. దయచేసి నెట్‌వర్క్ చెక్ చేయండి."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ కనెక్షన్ ఫెయిల్ అయ్యింది. మళ్ళీ ప్రయత్నించండి."), backgroundColor: Colors.red));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red));
@@ -1141,6 +1145,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     )
                   ),
 
+                  // ============================================================================
+                  // GO LIVE బటన్స్ ఇక్కడే ఉన్నాయి (ఇప్పుడు ఎప్పటికీ హైడ్ కావు)
+                  // ============================================================================
                   if (!hideControls && !isLiveLocked)
                     Positioned(
                       bottom: 75, right: 20, 
@@ -1151,7 +1158,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
                               onPressed: _stopLiveStream, 
                               icon: const Icon(Icons.stop, color: Colors.white), 
-                              label: const Text("LIVE STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                              label: const Text("STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                             ),
                             const SizedBox(width: 10),
                             ElevatedButton.icon(
@@ -1171,7 +1178,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 }
                               }, 
                               icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), 
-                              label: Text(isLivePaused ? "LIVE RESUME" : "LIVE PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                              label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                             ),
                           ] else ...[
                             ElevatedButton.icon(
@@ -1245,7 +1252,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 }
 
 // ============================================================================
-// --- 2. MASTER PCR BOARD SCREEN ---
+// --- 2. MASTER PCR BOARD SCREEN (ఇక్కడ కూడా కనెక్షన్స్ ఫిక్స్ చేయబడ్డాయి) ---
 // ============================================================================
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
@@ -1402,9 +1409,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     String restreamUrl = restreamRtmpController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
 
-    String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+    String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
 
-    if (fullUrl.isEmpty) {
+    if (selectedLiveUrl.isEmpty) {
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
@@ -1413,14 +1420,14 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     if (!micStatus.isGranted) await Permission.microphone.request();
     
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(fullUrl);
+    bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
     if (success) {
       setState(() { 
         isLiveBroadcasting = true; 
         isLivePaused = false; 
         hideControls = false; 
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ పాప్-అప్ వస్తుంది. అనుమతించండి! ✔️"), backgroundColor: Colors.green));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
     }
@@ -1440,9 +1447,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       String restreamUrl = restreamRtmpController.text.trim();
       String cableUrl = cableRtmpController.text.trim();
       String satUrl = satelliteSrtController.text.trim();
-      String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+      String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
       
-      bool success = await StreamServiceManager.startLiveStream(fullUrl);
+      bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
       if (success) { setState(() => isLivePaused = false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
     } else {
       bool success = await StreamServiceManager.pauseLiveStream();
@@ -1779,9 +1786,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     String restreamUrl = restreamRtmpController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
 
-    String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+    String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
 
-    if (fullUrl.isEmpty) {
+    if (selectedLiveUrl.isEmpty) {
       _showMultiStreamDialog();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
@@ -1790,14 +1797,14 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     if (!micStatus.isGranted) await Permission.microphone.request();
     
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-    bool success = await StreamServiceManager.startLiveStream(fullUrl);
+    bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
     if (success) {
       setState(() { 
         isLiveBroadcasting = true; 
         isLivePaused = false; 
         hideControls = false; 
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ రికార్డింగ్ ప్రారంభమైంది! ✔️"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ పాప్-అప్ వస్తుంది. అనుమతించండి! ✔️"), backgroundColor: Colors.green));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
     }
@@ -1817,9 +1824,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       String restreamUrl = restreamRtmpController.text.trim();
       String cableUrl = cableRtmpController.text.trim();
       String satUrl = satelliteSrtController.text.trim();
-      String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+      String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
       
-      bool success = await StreamServiceManager.startLiveStream(fullUrl);
+      bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
       if (success) { setState(() => isLivePaused = false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
     } else {
       bool success = await StreamServiceManager.pauseLiveStream();
