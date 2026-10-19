@@ -25,10 +25,10 @@ class ScreenStreamService : Service(), ConnectChecker {
         val notification = NotificationCompat.Builder(this, "PocketPCR_Channel")
             .setContentTitle("SS YATRA PCR")
             .setContentText("లైవ్ ప్రసారం అవుతోంది...")
-            .setSmallIcon(android.R.drawable.ic_dialog_info) // ఇక్కడ మీ యాప్ ఐకాన్ పెట్టుకోవచ్చు (ఉదా: R.mipmap.ic_launcher)
+            .setSmallIcon(android.R.drawable.ic_dialog_info) // ఇక్కడ మీ యాప్ ఐకాన్ పెట్టుకోవచ్చు
             .build()
 
-        // 🔴 CRITICAL FIX: Android 10 (Q) మరియు అంతకంటే పై వెర్షన్ల కోసం MEDIA_PROJECTION టైప్ తప్పనిసరి
+        // 🔴 CRITICAL FIX: Android 10 (Q) మరియు అంతకంటే పై వెర్షన్ల కోసం
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 1, 
@@ -44,7 +44,7 @@ class ScreenStreamService : Service(), ConnectChecker {
         if (intent != null) {
             val resultCode = intent.getIntExtra("resultCode", -1)
             
-            // 🔴 CRITICAL FIX: Android 13+ (TIRAMISU) లో getParcelableExtra పద్ధతి మారింది
+            // 🔴 CRITICAL FIX: Android 13+ (TIRAMISU) అప్‌డేట్
             val data: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra("data", Intent::class.java)
             } else {
@@ -58,20 +58,27 @@ class ScreenStreamService : Service(), ConnectChecker {
                 rtmpDisplay = RtmpDisplay(baseContext, true, this)
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                // వీడియో మరియు ఆడియో ప్రిపేర్ చేయడం (1280x720, 30fps డిఫాల్ట్ క్వాలిటీతో స్టెబిలిటీ కోసం)
-                val videoPrepared = rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0) ?: rtmpDisplay?.prepareVideo() == true
-                val audioPrepared = rtmpDisplay?.prepareAudio() == true
+                // వీడియో ప్రిపరేషన్ (1280x720 క్వాలిటీ యూట్యూబ్ స్ట్రీమింగ్ కు బెస్ట్)
+                val videoPrepared = rtmpDisplay?.prepareVideo(1280, 720, 30, 2500 * 1024, 0) == true
+                
+                // 🔴 CRITICAL FIX: ఇంటర్నల్ ఆడియో (యూట్యూబ్ సౌండ్) స్పష్టంగా వినబడటానికి Echo & Noise Cancellation ఆన్ చేశాము.
+                val audioPrepared = rtmpDisplay?.prepareAudio(
+                    128 * 1024,  // Bitrate
+                    44100,       // Sample Rate
+                    true,        // isStereo (మంచి సౌండ్ కోసం)
+                    true,        // echoCanceler (రీసౌండ్ రాకుండా)
+                    true         // noiseSuppressor (బ్యాక్ గ్రౌండ్ నాయిస్ ఆపడానికి)
+                ) == true
 
                 if (videoPrepared && audioPrepared) {
                     rtmpDisplay?.startStream(rtmpUrl)
                     Log.d(TAG, "Live Stream Started to: $rtmpUrl")
                 } else {
                     Log.e(TAG, "Error: Video/Audio Preparation Failed.")
-                    stopSelf() // ప్రిపరేషన్ ఫెయిల్ అయితే సర్వీస్ క్లోజ్ చేయాలి
+                    stopSelf() 
                 }
             }
         }
-        // క్రాష్ అయినప్పుడు ఆటోమేటిక్ గా ఫెయిల్ అయిన డేటాతో స్టార్ట్ అవ్వకుండా START_NOT_STICKY వాడుతున్నాం
         return START_NOT_STICKY 
     }
 
@@ -99,7 +106,7 @@ class ScreenStreamService : Service(), ConnectChecker {
     }
 
     // =========================================================
-    // ConnectChecker ఇంటర్ఫేస్ ఫంక్షన్స్ (మెరుగైన ఎర్రర్ హ్యాండ్లింగ్)
+    // ConnectChecker ఇంటర్ఫేస్ ఫంక్షన్స్
     // =========================================================
     
     override fun onConnectionStarted(url: String) {
@@ -113,11 +120,10 @@ class ScreenStreamService : Service(), ConnectChecker {
     override fun onConnectionFailed(reason: String) {
         Log.e(TAG, "Connection Failed: $reason")
         rtmpDisplay?.stopStream()
-        stopSelf() // సర్వర్ కి కనెక్ట్ అవ్వకపోతే సర్వీస్ బ్యాక్ గ్రౌండ్ లో రన్ అవ్వకుండా ఆపేయాలి
+        stopSelf() 
     }
 
     override fun onNewBitrate(bitrate: Long) {
-        // ఇక్కడ బిట్‌రేట్ మారుతున్నప్పుడు లాగ్ చూసుకోవచ్చు
     }
 
     override fun onDisconnect() {
