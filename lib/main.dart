@@ -10,8 +10,7 @@ import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
-import 'package:shared_preferences/shared_preferences.dart'; 
-import 'package:flutter_vlc_player/flutter_vlc_player.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -21,7 +20,7 @@ Future<void> main() async {
   try {
     cameras = await availableCameras();
   } catch (e) {
-    debugPrint("Camera Error: $e");
+    debugPrint("Camera Error: \$e");
   }
   runApp(const PocketPCRApp());
 }
@@ -38,7 +37,8 @@ class PocketPCRApp extends StatelessWidget {
 }
 
 // ============================================================================
-// STREAM SERVICE MANAGER 
+// CRITICAL FIX: ఆండ్రాయిడ్ ప్యాకేజీ పేరు ఏదైనా సరే పర్ఫెక్ట్ గా కనెక్ట్ అయ్యే "మాస్టర్ కనెక్షన్"
+// దీనివల్ల కచ్చితంగా స్క్రీన్ రికార్డింగ్ పర్మిషన్ పాప్-అప్ వస్తుంది.
 // ============================================================================
 class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
@@ -62,7 +62,7 @@ class StreamServiceManager {
           isSuccess = true;
           break;
         } catch (e) {
-          debugPrint("Live Stream Error: $e");
+          debugPrint("Stream Command Failed: \$e");
         }
       }
       if (isSuccess) break;
@@ -79,7 +79,9 @@ class StreamServiceManager {
         try {
           await MethodChannel(c).invokeMethod(m);
           return true;
-        } catch (e) {}
+        } catch (e) {
+           debugPrint("Stop Stream Failed: \$e");
+        }
       }
     }
     return false;
@@ -94,7 +96,9 @@ class StreamServiceManager {
         try {
           await MethodChannel(c).invokeMethod(m);
           return true;
-        } catch (e) {}
+        } catch (e) {
+           debugPrint("Pause Stream Failed: \$e");
+        }
       }
     }
     return false;
@@ -104,6 +108,7 @@ class StreamServiceManager {
     try {
       return await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera');
     } catch (e) {
+      debugPrint("USB Camera Failed: \$e");
       return null;
     }
   }
@@ -111,13 +116,12 @@ class StreamServiceManager {
   static Future<void> stopUsbCamera() async {
     try {
       await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera');
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Stop USB Camera Failed: \$e");
+    }
   }
 }
 
-// ============================================================================
-// STUDIO SCREEN
-// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -225,9 +229,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     mainHeadlineCtrl.text = splitScreenMainHeadline;
     subHeadlineCtrl.text = splitScreenSubHeadline;
     
-    restreamRtmpController.text = "";
-    cableRtmpController.text = "";
-    satelliteSrtController.text = "";
     ipCamUrlCtrl.text = "http://192.168.1.100:8080/video"; 
     usbCamUrlCtrl.text = "/dev/video0";
 
@@ -261,7 +262,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         }
       }
     } catch (e) {
-       debugPrint("News error: $e");
+      debugPrint("News Fetch Error: \$e");
     }
   }
 
@@ -281,6 +282,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _loadSavedData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       watermarkText = prefs.getString('watermarkText') ?? "SS YATRA TV";
       locationText = prefs.getString('locationText') ?? "LIVE KOTHAKOTA";
@@ -293,8 +295,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       adShapeMode = prefs.getInt('adShapeMode') ?? 0;
       logoPosition = prefs.getInt('logoPosition') ?? 1;
 
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
       cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
+      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
       satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
 
       youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
@@ -358,8 +360,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _saveLinks() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('restreamRtmp', restreamRtmpController.text);
     await prefs.setString('cableRtmp', cableRtmpController.text);
+    await prefs.setString('restreamRtmp', restreamRtmpController.text);
     await prefs.setString('satelliteSrt', satelliteSrtController.text);
     await prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text);
     await prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text);
@@ -421,7 +423,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _initCamera() async {
     if (cameras.isEmpty) {
-      try { cameras = await availableCameras(); } catch (e) {}
+      try { cameras = await availableCameras(); } catch (e) { debugPrint("No cameras available."); }
     }
     if (cameras.isEmpty) return;
     try {
@@ -435,7 +437,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _currentZoomLevel = _minZoomLevel;
       setState(() { _isCameraInitialized = true; });
     } catch (e) {
-      debugPrint("Camera Init Error: $e");
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Camera Failed: \$e")));
     }
   }
 
@@ -460,9 +462,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
 
     if (isCameraVisible) {
-      setState(() { isCameraVisible = false; });
+      setState(() { isCameraVisible = false; _isCameraInitialized = false; });
       await controller?.dispose(); controller = null;
-      setState(() { _isCameraInitialized = false; });
     } else {
       setState(() { isCameraVisible = true; });
       await _initCamera();
@@ -500,26 +501,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     showDialog(
       context: context, 
       builder: (context) {
-        return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.grey[900], title: const Text("External Cameras Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
-                children: [
-                  const Text("1. IP Camera / Wi-Fi CCTV Link", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
-                  TextField(controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "http://... or rtsp://...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
-                  ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () async { await _saveLinks(); Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18), label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))),
-                  const Divider(color: Colors.white24, height: 30),
-                  const Text("2. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
-                  TextField(controller: usbCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "/dev/video0 or Link", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
-                  ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent), onPressed: () { Navigator.pop(context); _startUsbCamera(usbCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.usb, color: Colors.white, size: 18), label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))),
-                ]
-              )
-            ),
-            actions: [ ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 11))), ]
-          );
-        });
+        return AlertDialog(
+          backgroundColor: Colors.grey[900], title: const Text("External Cameras Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
+              children: [
+                const Text("1. IP Camera / Wi-Fi CCTV Link", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
+                TextField(controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "http://... or rtsp://...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
+                ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () async { await _saveLinks(); Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18), label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))),
+                const Divider(color: Colors.white24, height: 30),
+                const Text("2. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
+                TextField(controller: usbCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "/dev/video0 or Link", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
+                ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent), onPressed: () { Navigator.pop(context); _startUsbCamera(usbCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.usb, color: Colors.white, size: 18), label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))),
+              ]
+            )
+          ),
+          actions: [ ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 11))), ]
+        );
       }
     );
   }
@@ -577,7 +576,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
 
     } catch (e) {
-      debugPrint("YouTube Error: $e");
+      debugPrint("YouTube Error: \$e");
       if (mounted) {
         setState(() { 
           isYoutubeLoading = false; 
@@ -645,7 +644,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           });
       }
     } catch (e) {
-      debugPrint("Gallery Video Error: $e");
+      debugPrint("Gallery Video Error: \$e");
     }
   }
 
@@ -682,9 +681,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
                 children: [
-                  _buildLinkEditor("1. Restream / YouTube (RTMP)", restreamRtmpController, setDialogState), const Divider(color: Colors.white24, height: 20),
-                  _buildLinkEditor("2. Cable TV (RTMP/SRT)", cableRtmpController, setDialogState), const Divider(color: Colors.white24, height: 20),
-                  _buildLinkEditor("3. Satellite TV (SRT)", satelliteSrtController, setDialogState), const Divider(color: Colors.white24, height: 20),
+                  _buildLinkEditor("1. Primary Live Stream (Cable / RTMP)", cableRtmpController, setDialogState), const Divider(color: Colors.white24, height: 20),
+                  _buildLinkEditor("2. Secondary Live Stream (Restream/YT)", restreamRtmpController, setDialogState), const Divider(color: Colors.white24, height: 20),
+                  _buildLinkEditor("3. Backup Stream (Satellite SRT)", satelliteSrtController, setDialogState), const Divider(color: Colors.white24, height: 20),
                   _buildLinkEditor("4. YouTube Live Video Link", youtubeVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startYoutubeVideo(youtubeVideoUrlCtrl.text.trim()); }), const Divider(color: Colors.white24, height: 20),
                   _buildLinkEditor("5. Direct Network Video (MP4/m3u8)", networkVideoUrlCtrl, setDialogState, onPlay: () { Navigator.pop(context); _startNetworkVideoMp4(networkVideoUrlCtrl.text.trim()); }), const Divider(color: Colors.white24, height: 20),
                   const Text("6. గ్యాలరీ వీడియో (MP4, HD)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 8),
@@ -765,7 +764,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       builder: (ctx) {
         return StatefulBuilder(builder: (ctx, setDialogState) {
           return AlertDialog(
-            backgroundColor: Colors.grey[900], title: Text("Manage ${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
+            backgroundColor: Colors.grey[900], title: Text("Manage \${pos.toUpperCase()} Ads", style: const TextStyle(color: Colors.white, fontSize: 16)),
             content: SizedBox(
               width: double.maxFinite,
               child: currentPaths.isEmpty ? const Text("యాడ్స్ ఏమీ లేవు.", style: TextStyle(color: Colors.white54)) : ListView.builder(
@@ -774,7 +773,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');
                   return ListTile(
                     leading: isVideo ? const Icon(Icons.video_file, color: Colors.blueAccent, size: 40) : Image.file(File(path), width: 50, height: 50, fit: BoxFit.cover),
-                    title: Text("Ad ${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    title: Text("Ad \${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 13)),
                     trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () {
                       setState(() {
                         currentPaths.removeAt(idx); _saveAdPaths(pos, currentPaths);
@@ -837,11 +836,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _toggleRotation() { setState(() { isMenuOpen = false; isLandscape = !isLandscape; if (isLandscape) { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } else { SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]); } }); }
 
   Future<void> _startLiveAndLock() async {
-    String restreamUrl = restreamRtmpController.text.trim();
     String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
 
-    String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+    String selectedLiveUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);
 
     if (selectedLiveUrl.isEmpty) { 
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red)); 
@@ -869,7 +868,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ కనెక్షన్ ఫెయిల్ అయ్యింది. మళ్ళీ ప్రయత్నించండి."), backgroundColor: Colors.red));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: $e"), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Live Error: \$e"), backgroundColor: Colors.red));
     }
   }
 
@@ -881,7 +880,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         setState(() { isLiveBroadcasting = false; isLiveLocked = false; isLivePaused = false; }); 
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ విజయవంతంగా ఆగిపోయింది ❌"), backgroundColor: Colors.blueAccent));
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Stop Error: \$e");
+    }
   }
 
   Future<void> _toggleDualScreenAndPickMedia() async {
@@ -890,7 +891,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final List<XFile> medias = await _picker.pickMultipleMedia(); 
       if (medias.isNotEmpty && mounted) { dualMediaList = medias.map((e) => e.path).toList(); currentDualMediaIndex = 0; setState(() { isDualScreenMode = true; isNewsBulletinMode = false; isNetworkVideoMode = false; }); _playDualMedia(dualMediaList[currentDualMediaIndex]); }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Dual Screen Error: \$e");
+    }
   }
 
   void _playDualMedia(String path) {
@@ -1211,11 +1214,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
                               onPressed: () async {
                                 if (isLivePaused) {
-                                  String restreamUrl = restreamRtmpController.text.trim();
                                   String cableUrl = cableRtmpController.text.trim();
+                                  String restreamUrl = restreamRtmpController.text.trim();
                                   String satUrl = satelliteSrtController.text.trim();
                                   
-                                  String fullUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+                                  String fullUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);
                                   bool success = await StreamServiceManager.startLiveStream(fullUrl);
                                   if (success) { setState(() { isLivePaused = false; }); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"))); }
                                 } else {
@@ -1229,7 +1232,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           ] else ...[
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), 
-                              // ఇక్కడ నేరుగా లైవ్ కి వెళ్ళకుండా, "Live Control Room" ఓపెన్ అవుతుంది 
+                              // ఇక్కడ "GO LIVE" నొక్కినప్పుడు లైవ్ కంట్రోల్ రూమ్ ఓపెన్ అవుతుంది
                               onPressed: _showLiveControlDialog, 
                               icon: const Icon(Icons.sensors, color: Colors.white), 
                               label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
@@ -1245,7 +1248,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       )
                     ),
 
-                  // 12 BUTTONS MENU (Removed 'Live Links')
                   if (!hideControls && isMenuOpen && !isLiveLocked)
                     Positioned.fill(
                       child: Container(
@@ -1257,14 +1259,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               _buildControlButton(Icons.dashboard_customize, "PCR Board", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }, Colors.yellowAccent),
                               _buildControlButton(Icons.bar_chart, "Election Results", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }, Colors.blueAccent),
                               _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),
+                              
                               _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),
                               _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.cyanAccent),
                               _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),
                               _buildControlButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), _toggleAdMode, Colors.redAccent),
+                              
                               _buildControlButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : "Shape: U-Band", _toggleAdShapeMode, Colors.orangeAccent),
                               _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),
                               _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purpleAccent),
+                              
                               _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),
                             ]
                           ),
@@ -1294,7 +1299,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
 // ============================================================================
 // --- 2. MASTER PCR BOARD SCREEN ---
 // ============================================================================
@@ -1375,7 +1379,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         await _phoneCamCtrl!.initialize(); 
         if (mounted) setState(() {}); 
       }
-    } catch (e) {}
+    } catch (e) {
+        debugPrint("PCR Phone Cam Error: \$e");
+    }
   }
 
   Future<void> _loadSavedData() async {
@@ -1486,10 +1492,10 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     String restreamUrl = restreamRtmpController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
 
-    String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+    String selectedLiveUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);
 
     if (selectedLiveUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
     }
     var micStatus = await Permission.microphone.status;
@@ -1499,9 +1505,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
     if (success) {
       setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! రికార్డింగ్ పాప్-అప్ అనుమతించండి! ✔️"), backgroundColor: Colors.green));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! రికార్డింగ్ పాప్-అప్ అనుమతించండి! ✔️"), backgroundColor: Colors.green));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
     }
   }
 
@@ -1510,22 +1516,22 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     if (success) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
       setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
     }
   }
 
   Future<void> _togglePauseLive() async {
     if (isLivePaused) {
-      String restreamUrl = restreamRtmpController.text.trim();
       String cableUrl = cableRtmpController.text.trim();
+      String restreamUrl = restreamRtmpController.text.trim();
       String satUrl = satelliteSrtController.text.trim();
-      String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+      String selectedLiveUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);
       
       bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
-      if (success) { setState(() => isLivePaused = false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
+      if (success) { setState(() => isLivePaused = false); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
     } else {
       bool success = await StreamServiceManager.pauseLiveStream();
-      if (success) { setState(() => isLivePaused = true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.orange)); }
+      if (success) { setState(() => isLivePaused = true); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.orange)); }
     }
   }
 
@@ -1535,17 +1541,19 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       Row(children: [
         Expanded(child: TextField(controller: controller, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "Paste stream URL here...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24))))),
         IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 22), onPressed: () async { 
-          FocusScope.of(context).unfocus(); 
+          FocusScope.of(context).unfocus(); // కీబోర్డ్ క్లోజ్ చేయడానికి
           SharedPreferences prefs = await SharedPreferences.getInstance(); 
           await prefs.setString('cableRtmp', cableRtmpController.text); 
           await prefs.setString('restreamRtmp', restreamRtmpController.text); 
           await prefs.setString('satelliteSrt', satelliteSrtController.text); 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది! ✔️", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)), 
-              backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, margin: EdgeInsets.only(bottom: 250, left: 20, right: 20), duration: Duration(seconds: 2),
-            )
-          ); 
+          if(mounted){
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది! ✔️", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)), 
+                backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2),
+              )
+            ); 
+          }
         }),
       ])
     ]);
@@ -1602,12 +1610,28 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
-                child: ClipRect(child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Row(
-                  children: [
-                    Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24), 
-                    Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))
-                  ]
-                )),
+                child: ClipRect(
+                  child: isLivePaused 
+                    ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
+                    : Row(
+                        children: [
+                          Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), 
+                          Container(width: 2, color: Colors.white24), 
+                          Expanded(
+                            flex: 6, 
+                            child: layoutMode == 4 
+                              ? Column(children: [
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), 
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))]))
+                                ]) 
+                              : Column(children: [
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), 
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))
+                                ])
+                          )
+                        ]
+                      )
+                ),
               ),
               
               positionedLogoWidget,
@@ -1648,7 +1672,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   ),
                 ),
 
-              // === FLOATING CONTROLS IN PCR BOARD ===
               if (!hideControls)
                 Positioned(
                   bottom: 160, right: 15,
@@ -1660,7 +1683,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                         const SizedBox(width: 10),
                         ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                       ] else ...[
-                        // CRITICAL FIX: GO LIVE calls dialog
+                        // CRITICAL FIX: GO LIVE calls Dialog
                         ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _showLiveControlDialog, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                       ],
                     ],
@@ -1766,7 +1789,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       othSeats = 2;
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Election Data Refreshed!"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Election data Refreshed!"), backgroundColor: Colors.green));
     }
   }
 
@@ -1783,7 +1806,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         if (mounted) setState(() {});
       }
     } catch (e) {
-      debugPrint("Reporter Camera Error: $e");
+        debugPrint("Reporter Camera Error: \$e");
     }
   }
 
@@ -1889,7 +1912,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
 
     if (selectedLiveUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి ఏదైనా ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red));
       return;
     }
     var micStatus = await Permission.microphone.status;
@@ -1903,9 +1926,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         isLivePaused = false; 
         hideControls = false; 
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! రికార్డింగ్ పాప్-అప్ అనుమతించండి! ✔️"), backgroundColor: Colors.green));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! రికార్డింగ్ పాప్-అప్ అనుమతించండి! ✔️"), backgroundColor: Colors.green));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అవ్వలేదు. కనెక్షన్ చెక్ చేయండి."), backgroundColor: Colors.red));
     }
   }
 
@@ -1914,22 +1937,22 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     if (success) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
       setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
     }
   }
 
   Future<void> _togglePauseLive() async {
     if (isLivePaused) {
-      String restreamUrl = restreamRtmpController.text.trim();
       String cableUrl = cableRtmpController.text.trim();
+      String restreamUrl = restreamRtmpController.text.trim();
       String satUrl = satelliteSrtController.text.trim();
-      String selectedLiveUrl = restreamUrl.isNotEmpty ? restreamUrl : (cableUrl.isNotEmpty ? cableUrl : satUrl);
+      String selectedLiveUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);
       
       bool success = await StreamServiceManager.startLiveStream(selectedLiveUrl);
-      if (success) { setState(() => isLivePaused = false); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
+      if (success) { setState(() => isLivePaused = false); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ మళ్లీ మొదలైంది!"), backgroundColor: Colors.green)); }
     } else {
       bool success = await StreamServiceManager.pauseLiveStream();
-      if (success) { setState(() => isLivePaused = true); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.orange)); }
+      if (success) { setState(() => isLivePaused = true); if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ పాజ్ చేయబడింది."), backgroundColor: Colors.orange)); }
     }
   }
 
@@ -1944,12 +1967,14 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
           await prefs.setString('cableRtmp', cableRtmpController.text); 
           await prefs.setString('restreamRtmp', restreamRtmpController.text); 
           await prefs.setString('satelliteSrt', satelliteSrtController.text); 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది! ✔️", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)), 
-              backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, margin: EdgeInsets.only(bottom: 250, left: 20, right: 20), duration: Duration(seconds: 2),
-            )
-          ); 
+          if(mounted){
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది! ✔️", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)), 
+                backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, margin: EdgeInsets.only(bottom: 250, left: 20, right: 20), duration: Duration(seconds: 2),
+              )
+            ); 
+          }
         }),
       ])
     ]);
@@ -2007,31 +2032,33 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
                 child: ClipRect(
-                  child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(
-                    children: [
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800), _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800), _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800), ])),
-                            Expanded(
-                              child: Container(
-                                color: Colors.black,
-                                child: Stack(
-                                  children: [
-                                    Positioned(left: 10, top: 10, bottom: 10, width: 140, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2), color: Colors.grey[850]), child: _cameraController != null && _cameraController!.value.isInitialized ? ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _cameraController!.value.previewSize!.height, height: _cameraController!.value.previewSize!.width, child: CameraPreview(_cameraController!)))) : const Center(child: CircularProgressIndicator(color: Colors.amber)))),
-                                    Positioned(left: 160, right: 10, top: 20, bottom: 20, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade800, border: Border.all(color: Colors.amber, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)]), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)), SizedBox(height: 15), Text("EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), ]))),
-                                  ],
+                  child: isLivePaused 
+                    ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
+                    : Column(
+                        children: [
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800), _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800), _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800), ])),
+                                Expanded(
+                                  child: Container(
+                                    color: Colors.black,
+                                    child: Stack(
+                                      children: [
+                                        Positioned(left: 10, top: 10, bottom: 10, width: 140, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2), color: Colors.grey[850]), child: _cameraController != null && _cameraController!.value.isInitialized ? ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _cameraController!.value.previewSize!.height, height: _cameraController!.value.previewSize!.width, child: CameraPreview(_cameraController!)))) : const Center(child: CircularProgressIndicator(color: Colors.amber)))),
+                                        Positioned(left: 160, right: 10, top: 20, bottom: 20, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade800, border: Border.all(color: Colors.amber, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)]), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)), SizedBox(height: 15), Text("EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), ]))),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800), _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800), _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800), ])),
+                              ],
                             ),
-                            Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800), _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800), _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800), ])),
-                          ],
-                        ),
-                      ),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), color: Colors.black, child: Row(children: [ Container(width: 130, padding: const EdgeInsets.all(4), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)), ], )), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber), _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700), _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800), _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700), ], )), ])),
-                    ],
-                  ),
+                          ),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), color: Colors.black, child: Row(children: [ Container(width: 130, padding: const EdgeInsets.all(4), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)), ], )), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber), _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700), _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800), _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700), ], )), ])),
+                        ],
+                      )
                 ),
               ),
 
