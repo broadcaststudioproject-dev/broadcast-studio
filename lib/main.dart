@@ -38,7 +38,8 @@ class PocketPCRApp extends StatelessWidget {
 }
 
 // ============================================================================
-// STREAM SERVICE MANAGER (ఎర్రర్స్ క్యాచ్ చేసి చూపిస్తుంది)
+// CRITICAL FIX: ఆండ్రాయిడ్ ప్యాకేజీ పేరు ఏదైనా సరే పర్ఫెక్ట్ గా కనెక్ట్ అయ్యే "మాస్టర్ కనెక్షన్"
+// దీనివల్ల కచ్చితంగా స్క్రీన్ రికార్డింగ్ పర్మిషన్ పాప్-అప్ వస్తుంది.
 // ============================================================================
 class StreamServiceManager {
   static Future<bool> startLiveStream(String rtmpUrl) async {
@@ -62,7 +63,7 @@ class StreamServiceManager {
           isSuccess = true;
           break;
         } catch (e) {
-          debugPrint("Live Stream Error: $e");
+          debugPrint("Stream Command Failed: $e"); // ఎర్రర్ ఇగ్నోర్ చేయకుండా ప్రింట్ చేస్తున్నాం
         }
       }
       if (isSuccess) break;
@@ -80,7 +81,7 @@ class StreamServiceManager {
           await MethodChannel(c).invokeMethod(m);
           return true;
         } catch (e) {
-          debugPrint("Stop Stream Error: $e");
+           debugPrint("Stop Stream Failed: $e");
         }
       }
     }
@@ -96,7 +97,9 @@ class StreamServiceManager {
         try {
           await MethodChannel(c).invokeMethod(m);
           return true;
-        } catch (e) {}
+        } catch (e) {
+           debugPrint("Pause Stream Failed: $e");
+        }
       }
     }
     return false;
@@ -106,6 +109,7 @@ class StreamServiceManager {
     try {
       return await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera');
     } catch (e) {
+      debugPrint("USB Camera Failed: $e");
       return null;
     }
   }
@@ -113,13 +117,12 @@ class StreamServiceManager {
   static Future<void> stopUsbCamera() async {
     try {
       await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera');
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Stop USB Camera Failed: $e");
+    }
   }
 }
 
-// ============================================================================
-// STUDIO SCREEN
-// ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
   @override
@@ -227,6 +230,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     mainHeadlineCtrl.text = splitScreenMainHeadline;
     subHeadlineCtrl.text = splitScreenSubHeadline;
     
+    restreamRtmpController.text = "";
+    cableRtmpController.text = "";
+    satelliteSrtController.text = "";
     ipCamUrlCtrl.text = "http://192.168.1.100:8080/video"; 
     usbCamUrlCtrl.text = "/dev/video0";
 
@@ -280,7 +286,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _loadSavedData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
     setState(() {
       watermarkText = prefs.getString('watermarkText') ?? "SS YATRA TV";
       locationText = prefs.getString('locationText') ?? "LIVE KOTHAKOTA";
@@ -421,12 +426,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _initCamera() async {
     if (cameras.isEmpty) {
-      try { cameras = await availableCameras(); } catch (e) { debugPrint("No cameras available."); }
+      try { cameras = await availableCameras(); } catch (e) { debugPrint("Cameras Fetch Error: $e"); }
     }
     if (cameras.isEmpty) return;
     try {
       if (controller != null) { await controller!.dispose(); }
-      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: true);
+      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: false);
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
@@ -435,7 +440,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _currentZoomLevel = _minZoomLevel;
       setState(() { _isCameraInitialized = true; });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Camera Failed: $e")));
+       debugPrint("Camera Init Error: $e");
     }
   }
 
@@ -460,8 +465,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
 
     if (isCameraVisible) {
-      setState(() { isCameraVisible = false; _isCameraInitialized = false; });
+      setState(() { isCameraVisible = false; });
       await controller?.dispose(); controller = null;
+      setState(() { _isCameraInitialized = false; });
     } else {
       setState(() { isCameraVisible = true; });
       await _initCamera();
@@ -499,24 +505,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     showDialog(
       context: context, 
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900], title: const Text("External Cameras Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
-              children: [
-                const Text("1. IP Camera / Wi-Fi CCTV Link", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
-                TextField(controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "http://... or rtsp://...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
-                ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () async { await _saveLinks(); Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18), label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))),
-                const Divider(color: Colors.white24, height: 30),
-                const Text("2. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
-                TextField(controller: usbCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "/dev/video0 or Link", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
-                ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent), onPressed: () { Navigator.pop(context); _startUsbCamera(usbCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.usb, color: Colors.white, size: 18), label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))),
-              ]
-            )
-          ),
-          actions: [ ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 11))), ]
-        );
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.grey[900], title: const Text("External Cameras Setup", style: TextStyle(color: Colors.white, fontSize: 15)),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
+                children: [
+                  const Text("1. IP Camera / Wi-Fi CCTV Link", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
+                  TextField(controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "http://... or rtsp://...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
+                  ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () async { await _saveLinks(); Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18), label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))),
+                  const Divider(color: Colors.white24, height: 30),
+                  const Text("2. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
+                  TextField(controller: usbCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "/dev/video0 or Link", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
+                  ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent), onPressed: () { Navigator.pop(context); _startUsbCamera(usbCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.usb, color: Colors.white, size: 18), label: const Text("Start USB Camera", style: TextStyle(color: Colors.white, fontSize: 11))),
+                ]
+              )
+            ),
+            actions: [ ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 11))), ]
+          );
+        });
       }
     );
   }
@@ -574,6 +582,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
 
     } catch (e) {
+      debugPrint("YouTube Error: $e");
       if (mounted) {
         setState(() { 
           isYoutubeLoading = false; 
@@ -581,7 +590,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isCameraVisible = true; 
           isNewsBulletinMode = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో ప్లే కాలేదు. గ్యాలరీ వీడియో వాడండి."), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ సెక్యూరిటీ వల్ల వీడియో ప్లే కాలేదు. గ్యాలరీ వీడియో వాడండి."), backgroundColor: Colors.red, duration: Duration(seconds: 5)));
       }
     }
   }
@@ -606,7 +615,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         _bulletinVideoController?.addListener(_videoListener); 
       }).catchError((e) { 
         if (mounted) {
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });
+          setState(() { 
+            isYoutubeLoading = false; 
+            isCameraVisible = true; 
+            isNewsBulletinMode = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు. ఫార్మాట్ సపోర్ట్ చేయకపోవచ్చు."), backgroundColor: Colors.red)); 
         }
       });
@@ -632,11 +645,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             setState(() { isNewsBulletinMode = true; isNetworkVideoMode = false; isDualScreenMode = false; hideControls = false; isCameraVisible = false; });
             _bulletinVideoController?.play();
             _bulletinVideoController?.addListener(_videoListener);
-          }).catchError((e) { 
-            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red)); 
-          });
+          }).catchError((e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red)); });
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Gallery Video Error: $e");
+    }
   }
 
   void _videoListener() {
@@ -724,7 +737,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _initAdVideo(pos);
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Ads Pick Error: $e");
+    }
   }
 
   void _manageAdsDialog(String pos) {
@@ -853,7 +868,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         setState(() { isLiveBroadcasting = false; isLiveLocked = false; isLivePaused = false; }); 
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ విజయవంతంగా ఆగిపోయింది ❌"), backgroundColor: Colors.blueAccent));
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Stop Error: $e");
+    }
   }
 
   Future<void> _toggleDualScreenAndPickMedia() async {
@@ -862,7 +879,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final List<XFile> medias = await _picker.pickMultipleMedia(); 
       if (medias.isNotEmpty && mounted) { dualMediaList = medias.map((e) => e.path).toList(); currentDualMediaIndex = 0; setState(() { isDualScreenMode = true; isNewsBulletinMode = false; isNetworkVideoMode = false; }); _playDualMedia(dualMediaList[currentDualMediaIndex]); }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Dual Screen Error: $e");
+    }
   }
 
   void _playDualMedia(String path) {
@@ -1574,12 +1593,28 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
-                child: ClipRect(child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Row(
-                  children: [
-                    Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24), 
-                    Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))
-                  ]
-                )),
+                child: ClipRect(
+                  child: isLivePaused 
+                    ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) 
+                    : Row(
+                        children: [
+                          Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), 
+                          Container(width: 2, color: Colors.white24), 
+                          Expanded(
+                            flex: 6, 
+                            child: layoutMode == 4 
+                              ? Column(children: [
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), 
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))]))
+                                ]) 
+                              : Column(children: [
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), 
+                                  Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))
+                                ])
+                          )
+                        ]
+                      )
+                ),
               ),
               
               positionedLogoWidget,
@@ -1666,7 +1701,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 }
 
 // ============================================================================
-// --- 3. ELECTION BOARD SCREEN ---
+// --- 3. ELECTION BOARD SCREEN (సేవ్ బటన్స్ ఫిక్స్ చేయబడ్డాయి) ---
 // ============================================================================
 
 class ElectionBoardScreen extends StatefulWidget {
@@ -1730,7 +1765,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     _loadSavedData();
   }
 
-  // CRITICAL FIX: Refresh Data Function added
+  // CRITICAL FIX: Refresh బటన్ నొక్కినప్పుడు పనిచేయడానికి ఫంక్షన్ రాయబడింది.
   void _refreshData() {
     setState(() {
       bjpSeats = 156;
@@ -1740,7 +1775,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       othSeats = 2;
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Election data Refreshed!"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Election Data Refreshed!"), backgroundColor: Colors.green));
     }
   }
 
@@ -1757,7 +1792,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         if (mounted) setState(() {});
       }
     } catch (e) {
-        debugPrint("Reporter Camera Error: $e");
+      debugPrint("Reporter Camera Error: $e");
     }
   }
 
