@@ -37,14 +37,13 @@ class PocketPCRApp extends StatelessWidget {
 }
 
 // ============================================================================
-// 1. STREAM SERVICE MANAGER (అన్ని లింక్స్ కి ఒకేసారి లైవ్ వెళ్లేలా మార్చబడింది)
+// 1. STREAM SERVICE MANAGER (అన్ని లింక్స్ కి ఒకేసారి లైవ్ వెళ్లేలా మల్టీ-స్ట్రీమింగ్)
 // ============================================================================
 class StreamServiceManager {
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
     List<String> channels = ['com.ssyatratv.pocket_pcr/stream', 'com.kingjvk.pocket_pcr/stream'];
     List<String> methods = ['startScreenStream', 'startScreenCaptureStreaming'];
     
-    // ఏదైనా ఒక లింక్ ఉన్నా లైవ్ కి వెళ్లేలా..
     String primaryUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);
     if (primaryUrl.isEmpty) return false;
 
@@ -53,7 +52,6 @@ class StreamServiceManager {
     for (String c in channels) {
       for (String m in methods) {
         try {
-          // Native Android కి అన్ని లింక్స్ ఒకేసారి పంపబడతాయి
           await MethodChannel(c).invokeMethod(m, {
             'rtmpUrl': safePrimaryUrl, 
             'cableRtmp': cableUrl.isNotEmpty ? cableUrl.replaceFirst('rtmps://', 'rtmp://') : "",
@@ -113,7 +111,7 @@ class StreamServiceManager {
 }
 
 // ============================================================================
-// 2. STUDIO SCREEN
+// 2. STUDIO SCREEN 
 // ============================================================================
 class StudioScreen extends StatefulWidget {
   const StudioScreen({Key? key}) : super(key: key);
@@ -159,6 +157,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isNoiseCancellationEnabled = true;
   bool _isCameraInitialized = false;
 
+  double _currentZoomLevel = 1.0;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 8.0;
+  double _baseScale = 1.0;
+
   final ImagePicker _picker = ImagePicker();
 
   String channelLogoPath = "";
@@ -202,15 +205,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
   int? _usbTextureId;
-  double _baseScale = 1.0;
-  double _currentZoomLevel = 1.0;
-  double _minZoomLevel = 1.0;
-  double _maxZoomLevel = 8.0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
     ipCamUrlCtrl.text = "http://192.168.1.100:8080/video"; 
     usbCamUrlCtrl.text = "/dev/video0";
 
@@ -255,44 +255,45 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _loadSavedData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      watermarkText = prefs.getString('watermarkText') ?? "SS YATRA TV";
-      locationText = prefs.getString('locationText') ?? "LIVE KOTHAKOTA";
-      reporterName = prefs.getString('reporterName') ?? "JANAMPALLY VINOD KUMAR";
-      reporterRole = prefs.getString('reporterRole') ?? "SPECIAL CORRESPONDENT";
-      breakingNewsText = prefs.getString('breakingNewsText') ?? "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
-      splitScreenMainHeadline = prefs.getString('splitScreenMainHeadline') ?? "తాజా వార్తలు";
-      splitScreenSubHeadline = prefs.getString('splitScreenSubHeadline') ?? "వార్తా అప్డేట్";
-      isNoiseCancellationEnabled = prefs.getBool('noiseCancel') ?? true;
-      adShapeMode = prefs.getInt('adShapeMode') ?? 0;
-      logoPosition = prefs.getInt('logoPosition') ?? 1;
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        watermarkText = prefs.getString('watermarkText') ?? "SS YATRA TV";
+        locationText = prefs.getString('locationText') ?? "LIVE KOTHAKOTA";
+        reporterName = prefs.getString('reporterName') ?? "JANAMPALLY VINOD KUMAR";
+        reporterRole = prefs.getString('reporterRole') ?? "SPECIAL CORRESPONDENT";
+        breakingNewsText = prefs.getString('breakingNewsText') ?? "తెలంగాణ మరియు జాతీయ తాజా అత్యవసర వార్తలు లోడ్ అవుతున్నాయి...";
+        splitScreenMainHeadline = prefs.getString('splitScreenMainHeadline') ?? "తాజా వార్తలు";
+        splitScreenSubHeadline = prefs.getString('splitScreenSubHeadline') ?? "వార్తా అప్డేట్";
+        isNoiseCancellationEnabled = prefs.getBool('noiseCancel') ?? true;
+        adShapeMode = prefs.getInt('adShapeMode') ?? 0;
+        logoPosition = prefs.getInt('logoPosition') ?? 1;
 
-      // లోడ్ అవుతున్నప్పుడే లింక్స్ అన్నీ ఫీల్డ్స్ లోకి వచ్చేలా సెట్ చేశాం
-      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
-      youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
-      networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
+        cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
+        restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
+        satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+        youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
+        networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
 
-      watermarkCtrl.text = watermarkText;
-      locCtrl.text = locationText;
-      nameCtrl.text = reporterName;
-      roleCtrl.text = reporterRole;
-      mainHeadlineCtrl.text = splitScreenMainHeadline;
-      subHeadlineCtrl.text = splitScreenSubHeadline;
+        watermarkCtrl.text = watermarkText;
+        locCtrl.text = locationText;
+        nameCtrl.text = reporterName;
+        roleCtrl.text = reporterRole;
+        mainHeadlineCtrl.text = splitScreenMainHeadline;
+        subHeadlineCtrl.text = splitScreenSubHeadline;
 
-      String savedLogo = prefs.getString('channelLogoPath') ?? "";
-      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) { _setLogo(savedLogo); }
-      
-      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
-      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
-      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        String savedLogo = prefs.getString('channelLogoPath') ?? "";
+        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) { _setLogo(savedLogo); }
+        
+        leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
 
-      if (leftAdPaths.isNotEmpty) _initAdVideo('left');
-      if (rightAdPaths.isNotEmpty) _initAdVideo('right');
-      if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
-    });
+        if (leftAdPaths.isNotEmpty) _initAdVideo('left');
+        if (rightAdPaths.isNotEmpty) _initAdVideo('right');
+        if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
+      });
+    } catch(e) { debugPrint("Load Error: $e"); }
   }
 
   void _initAdVideo(String pos) {
@@ -316,34 +317,40 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _saveTextSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('watermarkText', watermarkText);
-    await prefs.setString('locationText', locationText);
-    await prefs.setString('reporterName', reporterName);
-    await prefs.setString('reporterRole', reporterRole);
-    await prefs.setString('splitScreenMainHeadline', splitScreenMainHeadline);
-    await prefs.setString('splitScreenSubHeadline', splitScreenSubHeadline);
-    await prefs.setString('breakingNewsText', breakingNewsText);
-    await prefs.setBool('noiseCancel', isNoiseCancellationEnabled);
-    await prefs.setInt('adShapeMode', adShapeMode);
-    await prefs.setInt('logoPosition', logoPosition);
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('watermarkText', watermarkText);
+      await prefs.setString('locationText', locationText);
+      await prefs.setString('reporterName', reporterName);
+      await prefs.setString('reporterRole', reporterRole);
+      await prefs.setString('splitScreenMainHeadline', splitScreenMainHeadline);
+      await prefs.setString('splitScreenSubHeadline', splitScreenSubHeadline);
+      await prefs.setString('breakingNewsText', breakingNewsText);
+      await prefs.setBool('noiseCancel', isNoiseCancellationEnabled);
+      await prefs.setInt('adShapeMode', adShapeMode);
+      await prefs.setInt('logoPosition', logoPosition);
+    } catch(e) {}
   }
 
-  // లింక్స్ సేవ్ చేసే ఫంక్షన్
+  // 🔴 Hang అవ్వకుండా ఉండటానికి async 'await' తీసేసిన సేవ్ ఫంక్షన్
   Future<void> _saveLinks() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cableRtmp', cableRtmpController.text.trim());
-    await prefs.setString('restreamRtmp', restreamRtmpController.text.trim());
-    await prefs.setString('satelliteSrt', satelliteSrtController.text.trim());
-    await prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text.trim());
-    await prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text.trim());
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('cableRtmp', cableRtmpController.text.trim());
+      prefs.setString('restreamRtmp', restreamRtmpController.text.trim());
+      prefs.setString('satelliteSrt', satelliteSrtController.text.trim());
+      prefs.setString('youtubeVideoUrl', youtubeVideoUrlCtrl.text.trim());
+      prefs.setString('networkVideoUrl', networkVideoUrlCtrl.text.trim());
+    } catch(e) { debugPrint("Save Error: $e"); }
   }
 
   Future<void> _saveAdPaths(String pos, List<String> paths) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (pos == 'left') await prefs.setStringList('leftAdPaths', paths);
-    if (pos == 'right') await prefs.setStringList('rightAdPaths', paths);
-    if (pos == 'bottom') await prefs.setStringList('bottomAdPaths', paths);
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (pos == 'left') await prefs.setStringList('leftAdPaths', paths);
+      if (pos == 'right') await prefs.setStringList('rightAdPaths', paths);
+      if (pos == 'bottom') await prefs.setStringList('bottomAdPaths', paths);
+    } catch(e) {}
   }
 
   @override
@@ -367,21 +374,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bottomAdVideoCtrlForAds?.dispose();
     _logoVideoCtrl?.dispose();
     _ipCamController?.dispose();
-
-    restreamRtmpController.dispose();
-    cableRtmpController.dispose();
-    satelliteSrtController.dispose();
-    networkVideoUrlCtrl.dispose();
-    youtubeVideoUrlCtrl.dispose();
-    ipCamUrlCtrl.dispose();
-    usbCamUrlCtrl.dispose();
-    watermarkCtrl.dispose();
-    locCtrl.dispose();
-    nameCtrl.dispose();
-    roleCtrl.dispose();
-    manualTickerCtrl.dispose();
-    mainHeadlineCtrl.dispose();
-    subHeadlineCtrl.dispose();
     super.dispose();
   }
 
@@ -479,7 +471,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               children: [
                 const Text("1. IP Camera / Wi-Fi CCTV Link", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
                 TextField(controller: ipCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "http://... or rtsp://...", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
-                ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () async { await _saveLinks(); Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18), label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))),
+                ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), onPressed: () { _saveLinks(); Navigator.pop(context); _startIpCamera(ipCamUrlCtrl.text.trim()); }, icon: const Icon(Icons.wifi_tethering, color: Colors.white, size: 18), label: const Text("Connect IP Cam", style: TextStyle(color: Colors.white, fontSize: 11))),
                 const Divider(color: Colors.white24, height: 30),
                 const Text("2. USB / Type-C Capture Card (UVC)", style: TextStyle(color: Colors.cyanAccent, fontSize: 11)), const SizedBox(height: 5),
                 TextField(controller: usbCamUrlCtrl, style: const TextStyle(color: Colors.yellow, fontSize: 12), decoration: const InputDecoration(hintText: "/dev/video0 or Link", hintStyle: TextStyle(color: Colors.white30), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)))), const SizedBox(height: 10),
@@ -493,22 +485,199 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // ============================================================================
+  // 🔴 LIVE CONTROL ROOM (Anti-Hang, Auto-Save, Top SnackBar)
+  // ============================================================================
+  void _showLiveControlDialog() {
+    setState(() { isMenuOpen = false; });
+    showDialog(
+      context: context, 
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1E1E1E), 
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
+                children: [
+                  const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  
+                  _buildLinkEditor("1. Primary Live Stream (Cable / RTMP)", cableRtmpController, onPlay: null), 
+                  const Divider(color: Colors.white24, height: 25),
+                  
+                  _buildLinkEditor("2. Secondary Live Stream (Restream / YT)", restreamRtmpController, onPlay: null), 
+                  const Divider(color: Colors.white24, height: 25),
+                  
+                  _buildLinkEditor("3. Backup Stream (Satellite SRT)", satelliteSrtController, onPlay: null), 
+                  const Divider(color: Colors.white24, height: 25),
+                  
+                  _buildLinkEditor("4. YouTube Live Video Link", youtubeVideoUrlCtrl, onPlay: () { 
+                    Navigator.of(context, rootNavigator: true).pop(); 
+                    _startYoutubeVideo(youtubeVideoUrlCtrl.text.trim()); 
+                  }), 
+                  const Divider(color: Colors.white24, height: 25),
+                  
+                  _buildLinkEditor("5. Direct Network Video (MP4/m3u8)", networkVideoUrlCtrl, onPlay: () { 
+                    Navigator.of(context, rootNavigator: true).pop(); 
+                    _startNetworkVideoMp4(networkVideoUrlCtrl.text.trim()); 
+                  }), 
+                  const Divider(color: Colors.white24, height: 25),
+                  
+                  const Text("6. గ్యాలరీ వీడియో (MP4, HD)", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)), 
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity, 
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), 
+                      onPressed: () { 
+                        Navigator.of(context, rootNavigator: true).pop(); 
+                        _playLocalGalleryVideo(); 
+                      }, 
+                      icon: const Icon(Icons.video_library, color: Colors.white, size: 20), 
+                      label: const Text("గ్యాలరీ వీడియో తీసుకోండి", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
+                    )
+                  ),
+                  const SizedBox(height: 30),
+                  
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          Navigator.of(context, rootNavigator: true).pop();
+                        }, 
+                        child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 15))
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                        onPressed: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          _saveLinks(); // Await తీసేశాం, ఫ్రీజ్ అవ్వదు!
+                          Navigator.of(context, rootNavigator: true).pop(); // గ్యారెంటీగా డైలాగ్ క్లోజ్ అవుతుంది
+                          _startLiveAndLock(); 
+                        }, 
+                        child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
+                      )
+                    ]
+                  )
+                ]
+              )
+            ),
+          ),
+        );
+      }
+    );
+  }
+
+  // 🔴 లింక్ బాక్స్ (బ్రైట్ ఎల్లో & ఆటో సేవ్ ఫీచర్ తో)
+  Widget _buildLinkEditor(String label, TextEditingController controller, {VoidCallback? onPlay}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start, 
+      children: [
+        Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 12)),
+        const SizedBox(height: 5),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller, 
+                style: const TextStyle(color: Colors.yellow, fontSize: 13, fontWeight: FontWeight.bold), 
+                decoration: const InputDecoration(
+                  hintText: "Paste link here...", 
+                  hintStyle: TextStyle(color: Colors.white24, fontWeight: FontWeight.normal), 
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent))
+                )
+              )
+            ),
+            IconButton(
+              icon: const Icon(Icons.save, color: Colors.blueAccent, size: 28), 
+              onPressed: () { 
+                FocusManager.instance.primaryFocus?.unfocus(); 
+                _saveLinks(); // డైరెక్ట్ సేవ్
+                if (mounted) {
+                  // 🔴 డైలాగ్ వెనుక దాగిపోకుండా కచ్చితంగా పైకి పాప్-అప్ అయ్యే హై-స్నాక్ బార్
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("✔️ లింక్ సేవ్ అయ్యింది!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.only(bottom: 400, left: 20, right: 20),
+                      duration: Duration(seconds: 2),
+                    )
+                  ); 
+                }
+              }
+            ),
+            if (onPlay != null) 
+              IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 34), onPressed: onPlay)
+          ]
+        )
+      ]
+    );
+  }
+
+  // 🔴 మల్టీ స్ట్రీమింగ్ - సేఫ్టీ టైమ్ అవుట్స్ తో!
+  Future<void> _startLiveAndLock() async {
+    _saveLinks(); 
+    String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
+
+    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) { 
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red)); 
+      return; 
+    }
+
+    try {
+      // మైక్ పర్మిషన్ చెకింగ్ కు టైమ్ లిమిట్ పెట్టాం, ఒకవేళ క్రాష్ అయినా స్కిప్ అవుతుంది
+      try {
+        var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));
+        if (!micStatus.isGranted) {
+          await Permission.microphone.request().timeout(const Duration(seconds: 2));
+        }
+      } catch (e) { debugPrint("Mic skip"); }
+
+      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      
+      // Native ఆండ్రాయిడ్ కమాండ్ కి టైమ్ అవుట్
+      bool success = false;
+      try {
+        success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 4));
+      } catch(e) { success = false; }
+      
+      if (success) {
+        setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = false; hideControls = false; isMenuOpen = false; isLandscape = true; });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ అనుమతించండి! లైవ్ వెళుతుంది ✔️"), backgroundColor: Colors.green));
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("బ్రాడ్ కాస్ట్ ఫెయిల్. బ్రౌజర్‌లో లైవ్ వెళ్ళదు, APK ద్వారా ఫోన్‌లో చెక్ చేయండి."), backgroundColor: Colors.red));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: బ్రౌజర్‌లో ఈ ఫీచర్ పనిచేయదు."), backgroundColor: Colors.red));
+    }
+  }
+
+  // ============================================================================
+  // YouTube & Gallery
+  // ============================================================================
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
 
-    setState(() { 
-      isYoutubeLoading = true; 
-      isCameraVisible = false; 
-    });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది. వేచి ఉండండి..."), backgroundColor: Colors.orange));
+    setState(() { isYoutubeLoading = true; isCameraVisible = false; });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("యూట్యూబ్ వీడియో లోడ్ అవుతోంది..."), backgroundColor: Colors.orange));
 
     try {
       String finalPlayUrl = cleanUrl;
       if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {
         var ytExplode = yt.YoutubeExplode();
         String? videoIdStr;
-        
         try { videoIdStr = yt.VideoId.parseVideoId(cleanUrl); } catch (_) {}
         if (videoIdStr == null) {
           RegExp regExp = RegExp(r'(?:v=|/v/|embed/|youtu\.be/|/live/)([a-zA-Z0-9_-]{11})', caseSensitive: false);
@@ -544,7 +713,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       } else {
         throw Exception("డైరెక్ట్ లింక్ యాక్సెస్ లేదు.");
       }
-
     } catch (e) {
       if (mounted) {
         setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });
@@ -562,19 +730,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (!mounted) return; 
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
         setState(() { 
-          isNewsBulletinMode = true; 
-          isNetworkVideoMode = false;
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isYoutubeLoading = false;
-          isCameraVisible = false;
+          isNewsBulletinMode = true; isNetworkVideoMode = false; isDualScreenMode = false; hideControls = false; isYoutubeLoading = false; isCameraVisible = false;
         }); 
         _bulletinVideoController?.play(); 
         _bulletinVideoController?.addListener(_videoListener); 
         
-        if (!isLiveBroadcasting) {
-          _startLiveAndLock();
-        }
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }
       }).catchError((e) { 
         if (mounted) {
           setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });
@@ -604,9 +765,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             _bulletinVideoController?.play();
             _bulletinVideoController?.addListener(_videoListener);
             
-            if (!isLiveBroadcasting) {
-              _startLiveAndLock();
-            }
+            if (!isLiveBroadcasting) { _startLiveAndLock(); }
           }).catchError((e) { 
             if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("వీడియో ప్లే అవ్వడం లేదు."), backgroundColor: Colors.red)); 
           });
@@ -629,188 +788,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       isBulletinMuted = !isBulletinMuted;
       if (isNewsBulletinMode && _bulletinVideoController != null) { _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); }
     });
-  }
-
-  // ============================================================================
-  // CRITICAL FIX: Live Control Room Dialog (Safe Context & Full Multi-stream)
-  // ============================================================================
-  void _showLiveControlDialog() {
-    setState(() { isMenuOpen = false; });
-    showDialog(
-      context: context, 
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) { 
-        return Dialog(
-          backgroundColor: const Color(0xFF1E1E1E), 
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            padding: const EdgeInsets.all(20),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, 
-                children: [
-                  const Text("Live Control Room", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  
-                  _buildLinkEditor("1. Primary Live Stream (Cable / RTMP)", cableRtmpController, dialogContext), 
-                  const Divider(color: Colors.white24, height: 25),
-                  
-                  _buildLinkEditor("2. Secondary Live Stream (Restream / YT)", restreamRtmpController, dialogContext), 
-                  const Divider(color: Colors.white24, height: 25),
-                  
-                  _buildLinkEditor("3. Backup Stream (Satellite SRT)", satelliteSrtController, dialogContext), 
-                  const Divider(color: Colors.white24, height: 25),
-                  
-                  _buildLinkEditor("4. YouTube Live Video Link", youtubeVideoUrlCtrl, dialogContext, onPlay: () { 
-                    Navigator.pop(dialogContext); 
-                    _startYoutubeVideo(youtubeVideoUrlCtrl.text.trim()); 
-                  }), 
-                  const Divider(color: Colors.white24, height: 25),
-                  
-                  _buildLinkEditor("5. Direct Network Video (MP4/m3u8)", networkVideoUrlCtrl, dialogContext, onPlay: () { 
-                    Navigator.pop(dialogContext); 
-                    _startNetworkVideoMp4(networkVideoUrlCtrl.text.trim()); 
-                  }), 
-                  const Divider(color: Colors.white24, height: 25),
-                  
-                  const Text("6. గ్యాలరీ వీడియో (MP4, HD)", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)), 
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity, 
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purpleAccent, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), 
-                      onPressed: () { 
-                        Navigator.pop(dialogContext); 
-                        _playLocalGalleryVideo(); 
-                      }, 
-                      icon: const Icon(Icons.video_library, color: Colors.white, size: 20), 
-                      label: const Text("గ్యాలరీ వీడియో తీసుకోండి", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
-                    )
-                  ),
-                  const SizedBox(height: 30),
-                  
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          Navigator.pop(dialogContext);
-                        }, 
-                        child: const Text("Close", style: TextStyle(color: Colors.white, fontSize: 14))
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                        onPressed: () async {
-                          try {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            await _saveLinks();
-                            Navigator.pop(dialogContext);
-                            await _startLiveAndLock();
-                          } catch (e) {
-                            debugPrint("Broadcast Error: $e");
-                          }
-                        }, 
-                        child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
-                      )
-                    ],
-                  )
-                ]
-              )
-            ),
-          ),
-        );
-      }
-    );
-  }
-
-  Widget _buildLinkEditor(String label, TextEditingController controller, BuildContext dialogContext, {VoidCallback? onPlay}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start, 
-      children: [
-        Text(label, style: const TextStyle(color: Colors.cyanAccent, fontSize: 12)),
-        const SizedBox(height: 5),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: controller, 
-                style: const TextStyle(color: Colors.yellow, fontSize: 13, fontWeight: FontWeight.bold), 
-                decoration: const InputDecoration(
-                  hintText: "Paste link here...", 
-                  hintStyle: TextStyle(color: Colors.white24, fontWeight: FontWeight.normal), 
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent))
-                )
-              )
-            ),
-            IconButton(
-              icon: const Icon(Icons.save, color: Colors.blueAccent, size: 24), 
-              onPressed: () async { 
-                try {
-                  FocusManager.instance.primaryFocus?.unfocus(); 
-                  await _saveLinks(); 
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("✔️ లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(seconds: 2),
-                      )
-                    ); 
-                  }
-                } catch (e) {
-                  debugPrint("Save Error: $e");
-                }
-              }
-            ),
-            if (onPlay != null) 
-              IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 30), onPressed: onPlay)
-          ]
-        )
-      ]
-    );
-  }
-
-  // అన్ని లింక్స్ కి ఒకేసారి (Multi-stream) లైవ్ కమాండ్ వెళ్లేలా..
-  Future<void> _startLiveAndLock() async {
-    await _saveLinks(); 
-    String cableUrl = cableRtmpController.text.trim();
-    String restreamUrl = restreamRtmpController.text.trim();
-    String satUrl = satelliteSrtController.text.trim();
-
-    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) { 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి."), backgroundColor: Colors.red)); 
-      return; 
-    }
-
-    try {
-      try {
-        var micStatus = await Permission.microphone.status;
-        if (!micStatus.isGranted) await Permission.microphone.request();
-      } catch (e) {}
-
-      bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);
-      
-      if (success) {
-        try { SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); } catch (e) {}
-        setState(() { 
-          isLiveBroadcasting = true; 
-          isLivePaused = false; 
-          isLiveLocked = false; 
-          hideControls = false; 
-          isMenuOpen = false; 
-          isLandscape = true; 
-        });
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("స్క్రీన్ రికార్డింగ్ అనుమతించండి! (Multi-Stream) లైవ్ వెళుతుంది ✔️"), backgroundColor: Colors.green));
-      } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("బ్రాడ్ కాస్ట్ ఫెయిల్. బ్రౌజర్‌లో లైవ్ వెళ్ళదు, APK ద్వారా ఫోన్‌లో చెక్ చేయండి."), backgroundColor: Colors.red));
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: బ్రౌజర్‌లో ఈ ఫీచర్ పనిచేయదు."), backgroundColor: Colors.red));
-    }
   }
 
   Future<void> _stopLiveStream() async {
@@ -1279,7 +1256,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       )
                     ),
 
-                  // 12 BUTTON MENU
                   if (!hideControls && isMenuOpen && !isLiveLocked)
                     Positioned.fill(
                       child: Container(
@@ -1413,30 +1389,31 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   Future<void> _loadSavedData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      layoutMode = prefs.getInt('pcr_layoutMode') ?? 6;
-      adShapeMode = prefs.getInt('adShapeMode') ?? 0;
-      logoPosition = prefs.getInt('logoPosition') ?? 0;
-      isNoiseCancellationEnabled = prefs.getBool('noiseCancel') ?? true;
-      breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        layoutMode = prefs.getInt('pcr_layoutMode') ?? 6;
+        adShapeMode = prefs.getInt('adShapeMode') ?? 0;
+        logoPosition = prefs.getInt('logoPosition') ?? 0;
+        isNoiseCancellationEnabled = prefs.getBool('noiseCancel') ?? true;
+        breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
 
-      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+        cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
+        restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
+        satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
 
-      String savedLogo = prefs.getString('channelLogoPath') ?? "";
-      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
+        String savedLogo = prefs.getString('channelLogoPath') ?? "";
+        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
 
-      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
-      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
-      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
 
-      if (leftAdPaths.isNotEmpty) _initAdVideo('left');
-      if (rightAdPaths.isNotEmpty) _initAdVideo('right');
-      if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
-    });
+        if (leftAdPaths.isNotEmpty) _initAdVideo('left');
+        if (rightAdPaths.isNotEmpty) _initAdVideo('right');
+        if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
+      });
+    } catch (e) {}
   }
 
   void _setLogo(String path) {
@@ -1477,6 +1454,15 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     setState(() { cam['muted'] = !cam['muted']; }); 
   }
 
+  Future<void> _saveLinks() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('cableRtmp', cableRtmpController.text.trim());
+      prefs.setString('restreamRtmp', restreamRtmpController.text.trim());
+      prefs.setString('satelliteSrt', satelliteSrtController.text.trim());
+    } catch(e) {}
+  }
+
   // --- Live Control Room for PCR Board ---
   void _showLiveControlDialog() {
     showDialog(
@@ -1507,22 +1493,17 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     TextButton(
                       onPressed: () { 
                         FocusManager.instance.primaryFocus?.unfocus(); 
-                        Navigator.pop(dialogContext); 
+                        Navigator.of(context, rootNavigator: true).pop(); 
                       }, 
                       child: const Text("Close", style: TextStyle(color: Colors.white))
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                      onPressed: () async {
-                        try {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          SharedPreferences prefs = await SharedPreferences.getInstance(); 
-                          await prefs.setString('cableRtmp', cableRtmpController.text.trim()); 
-                          await prefs.setString('restreamRtmp', restreamRtmpController.text.trim()); 
-                          await prefs.setString('satelliteSrt', satelliteSrtController.text.trim()); 
-                          Navigator.pop(dialogContext);
-                          _startLiveAndLock();
-                        } catch (e) { debugPrint("$e"); }
+                      onPressed: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        _saveLinks();
+                        Navigator.of(context, rootNavigator: true).pop();
+                        _startLiveAndLock();
                       }, 
                       child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                     )
@@ -1545,26 +1526,31 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           child: TextField(
             controller: controller, 
             style: const TextStyle(color: Colors.yellow, fontSize: 13, fontWeight: FontWeight.bold), 
+            onChanged: (val) { _saveLinks(); },
             decoration: const InputDecoration(hintText: "Paste stream URL here...", hintStyle: TextStyle(color: Colors.white30, fontWeight: FontWeight.normal), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)), focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)))
           )
         ),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 24), onPressed: () async { 
-          try {
-            FocusManager.instance.primaryFocus?.unfocus(); 
-            SharedPreferences prefs = await SharedPreferences.getInstance(); 
-            await prefs.setString('cableRtmp', cableRtmpController.text.trim()); 
-            await prefs.setString('restreamRtmp', restreamRtmpController.text.trim()); 
-            await prefs.setString('satelliteSrt', satelliteSrtController.text.trim()); 
-            if(mounted){
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✔️ లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2))); 
-            }
-          } catch (e) { debugPrint("$e"); }
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 24), onPressed: () { 
+          FocusManager.instance.primaryFocus?.unfocus(); 
+          _saveLinks();
+          if(mounted){
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("✔️ లింక్ సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
+                backgroundColor: Colors.green, 
+                behavior: SnackBarBehavior.floating,
+                margin: EdgeInsets.only(bottom: 400, left: 20, right: 20),
+                duration: Duration(seconds: 2)
+              )
+            ); 
+          }
         }),
       ])
     ]);
   }
 
   Future<void> _startLiveAndLock() async {
+    _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
     String restreamUrl = restreamRtmpController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
@@ -1576,15 +1562,20 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     try {
       try {
-        var micStatus = await Permission.microphone.status;
-        if (!micStatus.isGranted) await Permission.microphone.request();
+        var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));
+        if (!micStatus.isGranted) await Permission.microphone.request().timeout(const Duration(seconds: 2));
       } catch(e){}
       
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-      bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);
+      
+      bool success = false;
+      try {
+         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 4));
+      } catch(e) {}
+      
       if (success) {
         setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! (Multi-Stream) రికార్డింగ్ అనుమతించండి ✔️"), backgroundColor: Colors.green));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! (Multi-Stream) ✔️"), backgroundColor: Colors.green));
       } else {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("బ్రాడ్ కాస్ట్ ఫెయిల్. బ్రౌజర్‌లో లైవ్ వెళ్ళదు, APK ద్వారా ఫోన్‌లో చెక్ చేయండి."), backgroundColor: Colors.red));
       }
@@ -1594,12 +1585,14 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   Future<void> _stopLiveStream() async {
-    bool success = await StreamServiceManager.stopLiveStream();
-    if (success) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-      setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
-    }
+    try {
+      bool success = await StreamServiceManager.stopLiveStream();
+      if (success) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+        setState(() { isLiveBroadcasting = false; isLivePaused = false; });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
+      }
+    } catch(e){}
   }
 
   Future<void> _togglePauseLive() async {
@@ -1667,12 +1660,14 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
-                child: ClipRect(child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Row(
-                  children: [
-                    Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24), 
-                    Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))
-                  ]
-                )),
+                child: ClipRect(
+                  child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Row(
+                    children: [
+                      Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24), 
+                      Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))
+                    ]
+                  )
+                ),
               ),
               
               positionedLogoWidget,
@@ -1695,34 +1690,25 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
               if (!hideControls)
                 Positioned(
                   top: 15, left: 15,
-                  child: Row(
-                    children: [
-                      FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),
-                      const SizedBox(width: 10),
-                      GestureDetector(onTap: () { setState(() { layoutMode = layoutMode == 4 ? 6 : 4; }); SharedPreferences.getInstance().then((p) => p.setInt('pcr_layoutMode', layoutMode)); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(4)), child: Text("1+${layoutMode} LAYOUT", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)))),
-                    ],
-                  ),
+                  child: FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),
                 ),
 
               if (!hideControls)
                 Positioned(
-                  bottom: tickerH + 5, left: 0, right: 0,
-                  child: Container(
-                    height: 140, color: Colors.black87.withOpacity(0.95),
-                    child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index])),
-                  ),
+                  top: 15, right: 15,
+                  child: ElevatedButton.icon(onPressed: _refreshData, icon: const Icon(Icons.refresh, color: Colors.white), label: const Text("Refresh", style: TextStyle(color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder())),
                 ),
 
               if (!hideControls)
                 Positioned(
-                  bottom: 160, right: 15,
+                  bottom: 75, right: 15,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       if (isLiveBroadcasting) ...[
                         ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _stopLiveStream, icon: const Icon(Icons.stop, color: Colors.white), label: const Text("LIVE STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         const SizedBox(width: 10),
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "LIVE RESUME" : "LIVE PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                       ] else ...[
                         ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _showLiveControlDialog, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                       ],
@@ -1847,28 +1833,29 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   }
 
   Future<void> _loadSavedData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      adShapeMode = prefs.getInt('adShapeMode') ?? 0;
-      logoPosition = prefs.getInt('logoPosition') ?? 0;
-      breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      setState(() {
+        adShapeMode = prefs.getInt('adShapeMode') ?? 0;
+        logoPosition = prefs.getInt('logoPosition') ?? 0;
+        breakingNewsText = prefs.getString('breakingNewsText') ?? "తాజా వార్తలు లోడ్ అవుతున్నాయి...";
 
-      cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
-      restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
-      satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
+        cableRtmpController.text = prefs.getString('cableRtmp') ?? "";
+        restreamRtmpController.text = prefs.getString('restreamRtmp') ?? "";
+        satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
 
-      String savedLogo = prefs.getString('channelLogoPath') ?? "";
-      if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
+        String savedLogo = prefs.getString('channelLogoPath') ?? "";
+        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);
 
-      leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
-      rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
-      bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
+        bottomAdPaths = (prefs.getStringList('bottomAdPaths') ?? []).where((p) => File(p).existsSync()).toList();
 
-      if (leftAdPaths.isNotEmpty) _initAdVideo('left');
-      if (rightAdPaths.isNotEmpty) _initAdVideo('right');
-      if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
-    });
+        if (leftAdPaths.isNotEmpty) _initAdVideo('left');
+        if (rightAdPaths.isNotEmpty) _initAdVideo('right');
+        if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');
+      });
+    } catch (e) {}
   }
 
   void _setLogo(String path) {
@@ -1901,6 +1888,15 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }
   }
 
+  Future<void> _saveLinks() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('cableRtmp', cableRtmpController.text.trim());
+      prefs.setString('restreamRtmp', restreamRtmpController.text.trim());
+      prefs.setString('satelliteSrt', satelliteSrtController.text.trim());
+    } catch(e) {}
+  }
+
   // --- Live Control Room for Election Board ---
   void _showLiveControlDialog() {
     showDialog(
@@ -1931,22 +1927,17 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     TextButton(
                       onPressed: () { 
                         FocusManager.instance.primaryFocus?.unfocus(); 
-                        Navigator.pop(dialogContext); 
+                        Navigator.of(context, rootNavigator: true).pop(); 
                       }, 
                       child: const Text("Close", style: TextStyle(color: Colors.white))
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                      onPressed: () async {
-                        try {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          SharedPreferences prefs = await SharedPreferences.getInstance(); 
-                          await prefs.setString('cableRtmp', cableRtmpController.text.trim()); 
-                          await prefs.setString('restreamRtmp', restreamRtmpController.text.trim()); 
-                          await prefs.setString('satelliteSrt', satelliteSrtController.text.trim()); 
-                          Navigator.pop(dialogContext);
-                          _startLiveAndLock();
-                        } catch (e) { debugPrint("$e"); }
+                      onPressed: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        _saveLinks();
+                        Navigator.of(context, rootNavigator: true).pop();
+                        _startLiveAndLock();
                       }, 
                       child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                     )
@@ -1969,26 +1960,31 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
           child: TextField(
             controller: controller, 
             style: const TextStyle(color: Colors.yellow, fontSize: 13, fontWeight: FontWeight.bold), 
+            onChanged: (val) { _saveLinks(); },
             decoration: const InputDecoration(hintText: "Paste stream URL here...", hintStyle: TextStyle(color: Colors.white30, fontWeight: FontWeight.normal), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)), focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)))
           )
         ),
-        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 24), onPressed: () async { 
-          try {
-            FocusManager.instance.primaryFocus?.unfocus(); 
-            SharedPreferences prefs = await SharedPreferences.getInstance(); 
-            await prefs.setString('cableRtmp', cableRtmpController.text.trim()); 
-            await prefs.setString('restreamRtmp', restreamRtmpController.text.trim()); 
-            await prefs.setString('satelliteSrt', satelliteSrtController.text.trim()); 
-            if(mounted){
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✔️ లింక్ సక్సెస్ ఫుల్ గా సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2))); 
-            }
-          } catch (e) { debugPrint("$e"); }
+        IconButton(icon: const Icon(Icons.save, color: Colors.blueAccent, size: 24), onPressed: () { 
+          FocusManager.instance.primaryFocus?.unfocus(); 
+          _saveLinks();
+          if(mounted){
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("✔️ లింక్ సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
+                backgroundColor: Colors.green, 
+                behavior: SnackBarBehavior.floating,
+                margin: EdgeInsets.only(bottom: 400, left: 20, right: 20),
+                duration: Duration(seconds: 2)
+              )
+            ); 
+          }
         }),
       ])
     ]);
   }
 
   Future<void> _startLiveAndLock() async {
+    _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
     String restreamUrl = restreamRtmpController.text.trim();
     String satUrl = satelliteSrtController.text.trim();
@@ -2000,15 +1996,20 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
     try {
       try {
-        var micStatus = await Permission.microphone.status;
-        if (!micStatus.isGranted) await Permission.microphone.request();
+        var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));
+        if (!micStatus.isGranted) await Permission.microphone.request().timeout(const Duration(seconds: 2));
       } catch(e){}
       
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
-      bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);
+      
+      bool success = false;
+      try {
+         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 4));
+      } catch(e) {}
+      
       if (success) {
         setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! (Multi-Stream) రికార్డింగ్ అనుమతించండి ✔️"), backgroundColor: Colors.green));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ స్టార్ట్ అయింది! (Multi-Stream) ✔️"), backgroundColor: Colors.green));
       } else {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("బ్రాడ్ కాస్ట్ ఫెయిల్. బ్రౌజర్‌లో లైవ్ వెళ్ళదు, APK ద్వారా ఫోన్‌లో చెక్ చేయండి."), backgroundColor: Colors.red));
       }
@@ -2018,12 +2019,14 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   }
 
   Future<void> _stopLiveStream() async {
-    bool success = await StreamServiceManager.stopLiveStream();
-    if (success) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
-      setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
-    }
+    try {
+      bool success = await StreamServiceManager.stopLiveStream();
+      if (success) {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+        setState(() { isLiveBroadcasting = false; isLivePaused = false; });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("లైవ్ నిలిపివేయబడింది ❌"), backgroundColor: Colors.blue));
+      }
+    } catch(e){}
   }
 
   Future<void> _togglePauseLive() async {
