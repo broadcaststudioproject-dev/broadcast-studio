@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -24,32 +26,26 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "startScreenStream", "startScreenCaptureStreaming" -> { 
-                    val url = call.argument<String>("rtmpUrl")?.trim()
                     
-                    if (url.isNullOrEmpty()) {
-                        result.error("NO_URL", "దయచేసి RTMP లింక్ ఇవ్వండి", null)
-                        return@setMethodCallHandler
-                    }
-
-                    // ఫ్లట్టర్ నుండి వచ్చే అన్ని లింకులను తీసుకుంటున్నాం (Multi-streaming కోసం)
-                    currentRtmpUrl = url
+                    // 1. ఫ్లట్టర్ యాప్ కంట్రోల్ రూమ్ నుండి వస్తున్న లింకులన్నింటినీ క్యాచ్ చేస్తున్నాం
+                    currentRtmpUrl = call.argument<String>("rtmpUrl")?.trim()
                     cableRtmp = call.argument<String>("cableRtmp")?.trim()
                     restreamRtmp = call.argument<String>("restreamRtmp")?.trim()
                     satelliteSrt = call.argument<String>("satelliteSrt")?.trim()
 
-                    try {
-                        val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        
-                        // 🔴 పవర్ ఫుల్ ఫిక్స్: Flutter కమాండ్ కోసం వెయిట్ చేయకుండా వెంటనే Success అని చెప్పేస్తున్నాం
-                        // దీనివల్ల UI హ్యాంగ్ అవ్వదు, కంట్రోల్ రూమ్ వెనుక మెసేజ్‌లు ఆగిపోవు!
-                        result.success(true)
+                    // ఫ్లట్టర్ యాప్ హ్యాంగ్ అవ్వకుండా వెంటనే సక్సెస్ సిగ్నల్ ఇచ్చేస్తున్నాం
+                    result.success(true)
 
-                        // వెంటనే స్క్రీన్ రికార్డింగ్ పర్మిషన్ పాప్-అప్ ను పిలుస్తున్నాం
-                        startActivityForResult(projectionManager.createScreenCaptureIntent(), SCREEN_RECORD_REQUEST_CODE)
-                        
-                    } catch (e: Exception) {
-                        // ఒకవేళ పర్మిషన్ మేనేజర్ ఫెయిల్ అయితే ఎర్రర్ పంపుతాం
-                        result.error("PROJECTION_FAIL", e.message, null)
+                    // 2. 🔴 కచ్చితంగా పాప్-అప్ స్క్రీన్ మీదకు రావడానికి Main Thread (UI) ని వాడుతున్నాం
+                    Handler(Looper.getMainLooper()).post {
+                        try {
+                            val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            val captureIntent = projectionManager.createScreenCaptureIntent()
+                            // ఇక్కడ ఆండ్రాయిడ్ సిస్టమ్ "Start recording?" పాప్-అప్ ను పిలుస్తుంది
+                            startActivityForResult(captureIntent, SCREEN_RECORD_REQUEST_CODE)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
                 
@@ -74,8 +70,10 @@ class MainActivity : FlutterActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
-            // యూజర్ పాప్-అప్ లో "Start Now" నొక్కితేనే సర్వీస్ స్టార్ట్ అవుతుంది
+            // 3. యూజర్ పాప్-అప్ లో "Start Now" నొక్కిన వెంటనే...
             if (resultCode == Activity.RESULT_OK && data != null) {
+                
+                // అన్ని లింకులను ఒకేసారి బ్యాక్‌గ్రౌండ్ వీడియో సర్వీస్ (ScreenStreamService) కి పంపుతున్నాం
                 val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
                     putExtra("resultCode", resultCode)
                     putExtra("data", data)
