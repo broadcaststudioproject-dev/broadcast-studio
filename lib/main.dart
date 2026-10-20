@@ -37,7 +37,7 @@ class PocketPCRApp extends StatelessWidget {
 }
 
 // ============================================================================
-// 1. STREAM SERVICE MANAGER
+// 1. STREAM SERVICE MANAGER (అన్ని లింక్స్ కి ఒకేసారి లైవ్ వెళ్లేలా మల్టీ-స్ట్రీమింగ్)
 // ============================================================================
 class StreamServiceManager {
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
@@ -498,6 +498,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔴 LIVE CONTROL ROOM (Studio Screen)
   void _showLiveControlDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -570,7 +571,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           FocusManager.instance.primaryFocus?.unfocus();
                           _saveLinks(); 
                           Navigator.of(context, rootNavigator: true).pop(); 
-                          _startLiveAndLock(); 
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            _startLiveAndLock(); 
+                          });
                         }, 
                         child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
                       )
@@ -1459,7 +1462,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     setState(() { cam['muted'] = !cam['muted']; }); 
   }
 
-  // 🔴 లింక్స్ సేవ్ చేసే ఫంక్షన్ (Hang అవ్వకుండా)
   void _saveLinks() {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('cableRtmp', cableRtmpController.text.trim());
@@ -1508,7 +1510,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                         FocusManager.instance.primaryFocus?.unfocus();
                         _saveLinks();
                         Navigator.of(context, rootNavigator: true).pop();
-                        _startLiveAndLock();
+                        Future.delayed(const Duration(milliseconds: 300), () {
+                          _startLiveAndLock();
+                        });
                       }, 
                       child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                     )
@@ -1531,7 +1535,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           child: TextField(
             controller: controller, 
             style: const TextStyle(color: Colors.yellow, fontSize: 13, fontWeight: FontWeight.bold), 
-            onChanged: (val) { _saveLinks(); }, // 🔴 ఆటో సేవ్ ఫీచర్
+            onChanged: (val) { _saveLinks(); }, 
             decoration: const InputDecoration(hintText: "Paste stream URL here...", hintStyle: TextStyle(color: Colors.white30, fontWeight: FontWeight.normal), enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)), focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)))
           )
         ),
@@ -1662,7 +1666,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 🔴 ఇది PCR Board కెమెరా గ్రిడ్ లాజిక్ (క్రితం సారి ఎలక్షన్ UI పడింది, ఇప్పుడు సరిచేశాను)
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,
                 left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,
@@ -1904,7 +1907,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }
   }
 
-  // 🔴 లింక్స్ సేవ్ చేసే ఫంక్షన్
   void _saveLinks() {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('cableRtmp', cableRtmpController.text.trim());
@@ -1953,7 +1955,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                         FocusManager.instance.primaryFocus?.unfocus();
                         _saveLinks();
                         Navigator.of(context, rootNavigator: true).pop();
-                        _startLiveAndLock();
+                        Future.delayed(const Duration(milliseconds: 300), () {
+                          _startLiveAndLock();
+                        });
                       }, 
                       child: const Text("START BROADCAST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                     )
