@@ -13,15 +13,17 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1000
 
-    private var pendingResult: MethodChannel.Result? = null
     private var currentRtmpUrl: String? = null
+    private var cableRtmp: String? = null
+    private var restreamRtmp: String? = null
+    private var satelliteSrt: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startScreenStream" -> { 
+                "startScreenStream", "startScreenCaptureStreaming" -> { 
                     val url = call.argument<String>("rtmpUrl")?.trim()
                     
                     if (url.isNullOrEmpty()) {
@@ -29,20 +31,34 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
 
+                    // ఫ్లట్టర్ నుండి వచ్చే అన్ని లింకులను తీసుకుంటున్నాం (Multi-streaming కోసం)
                     currentRtmpUrl = url
-                    pendingResult = result
+                    cableRtmp = call.argument<String>("cableRtmp")?.trim()
+                    restreamRtmp = call.argument<String>("restreamRtmp")?.trim()
+                    satelliteSrt = call.argument<String>("satelliteSrt")?.trim()
 
                     try {
                         val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        // ముందు పాప్-అప్ పిలుస్తున్నాం (సర్వీస్ ఇంకా స్టార్ట్ చేయలేదు)
+                        
+                        // 🔴 పవర్ ఫుల్ ఫిక్స్: Flutter కమాండ్ కోసం వెయిట్ చేయకుండా వెంటనే Success అని చెప్పేస్తున్నాం
+                        // దీనివల్ల UI హ్యాంగ్ అవ్వదు, కంట్రోల్ రూమ్ వెనుక మెసేజ్‌లు ఆగిపోవు!
+                        result.success(true)
+
+                        // వెంటనే స్క్రీన్ రికార్డింగ్ పర్మిషన్ పాప్-అప్ ను పిలుస్తున్నాం
                         startActivityForResult(projectionManager.createScreenCaptureIntent(), SCREEN_RECORD_REQUEST_CODE)
+                        
                     } catch (e: Exception) {
-                        pendingResult?.error("PROJECTION_FAIL", e.message, null)
-                        pendingResult = null
+                        // ఒకవేళ పర్మిషన్ మేనేజర్ ఫెయిల్ అయితే ఎర్రర్ పంపుతాం
+                        result.error("PROJECTION_FAIL", e.message, null)
                     }
                 }
                 
-                "stopScreenStream" -> {
+                "stopScreenStream", "stopScreenCaptureStreaming" -> {
+                    stopService(Intent(this, ScreenStreamService::class.java))
+                    result.success(true)
+                }
+                
+                "pauseScreenStream", "pauseScreenCaptureStreaming" -> {
                     stopService(Intent(this, ScreenStreamService::class.java))
                     result.success(true)
                 }
@@ -58,12 +74,15 @@ class MainActivity : FlutterActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
-            // యూజర్ "Start Now" నొక్కితేనే (RESULT_OK) సర్వీస్ స్టార్ట్ అవుతుంది
+            // యూజర్ పాప్-అప్ లో "Start Now" నొక్కితేనే సర్వీస్ స్టార్ట్ అవుతుంది
             if (resultCode == Activity.RESULT_OK && data != null) {
                 val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
                     putExtra("resultCode", resultCode)
                     putExtra("data", data)
                     putExtra("rtmpUrl", currentRtmpUrl)
+                    putExtra("cableRtmp", cableRtmp)
+                    putExtra("restreamRtmp", restreamRtmp)
+                    putExtra("satelliteSrt", satelliteSrt)
                 }
                 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -71,12 +90,7 @@ class MainActivity : FlutterActivity() {
                 } else {
                     startService(serviceIntent)
                 }
-                
-                pendingResult?.success(true)
-            } else {
-                pendingResult?.error("DENIED", "స్క్రీన్ రికార్డింగ్ పర్మిషన్ ఇవ్వలేదు", null)
             }
-            pendingResult = null
         }
     }
 }
