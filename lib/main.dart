@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart'; 
+import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:marquee/marquee.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
-import 'dart:async'; 
+import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
@@ -36,8 +36,41 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
+// 🔴 డైలాగ్ వెనుక దాగిపోకుండా స్క్రీన్ పైన కనిపించే కస్టమ్ ఫ్లోటింగ్ టోస్ట్ (చిన్న పాప్-అప్)
+void showCustomToast(BuildContext context, String message, {Color bgColor = Colors.green}) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: 60.0,
+      left: 50.0,
+      right: 50.0,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          decoration: BoxDecoration(
+            color: bgColor.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(30.0),
+            boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 4))],
+            border: Border.all(color: Colors.white24, width: 1)
+          ),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.0),
+          ),
+        ),
+      ),
+    ),
+  );
+  overlay.insert(overlayEntry);
+  Future.delayed(const Duration(milliseconds: 2000), () {
+    overlayEntry.remove();
+  });
+}
+
 // ============================================================================
-// 1. STREAM SERVICE MANAGER (అన్ని లింక్స్ కి ఒకేసారి లైవ్ వెళ్లేలా మల్టీ-స్ట్రీమింగ్)
+// 1. STREAM SERVICE MANAGER
 // ============================================================================
 class StreamServiceManager {
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
@@ -615,15 +648,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 FocusManager.instance.primaryFocus?.unfocus(); 
                 _saveLinks(); 
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("✔️ లింక్ సేవ్ అయ్యింది!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      margin: EdgeInsets.only(bottom: 400, left: 20, right: 20),
-                      duration: Duration(seconds: 2),
-                    )
-                  ); 
+                  // 🔴 కస్టమ్ ఫ్లోటింగ్ టోస్ట్ ద్వారా డైలాగ్ పైనే మెసేజ్ వస్తుంది
+                  showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!");
                 }
               }
             ),
@@ -1543,15 +1569,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           FocusManager.instance.primaryFocus?.unfocus(); 
           _saveLinks();
           if(mounted){
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("✔️ లింక్ సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
-                backgroundColor: Colors.green, 
-                behavior: SnackBarBehavior.floating,
-                margin: EdgeInsets.only(bottom: 400, left: 20, right: 20),
-                duration: Duration(seconds: 2)
-              )
-            ); 
+            // 🔴 కస్టమ్ ఫ్లోటింగ్ టోస్ట్
+            showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!");
           }
         }),
       ])
@@ -1907,6 +1926,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }
   }
 
+  // 🔴 లింక్స్ సేవ్ చేసే ఫంక్షన్
   void _saveLinks() {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('cableRtmp', cableRtmpController.text.trim());
@@ -1988,15 +2008,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
           FocusManager.instance.primaryFocus?.unfocus(); 
           _saveLinks();
           if(mounted){
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("✔️ లింక్ సేవ్ అయ్యింది!", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)), 
-                backgroundColor: Colors.green, 
-                behavior: SnackBarBehavior.floating,
-                margin: EdgeInsets.only(bottom: 400, left: 20, right: 20),
-                duration: Duration(seconds: 2)
-              )
-            ); 
+            // 🔴 కస్టమ్ ఫ్లోటింగ్ టోస్ట్
+            showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!");
           }
         }),
       ])
