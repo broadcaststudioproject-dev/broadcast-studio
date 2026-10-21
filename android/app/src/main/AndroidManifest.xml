@@ -1,14 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.kingjvk.pocket_pcr">
 
+    <!-- ఇంటర్నెట్ మరియు నెట్వర్క్ పర్మిషన్స్ -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- ఆడియో, వీడియో పర్మిషన్స్ -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- ఇంటర్నల్ ఆడియో (యూట్యూబ్ సౌండ్) కంట్రోల్ కోసం ఇది యాడ్ చేశాను -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    
+    <!-- బ్యాక్‌గ్రౌండ్ రన్నింగ్ పర్మిషన్స్ -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Android 13+ నోటిఫికేషన్ పర్మిషన్ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Android 14+ Foreground Service (స్క్రీన్ రికార్డింగ్ & లైవ్ కోసం తప్పనిసరి) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
@@ -19,7 +27,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name="com.kingjvk.pocket_pcr.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
@@ -37,8 +45,9 @@
             </intent-filter>
         </activity>
 
+        <!-- 🔴 లైవ్ స్ట్రీమింగ్ (Screen Record) సర్వీస్ రిజిస్ట్రేషన్ -->
         <service
-            android:name="com.kingjvk.pocket_pcr.ScreenStreamService"
+            android:name=".ScreenStreamService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
