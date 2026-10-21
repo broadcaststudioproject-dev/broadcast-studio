@@ -8,8 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.library.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
@@ -20,10 +23,16 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private val channelId = "PocketPCRLiveChannel"
     private val notificationId = 12345
 
+    // 🔴 ఫోన్ స్క్రీన్ మీద నేరుగా మెసేజ్ చూపించడానికి ఫంక్షన్
+    private fun showToast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        // RTMP Display (Screen + Audio రికార్డింగ్ కోసం)
         rtmpDisplay = RtmpDisplay(applicationContext, true, this)
         rtmpDisplay?.glInterface?.setForceRender(true)
     }
@@ -31,7 +40,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i("ScreenStreamService", "Service Started")
         
-        // Android 14 (API 34+) సపోర్ట్ కోసం Foreground Service Type యాడ్ చేసాం
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(notificationId, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
@@ -42,12 +50,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val resultCode = intent.getIntExtra("resultCode", -1)
             val data = intent.getParcelableExtra<Intent>("data")
             
-            // UI నుండి వచ్చిన లింకులను తీసుకుంటున్నాం
             val cableRtmp = intent.getStringExtra("cableRtmp")
             val restreamRtmp = intent.getStringExtra("restreamRtmp")
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
             
-            // ఏదైనా ఒక యాక్టివ్ లింక్ ని తీసుకుంటుంది
             val finalStreamUrl = cableRtmp?.takeIf { it.isNotEmpty() } 
                 ?: restreamRtmp?.takeIf { it.isNotEmpty() } 
                 ?: rtmpUrl
@@ -55,22 +61,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             if (resultCode != -1 && data != null && !finalStreamUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                // సిస్టమ్ ఒరిజినల్ DPI ని తీసుకుంటున్నాం.
                 val screenDpi = resources.displayMetrics.densityDpi
 
-                // వీడియో (1080p) మరియు ఆడియో సిద్ధం చేస్తున్నాం 
-                if (rtmpDisplay?.prepareVideo(1920, 1080, 30, 2500 * 1024, screenDpi) == true &&
-                    rtmpDisplay?.prepareAudio(128 * 1024, 44100, true, true, true) == true) {
+                // వీడియో (1080p) ప్రిపేర్ చేస్తున్నాం
+                if (rtmpDisplay?.prepareVideo(1920, 1080, 30, 2500 * 1024, screenDpi) == true) {
                     
-                    // లైవ్ స్ట్రీమింగ్ స్టార్ట్
-                    rtmpDisplay?.startStream(finalStreamUrl)
-                    Log.i("ScreenStreamService", "Streaming successfully started to $finalStreamUrl")
+                    // 🔴 ఆడియో ప్రిపేర్ చేస్తున్నాం
+                    if (rtmpDisplay?.prepareAudio(128 * 1024, 44100, true, true, true) == true) {
+                        rtmpDisplay?.startStream(finalStreamUrl)
+                        showToast("బ్రాడ్ కాస్ట్ ఇంజిన్ స్టార్ట్ అయ్యింది! కనెక్ట్ అవుతోంది...")
+                    } else {
+                        showToast("❌ మైక్రోఫోన్ బిజీగా ఉంది! దయచేసి CameraController లో enableAudio: false పెట్టండి.")
+                        stopSelf()
+                    }
                 } else {
-                    Log.e("ScreenStreamService", "Error preparing stream. Hardware encoder failed.")
+                    showToast("❌ వీడియో ఎన్‌కోడర్ ఫెయిల్ అయ్యింది.")
                     stopSelf()
                 }
             } else {
-                Log.e("ScreenStreamService", "No Valid URL provided.")
+                showToast("❌ దయచేసి సరైన Live లింక్ (URL) ఇవ్వండి.")
                 stopSelf()
             }
         }
@@ -79,7 +88,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.i("ScreenStreamService", "Service Stopped")
         if (rtmpDisplay?.isStreaming == true) {
             rtmpDisplay?.stopStream()
         }
@@ -90,13 +98,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         return null 
     }
 
-    // --- ConnectCheckerRtmp Interfaces ---
+    // 🔴 సర్వర్‌కి కనెక్ట్ అయిన వెంటనే ఈ మెసేజ్ వస్తుంది
     override fun onConnectionSuccessRtmp() {
-        Log.i("ScreenStreamService", "Connection Success!")
+        showToast("✅ లైవ్ స్ట్రీమింగ్ విజయవంతంగా మొదలైంది!")
     }
 
+    // 🔴 కనెక్షన్ ఫెయిల్ అయితే ఎందుకు ఫెయిల్ అయిందో స్క్రీన్ మీద వస్తుంది
     override fun onConnectionFailedRtmp(reason: String) {
-        Log.e("ScreenStreamService", "Connection Failed: $reason")
+        showToast("❌ లైవ్ కనెక్షన్ ఫెయిల్: $reason")
         rtmpDisplay?.stopStream()
         stopSelf()
     }
@@ -104,14 +113,15 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onNewBitrateRtmp(bitrate: Long) { }
     
     override fun onDisconnectRtmp() {
-        Log.i("ScreenStreamService", "Disconnected from server")
+        showToast("⚠️ లైవ్ ఆగిపోయింది (Disconnected)")
     }
 
-    override fun onAuthErrorRtmp() { }
+    override fun onAuthErrorRtmp() { 
+        showToast("❌ లింక్ పాస్‌వర్డ్/ఆథరైజేషన్ తప్పు")
+    }
     
     override fun onAuthSuccessRtmp() { }
 
-    // --- Foreground Notification Setup ---
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -124,9 +134,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         }
     }
 
-    // 🔴 ఇక్కడ డైనమిక్ నేమ్ లాజిక్ మార్చబడింది
     private fun createNotification(): Notification {
-        // యాప్ పేరును సిస్టమ్ (AndroidManifest) నుండి ఆటోమెటిక్‌గా గ్రహిస్తుంది
         val appName = applicationContext.applicationInfo.loadLabel(applicationContext.packageManager).toString()
 
         return NotificationCompat.Builder(this, channelId)
