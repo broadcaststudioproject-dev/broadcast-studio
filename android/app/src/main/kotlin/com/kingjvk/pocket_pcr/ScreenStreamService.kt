@@ -31,7 +31,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i("ScreenStreamService", "Service Started")
         
-        // 🔴 Android 14 (API 34+) సపోర్ట్ కోసం Foreground Service Type యాడ్ చేసాం
+        // Android 14 (API 34+) సపోర్ట్ కోసం Foreground Service Type యాడ్ చేసాం
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(notificationId, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
@@ -47,7 +47,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val restreamRtmp = intent.getStringExtra("restreamRtmp")
             val rtmpUrl = intent.getStringExtra("rtmpUrl")
             
-            // ఏదైనా ఒక యాక్టివ్ లింక్ ని తీసుకుంటుంది (Restream వాడితే అన్ని ఛానెల్స్ కి వెళ్తుంది)
+            // ఏదైనా ఒక యాక్టివ్ లింక్ ని తీసుకుంటుంది
             val finalStreamUrl = cableRtmp?.takeIf { it.isNotEmpty() } 
                 ?: restreamRtmp?.takeIf { it.isNotEmpty() } 
                 ?: rtmpUrl
@@ -55,10 +55,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             if (resultCode != -1 && data != null && !finalStreamUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                // 🔴 పవర్ ఫుల్ ఫిక్స్: DPI 0 కి బదులు, సిస్టమ్ ఒరిజినల్ DPI ని తీసుకుంటున్నాం.
+                // సిస్టమ్ ఒరిజినల్ DPI ని తీసుకుంటున్నాం.
                 val screenDpi = resources.displayMetrics.densityDpi
 
-                // వీడియో (1080p) మరియు ఆడియో సిద్ధం చేస్తున్నాం (DPI సెట్ చేసాం)
+                // వీడియో (1080p) మరియు ఆడియో సిద్ధం చేస్తున్నాం 
                 if (rtmpDisplay?.prepareVideo(1920, 1080, 30, 2500 * 1024, screenDpi) == true &&
                     rtmpDisplay?.prepareAudio(128 * 1024, 44100, true, true, true) == true) {
                     
@@ -90,7 +90,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         return null 
     }
 
-    // --- ConnectCheckerRtmp Interfaces (స్ట్రీమ్ కనెక్షన్ స్టేటస్ కోసం) ---
+    // --- ConnectCheckerRtmp Interfaces ---
     override fun onConnectionSuccessRtmp() {
         Log.i("ScreenStreamService", "Connection Success!")
     }
@@ -124,10 +124,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         }
     }
 
+    // 🔴 ఇక్కడ డైనమిక్ నేమ్ లాజిక్ మార్చబడింది
     private fun createNotification(): Notification {
+        // యాప్ పేరును సిస్టమ్ (AndroidManifest) నుండి ఆటోమెటిక్‌గా గ్రహిస్తుంది
+        val appName = applicationContext.applicationInfo.loadLabel(applicationContext.packageManager).toString()
+
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("SS YATRA TV - Live")
-            .setContentText("మీ స్క్రీన్ బ్రాడ్ కాస్ట్ అవుతోంది...")
+            .setContentTitle("$appName - Live")
+            .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ అవుతోంది...")
             .setSmallIcon(android.R.drawable.ic_menu_camera) 
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
