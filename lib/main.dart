@@ -31,7 +31,7 @@ class PocketPCRApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'KINGJVR', // 🔴 యాప్ పేరు ఇక్కడ మార్చబడింది
+      title: 'KINGJVR',
       debugShowCheckedModeBanner: false,
       home: StudioScreen(),
     );
@@ -76,7 +76,6 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
 // ============================================================================
 class StreamServiceManager {
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
-    // 🔴 ఛానల్ పేరు మార్చబడింది
     List<String> channels = ['com.kingjvr.pocket_pcr/stream'];
     List<String> methods = ['startScreenStream', 'startScreenCaptureStreaming'];
 
@@ -106,7 +105,6 @@ class StreamServiceManager {
   }
 
   static Future<bool> stopLiveStream() async {
-    // 🔴 ఛానల్ పేరు మార్చబడింది
     List<String> channels = ['com.kingjvr.pocket_pcr/stream'];
     List<String> methods = ['stopScreenStream', 'stopScreenCaptureStreaming'];
     for (String c in channels) {
@@ -121,7 +119,6 @@ class StreamServiceManager {
   }
 
   static Future<bool> pauseLiveStream() async {
-    // 🔴 ఛానల్ పేరు మార్చబడింది
     List<String> channels = ['com.kingjvr.pocket_pcr/stream'];
     List<String> methods = ['pauseScreenStream', 'stopScreenStream', 'pauseScreenCaptureStreaming', 'stopScreenCaptureStreaming'];
     for (String c in channels) {
@@ -468,7 +465,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (cameras.isEmpty) return;
     try {
       if (controller != null) { await controller!.dispose(); }
-      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: false);
+      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: true);
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
@@ -536,6 +533,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       showCustomToast(context, "USB క్యాప్చర్ కార్డ్ ఎర్రర్.", bgColor: Colors.red);
     }
   }
+
   void _showExternalCamsDialog() {
     setState(() { isMenuOpen = false; });
     showDialog(
@@ -1540,7 +1538,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
         CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => _cameras.first);
-        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: false);
+        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true);
         await _phoneCamCtrl!.initialize();
         if (mounted) setState(() {});
       }
@@ -1621,6 +1619,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     });
   }
 
+  // 🔴 LIVE CONTROL ROOM (PCR Board)
   void _showLiveControlDialog() {
     showDialog(
       context: context,
@@ -1987,7 +1986,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         for (var cam in _cameras) {
           if (cam.lensDirection == CameraLensDirection.front) { frontCam = cam; break; }
         }
-        _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: false);
+        _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: true);
         await _cameraController!.initialize();
         if (mounted) setState(() {});
       }
