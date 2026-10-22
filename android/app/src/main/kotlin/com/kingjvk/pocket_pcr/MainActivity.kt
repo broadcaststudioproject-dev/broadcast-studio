@@ -1,4 +1,4 @@
-package com.kingjvk.pocket_pcr
+package com.kingjvr.pocket_pcr
 
 import android.app.Activity
 import android.content.Context
@@ -10,7 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.kingjvk.pocket_pcr/stream"
+    private val CHANNEL = "com.kingjvr.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1000
 
     private var currentRtmpUrl: String? = null
