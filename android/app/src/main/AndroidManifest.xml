@@ -22,7 +22,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="Pocket PCR Studio"
+        android:label="KINGJVR"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
 
