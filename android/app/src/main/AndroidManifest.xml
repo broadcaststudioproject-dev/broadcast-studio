@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.kingjvk.pocket_pcr">
+    package="com.kingjvr.pocket_pcr">
 
     <!-- ఇంటర్నెట్ మరియు నెట్వర్క్ పర్మిషన్స్ -->
     <uses-permission android:name="android.permission.INTERNET" />
