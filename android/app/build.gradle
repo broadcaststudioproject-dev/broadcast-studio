@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace "com.kingjvk.pocket_pcr"
+    namespace "com.kingjvr.pocket_pcr"
     compileSdk 34
     ndkVersion "28.2.13676358"
 
