@@ -1,4 +1,4 @@
-package com.kingjvk.pocket_pcr
+package com.kingjvr.pocket_pcr
 
 import android.app.Notification
 import android.app.NotificationChannel
