@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.kingjvk.pocket_pcr"
+        applicationId "com.kingjvr.pocket_pcr"
         minSdk 24
         targetSdk 34
         versionCode flutter.versionCode.toInteger()
