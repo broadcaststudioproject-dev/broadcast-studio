@@ -22,8 +22,11 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "PocketPCRLiveChannel"
     private val notificationId = 12345
+    
+    // వీడియో సైజ్ చూపించడానికి
+    private var streamWidth = 0
+    private var streamHeight = 0
 
-    // 🔴 ఫోన్ స్క్రీన్ మీద నేరుగా మెసేజ్ చూపించడానికి ఫంక్షన్
     private fun showToast(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -61,25 +64,34 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             if (resultCode != -1 && data != null && !finalStreamUrl.isNullOrEmpty()) {
                 rtmpDisplay?.setIntentResult(resultCode, data)
 
-                val screenDpi = resources.displayMetrics.densityDpi
+                val metrics = resources.displayMetrics
+                
+                // 🔴 పవర్ ఫుల్ ఫిక్స్: ఫోన్ స్క్రీన్ సైజును ఆటోమెటిక్‌గా తీసుకుంటున్నాం
+                var width = metrics.widthPixels
+                var height = metrics.heightPixels
+                val screenDpi = metrics.densityDpi
 
-                // వీడియో (1080p) ప్రిపేర్ చేస్తున్నాం
-                if (rtmpDisplay?.prepareVideo(1920, 1080, 30, 2500 * 1024, screenDpi) == true) {
-                    
-                    // 🔴 ఆడియో ప్రిపేర్ చేస్తున్నాం
+                // వీడియో ఎన్‌కోడర్ కచ్చితంగా సరిసంఖ్య (Even Number) రిజల్యూషన్ మాత్రమే సపోర్ట్ చేస్తుంది
+                if (width % 2 != 0) width -= 1
+                if (height % 2 != 0) height -= 1
+                
+                streamWidth = width
+                streamHeight = height
+
+                if (rtmpDisplay?.prepareVideo(width, height, 30, 2500 * 1024, screenDpi) == true) {
                     if (rtmpDisplay?.prepareAudio(128 * 1024, 44100, true, true, true) == true) {
                         rtmpDisplay?.startStream(finalStreamUrl)
-                        showToast("బ్రాడ్ కాస్ట్ ఇంజిన్ స్టార్ట్ అయ్యింది! కనెక్ట్ అవుతోంది...")
+                        showToast("ఇంజిన్ స్టార్ట్ అయ్యింది... వీడియో పంపుతోంది!")
                     } else {
-                        showToast("❌ మైక్రోఫోన్ బిజీగా ఉంది! దయచేసి CameraController లో enableAudio: false పెట్టండి.")
+                        showToast("❌ ఆడియో ఎన్‌కోడర్ ఫెయిల్. మైక్ పర్మిషన్ చెక్ చేయండి.")
                         stopSelf()
                     }
                 } else {
-                    showToast("❌ వీడియో ఎన్‌కోడర్ ఫెయిల్ అయ్యింది.")
+                    showToast("❌ వీడియో ఎన్‌కోడర్ ఫెయిల్. రిజల్యూషన్ ($width x $height) సపోర్ట్ చేయట్లేదు.")
                     stopSelf()
                 }
             } else {
-                showToast("❌ దయచేసి సరైన Live లింక్ (URL) ఇవ్వండి.")
+                showToast("❌ దయచేసి సరైన Live లింక్ ఇవ్వండి.")
                 stopSelf()
             }
         }
@@ -98,14 +110,12 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         return null 
     }
 
-    // 🔴 సర్వర్‌కి కనెక్ట్ అయిన వెంటనే ఈ మెసేజ్ వస్తుంది
     override fun onConnectionSuccessRtmp() {
-        showToast("✅ లైవ్ స్ట్రీమింగ్ విజయవంతంగా మొదలైంది!")
+        showToast("✅ సక్సెస్! (${streamWidth}x${streamHeight} వీడియో వెళుతోంది)")
     }
 
-    // 🔴 కనెక్షన్ ఫెయిల్ అయితే ఎందుకు ఫెయిల్ అయిందో స్క్రీన్ మీద వస్తుంది
     override fun onConnectionFailedRtmp(reason: String) {
-        showToast("❌ లైవ్ కనెక్షన్ ఫెయిల్: $reason")
+        showToast("❌ కనెక్షన్ ఫెయిల్: $reason")
         rtmpDisplay?.stopStream()
         stopSelf()
     }
