@@ -38,7 +38,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         super.onCreate()
         try {
             rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-            rtmpDisplay?.setReTries(5)
+            rtmpDisplay?.setReTries(3)
         } catch (e: Exception) {
             showMessage("Library Crash: ${e.message}")
         }
@@ -49,7 +49,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         val action = intent.action
 
         if (action == ACTION_START) {
-            // 🔴 ఆండ్రాయిడ్ 15 నిబంధన ప్రకారం: సర్వీస్ స్టార్ట్ అవ్వగానే వెంటనే నోటిఫికేషన్ మరియు ఫోర్‌గ్రౌండ్ స్టార్ట్ చేయాలి
+            // ఆండ్రాయిడ్ 15 కోసం సర్వీస్ స్టార్ట్ అయిన వెంటనే ఫోర్‌గ్రౌండ్ నోటిఫికేషన్ చూపించాలి
             startNotification()
 
             val url = intent.getStringExtra(EXTRA_URL) ?: ""
@@ -81,9 +81,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
                             if (videoReady && audioReady) {
                                 display.startStream(targetUrl)
-                                showMessage("Live Server Connecting...")
+                                showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
                             } else {
-                                showMessage("Encoder Failed! Video: $videoReady, Audio: $audioReady")
+                                showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
                             }
                         } catch (e: Exception) {
                             showMessage("Stream Crash: ${e.message}")
@@ -91,13 +91,13 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                     }.start()
                 }
             } else {
-                showMessage("Stream link error. Please provide valid key.")
+                showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
             stopForeground(true)
             stopSelf()
-            showMessage("Live Stopped.")
+            showMessage("లైవ్ ఆగిపోయింది.")
         }
         return START_NOT_STICKY
     }
@@ -107,38 +107,51 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
         }
+        
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
-            .setContentText("Live Streaming is Active in Background...")
+            .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ బ్యాక్‌గ్రౌండ్‌లో నడుస్తోంది...")
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        // ఆండ్రాయిడ్ 14 మరియు 15 కోసం సరైన ఫోర్‌గ్రౌండ్ సర్వీస్ టైప్స్ డిక్లేర్ చేయడం
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14 (API 34) & Android 15
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
             startForeground(1, notification)
         }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+    
     override fun onDestroy() {
         super.onDestroy()
         try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
     }
 
     override fun onConnectionSuccessRtmp() {
-        showMessage("Live Connected Successfully! (Online)")
+        showMessage("లైవ్ வெற்றிகரமாக కనెక్ట్ అయింది! (Online)")
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("Connection Error: $reason")
+        showMessage("కనెక్షన్ ఎర్రర్: $reason")
     }
     
     override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() { showMessage("Live Disconnected.") }
-    override fun onAuthErrorRtmp() { showMessage("Live Key Error.") }
+    
+    override fun onDisconnectRtmp() { 
+        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
+    }
+    
+    override fun onAuthErrorRtmp() { 
+        showMessage("లైవ్ కీ ఎర్రర్.") 
+    }
+    
     override fun onAuthSuccessRtmp() {}
+    
     override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
