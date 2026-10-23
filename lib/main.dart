@@ -72,7 +72,7 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
 }
 
 // ============================================================================
-// 1. STREAM SERVICE MANAGER
+// 1. STREAM SERVICE MANAGER (అక్టోబర్ 2 వర్కింగ్ లాజిక్)
 // ============================================================================
 class StreamServiceManager {
   static const MethodChannel _streamChannel =
@@ -797,7 +797,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         
       bool success = false;  
       try {  
-        // 🔴 30 సెకండ్ల టైమ్‌అవుట్ ఇవ్వబడింది, తద్వారా పర్మిషన్ డైలాగ్ వచ్చేందుకు తగిన సమయం ఉంటుంది
+        // 🔴 అక్టోబర్ 2 నాటి సక్సెస్ ఫుల్ మెథడ్ ఛానెల్ కాల్ (30 సెకండ్ల టైమ్‌అవుట్‌తో)
         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
@@ -1640,6 +1640,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     });
   }
 
+  // 🔴 LIVE CONTROL ROOM (PCR Board)
   void _showLiveControlDialog() {
     showDialog(
       context: context,
