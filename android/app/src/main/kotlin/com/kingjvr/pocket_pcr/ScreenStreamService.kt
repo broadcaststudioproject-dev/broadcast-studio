@@ -49,32 +49,31 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         val action = intent.action
 
         if (action == ACTION_START) {
+            // 🔴 ఆండ్రాయిడ్ 15 నిబంధన ప్రకారం: సర్వీస్ స్టార్ట్ అవ్వగానే వెంటనే నోటిఫికేషన్ మరియు ఫోర్‌గ్రౌండ్ స్టార్ట్ చేయాలి
+            startNotification()
+
             val url = intent.getStringExtra(EXTRA_URL) ?: ""
-            // 🔴 మల్టీ-స్ట్రీమ్ లింక్‌లను రిసీవ్ చేసుకోవడం
             val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
             val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
             val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
 
-            // ఏ లింక్ అందుబాటులో ఉందో దాన్ని ప్రైమరీగా ఎంచుకోవడం
             val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
 
             val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
             val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
 
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
-                startNotification()
                 val display = rtmpDisplay
                 if (display != null) {
                     display.setIntentResult(resultCode, data)
                     Thread {
                         try {
-                            // పక్కా 720p HD రిజల్యూషన్ లాక్
                             val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
                             val width = if (isPortrait) 720 else 1280
                             val height = if (isPortrait) 1280 else 720
 
                             val fps = 30
-                            val bitrate = 2000 * 1024 // 2 Mbps
+                            val bitrate = 2000 * 1024 
                             val dpi = resources.displayMetrics.densityDpi
                             
                             val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
