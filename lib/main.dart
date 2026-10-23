@@ -75,73 +75,93 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
 // 1. STREAM SERVICE MANAGER
 // ============================================================================
 class StreamServiceManager {
-  static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
-    List<String> channels = ['com.kingjvr.pocket_pcr/stream'];
-    List<String> methods = ['startScreenStream', 'startScreenCaptureStreaming'];
+  static const MethodChannel _streamChannel =
+      MethodChannel('com.kingjvr.pocket_pcr/stream');
 
-    String primaryUrl = cableUrl.isNotEmpty ? cableUrl : (restreamUrl.isNotEmpty ? restreamUrl : satUrl);  
-    if (primaryUrl.isEmpty) return false;  
+  static Future<bool> startLiveStreamMulti(
+    String cableUrl,
+    String restreamUrl,
+    String satUrl,
+  ) async {
+    final cable = cableUrl.trim();
+    final restream = restreamUrl.trim();
+    final satellite = satUrl.trim();
 
-    String safePrimaryUrl = primaryUrl.replaceFirst('rtmps://', 'rtmp://');  
-      
-    for (String c in channels) {  
-      for (String m in methods) {  
-        try {  
-          await MethodChannel(c).invokeMethod(m, {  
-            'rtmpUrl': safePrimaryUrl,   
-            'cableRtmp': cableUrl.isNotEmpty ? cableUrl.replaceFirst('rtmps://', 'rtmp://') : "",  
-            'restreamRtmp': restreamUrl.isNotEmpty ? restreamUrl.replaceFirst('rtmps://', 'rtmp://') : "",  
-            'satelliteSrt': satUrl.isNotEmpty ? satUrl.replaceFirst('rtmps://', 'rtmp://') : "",  
-            'url': safePrimaryUrl,  
-            'recordAudio': true   
-          });  
-          return true;   
-        } catch (e) {  
-          debugPrint("Live Stream Native Error: $e");  
-        }  
-      }  
-    }  
-    return false;
+    if (cable.isEmpty &&
+        restream.isEmpty &&
+        satellite.isEmpty) {
+      debugPrint('PCR: Stream URL ఇవ్వలేదు.');
+      return false;
+    }
+
+    // RTMP, RTMPS, SRT URLలను మార్చకుండా అసలు రూపంలో ఉంచాలి.
+    final primaryUrl = cable.isNotEmpty
+        ? cable
+        : restream.isNotEmpty
+            ? restream
+            : satellite;
+
+    try {
+      final result = await _streamChannel.invokeMethod<bool>(
+        'startScreenCaptureStreaming',
+        <String, dynamic>{
+          'rtmpUrl': primaryUrl,
+          'cableRtmp': cable,
+          'restreamRtmp': restream,
+          'satelliteSrt': satellite,
+          'url': primaryUrl,
+          'recordAudio': true,
+        },
+      );
+
+      return result == true;
+    } on PlatformException catch (e) {
+      debugPrint(
+        'PCR Native Error: ${e.code} - ${e.message}',
+      );
+      return false;
+    } catch (e) {
+      debugPrint('PCR Live Start Error: $e');
+      return false;
+    }
   }
 
   static Future<bool> stopLiveStream() async {
-    List<String> channels = ['com.kingjvr.pocket_pcr/stream'];
-    List<String> methods = ['stopScreenStream', 'stopScreenCaptureStreaming'];
-    for (String c in channels) {
-      for (String m in methods) {
-        try {
-          await MethodChannel(c).invokeMethod(m);
-          return true;
-        } catch (e) {}
-      }
+    try {
+      final result = await _streamChannel.invokeMethod<bool>(
+        'stopScreenCaptureStreaming',
+      );
+      return result == true;
+    } catch (e) {
+      debugPrint('PCR Stop Stream Error: $e');
+      return false;
     }
-    return false;
   }
 
   static Future<bool> pauseLiveStream() async {
-    List<String> channels = ['com.kingjvr.pocket_pcr/stream'];
-    List<String> methods = ['pauseScreenStream', 'stopScreenStream', 'pauseScreenCaptureStreaming', 'stopScreenCaptureStreaming'];
-    for (String c in channels) {
-      for (String m in methods) {
-        try {
-          await MethodChannel(c).invokeMethod(m);
-          return true;
-        } catch (e) {}
-      }
-    }
-    return false;
+    // ప్రస్తుత Native కోడ్‌లో Pause అంటే Service ఆపడం.
+    return stopLiveStream();
   }
 
   static Future<int?> startUsbCamera() async {
     try {
-      return await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('startUsbCamera');
-    } catch (e) { return null; }
+      return await const MethodChannel(
+        'com.ssyatratv.pocket_pcr/uvc',
+      ).invokeMethod<int>('startUsbCamera');
+    } catch (e) {
+      debugPrint('PCR USB Camera Start Error: $e');
+      return null;
+    }
   }
 
   static Future<void> stopUsbCamera() async {
     try {
-      await const MethodChannel('com.ssyatratv.pocket_pcr/uvc').invokeMethod('stopUsbCamera');
-    } catch (e) {}
+      await const MethodChannel(
+        'com.ssyatratv.pocket_pcr/uvc',
+      ).invokeMethod<void>('stopUsbCamera');
+    } catch (e) {
+      debugPrint('PCR USB Camera Stop Error: $e');
+    }
   }
 }
 
