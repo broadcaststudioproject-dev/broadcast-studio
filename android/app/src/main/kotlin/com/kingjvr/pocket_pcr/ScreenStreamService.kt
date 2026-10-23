@@ -1,248 +1,145 @@
-package com.kingjvr.pocket_pcr
+package com.example.pocket_pcr_studio
 
-import android.app.Activity
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.pedro.library.rtmp.RtmpDisplay
+import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
-
-    private val channelId = "PocketPCRLiveChannel"
-    private val notificationId = 12345
-
     private var rtmpDisplay: RtmpDisplay? = null
-    private var streamWidth = 1280
-    private var streamHeight = 720
-    private var started = false
+    private val channelId = "ScreenStreamChannel"
 
-    private fun showToast(message: String) {
+    companion object {
+        const val ACTION_START = "START_STREAM"
+        const val ACTION_STOP = "STOP_STREAM"
+        const val EXTRA_URL = "url"
+        const val EXTRA_RESULT_CODE = "resultCode"
+        const val EXTRA_DATA = "data"
+    }
+
+    private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(
-                applicationContext,
-                message,
-                Toast.LENGTH_LONG
-            ).show()
+            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
-
-        rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-        rtmpDisplay?.glInterface?.setForceRender(true)
+        try {
+            rtmpDisplay = RtmpDisplay(applicationContext, true, this)
+            rtmpDisplay?.setReTries(5)
+        } catch (e: Exception) {
+            showMessage("Library Crash: ${e.message}")
+        }
     }
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int
-    ): Int {
-        if (started) {
-            Log.w("PCR_RTMP", "Stream service already started")
-            return START_NOT_STICKY
-        }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent == null) return START_NOT_STICKY
+        val action = intent.action
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                notificationId,
-                createNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            )
-        } else {
-            startForeground(notificationId, createNotification())
-        }
+        if (action == ACTION_START) {
+            val url = intent.getStringExtra(EXTRA_URL) ?: ""
+            // 🔴 మల్టీ-స్ట్రీమ్ లింక్‌లను రిసీవ్ చేసుకోవడం
+            val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
+            val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
+            val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
 
-        if (intent == null) {
-            fail("Service intent లేదు")
-            return START_NOT_STICKY
-        }
+            // ఏ లింక్ అందుబాటులో ఉందో దాన్ని ప్రైమరీగా ఎంచుకోవడం
+            val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
 
-        val resultCode = intent.getIntExtra("resultCode", -1)
+            val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
+            val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
 
-        @Suppress("DEPRECATION")
-        val data = intent.getParcelableExtra<Intent>("data")
+            if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
+                startNotification()
+                val display = rtmpDisplay
+                if (display != null) {
+                    display.setIntentResult(resultCode, data)
+                    Thread {
+                        try {
+                            // పక్కా 720p HD రిజల్యూషన్ లాక్
+                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                            val width = if (isPortrait) 720 else 1280
+                            val height = if (isPortrait) 1280 else 720
 
-        val cableUrl = intent.getStringExtra("cableRtmp")?.trim().orEmpty()
-        val restreamUrl = intent.getStringExtra("restreamRtmp")?.trim().orEmpty()
-        val satelliteSrt = intent.getStringExtra("satelliteSrt")?.trim().orEmpty()
-        val fallbackUrl = intent.getStringExtra("rtmpUrl")?.trim().orEmpty()
+                            val fps = 30
+                            val bitrate = 2000 * 1024 // 2 Mbps
+                            val dpi = resources.displayMetrics.densityDpi
+                            
+                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
+                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
 
-        // 🔴 RTMP, RTMPS మరియు SRT లింక్‌లు అన్నీ సపోర్ట్ చేసేలా అప్‌డేట్ చేయబడింది
-        val outputUrl = sequenceOf(cableUrl, restreamUrl, satelliteSrt, fallbackUrl)
-            .firstOrNull { 
-                it.startsWith("rtmp://") || 
-                it.startsWith("rtmps://") || 
-                it.startsWith("srt://") 
+                            if (videoReady && audioReady) {
+                                display.startStream(targetUrl)
+                                showMessage("Live Server Connecting...")
+                            } else {
+                                showMessage("Encoder Failed! Video: $videoReady, Audio: $audioReady")
+                            }
+                        } catch (e: Exception) {
+                            showMessage("Stream Crash: ${e.message}")
+                        }
+                    }.start()
+                }
+            } else {
+                showMessage("Stream link error. Please provide valid key.")
             }
-            .orEmpty()
-
-        // లాగ్స్ ప్రింటింగ్
-        Log.i("PCR_DEBUG_URL", "Received Cable: $cableUrl")
-        Log.i("PCR_DEBUG_URL", "Received Restream: $restreamUrl")
-        Log.i("PCR_DEBUG_URL", "Received Satellite SRT: $satelliteSrt")
-        Log.i("PCR_DEBUG_URL", "Received Fallback: $fallbackUrl")
-        Log.i("PCR_DEBUG_URL", "Final Selected outputUrl: $outputUrl")
-
-        Log.i(
-            "PCR_RTMP",
-            "Permission valid=${resultCode == Activity.RESULT_OK && data != null}, " +
-                "RTMP output supplied=${outputUrl.isNotBlank()}"
-        )
-
-        if (resultCode != Activity.RESULT_OK || data == null) {
-            fail("స్క్రీన్ క్యాప్చర్ అనుమతి రాలేదు")
-            return START_NOT_STICKY
+        } else if (action == ACTION_STOP) {
+            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            stopForeground(true)
+            stopSelf()
+            showMessage("Live Stopped.")
         }
-
-        if (outputUrl.isBlank()) {
-            fail("సరైన RTMP/RTMPS/SRT స్ట్రీమ్ URL ఇవ్వండి")
-            return START_NOT_STICKY
-        }
-
-        try {
-            rtmpDisplay?.setIntentResult(resultCode, data)
-
-            val dpi = resources.displayMetrics.densityDpi
-
-            streamWidth = 1280
-            streamHeight = 720
-
-            val videoReady = rtmpDisplay?.prepareVideo(
-                streamWidth,
-                streamHeight,
-                30,
-                1500 * 1024, // 1.5 Mbps బిట్‌రేట్
-                dpi
-            ) == true
-
-            if (!videoReady) {
-                fail("వీడియో ఎన్‌కోడర్ సిద్ధం కాలేదు")
-                return START_NOT_STICKY
-            }
-
-            val audioReady = rtmpDisplay?.prepareAudio(
-                128 * 1024,
-                44100,
-                true,
-                true,
-                true
-            ) == true
-
-            if (!audioReady) {
-                fail("ఆడియో ఎన్‌కోడర్ సిద్ధం కాలేదు")
-                return START_NOT_STICKY
-            }
-
-            rtmpDisplay?.startStream(outputUrl)
-            started = true
-
-            Log.i(
-                "PCR_RTMP",
-                "Stream start requested: ${streamWidth}x${streamHeight}"
-            )
-
-            showToast("లైవ్ కనెక్షన్ ప్రారంభమవుతోంది...")
-
-        } catch (e: Exception) {
-            Log.e("PCR_RTMP_ERROR", "Stream start exception", e)
-            fail("లైవ్ ప్రారంభించడంలో లోపం: ${e.message ?: "తెలియని లోపం"}")
-        }
-
         return START_NOT_STICKY
     }
 
-    private fun fail(message: String) {
-        Log.e("PCR_RTMP_ERROR", message)
-        showToast("❌ $message")
-        stopSelf()
-    }
-
-    override fun onConnectionSuccessRtmp() {
-        Log.i("PCR_RTMP", "RTMP connection succeeded")
-        showToast("✅ లైవ్ కనెక్షన్ విజయవంతమైంది (${streamWidth}x${streamHeight})")
-    }
-
-    override fun onConnectionFailedRtmp(reason: String) {
-        Log.e("PCR_RTMP_ERROR", "Connection failed: $reason")
-        showToast("❌ RTMP కనెక్షన్ విఫలమైంది: $reason")
-
-        Handler(Looper.getMainLooper()).post {
-            stopSelf()
-        }
-    }
-
-    override fun onDisconnectRtmp() {
-        Log.w("PCR_RTMP", "RTMP disconnected")
-        showToast("⚠️ లైవ్ కనెక్షన్ తెగిపోయింది")
-    }
-
-    override fun onAuthErrorRtmp() {
-        Log.e("PCR_RTMP_ERROR", "RTMP authentication failed")
-        showToast("❌ స్ట్రీమ్ కీ లేదా అనుమతి తప్పుగా ఉండవచ్చు")
-    }
-
-    override fun onAuthSuccessRtmp() {
-        Log.i("PCR_RTMP", "RTMP authentication succeeded")
-    }
-
-    override fun onDestroy() {
-        try {
-            rtmpDisplay?.let { display ->
-                if (display.isStreaming) {
-                    display.stopStream()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("PCR_RTMP_ERROR", "Stop stream error", e)
-        }
-
-        rtmpDisplay = null
-        started = false
-        super.onDestroy()
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    private fun createNotificationChannel() {
+    private fun startNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Live Stream Service",
-                NotificationManager.IMPORTANCE_LOW
-            )
-
-            val manager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            manager.createNotificationChannel(channel)
+            val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
         }
-    }
-
-    private fun createNotification(): Notification {
-        val appName = applicationInfo
-            .loadLabel(packageManager)
-            .toString()
-
-        return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("$appName - Live")
-            .setContentText("లైవ్ ప్రసార సేవ ప్రారంభమైంది")
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Pocket PCR Studio")
+            .setContentText("Live Streaming is Active in Background...")
+            .setSmallIcon(android.R.drawable.ic_media_play)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        } else {
+            startForeground(1, notification)
+        }
     }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onDestroy() {
+        super.onDestroy()
+        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+    }
+
+    override fun onConnectionSuccessRtmp() {
+        showMessage("Live Connected Successfully! (Online)")
+    }
+    
+    override fun onConnectionFailedRtmp(reason: String) {
+        showMessage("Connection Error: $reason")
+    }
+    
+    override fun onNewBitrateRtmp(bitrate: Long) {}
+    override fun onDisconnectRtmp() { showMessage("Live Disconnected.") }
+    override fun onAuthErrorRtmp() { showMessage("Live Key Error.") }
+    override fun onAuthSuccessRtmp() {}
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
