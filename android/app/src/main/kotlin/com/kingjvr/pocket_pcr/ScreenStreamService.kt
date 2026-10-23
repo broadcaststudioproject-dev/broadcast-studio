@@ -1,4 +1,4 @@
-package com.kingjvr.pocket_pcr
+Package com.kingjvr.pocket_pcr
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -23,8 +23,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private val notificationId = 12345
 
     private var rtmpDisplay: RtmpDisplay? = null
-    private var streamWidth = 1280
-    private var streamHeight = 720
+    private var streamWidth = 0
+    private var streamHeight = 0
     private var started = false
 
     private fun showToast(message: String) {
@@ -85,7 +85,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
         Log.i(
             "PCR_RTMP",
-            "Permission valid=${resultCode == android.app.Activity.RESULT_OK && data != null}, " +
+            "Permission valid=${resultCode == -1 && data != null}, " +
                 "RTMP output supplied=${outputUrl.isNotBlank()}"
         )
 
@@ -102,16 +102,24 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         try {
             rtmpDisplay?.setIntentResult(resultCode, data)
 
-            // స్థిరమైన 720p HD రిజల్యూషన్ మరియు 2Mbps బిట్‌రేట్ సెట్ చేయబడింది (ఫెయిల్ అవ్వకుండా ఉండటానికి)
-            streamWidth = 1280
-            streamHeight = 720
-            val dpi = resources.displayMetrics.densityDpi
+            val metrics = resources.displayMetrics
+            val dpi = metrics.densityDpi
+
+            // 🔴 రిజల్యూషన్ మరియు బిట్‌రేట్ తగ్గించబడింది (720p & 1.5 Mbps)
+            var width = 1280
+            var height = 720
+
+            if (width % 2 != 0) width--
+            if (height % 2 != 0) height--
+
+            streamWidth = width
+            streamHeight = height
 
             val videoReady = rtmpDisplay?.prepareVideo(
-                streamWidth,
-                streamHeight,
+                width,
+                height,
                 30,
-                2000 * 1024, // 2 Mbps బిట్‌రేట్ (నెట్‌వర్క్ బ్రీక్ అవ్వకుండా)
+                1500 * 1024, // 1.5 Mbps బిట్‌రేట్ (నెట్‌వర్క్ ఒత్తిడి తగ్గించడానికి)
                 dpi
             ) == true
 
@@ -138,7 +146,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
             Log.i(
                 "PCR_RTMP",
-                "Stream start requested: ${streamWidth}x${streamHeight}"
+                "Stream start requested: ${width}x${height}"
             )
 
             showToast("లైవ్ కనెక్షన్ ప్రారంభమవుతోంది...")
