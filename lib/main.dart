@@ -94,7 +94,7 @@ class StreamServiceManager {
       return false;
     }
 
-    // RTMP, RTMPS, SRT URLలను మార్చకుండా అసలు రూపంలో ఉంచాలి.
+    // RTMP, RTMPS, SRT URLలను సరిగ్గా ఎంచుకోవడం
     final primaryUrl = cable.isNotEmpty
         ? cable
         : restream.isNotEmpty
@@ -108,7 +108,7 @@ class StreamServiceManager {
           'rtmpUrl': primaryUrl,
           'cableRtmp': cable,
           'restreamRtmp': restream,
-          'satelliteSrt': satellite,
+          'satelliteSrt': satellite, // 🔴 Satellite SRT లింక్ ఇక్కడ పూర్తిగా పాస్ చేయబడుతుంది
           'url': primaryUrl,
           'recordAudio': true,
         },
@@ -139,7 +139,6 @@ class StreamServiceManager {
   }
 
   static Future<bool> pauseLiveStream() async {
-    // ప్రస్తుత Native కోడ్‌లో Pause అంటే Service ఆపడం.
     return stopLiveStream();
   }
 
@@ -798,7 +797,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         
       bool success = false;  
       try {  
-        success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 4));  
+        // 🔴 30 సెకండ్ల టైమ్‌అవుట్ ఇవ్వబడింది, తద్వారా పర్మిషన్ డైలాగ్ వచ్చేందుకు తగిన సమయం ఉంటుంది
+        success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
       if (success) {  
@@ -1482,6 +1482,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
+
 // ============================================================================
 // 3. MASTER PCR BOARD SCREEN
 // ============================================================================
@@ -1639,7 +1640,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     });
   }
 
-  // 🔴 LIVE CONTROL ROOM (PCR Board)
   void _showLiveControlDialog() {
     showDialog(
       context: context,
@@ -1740,7 +1740,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         
       bool success = false;  
       try {  
-         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 4));  
+         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
       if (success) {  
@@ -2156,100 +2156,100 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     ]);
   }
   
-Future<void> _startLiveAndLock() async {
-  _saveLinks();
+  Future<void> _startLiveAndLock() async {
+    _saveLinks();
 
-  String cableUrl = cableRtmpController.text.trim();
-  String restreamUrl = restreamRtmpController.text.trim();
-  String satUrl = satelliteSrtController.text.trim();
+    String cableUrl = cableRtmpController.text.trim();
+    String restreamUrl = restreamRtmpController.text.trim();
+    String satUrl = satelliteSrtController.text.trim();
 
-  if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-    if (mounted) {
-      showCustomToast(
-        context,
-        "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.",
-        bgColor: Colors.red,
-      );
-    }
-    return;
-  }
-
-  try {
-    try {
-      var micStatus = await Permission.microphone.status.timeout(
-        const Duration(seconds: 2),
-      );
-      if (!micStatus.isGranted) {
-        await Permission.microphone.request().timeout(
-          const Duration(seconds: 2),
-        );
-      }
-    } catch (e) {
-      debugPrint('Microphone permission warning: $e');
-    }
-
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft,
-    ]);
-
-    bool success = false;
-
-    try {
-      success = await StreamServiceManager.startLiveStreamMulti(
-        cableUrl,
-        restreamUrl,
-        satUrl,
-      ).timeout(const Duration(seconds: 30));
-    } catch (e, stackTrace) {
-      debugPrint('PCR LIVE START ERROR: $e');
-      debugPrintStack(stackTrace: stackTrace);
-
+    if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
       if (mounted) {
         showCustomToast(
           context,
-          'లైవ్ ప్రారంభ లోపం: $e',
+          "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.",
           bgColor: Colors.red,
         );
       }
       return;
     }
 
-    if (success) {
-      setState(() {
-        isLiveBroadcasting = true;
-        isLivePaused = false;
-        hideControls = false;
-      });
+    try {
+      try {
+        var micStatus = await Permission.microphone.status.timeout(
+          const Duration(seconds: 2),
+        );
+        if (!micStatus.isGranted) {
+          await Permission.microphone.request().timeout(
+            const Duration(seconds: 2),
+          );
+        }
+      } catch (e) {
+        debugPrint('Microphone permission warning: $e');
+      }
+
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeRight,
+        DeviceOrientation.landscapeLeft,
+      ]);
+
+      bool success = false;
+
+      try {
+        success = await StreamServiceManager.startLiveStreamMulti(
+          cableUrl,
+          restreamUrl,
+          satUrl,
+        ).timeout(const Duration(seconds: 30));
+      } catch (e, stackTrace) {
+        debugPrint('PCR LIVE START ERROR: $e');
+        debugPrintStack(stackTrace: stackTrace);
+
+        if (mounted) {
+          showCustomToast(
+            context,
+            'లైవ్ ప్రారంభ లోపం: $e',
+            bgColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      if (success) {
+        setState(() {
+          isLiveBroadcasting = true;
+          isLivePaused = false;
+          hideControls = false;
+        });
+
+        if (mounted) {
+          showCustomToast(
+            context,
+            "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️",
+          );
+        }
+      } else {
+        if (mounted) {
+          showCustomToast(
+            context,
+            "లైవ్ ప్రారంభం కాలేదు. కనెక్షన్ లేదా MethodChannel చెక్ చేయండి.",
+            bgColor: Colors.red,
+          );
+        }
+      }
+    } catch (e, stackTrace) {
+      debugPrint('PCR LIVE ERROR: $e');
+      debugPrintStack(stackTrace: stackTrace);
 
       if (mounted) {
         showCustomToast(
           context,
-          "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️",
-        );
-      }
-    } else {
-      if (mounted) {
-        showCustomToast(
-          context,
-          "లైవ్ ప్రారంభం కాలేదు. కనెక్షన్ లేదా MethodChannel చెక్ చేయండి.",
+          "Error: $e",
           bgColor: Colors.red,
         );
       }
     }
-  } catch (e, stackTrace) {
-    debugPrint('PCR LIVE ERROR: $e');
-    debugPrintStack(stackTrace: stackTrace);
-
-    if (mounted) {
-      showCustomToast(
-        context,
-        "Error: $e",
-        bgColor: Colors.red,
-      );
-    }
   }
-}
 
   Future<void> _stopLiveStream() async {
     try {
