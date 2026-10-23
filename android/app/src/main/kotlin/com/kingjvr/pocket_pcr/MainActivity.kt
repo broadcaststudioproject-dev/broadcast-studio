@@ -1,4 +1,3 @@
-
 package com.kingjvr.pocket_pcr
 
 import android.app.Activity
@@ -12,6 +11,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
     private val CHANNEL = "com.kingjvr.pocket_pcr/stream"
     private val SCREEN_RECORD_REQUEST_CODE = 1000
 
@@ -19,6 +19,7 @@ class MainActivity : FlutterActivity() {
     private var cableRtmp: String? = null
     private var restreamRtmp: String? = null
     private var satelliteSrt: String? = null
+
     private var pendingResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -28,14 +29,30 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CHANNEL
         ).setMethodCallHandler { call, result ->
+
             when (call.method) {
-                "startScreenStream", "startScreenCaptureStreaming" -> {
+
+                "startScreenStream",
+                "startScreenCaptureStreaming" -> {
+
+                    if (pendingResult != null) {
+                        result.error(
+                            "REQUEST_IN_PROGRESS",
+                            "స్క్రీన్ క్యాప్చర్ అభ్యర్థన ఇప్పటికే కొనసాగుతోంది",
+                            null
+                        )
+                        return@setMethodCallHandler
+                    }
+
                     currentRtmpUrl =
                         call.argument<String>("rtmpUrl")?.trim()
+
                     cableRtmp =
                         call.argument<String>("cableRtmp")?.trim()
+
                     restreamRtmp =
                         call.argument<String>("restreamRtmp")?.trim()
+
                     satelliteSrt =
                         call.argument<String>("satelliteSrt")?.trim()
 
@@ -50,53 +67,61 @@ class MainActivity : FlutterActivity() {
                         val captureIntent =
                             projectionManager.createScreenCaptureIntent()
 
-                        // GO LIVE నుంచి అనుమతి విండో వరకు వచ్చినట్లు నిర్ధారించడానికి
-                        Log.d(
+                        Log.i(
                             "PCR_DEBUG",
-                            "Screen capture permission requested"
+                            "Requesting screen capture permission"
                         )
 
                         startActivityForResult(
                             captureIntent,
                             SCREEN_RECORD_REQUEST_CODE
                         )
+
                     } catch (e: Exception) {
                         Log.e(
                             "PCR_DEBUG",
-                            "Failed to launch screen capture permission",
+                            "Screen capture request failed",
                             e
                         )
+
                         pendingResult?.error(
                             "INTENT_ERROR",
-                            e.message,
+                            e.message ?: "స్క్రీన్ క్యాప్చర్ అభ్యర్థన విఫలమైంది",
                             null
                         )
+
                         pendingResult = null
                     }
                 }
 
-                "stopScreenStream", "stopScreenCaptureStreaming" -> {
+                "stopScreenStream",
+                "stopScreenCaptureStreaming" -> {
                     stopService(
                         Intent(this, ScreenStreamService::class.java)
                     )
                     result.success(true)
                 }
 
-                "pauseScreenStream", "pauseScreenCaptureStreaming" -> {
+                "pauseScreenStream",
+                "pauseScreenCaptureStreaming" -> {
                     stopService(
                         Intent(this, ScreenStreamService::class.java)
                     )
                     result.success(true)
                 }
 
-                "startUsbCamera" ->
+                "startUsbCamera" -> {
                     result.error(
                         "NOT_IMPLEMENTED",
-                        "USB Not Implemented",
+                        "USB కెమెరా ప్రారంభం ఇంకా అమలు కాలేదు",
                         null
                     )
+                }
 
-                "stopUsbCamera" -> result.success(true)
+                "stopUsbCamera" -> {
+                    result.success(true)
+                }
+
                 else -> result.notImplemented()
             }
         }
@@ -110,46 +135,61 @@ class MainActivity : FlutterActivity() {
     ) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
-            Log.d(
-                "PCR_DEBUG",
-                "Screen capture resultCode=$resultCode, dataPresent=${data != null}"
-            )
+        if (requestCode != SCREEN_RECORD_REQUEST_CODE) {
+            return
+        }
 
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                val serviceIntent =
-                    Intent(this, ScreenStreamService::class.java).apply {
-                        putExtra("resultCode", resultCode)
-                        putExtra("data", data)
-                        putExtra("rtmpUrl", currentRtmpUrl)
-                        putExtra("cableRtmp", cableRtmp)
-                        putExtra("restreamRtmp", restreamRtmp)
-                        putExtra("satelliteSrt", satelliteSrt)
-                    }
+        Log.i(
+            "PCR_DEBUG",
+            "Screen capture result=$resultCode, dataPresent=${data != null}"
+        )
 
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent)
-                    } else {
-                        startService(serviceIntent)
-                    }
-                    pendingResult?.success(true)
-                } catch (e: Exception) {
-                    Log.e(
-                        "PCR_DEBUG",
-                        "Failed to start ScreenStreamService",
-                        e
-                    )
-                    pendingResult?.error(
-                        "SERVICE_START_FAILED",
-                        e.message,
-                        null
-                    )
-                }
-            } else {
-                pendingResult?.success(false)
+        if (resultCode != Activity.RESULT_OK || data == null) {
+            pendingResult?.success(false)
+            pendingResult = null
+            Log.w("PCR_DEBUG", "Screen capture permission denied")
+            return
+        }
+
+        val serviceIntent =
+            Intent(this, ScreenStreamService::class.java).apply {
+                putExtra("resultCode", resultCode)
+                putExtra("data", data)
+                putExtra("rtmpUrl", currentRtmpUrl)
+                putExtra("cableRtmp", cableRtmp)
+                putExtra("restreamRtmp", restreamRtmp)
+                putExtra("satelliteSrt", satelliteSrt)
             }
 
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+
+            // This confirms that the service start was requested,
+            // not that the streaming server has connected successfully.
+            pendingResult?.success(true)
+
+            Log.i(
+                "PCR_DEBUG",
+                "ScreenStreamService start requested"
+            )
+
+        } catch (e: Exception) {
+            Log.e(
+                "PCR_DEBUG",
+                "Failed to start ScreenStreamService",
+                e
+            )
+
+            pendingResult?.error(
+                "SERVICE_START_FAILED",
+                e.message ?: "లైవ్ సేవ ప్రారంభం కాలేదు",
+                null
+            )
+        } finally {
             pendingResult = null
         }
     }
