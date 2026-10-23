@@ -175,17 +175,11 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
 
     override fun onConnectionFailedRtmp(reason: String) {
-        // అసలు కనెక్షన్ వైఫల్య కారణాన్ని Logcatలో నమోదు చేస్తుంది.
-        Log.e("PCR_RTMP_ERROR", "RTMP connection failed: $reason")
-        showToast("❌ కనెక్షన్ ఫెయిల్: $reason")
-        rtmpDisplay?.stopStream()
-        stopSelf()
-    }
-
-    override fun onNewBitrateRtmp(bitrate: Long) {
-        Log.d("PCR_RTMP", "Current bitrate: $bitrate")
-    }
-
+    Log.e("PCR_RTMP_ERROR", "RTMP ERROR: $reason")
+    showToast("RTMP ERROR: $reason")
+    rtmpDisplay?.stopStream()
+    stopSelf()
+}
     override fun onDisconnectRtmp() {
         Log.w("PCR_RTMP", "RTMP disconnected")
         showToast("⚠️ లైవ్ ఆగిపోయింది (Disconnected)")
