@@ -72,7 +72,7 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
 }
 
 // ============================================================================
-// 1. STREAM SERVICE MANAGER (MediaProjection & Multi-Protocol Support)
+// 1. STREAM SERVICE MANAGER (MediaProjection API & Multi-Protocol)
 // ============================================================================
 class StreamServiceManager {
   static const MethodChannel _streamChannel =
@@ -102,24 +102,22 @@ class StreamServiceManager {
             : satellite;
 
     try {
-      // 🔴 MediaProjection API & Microphone Permission ద్వారా ఎంటైర్ స్క్రీన్ + ఆడియో రికార్డింగ్ పాస్ చేయడం
+      // 🔴 Android Native's MediaProjection API కి సిగ్నల్ పంపడం
       final result = await _streamChannel.invokeMethod<bool>(
         'startScreenCaptureStreaming',
         <String, dynamic>{
           'rtmpUrl': primaryUrl,
           'cableRtmp': cable,
           'restreamRtmp': restream,
-          'satelliteSrt': satellite, // Multi-Protocol Support (Primary, Secondary, Satellite SRT)
+          'satelliteSrt': satellite, // Satellite SRT లింక్ పాస్ చేయబడింది
           'url': primaryUrl,
-          'recordAudio': true, // Microphone ద్వారా ఆడియో సింక్ చేయడానికి
+          'recordAudio': true, // Permission.microphone ద్వారా ఆడియో క్యాప్చర్
         },
       );
 
       return result == true;
     } on PlatformException catch (e) {
-      debugPrint(
-        'PCR Native Error: ${e.code} - ${e.message}',
-      );
+      debugPrint('PCR Native Error: ${e.code} - ${e.message}');
       return false;
     } catch (e) {
       debugPrint('PCR Live Start Error: $e');
@@ -472,6 +470,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
+  // 🔴 Microphone Audio Permission Added
   Future<void> _requestPermissionsAndInitCamera() async {
     await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos, Permission.videos].request();
     setState(() { isCameraVisible = true; });
@@ -790,7 +789,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     try {  
       try {  
-        // 🔴 Audio Recording కోసం మైక్రోఫోన్ పర్మిషన్ చెక్
+        // 🔴 ఆడియో మరియు స్క్రీన్ రికార్డ్ పర్మిషన్స్ చెక్ చేయడం
         var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
         if (!micStatus.isGranted) { await Permission.microphone.request().timeout(const Duration(seconds: 2)); }  
       } catch (e) {}  
@@ -799,7 +798,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         
       bool success = false;  
       try {  
-        // 🔴 ఎంటైర్ స్క్రీన్ రికార్డింగ్ (MediaProjection) + ఆడియో + మల్టీ-ప్రొటోకాల్ లింక్స్ (30 సెకండ్ల టైమ్‌అవుట్)
         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
@@ -1734,7 +1732,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     try {  
       try {  
-        // 🔴 MediaProjection రికార్డింగ్‌కు ముందు Microphone Permission చెక్
         var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
         if (!micStatus.isGranted) await Permission.microphone.request().timeout(const Duration(seconds: 2));  
       } catch(e){}  
@@ -1743,7 +1740,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         
       bool success = false;  
       try {  
-         // 🔴 ఎంటైర్ స్క్రీన్ + ఆడియో + మల్టీ-ప్రొటోకాల్ లింక్స్ (30 సెకండ్ల టైమ్‌అవుట్‌తో)
          success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
