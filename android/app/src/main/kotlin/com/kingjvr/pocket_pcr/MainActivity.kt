@@ -13,7 +13,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    // 🔴 ఫ్లట్టర్ సైడ్ ఛానల్ పేరుకు సరిగ్గా మ్యాచ్ చేయబడింది
     private val CHANNEL = "com.kingjvr.pocket_pcr/stream"
     private val REQUEST_CODE_SCREEN_CAPTURE = 100
     
@@ -26,7 +25,6 @@ class MainActivity: FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "startScreenCaptureStreaming" || call.method == "startScreenStream") {
-                // 🔴 మల్టీ-స్ట్రీమ్ లింక్‌లను ఫ్లట్టర్ నుండి రిసీవ్ చేసుకోవడం
                 pendingRtmpUrl = call.argument<String>("rtmpUrl") ?: ""
                 pendingCableRtmp = call.argument<String>("cableRtmp") ?: ""
                 pendingRestreamRtmp = call.argument<String>("restreamRtmp") ?: ""
@@ -45,18 +43,18 @@ class MainActivity: FlutterActivity() {
 
     private fun startScreenCapture() {
         try {
-            // 1. ఆండ్రాయిడ్ క్రాష్ అవ్వకుండా ముందుగా బ్యాక్‌గ్రౌండ్ సర్వీస్ ని ఆపేయడం
             stopScreenCapture()
             
-            // 2. పర్మిషన్ డైలాగ్ కోసం కొద్దిగా టైమ్ ఇవ్వడం
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE_SCREEN_CAPTURE)
+                    // ఆండ్రాయిడ్ 15 కోసం స్క్రీన్ క్యాప్చర్ ఇంటెంట్ ప్రారంభించడం
+                    val intent = mediaProjectionManager.createScreenCaptureIntent()
+                    startActivityForResult(intent, REQUEST_CODE_SCREEN_CAPTURE)
                 } catch (e: Exception) {
                     showToast("Popup Error: ${e.message}")
                 }
-            }, 500)
+            }, 300)
         } catch (e: Exception) {
             showToast("Error: ${e.message}")
         }
@@ -77,6 +75,8 @@ class MainActivity: FlutterActivity() {
                         putExtra(ScreenStreamService.EXTRA_RESULT_CODE, resultCode)
                         putExtra(ScreenStreamService.EXTRA_DATA, data)
                     }
+                    
+                    // ఆండ్రాయిడ్ 15 నిబంధనల ప్రకారం ఫోర్‌గ్రౌండ్ సర్వీస్ స్టార్ట్ చేయడం
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         startForegroundService(serviceIntent)
                     } else {
@@ -86,7 +86,7 @@ class MainActivity: FlutterActivity() {
                     showToast("Service Error: ${e.message}")
                 }
             } else {
-                showToast("Recording permission cancelled!")
+                showToast("రైట్! స్క్రీన్ రికార్డింగ్ పర్మిషన్ రద్దు చేయబడింది.")
             }
         }
     }
@@ -97,9 +97,7 @@ class MainActivity: FlutterActivity() {
                 action = ScreenStreamService.ACTION_STOP
             }
             startService(serviceIntent)
-        } catch (e: Exception) {
-            // Ignore if service is already stopped
-        }
+        } catch (e: Exception) {}
     }
     
     private fun showToast(message: String) {
