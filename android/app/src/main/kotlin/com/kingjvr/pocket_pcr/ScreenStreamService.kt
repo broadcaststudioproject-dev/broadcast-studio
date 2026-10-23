@@ -1,4 +1,3 @@
-
 package com.kingjvr.pocket_pcr
 
 import android.app.Notification
@@ -20,12 +19,13 @@ import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
-    private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "PocketPCRLiveChannel"
     private val notificationId = 12345
 
+    private var rtmpDisplay: RtmpDisplay? = null
     private var streamWidth = 0
     private var streamHeight = 0
+    private var started = false
 
     private fun showToast(message: String) {
         Handler(Looper.getMainLooper()).post {
@@ -40,6 +40,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+
         rtmpDisplay = RtmpDisplay(applicationContext, true, this)
         rtmpDisplay?.glInterface?.setForceRender(true)
     }
@@ -49,7 +50,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         flags: Int,
         startId: Int
     ): Int {
-        Log.i("ScreenStreamService", "Service Started")
+        if (started) {
+            Log.w("PCR_RTMP", "Stream service already started")
+            return START_NOT_STICKY
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -61,138 +65,151 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             startForeground(notificationId, createNotification())
         }
 
-        if (intent != null) {
-            val resultCode = intent.getIntExtra("resultCode", -1)
+        if (intent == null) {
+            fail("Service intent లేదు")
+            return START_NOT_STICKY
+        }
 
-            @Suppress("DEPRECATION")
-            val data = intent.getParcelableExtra<Intent>("data")
+        val resultCode = intent.getIntExtra("resultCode", -1)
 
-            val cableRtmp = intent.getStringExtra("cableRtmp")
-            val restreamRtmp = intent.getStringExtra("restreamRtmp")
-            val rtmpUrl = intent.getStringExtra("rtmpUrl")
+        @Suppress("DEPRECATION")
+        val data = intent.getParcelableExtra<Intent>("data")
 
-            val finalStreamUrl =
-                cableRtmp?.takeIf { it.isNotBlank() }
-                    ?: restreamRtmp?.takeIf { it.isNotBlank() }
-                    ?: rtmpUrl?.takeIf { it.isNotBlank() }
+        val cableUrl = intent.getStringExtra("cableRtmp")?.trim().orEmpty()
+        val restreamUrl = intent.getStringExtra("restreamRtmp")?.trim().orEmpty()
+        val fallbackUrl = intent.getStringExtra("rtmpUrl")?.trim().orEmpty()
 
-            // URLను Logcatలో చూపించవద్దు; అందులో Stream Key ఉండవచ్చు.
+        // Do not convert RTMPS URLs into RTMP URLs.
+        // This version starts one valid RTMP/RTMPS destination.
+        val outputUrl = sequenceOf(cableUrl, restreamUrl, fallbackUrl)
+            .firstOrNull { it.startsWith("rtmp://") || it.startsWith("rtmps://") }
+            .orEmpty()
+
+        Log.i(
+            "PCR_RTMP",
+            "Permission valid=${resultCode == -1 && data != null}, " +
+                "RTMP output supplied=${outputUrl.isNotBlank()}"
+        )
+
+        if (resultCode != android.app.Activity.RESULT_OK || data == null) {
+            fail("స్క్రీన్ క్యాప్చర్ అనుమతి రాలేదు")
+            return START_NOT_STICKY
+        }
+
+        if (outputUrl.isBlank()) {
+            fail("సరైన RTMP/RTMPS స్ట్రీమ్ URL ఇవ్వండి")
+            return START_NOT_STICKY
+        }
+
+        try {
+            rtmpDisplay?.setIntentResult(resultCode, data)
+
+            val metrics = resources.displayMetrics
+            var width = metrics.widthPixels
+            var height = metrics.heightPixels
+            val dpi = metrics.densityDpi
+
+            if (width % 2 != 0) width--
+            if (height % 2 != 0) height--
+
+            streamWidth = width
+            streamHeight = height
+
+            val videoReady = rtmpDisplay?.prepareVideo(
+                width,
+                height,
+                30,
+                2500 * 1024,
+                dpi
+            ) == true
+
+            if (!videoReady) {
+                fail("వీడియో ఎన్‌కోడర్ సిద్ధం కాలేదు")
+                return START_NOT_STICKY
+            }
+
+            val audioReady = rtmpDisplay?.prepareAudio(
+                128 * 1024,
+                44100,
+                true,
+                true,
+                true
+            ) == true
+
+            if (!audioReady) {
+                fail("ఆడియో ఎన్‌కోడర్ సిద్ధం కాలేదు")
+                return START_NOT_STICKY
+            }
+
+            rtmpDisplay?.startStream(outputUrl)
+            started = true
+
             Log.i(
                 "PCR_RTMP",
-                "Capture result valid=${resultCode == -1 && data != null}, " +
-                    "URL supplied=${!finalStreamUrl.isNullOrBlank()}"
+                "Stream start requested: ${width}x${height}"
             )
 
-            if (resultCode == -1 &&
-                data != null &&
-                !finalStreamUrl.isNullOrBlank()
-            ) {
-                rtmpDisplay?.setIntentResult(resultCode, data)
+            showToast("లైవ్ కనెక్షన్ ప్రారంభమవుతోంది...")
 
-                val metrics = resources.displayMetrics
-                var width = metrics.widthPixels
-                var height = metrics.heightPixels
-                val screenDpi = metrics.densityDpi
-
-                if (width % 2 != 0) width -= 1
-                if (height % 2 != 0) height -= 1
-
-                streamWidth = width
-                streamHeight = height
-
-                Log.i(
-                    "PCR_RTMP",
-                    "Preparing stream: ${width}x${height}, dpi=$screenDpi"
-                )
-
-                if (rtmpDisplay?.prepareVideo(
-                        width,
-                        height,
-                        30,
-                        2500 * 1024,
-                        screenDpi
-                    ) == true
-                ) {
-                    if (rtmpDisplay?.prepareAudio(
-                            128 * 1024,
-                            44100,
-                            true,
-                            true,
-                            true
-                        ) == true
-                    ) {
-                        Log.i("PCR_RTMP", "Encoders prepared; starting stream")
-                        rtmpDisplay?.startStream(finalStreamUrl)
-                        showToast("ఇంజిన్ స్టార్ట్ అయ్యింది... వీడియో పంపుతోంది!")
-                    } else {
-                        Log.e("PCR_RTMP", "Audio encoder preparation failed")
-                        showToast("❌ ఆడియో ఎన్‌కోడర్ ఫెయిల్. మైక్ పర్మిషన్ చెక్ చేయండి.")
-                        stopSelf()
-                    }
-                } else {
-                    Log.e(
-                        "PCR_RTMP",
-                        "Video encoder preparation failed: ${width}x${height}"
-                    )
-                    showToast(
-                        "❌ వీడియో ఎన్‌కోడర్ ఫెయిల్. " +
-                            "రిజల్యూషన్ ($width x $height) సపోర్ట్ చేయట్లేదు."
-                    )
-                    stopSelf()
-                }
-            } else {
-                Log.e(
-                    "PCR_RTMP",
-                    "Missing screen permission result, data, or stream URL"
-                )
-                showToast("❌ దయచేసి సరైన Live లింక్ ఇవ్వండి.")
-                stopSelf()
-            }
-        } else {
-            Log.e("PCR_RTMP", "Service received a null Intent")
-            stopSelf()
+        } catch (e: Exception) {
+            Log.e("PCR_RTMP_ERROR", "Stream start exception", e)
+            fail("లైవ్ ప్రారంభించడంలో లోపం: ${e.message ?: "తెలియని లోపం"}")
         }
 
         return START_NOT_STICKY
     }
 
-    override fun onDestroy() {
-        if (rtmpDisplay?.isStreaming == true) {
-            rtmpDisplay?.stopStream()
-        }
-        rtmpDisplay = null
-        super.onDestroy()
+    private fun fail(message: String) {
+        Log.e("PCR_RTMP_ERROR", message)
+        showToast("❌ $message")
+        stopSelf()
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
-
     override fun onConnectionSuccessRtmp() {
-        Log.i(
-            "PCR_RTMP",
-            "RTMP connection succeeded: ${streamWidth}x${streamHeight}"
-        )
-        showToast("✅ సక్సెస్! (${streamWidth}x${streamHeight} వీడియో వెళుతోంది)")
+        Log.i("PCR_RTMP", "RTMP connection succeeded")
+        showToast("✅ లైవ్ కనెక్షన్ విజయవంతమైంది (${streamWidth}x${streamHeight})")
     }
 
     override fun onConnectionFailedRtmp(reason: String) {
-    Log.e("PCR_RTMP_ERROR", "RTMP ERROR: $reason")
-    showToast("RTMP ERROR: $reason")
-    rtmpDisplay?.stopStream()
-    stopSelf()
-}
+        Log.e("PCR_RTMP_ERROR", "Connection failed: $reason")
+        showToast("❌ RTMP కనెక్షన్ విఫలమైంది: $reason")
+
+        Handler(Looper.getMainLooper()).post {
+            stopSelf()
+        }
+    }
+
     override fun onDisconnectRtmp() {
         Log.w("PCR_RTMP", "RTMP disconnected")
-        showToast("⚠️ లైవ్ ఆగిపోయింది (Disconnected)")
+        showToast("⚠️ లైవ్ కనెక్షన్ తెగిపోయింది")
     }
 
     override fun onAuthErrorRtmp() {
-        Log.e("PCR_RTMP_ERROR", "RTMP authentication error")
-        showToast("❌ లింక్ పాస్‌వర్డ్/ఆథరైజేషన్ తప్పు")
+        Log.e("PCR_RTMP_ERROR", "RTMP authentication failed")
+        showToast("❌ స్ట్రీమ్ కీ లేదా అనుమతి తప్పుగా ఉండవచ్చు")
     }
 
     override fun onAuthSuccessRtmp() {
         Log.i("PCR_RTMP", "RTMP authentication succeeded")
     }
+
+    override fun onDestroy() {
+        try {
+            rtmpDisplay?.let { display ->
+                if (display.isStreaming) {
+                    display.stopStream()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PCR_RTMP_ERROR", "Stop stream error", e)
+        }
+
+        rtmpDisplay = null
+        started = false
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -210,15 +227,16 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
 
     private fun createNotification(): Notification {
-        val appName = applicationContext.applicationInfo
-            .loadLabel(applicationContext.packageManager)
+        val appName = applicationInfo
+            .loadLabel(packageManager)
             .toString()
 
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle("$appName - Live")
-            .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ అవుతోంది...")
+            .setContentText("లైవ్ ప్రసార సేవ ప్రారంభమైంది")
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
             .build()
     }
 }
