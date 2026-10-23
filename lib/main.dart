@@ -2157,8 +2157,49 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         
       bool success = false;  
       try {  
-         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 4));  
-      } catch(e) {}  
+         
+      bool success = false;
+
+      try {
+        success = await StreamServiceManager.startLiveStreamMulti(
+          cableUrl,
+          restreamUrl,
+          satUrl,
+        ).timeout(const Duration(seconds: 30));
+      } catch (e, stackTrace) {
+        debugPrint('PCR LIVE START ERROR: $e');
+        debugPrintStack(stackTrace: stackTrace);
+
+        if (mounted) {
+          showCustomToast(
+            context,
+            'లైవ్ ప్రారంభ లోపం: $e',
+            bgColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      if (success) {
+        setState(() {
+          isLiveBroadcasting = true;
+          isLivePaused = false;
+          hideControls = false;
+        });
+
+        if (mounted) {
+          showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️");
+        }
+      } else {
+        if (mounted) {
+          showCustomToast(
+            context,
+            "లైవ్ ప్రారంభం కాలేదు. కనెక్షన్ లేదా MethodChannel చెక్ చేయండి.",
+            bgColor: Colors.red,
+          );
+        }
+      }
+
         
       if (success) {  
         setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });  
