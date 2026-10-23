@@ -84,6 +84,12 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             .firstOrNull { it.startsWith("rtmp://") || it.startsWith("rtmps://") }
             .orEmpty()
 
+        // 🔴 ఇక్కడ URL సరిగ్గా వస్తోందో లేదో లాగ్ లో ప్రింట్ అవుతుంది
+        Log.i("PCR_DEBUG_URL", "Received Cable: $cableUrl")
+        Log.i("PCR_DEBUG_URL", "Received Restream: $restreamUrl")
+        Log.i("PCR_DEBUG_URL", "Received Fallback: $fallbackUrl")
+        Log.i("PCR_DEBUG_URL", "Final Selected outputUrl: $outputUrl")
+
         Log.i(
             "PCR_RTMP",
             "Permission valid=${resultCode == Activity.RESULT_OK && data != null}, " +
