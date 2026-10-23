@@ -72,7 +72,7 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
 }
 
 // ============================================================================
-// 1. STREAM SERVICE MANAGER (అక్టోబర్ 2 వర్కింగ్ లాజిక్)
+// 1. STREAM SERVICE MANAGER (MediaProjection & Multi-Protocol Support)
 // ============================================================================
 class StreamServiceManager {
   static const MethodChannel _streamChannel =
@@ -102,15 +102,16 @@ class StreamServiceManager {
             : satellite;
 
     try {
+      // 🔴 MediaProjection API & Microphone Permission ద్వారా ఎంటైర్ స్క్రీన్ + ఆడియో రికార్డింగ్ పాస్ చేయడం
       final result = await _streamChannel.invokeMethod<bool>(
         'startScreenCaptureStreaming',
         <String, dynamic>{
           'rtmpUrl': primaryUrl,
           'cableRtmp': cable,
           'restreamRtmp': restream,
-          'satelliteSrt': satellite, // 🔴 Satellite SRT లింక్ ఇక్కడ పూర్తిగా పాస్ చేయబడుతుంది
+          'satelliteSrt': satellite, // Multi-Protocol Support (Primary, Secondary, Satellite SRT)
           'url': primaryUrl,
-          'recordAudio': true,
+          'recordAudio': true, // Microphone ద్వారా ఆడియో సింక్ చేయడానికి
         },
       );
 
@@ -789,6 +790,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     try {  
       try {  
+        // 🔴 Audio Recording కోసం మైక్రోఫోన్ పర్మిషన్ చెక్
         var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
         if (!micStatus.isGranted) { await Permission.microphone.request().timeout(const Duration(seconds: 2)); }  
       } catch (e) {}  
@@ -797,7 +799,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         
       bool success = false;  
       try {  
-        // 🔴 అక్టోబర్ 2 నాటి సక్సెస్ ఫుల్ మెథడ్ ఛానెల్ కాల్ (30 సెకండ్ల టైమ్‌అవుట్‌తో)
+        // 🔴 ఎంటైర్ స్క్రీన్ రికార్డింగ్ (MediaProjection) + ఆడియో + మల్టీ-ప్రొటోకాల్ లింక్స్ (30 సెకండ్ల టైమ్‌అవుట్)
         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
@@ -1640,7 +1642,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     });
   }
 
-  // 🔴 LIVE CONTROL ROOM (PCR Board)
   void _showLiveControlDialog() {
     showDialog(
       context: context,
@@ -1733,6 +1734,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     try {  
       try {  
+        // 🔴 MediaProjection రికార్డింగ్‌కు ముందు Microphone Permission చెక్
         var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
         if (!micStatus.isGranted) await Permission.microphone.request().timeout(const Duration(seconds: 2));  
       } catch(e){}  
@@ -1741,6 +1743,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         
       bool success = false;  
       try {  
+         // 🔴 ఎంటైర్ స్క్రీన్ + ఆడియో + మల్టీ-ప్రొటోకాల్ లింక్స్ (30 సెకండ్ల టైమ్‌అవుట్‌తో)
          success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
       } catch(e) {}  
         
