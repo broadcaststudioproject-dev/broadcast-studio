@@ -29,6 +29,10 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install CMake SDK component
+        run: |
+          echo "y" | sdkmanager "cmake;3.22.1"
+
       - name: Clean & Recreate Android Folder (Java Native)
         run: |
           echo "1. బ్యాకప్ తీసుకుంటున్నాను..."
