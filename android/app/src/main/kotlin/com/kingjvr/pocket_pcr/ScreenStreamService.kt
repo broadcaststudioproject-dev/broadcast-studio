@@ -78,15 +78,22 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
         val cableUrl = intent.getStringExtra("cableRtmp")?.trim().orEmpty()
         val restreamUrl = intent.getStringExtra("restreamRtmp")?.trim().orEmpty()
+        val satelliteSrt = intent.getStringExtra("satelliteSrt")?.trim().orEmpty()
         val fallbackUrl = intent.getStringExtra("rtmpUrl")?.trim().orEmpty()
 
-        val outputUrl = sequenceOf(cableUrl, restreamUrl, fallbackUrl)
-            .firstOrNull { it.startsWith("rtmp://") || it.startsWith("rtmps://") }
+        // 🔴 RTMP, RTMPS మరియు SRT లింక్‌లు అన్నీ సపోర్ట్ చేసేలా అప్‌డేట్ చేయబడింది
+        val outputUrl = sequenceOf(cableUrl, restreamUrl, satelliteSrt, fallbackUrl)
+            .firstOrNull { 
+                it.startsWith("rtmp://") || 
+                it.startsWith("rtmps://") || 
+                it.startsWith("srt://") 
+            }
             .orEmpty()
 
-        // 🔴 ఇక్కడ URL సరిగ్గా వస్తోందో లేదో లాగ్ లో ప్రింట్ అవుతుంది
+        // లాగ్స్ ప్రింటింగ్
         Log.i("PCR_DEBUG_URL", "Received Cable: $cableUrl")
         Log.i("PCR_DEBUG_URL", "Received Restream: $restreamUrl")
+        Log.i("PCR_DEBUG_URL", "Received Satellite SRT: $satelliteSrt")
         Log.i("PCR_DEBUG_URL", "Received Fallback: $fallbackUrl")
         Log.i("PCR_DEBUG_URL", "Final Selected outputUrl: $outputUrl")
 
@@ -102,7 +109,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         }
 
         if (outputUrl.isBlank()) {
-            fail("సరైన RTMP/RTMPS స్ట్రీమ్ URL ఇవ్వండి")
+            fail("సరైన RTMP/RTMPS/SRT స్ట్రీమ్ URL ఇవ్వండి")
             return START_NOT_STICKY
         }
 
