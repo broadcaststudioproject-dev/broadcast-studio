@@ -1,4 +1,4 @@
-package com.example.pocket_pcr_studio
+package com.kingjvr.pocket_pcr  // 🔴 ప్యాకేజీ పేరు సరిచేయబడింది
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -60,7 +60,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
 
             val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
-            val data = intent.getParcelableExtra<Intent>(EXTRA_DATA)
+            
+            // ఆండ్రాయిడ్ 13+ అనుకూలత కోసం Parcelable డేటా ఎక్స్‌ట్రాక్ట్ చేయడం
+            val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra<Intent>(EXTRA_DATA)
+            }
 
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
                 val display = rtmpDisplay
@@ -134,7 +141,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
 
     override fun onConnectionSuccessRtmp() {
-        showMessage("లైవ్ வெற்றிகரமாக కనెక్ట్ అయింది! (Online)")
+        showMessage("లైవ్ సక్సెస్! (Online)")
     }
     
     override fun onConnectionFailedRtmp(reason: String) {
