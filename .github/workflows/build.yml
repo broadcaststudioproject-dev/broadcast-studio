@@ -36,7 +36,7 @@ jobs:
           import glob
           import os
 
-          # 1. SETTINGS.GRADLE (ఇక్కడే Flutter అఫీషియల్ లింక్ యాడ్ చేయబడింది)
+          # 1. SETTINGS.GRADLE (ఇక్కడే jcenter() లింక్ యాడ్ చేయబడింది)
           if os.path.exists("android/settings.gradle.kts"):
               os.remove("android/settings.gradle.kts")
 
@@ -53,6 +53,7 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
+                  jcenter()
                   gradlePluginPortal()
               }
           }
@@ -68,6 +69,7 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
+                  jcenter()
                   maven { url "https://storage.googleapis.com/download.flutter.io" }
                   maven { url "https://jitpack.io" }
               }
@@ -111,8 +113,25 @@ jobs:
           # 3. Proguard Rules
           with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
               f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
+              
+          # 4. Update existing repos with jcenter()
+          for fpath in glob.glob("android/**/*.gradle*", recursive=True):
+              try:
+                  with open(fpath, "r", encoding="utf-8") as f:
+                      txt = f.read()
 
-          # 4. App Gradle Dependencies & Version Code Fix
+                  if "jitpack.io" not in txt and "mavenCentral()" in txt:
+                      if fpath.endswith(".kts"):
+                          txt = txt.replace("mavenCentral()", 'mavenCentral()\n        jcenter()\n        maven { url = uri("https://jitpack.io") }')
+                      else:
+                          txt = txt.replace("mavenCentral()", "mavenCentral()\n        jcenter()\n        maven { url 'https://jitpack.io' }")
+
+                      with open(fpath, "w", encoding="utf-8") as f:
+                          f.write(txt)
+              except Exception as e:
+                  pass
+
+          # 5. App Gradle Dependencies & Version Code Fix
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
