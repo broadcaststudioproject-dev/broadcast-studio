@@ -23,72 +23,21 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # 👇 ఇక్కడే అసలు మాయ ఉంది! ఎర్రర్ లేని ఫ్లట్టర్ వెర్షన్‌ను వాడమని చెబుతున్నాం 👇
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.19.6' 
           cache: true
 
-      - name: Configure Android Project (Master Fix)
+      - name: Configure Android Project (Dependencies & Manifest)
         shell: bash
         run: |
           cat > configure_android.py <<'PYTHON'
           import glob
           import os
 
-          # 1. FORCE AGP 8.1.0: పాత settings ఫైల్‌ను పూర్తిగా రీప్లేస్ చేయడం
-          if os.path.exists("android/settings.gradle.kts"):
-              os.remove("android/settings.gradle.kts")
-
-          settings_path = "android/settings.gradle"
-          settings_content = """pluginManagement {
-              def flutterSdkPath = {
-                  def properties = new Properties()
-                  file("local.properties").withInputStream { properties.load(it) }
-                  def flutterSdkPath = properties.getProperty("flutter.sdk")
-                  assert flutterSdkPath != null: "flutter.sdk not set in local.properties"
-                  return flutterSdkPath
-              }()
-              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-                  maven { url "https://jitpack.io" }
-              }
-          }
-
-          plugins {
-              id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-              id "com.android.application" version "8.1.0" apply false
-              id "org.jetbrains.kotlin.android" version "1.8.22" apply false
-          }
-
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-              repositories {
-                  google()
-                  mavenCentral()
-                  maven { url "https://jitpack.io" }
-              }
-          }
-
-          include ":app"
-          """
-          with open(settings_path, "w", encoding="utf-8") as f:
-              f.write(settings_content)
-
-          # 2. FORCE android.newDsl=false 
-          prop_file = "android/gradle.properties"
-          prop_content = "\nandroid.newDsl=false\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n"
-          if os.path.exists(prop_file):
-              with open(prop_file, "a", encoding="utf-8") as f:
-                  f.write(prop_content)
-          else:
-              with open(prop_file, "w", encoding="utf-8") as f:
-                  f.write(prop_content)
-
-          # 3. Manifest Permissions
+          # Manifest Permissions
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r", encoding="utf-8") as f:
@@ -118,11 +67,11 @@ jobs:
               with open(manifest, "w", encoding="utf-8") as f:
                   f.write(content)
 
-          # 4. Proguard Rules
+          # Proguard Rules
           with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
               f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
 
-          # 5. Gradle Repositories
+          # Gradle Repositories
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
                   with open(fpath, "r", encoding="utf-8") as f:
@@ -139,7 +88,7 @@ jobs:
               except Exception as e:
                   pass
 
-          # 6. App Gradle Dependencies
+          # App Gradle Dependencies
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
@@ -156,7 +105,7 @@ jobs:
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Master Configuration Applied Successfully.")
+          print("Configuration Applied Successfully.")
           PYTHON
           python3 configure_android.py
 
