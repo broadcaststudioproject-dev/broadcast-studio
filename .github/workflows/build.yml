@@ -1,4 +1,4 @@
-name: Pocket PCR Studio - Master Build
+Name: Pocket PCR Studio - Master Build
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -31,214 +31,246 @@ jobs:
 
       - name: Clean & Recreate Android Folder (Java Native)
         run: |
-          echo "1. బ్యాకప్ తీసుకుంటున్నాను..."
+          echo "1. Backing up Android resources..."
           mkdir -p /tmp/android_backup
-          cp -r android/app/src/main/res /tmp/android_backup/ || true
-          
-          echo "2. పాత ఆండ్రాయిడ్ ఫోల్డర్ డిలీట్ చేస్తున్నాను..."
+          cp -r android/app/src/main/res /tmp/android_backup/ 2>/dev/null || true
+          echo "2. Recreating Android project..."
           rm -rf android
-          
-          echo "3. ఫ్లట్టర్ ద్వారా అఫీషియల్ Java ప్రాజెక్ట్ క్రియేట్ చేస్తున్నాను..."
-          flutter create --org com.kingjvk --project-name pocket_pcr_studio -a java . --platforms=android
-          
-          echo "4. యాప్ లోగో రీస్టోర్ చేస్తున్నాను..."
-          cp -r /tmp/android_backup/res/* android/app/src/main/res/ || true
+          flutter create --org com.kingjvr --project-name pocket_pcr_studio -a java . --platforms=android
+          echo "3. Restoring app resources..."
+          cp -r /tmp/android_backup/res/* android/app/src/main/res/ 2>/dev/null || true
 
-      - name: Configure Android Project Safely
+      - name: Configure Android Project
+        shell: bash
         run: |
-          cat << 'EOF' > configure_android.py
-          import os, glob, shutil
+          cat > configure_android.py <<'PYTHON'
+          import glob
+          import os
 
-          # 1. ప్యాకేజ్ కనుక్కోవడం మరియు MainActivity.java ఓవర్ రైట్ చేయడం
           java_files = glob.glob("android/app/src/main/java/**/MainActivity.java", recursive=True)
-          if java_files:
-              java_path = java_files[0]
-              
-              pkg_name = "com.kingjvk.pocket_pcr_studio"
-              with open(java_path, "r", encoding="utf-8") as f:
-                  for line in f:
-                      if line.strip().startswith("package "):
-                          pkg_name = line.replace("package", "").replace(";", "").strip()
-                          break
-                          
-              java_code = f"""package {pkg_name};
+          if not java_files:
+              raise SystemExit("ERROR: MainActivity.java was not generated.")
 
-              import android.os.Bundle;
-              import android.view.Surface;
-              import android.hardware.usb.UsbDevice;
-              import androidx.annotation.NonNull;
-              import io.flutter.embedding.android.FlutterActivity;
-              import io.flutter.embedding.engine.FlutterEngine;
-              import io.flutter.plugin.common.MethodChannel;
-              import io.flutter.view.TextureRegistry;
+          java_path = java_files[0]
+          pkg_name = "com.kingjvr.pocket_pcr_studio"
+          with open(java_path, "r", encoding="utf-8") as f:
+              for line in f:
+                  if line.strip().startswith("package "):
+                      pkg_name = line.replace("package", "").replace(";", "").strip()
+                      break
 
-              import com.serenegiant.usb.USBMonitor;
-              import com.serenegiant.usb.UVCCamera;
-              import com.herohan.uvcapp.CameraHelper;
-              import com.herohan.uvcapp.ICameraHelper;
+          java_code = f"""package {pkg_name};
 
-              public class MainActivity extends FlutterActivity {{
-                  private static final String CHANNEL = "com.kingjvk.pocket_pcr/stream";
-                  private CameraHelper mCameraHelper;
-                  private Surface mSurface;
+          import android.hardware.usb.UsbDevice;
+          import android.view.Surface;
+          import androidx.annotation.NonNull;
+          import io.flutter.embedding.android.FlutterActivity;
+          import io.flutter.embedding.engine.FlutterEngine;
+          import io.flutter.plugin.common.MethodChannel;
+          import io.flutter.view.TextureRegistry;
+          import com.herohan.uvcapp.CameraHelper;
+          import com.herohan.uvcapp.ICameraHelper;
 
-                  private void initCameraHelper() {{
-                      if (mCameraHelper == null) {{
-                          mCameraHelper = new CameraHelper();
-                          mCameraHelper.setStateCallback(new ICameraHelper.StateCallback() {{
-                              @Override
-                              public void onAttach(UsbDevice device) {{
-                                  try {{ mCameraHelper.selectDevice(device); }} catch (Exception e) {{}}
-                              }}
-                              @Override
-                              public void onDeviceOpen(UsbDevice device, boolean isFirstOpen) {{
-                                  try {{ mCameraHelper.openCamera(); }} catch (Exception e) {{}}
-                              }}
-                              @Override
-                              public void onCameraOpen(UsbDevice device) {{
-                                  try {{ mCameraHelper.startPreview(); }} catch (Exception e) {{}}
-                                  if (mSurface != null) {{
-                                      try {{ mCameraHelper.addSurface(mSurface, false); }} catch (Exception e) {{}}
-                                  }}
-                              }}
-                              @Override
-                              public void onCameraClose(UsbDevice device) {{}}
-                              @Override
-                              public void onDeviceClose(UsbDevice device) {{}}
-                              @Override
-                              public void onDetach(UsbDevice device) {{}}
-                              @Override
-                              public void onCancel(UsbDevice device) {{}}
-                          }});
+          public class MainActivity extends FlutterActivity {{
+              private static final String STREAM_CHANNEL = "com.kingjvr.pocket_pcr/stream";
+              private static final String UVC_CHANNEL = "com.kingjvr.pocket_pcr/uvc";
+              private CameraHelper mCameraHelper;
+              private Surface mSurface;
+              private TextureRegistry.SurfaceTextureEntry mSurfaceEntry;
+
+              private void initCameraHelper() {{
+                  if (mCameraHelper != null) return;
+                  mCameraHelper = new CameraHelper();
+                  mCameraHelper.setStateCallback(new ICameraHelper.StateCallback() {{
+                      @Override
+                      public void onAttach(UsbDevice device) {{
+                          try {{ mCameraHelper.selectDevice(device); }}
+                          catch (Exception e) {{ android.util.Log.e("PocketPCR", "USB select failed", e); }}
                       }}
-                  }}
+                      @Override
+                      public void onDeviceOpen(UsbDevice device, boolean isFirstOpen) {{
+                          try {{ mCameraHelper.openCamera(); }}
+                          catch (Exception e) {{ android.util.Log.e("PocketPCR", "USB open failed", e); }}
+                      }}
+                      @Override
+                      public void onCameraOpen(UsbDevice device) {{
+                          try {{ mCameraHelper.startPreview(); }}
+                          catch (Exception e) {{ android.util.Log.e("PocketPCR", "USB preview failed", e); }}
+                          if (mSurface != null) {{
+                              try {{ mCameraHelper.addSurface(mSurface, false); }}
+                              catch (Exception e) {{ android.util.Log.e("PocketPCR", "USB surface failed", e); }}
+                          }}
+                      }}
+                      @Override public void onCameraClose(UsbDevice device) {{}}
+                      @Override public void onDeviceClose(UsbDevice device) {{}}
+                      @Override public void onDetach(UsbDevice device) {{}}
+                      @Override public void onCancel(UsbDevice device) {{}}
+                  }});
+              }}
 
-                  @Override
-                  public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {{
-                      super.configureFlutterEngine(flutterEngine);
-                      new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
-                          .setMethodCallHandler((call, result) -> {{
-                              switch (call.method) {{
-                                  case "startScreenStream":
-                                  case "stopScreenStream":
-                                      result.success(true);
-                                      break;
-                                  case "startUsbCamera":
-                                      try {{
-                                          initCameraHelper();
-                                          TextureRegistry.SurfaceTextureEntry surfaceEntry = flutterEngine.getRenderer().createSurfaceTexture();
-                                          android.graphics.SurfaceTexture surfaceTexture = surfaceEntry.surfaceTexture();
-                                          surfaceTexture.setDefaultBufferSize(1280, 720);
-                                          mSurface = new Surface(surfaceTexture);
-                                          
-                                          if (mCameraHelper != null && mCameraHelper.isCameraOpened()) {{
-                                              try {{ mCameraHelper.addSurface(mSurface, false); }} catch (Exception e) {{}}
-                                          }} else if (mCameraHelper != null) {{
-                                              java.util.List<UsbDevice> list = mCameraHelper.getDeviceList();
-                                              if (list != null && list.size() > 0) {{
-                                                  mCameraHelper.selectDevice(list.get(0));
-                                              }}
-                                          }}
-                                          
-                                          result.success(surfaceEntry.id());
-                                      }} catch (Exception e) {{
-                                          result.error("UVC_ERROR", e.getMessage(), null);
-                                      }}
-                                      break;
-                                  case "stopUsbCamera":
-                                      if (mCameraHelper != null && mSurface != null) {{
-                                          try {{ mCameraHelper.removeSurface(mSurface); }} catch (Exception e) {{}}
-                                      }}
-                                      if (mSurface != null) {{
+              @Override
+              public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {{
+                  super.configureFlutterEngine(flutterEngine);
+
+                  new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), STREAM_CHANNEL)
+                      .setMethodCallHandler((call, result) -> {{
+                          switch (call.method) {{
+                              case "startScreenCaptureStreaming":
+                                  // Native MediaProjection/RTMP streaming is not implemented in this workflow.
+                                  android.util.Log.w("PocketPCR", "Screen streaming native implementation is not connected.");
+                                  result.success(false);
+                                  break;
+                              case "stopScreenCaptureStreaming":
+                                  result.success(true);
+                                  break;
+                              default:
+                                  result.notImplemented();
+                                  break;
+                          }}
+                      }});
+
+                  new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), UVC_CHANNEL)
+                      .setMethodCallHandler((call, result) -> {{
+                          switch (call.method) {{
+                              case "startUsbCamera":
+                                  try {{
+                                      initCameraHelper();
+                                      mSurfaceEntry = flutterEngine.getRenderer().createSurfaceTexture();
+                                      android.graphics.SurfaceTexture texture = mSurfaceEntry.surfaceTexture();
+                                      texture.setDefaultBufferSize(1280, 720);
+                                      mSurface = new Surface(texture);
+                                      java.util.List<UsbDevice> devices = mCameraHelper.getDeviceList();
+                                      if (devices == null || devices.isEmpty()) {{
                                           mSurface.release();
                                           mSurface = null;
+                                          mSurfaceEntry.release();
+                                          mSurfaceEntry = null;
+                                          result.error("NO_USB_CAMERA", "USB కెమెరా కనబడలేదు.", null);
+                                          break;
                                       }}
-                                      result.success(true);
-                                      break;
-                                  default:
-                                      result.notImplemented();
-                                      break;
-                              }}
-                          }});
-                  }}
-
-                  @Override
-                  protected void onDestroy() {{
-                      super.onDestroy();
-                      if (mCameraHelper != null) {{
-                          try {{ mCameraHelper.release(); }} catch (Exception e) {{}}
-                      }}
-                  }}
+                                      mCameraHelper.selectDevice(devices.get(0));
+                                      result.success(mSurfaceEntry.id());
+                                  }} catch (Exception e) {{
+                                      result.error("UVC_ERROR", e.getMessage(), null);
+                                  }}
+                                  break;
+                              case "stopUsbCamera":
+                                  try {{
+                                      if (mCameraHelper != null && mSurface != null) {{
+                                          mCameraHelper.removeSurface(mSurface);
+                                      }}
+                                  }} catch (Exception e) {{
+                                      android.util.Log.e("PocketPCR", "USB surface removal failed", e);
+                                  }}
+                                  if (mSurface != null) {{
+                                      mSurface.release();
+                                      mSurface = null;
+                                  }}
+                                  if (mSurfaceEntry != null) {{
+                                      mSurfaceEntry.release();
+                                      mSurfaceEntry = null;
+                                  }}
+                                  result.success(true);
+                                  break;
+                              default:
+                                  result.notImplemented();
+                                  break;
+                          }}
+                      }});
               }}
-              """
-              with open(java_path, "w", encoding="utf-8") as f:
-                  f.write(java_code)
 
-          # 2. Permissions & v2 embedding metadata యాడ్ చేయడం
+              @Override
+              protected void onDestroy() {{
+                  if (mCameraHelper != null) {{
+                      try {{ mCameraHelper.release(); }}
+                      catch (Exception e) {{ android.util.Log.e("PocketPCR", "USB release failed", e); }}
+                      mCameraHelper = null;
+                  }}
+                  if (mSurface != null) {{
+                      mSurface.release();
+                      mSurface = null;
+                  }}
+                  if (mSurfaceEntry != null) {{
+                      mSurfaceEntry.release();
+                      mSurfaceEntry = null;
+                  }}
+                  super.onDestroy();
+              }}
+          }}
+          """
+
+          with open(java_path, "w", encoding="utf-8") as f:
+              f.write(java_code)
+
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
-              with open(manifest, "r", encoding="utf-8") as f: content = f.read()
-              
-              if "android.hardware.usb.host" not in content:
-                  perms = """
-          <uses-feature android:name="android.hardware.usb.host" />
-          <uses-permission android:name="android.permission.INTERNET" />
-          <uses-permission android:name="android.permission.CAMERA" />
-          <uses-permission android:name="android.permission.RECORD_AUDIO" />
-          <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-          <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-          <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-          """
-                  content = content.replace("<application", perms + "\n    <application")
-                  
-              if "flutterEmbedding" not in content:
-                  meta = '<meta-data android:name="flutterEmbedding" android:value="2" />\n'
-                  content = content.replace("</activity>", "</activity>\n        " + meta)
+              with open(manifest, "r", encoding="utf-8") as f:
+                  content = f.read()
 
-              with open(manifest, "w", encoding="utf-8") as f: f.write(content)
+              permissions = [
+                  '<uses-feature android:name="android.hardware.usb.host" android:required="false" />',
+                  '<uses-permission android:name="android.permission.INTERNET" />',
+                  '<uses-permission android:name="android.permission.CAMERA" />',
+                  '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+                  '<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
+                  '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />',
+                  '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
+              ]
+              missing = [p for p in permissions if p.split()[1] not in content]
+              if missing:
+                  first_app = content.find("<application")
+                  if first_app >= 0:
+                      content = content[:first_app] + "\n    " + "\n    ".join(missing) + "\n\n    " + content[first_app:]
 
-          # 3. Proguard rules (యాప్ క్రాష్ అవ్వకుండా ఉండటానికి)
-          proguard_path = "android/app/proguard-rules.pro"
-          with open(proguard_path, "a", encoding="utf-8") as f:
+              if 'android:name="flutterEmbedding"' not in content:
+                  meta = '<meta-data android:name="flutterEmbedding" android:value="2" />'
+                  content = content.replace("</application>", "        " + meta + "\n    </application>")
+
+              with open(manifest, "w", encoding="utf-8") as f:
+                  f.write(content)
+
+          with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
               f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
 
-          # 4. Jitpack ని సురక్షితంగా యాడ్ చేయడం
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
-                  with open(fpath, "r", encoding="utf-8") as f: txt = f.read()
+                  with open(fpath, "r", encoding="utf-8") as f:
+                      txt = f.read()
                   if "jitpack.io" not in txt and "mavenCentral()" in txt:
                       if fpath.endswith(".kts"):
                           txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
                       else:
                           txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
-                      with open(fpath, "w", encoding="utf-8") as f: f.write(txt)
-              except Exception:
-                  pass
+                      with open(fpath, "w", encoding="utf-8") as f:
+                          f.write(txt)
+              except Exception as e:
+                  print(f"WARNING: Could not update repository in {fpath}: {e}")
 
-          # 5. Dependencies మరియు Proguard లింక్ (Optimize Fix)
-          def setup_app_gradle(filepath, deps_block, is_kts):
-              if not os.path.exists(filepath): return
-              with open(filepath, "r", encoding="utf-8") as f: txt = f.read()
-              
+          def setup_app_gradle(filepath, deps_block):
+              if not os.path.exists(filepath):
+                  return
+              with open(filepath, "r", encoding="utf-8") as f:
+                  txt = f.read()
               txt = txt.replace("flutter.minSdkVersion", "24")
-              
-              if "proguard-rules.pro" not in txt:
-                  if is_kts:
-                      txt = txt.replace("release {", 'release {\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")')
-                  else:
-                      txt = txt.replace("release {", "release {\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'")
-                  
               if "UVCAndroid" not in txt:
-                  txt += deps_block
-                  
-              with open(filepath, "w", encoding="utf-8") as f: f.write(txt)
+                  txt += "\n" + deps_block + "\n"
+              with open(filepath, "w", encoding="utf-8") as f:
+                  f.write(txt)
 
-          deps_gr = "\ndependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
-          deps_kts = '\ndependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
-          
-          setup_app_gradle("android/app/build.gradle", deps_gr, False)
-          setup_app_gradle("android/app/build.gradle.kts", deps_kts, True)
-          EOF
+          deps_gr = """dependencies {
+              implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
+              implementation 'com.herohan:UVCAndroid:1.0.13'
+          }
+          """
+          deps_kts = """dependencies {
+              implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")
+              implementation("com.herohan:UVCAndroid:1.0.13")
+          }
+          """
+          setup_app_gradle("android/app/build.gradle", deps_gr)
+          setup_app_gradle("android/app/build.gradle.kts", deps_kts)
+          print("Android configuration completed.")
+          PYTHON
           python3 configure_android.py
 
       - name: Install Dependencies
