@@ -167,4 +167,20 @@ jobs:
         with:
           name: pocket-pcr-studio-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          if-no-files-found: ఎర్రర్
+          - name: Install Dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      # 👇 ఈ కొత్త స్టెప్‌ను ఇక్కడ కచ్చితంగా యాడ్ చేయండి 👇
+      - name: Fix AGP DSL Error
+        run: echo "android.newDsl=false" >> android/gradle.properties
+      # 👆 ఇక్కడి వరకు 👆
+
+      - name: Generate App Icon
+        run: flutter pub run flutter_launcher_icons || true
+
+      - name: Build APK (Release Mode)
+        run: flutter build apk --release
+
