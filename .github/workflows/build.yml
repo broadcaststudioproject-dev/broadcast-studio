@@ -23,21 +23,20 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # 👇 ఇక్కడే అసలు మాయ ఉంది! ఎర్రర్ లేని ఫ్లట్టర్ వెర్షన్‌ను వాడమని చెబుతున్నాం 👇
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6' 
           cache: true
 
-      - name: Configure Android Project (Dependencies & Manifest)
+      - name: Configure Android Project (Dependencies & Version Fix)
         shell: bash
         run: |
           cat > configure_android.py <<'PYTHON'
           import glob
           import os
 
-          # Manifest Permissions
+          # 1. Manifest Permissions
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r", encoding="utf-8") as f:
@@ -67,11 +66,11 @@ jobs:
               with open(manifest, "w", encoding="utf-8") as f:
                   f.write(content)
 
-          # Proguard Rules
+          # 2. Proguard Rules
           with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
               f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
 
-          # Gradle Repositories
+          # 3. Gradle Repositories
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
                   with open(fpath, "r", encoding="utf-8") as f:
@@ -88,12 +87,19 @@ jobs:
               except Exception as e:
                   pass
 
-          # App Gradle Dependencies
+          # 4. App Gradle Dependencies & Version Code Fix
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
                   txt = f.read()
+              
+              # ఫ్లట్టర్ క్రాష్ అవ్వకుండా నేరుగా వెర్షన్ నంబర్లను ఇస్తున్నాం (Version Fix)
               txt = txt.replace("flutter.minSdkVersion", "24")
+              txt = txt.replace("flutter.targetSdkVersion", "34")
+              txt = txt.replace("flutter.compileSdkVersion", "34")
+              txt = txt.replace("flutter.versionCode", "1")
+              txt = txt.replace("flutter.versionName", '"1.0.0"')
+              
               if "UVCAndroid" not in txt:
                   txt += "\n" + deps_block + "\n"
               with open(filepath, "w", encoding="utf-8") as f:
@@ -105,7 +111,7 @@ jobs:
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Configuration Applied Successfully.")
+          print("Configuration & Version Fix Applied Successfully.")
           PYTHON
           python3 configure_android.py
 
