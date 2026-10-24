@@ -1,6 +1,6 @@
 name: pocket_pcr
 description: A new Flutter project for Pocket PCR Studio.
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: '>=2.19.0 <4.0.0'
