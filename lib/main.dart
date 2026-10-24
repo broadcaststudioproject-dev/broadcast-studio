@@ -87,31 +87,31 @@ class StreamServiceManager {
     final restream = restreamUrl.trim();
     final satellite = satUrl.trim();
 
-    if (cable.isEmpty &&
-        restream.isEmpty &&
-        satellite.isEmpty) {
+    if (cable.isEmpty && restream.isEmpty && satellite.isEmpty) {
       debugPrint('PCR: Stream URL ఇవ్వలేదు.');
       return false;
     }
 
     // RTMP, RTMPS, SRT URLలను సరిగ్గా ఎంచుకోవడం
-    final primaryUrl = cable.isNotEmpty
-        ? cable
-        : restream.isNotEmpty
-            ? restream
-            : satellite;
+    final primaryUrl = cable.isNotEmpty ? cable : (restream.isNotEmpty ? restream : satellite);
 
     try {
       // 🔴 Android Native's MediaProjection API కి సిగ్నల్ పంపడం
+      // స్క్రీన్ + ఆడియో (Mic & Internal) క్యాప్చర్ చేయడానికి అదనపు పారామీటర్స్ సెట్ చేయబడ్డాయి.
       final result = await _streamChannel.invokeMethod<bool>(
         'startScreenCaptureStreaming',
         <String, dynamic>{
           'rtmpUrl': primaryUrl,
           'cableRtmp': cable,
           'restreamRtmp': restream,
-          'satelliteSrt': satellite, // Satellite SRT లింక్ పాస్ చేయబడింది
+          'satelliteSrt': satellite, 
           'url': primaryUrl,
-          'recordAudio': true, // Permission.microphone ద్వారా ఆడియో క్యాప్చర్
+          'recordAudio': true,           // మైక్రోఫోన్ ఆడియో కోసం
+          'captureInternalAudio': true,  // సిస్టమ్/వీడియో ఇంటర్నల్ ఆడియో కోసం (Android 10+)
+          'videoBitrate': 3000 * 1024,   // 3 Mbps High Quality Screen Capture
+          'audioBitrate': 128 * 1024,    // 128 kbps Audio
+          'fps': 30,                     // 30 FPS Smooth Streaming
+          'resolution': '1080p'          // Full HD
         },
       );
 
@@ -138,7 +138,7 @@ class StreamServiceManager {
   }
 
   static Future<bool> pauseLiveStream() async {
-    return stopLiveStream();
+    return stopLiveStream(); // Native వైపు pause ఫీచర్ లేకుంటే stop వాడాలి
   }
 
   static Future<int?> startUsbCamera() async {
@@ -470,9 +470,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
-  // 🔴 Microphone Audio Permission Added
+  // 🔴 Microphone, Camera మరియు Notification Permission Added (For Screen Capture Service)
   Future<void> _requestPermissionsAndInitCamera() async {
-    await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos, Permission.videos].request();
+    await [
+      Permission.camera, 
+      Permission.microphone, 
+      Permission.storage, 
+      Permission.photos, 
+      Permission.videos,
+      Permission.notification, // 👈 Foreground Screen Capture సర్వీస్ కోసం 
+    ].request();
+    
     setState(() { isCameraVisible = true; });
     await _initCamera();
   }
@@ -484,7 +492,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (cameras.isEmpty) return;
     try {
       if (controller != null) { await controller!.dispose(); }
-      // 🔴 Android 15 ఆడియో కాన్ఫ్లిక్ట్ నివారించడానికి enableAudio: false చేయబడింది
+      // 🔴 Android 15 ఆడియో కాన్ఫ్లిక్ట్ నివారించడానికి enableAudio: false చేయబడింది (స్క్రీన్ క్యాప్చర్ ఆడియోనే వాడబడుతుంది)
       final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: false);
       controller = camController;
       await camController.initialize();
