@@ -186,6 +186,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isLiveLocked = false;
   bool hideControls = false;
   bool isMenuOpen = false;
+  bool showReporterDetails = true; // 🔴 క్రొత్త వేరియబుల్: రిపోర్టర్ డీటెయిల్స్ హైడ్ చేయడానికి
 
   int currentCameraIndex = 0;
   bool isLandscape = false;
@@ -1100,6 +1101,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _toggleAdShapeMode() async { setState(() { adShapeMode = (adShapeMode + 1) % 3; isMenuOpen = false; }); await _saveTextSettings(); }
   void _toggleLBandDirection() { setState(() { isLBandRight = !isLBandRight; isMenuOpen = false; }); }
 
+  // 🔴 క్రొత్త ఫంక్షన్: రిపోర్టర్ డీటెయిల్స్‌ని ఆన్/ఆఫ్ చేయడానికి
+  void _toggleReporterDetails() {
+    setState(() {
+      showReporterDetails = !showReporterDetails;
+      isMenuOpen = false;
+    });
+    showCustomToast(
+        context,
+        showReporterDetails ? "రిపోర్టర్ డీటెయిల్స్ ఆన్ చేయబడ్డాయి" : "రిపోర్టర్ డీటెయిల్స్ ఆఫ్ చేయబడ్డాయి",
+        bgColor: showReporterDetails ? Colors.blueAccent : Colors.redAccent);
+  }
+
+
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
     Widget actualCameraWidget;
 
@@ -1368,16 +1382,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)  
                   ),  
                     
-                  if (!isNewsBulletinMode && !isNetworkVideoMode)
-                    Positioned(  
-                      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,  
-                      bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,  
-                      left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,  
-                      right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,  
-                      child: visualScreenLogoWidget  
-                    ),  
+                  Positioned(  
+                    top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,  
+                    bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,  
+                    left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,  
+                    right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,  
+                    child: visualScreenLogoWidget  
+                  ),  
 
-                  if (!isDualScreenMode && !isNewsBulletinMode && !isNetworkVideoMode)  
+                  // 🔴 మార్పు: షోరిపోర్టర్ డీటెయిల్స్ ఆధారంగా రిపోర్టర్ బ్యాడ్జ్‌ని చూపించడం/దాచడం
+                  if (!isDualScreenMode && showReporterDetails)  
                     Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),  
 
                   Positioned(  
@@ -1469,6 +1483,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),  
                               _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purpleAccent),  
                               _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),  
+                              // 🔴 క్రొత్త కంట్రోల్ బటన్: రిపోర్టర్ ఇన్ఫో దాచడానికి / చూపించడానికి
+                              _buildControlButton(showReporterDetails ? Icons.badge : Icons.badge_outlined, showReporterDetails ? "Reporter ON" : "Reporter OFF", _toggleReporterDetails, showReporterDetails ? Colors.greenAccent : Colors.redAccent),
                             ]  
                           ),  
                         ),  
