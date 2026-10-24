@@ -1,4 +1,4 @@
-Name: Pocket PCR Studio - Master Build
+name: Pocket PCR Studio - Master Build
 
 on:
   push:
