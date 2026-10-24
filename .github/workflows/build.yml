@@ -29,7 +29,7 @@ jobs:
           flutter-version: '3.19.6' 
           cache: true
 
-      - name: Configure Android Project (Fix Duplicate Classes)
+      - name: Configure Android Project (Fix Duplicate Classes Ver 2)
         shell: bash
         run: |
           cat > configure_android.py <<'PYTHON'
@@ -49,7 +49,7 @@ jobs:
                   def flutterSdkPath = properties.getProperty("flutter.sdk")
                   assert flutterSdkPath != null: "flutter.sdk not set in local.properties"
                   return flutterSdkPath
-                  }()
+              }()
               includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
               repositories {
                   google()
@@ -132,13 +132,16 @@ jobs:
               except Exception as e:
                   pass
 
-          # 5. App Gradle Dependencies & Duplicate Class Fix
+          # 5. App Gradle Dependencies: THE ULTIMATE FIX
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
                   txt = f.read()
               
+              # మీ ప్రాజెక్ట్‌లో ఉన్న పాత, పనికిరాని లైబ్రరీ లింక్స్ అన్నింటినీ ఆటోమేటిక్‌గా తొలగిస్తున్నాం
               txt = re.sub(r"(?m)^.*jiangdongguo.*$\n?", "", txt)
+              txt = re.sub(r"(?m)^.*pedroSG94.*$\n?", "", txt)
+              txt = re.sub(r"(?m)^.*UVCAndroid.*$\n?", "", txt)
               
               txt = txt.replace("flutter.minSdkVersion", "24")
               txt = txt.replace("flutter.targetSdkVersion", "34")
@@ -146,19 +149,19 @@ jobs:
               txt = txt.replace("flutter.versionCode", "1")
               txt = txt.replace("flutter.versionName", '"1.0.0"')
               
-              if "UVCAndroid" not in txt:
-                  txt += "\n" + deps_block + "\n"
+              txt += "\n" + deps_block + "\n"
+              
               with open(filepath, "w", encoding="utf-8") as f:
                   f.write(txt)
 
-          # ఇక్కడే అసలు ట్విస్ట్: Duplicate ఎర్రర్ రాకుండా UVCAndroid లోపల ఉన్న RootEncoder ని exclude చేస్తున్నాం
-          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation ('com.herohan:UVCAndroid:1.0.13') {\n        exclude group: 'com.github.pedroSG94.RootEncoder'\n    }\n}\n"
-          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13") {\n        exclude(group = "com.github.pedroSG94.RootEncoder")\n    }\n}\n'
+          # ట్విస్ట్: పాత 2.2.2 కు బదులుగా నేరుగా కొత్త RootEncoder 2.5.0 ఇస్తున్నాం. డూప్లికేట్ ఎర్రర్ అసలు రాదు!
+          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.RootEncoder:rtplibrary:2.5.0'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
+          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.RootEncoder:rtplibrary:2.5.0")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
 
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Configuration & Duplicate Class Fix Applied Successfully.")
+          print("Configuration & Perfect Dependency Alignment Applied Successfully.")
           PYTHON
           python3 configure_android.py
 
