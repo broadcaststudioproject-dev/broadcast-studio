@@ -1,4 +1,4 @@
-package com.example.pocket_pcr_studio
+package com.kingjvr.pocket_pcr  // 🔴 ప్యాకేజీ పేరు సరిచేయబడింది
 
 import android.app.Activity
 import android.content.Context
@@ -48,7 +48,6 @@ class MainActivity: FlutterActivity() {
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    // ఆండ్రాయిడ్ 15 కోసం స్క్రీన్ క్యాప్చర్ ఇంటెంట్ ప్రారంభించడం
                     val intent = mediaProjectionManager.createScreenCaptureIntent()
                     startActivityForResult(intent, REQUEST_CODE_SCREEN_CAPTURE)
                 } catch (e: Exception) {
@@ -73,20 +72,21 @@ class MainActivity: FlutterActivity() {
                         putExtra("EXTRA_RESTREAM_RTMP", pendingRestreamRtmp)
                         putExtra("EXTRA_SATELLITE_SRT", pendingSatelliteSrt)
                         putExtra(ScreenStreamService.EXTRA_RESULT_CODE, resultCode)
-                        putExtra(ScreenStreamService.EXTRA_DATA, data)
+                        // Intent Data ను సర్వీస్‌కు పంపుతున్నాం
+                        putExtra(ScreenStreamService.EXTRA_DATA, data) 
                     }
                     
-                    // ఆండ్రాయిడ్ 15 నిబంధనల ప్రకారం ఫోర్‌గ్రౌండ్ సర్వీస్ స్టార్ట్ చేయడం
+                    // Android 8+ నుండి Foreground Service స్టార్ట్ చేయడం
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         startForegroundService(serviceIntent)
                     } else {
                         startService(serviceIntent)
                     }
                 } catch (e: Exception) {
-                    showToast("Service Error: ${e.message}")
+                    showToast("Service Start Error: ${e.message}")
                 }
             } else {
-                showToast("రైట్! స్క్రీన్ రికార్డింగ్ పర్మిషన్ రద్దు చేయబడింది.")
+                showToast("స్క్రీన్ రికార్డింగ్ పర్మిషన్ రద్దు చేయబడింది.")
             }
         }
     }
