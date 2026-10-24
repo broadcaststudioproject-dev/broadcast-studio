@@ -144,7 +144,7 @@ class StreamServiceManager {
   static Future<int?> startUsbCamera() async {
     try {
       return await const MethodChannel(
-        'com.ssyatratv.pocket_pcr/uvc',
+        'com.kingjvr.pocket_pcr/uvc',
       ).invokeMethod<int>('startUsbCamera');
     } catch (e) {
       debugPrint('PCR USB Camera Start Error: $e');
@@ -155,7 +155,7 @@ class StreamServiceManager {
   static Future<void> stopUsbCamera() async {
     try {
       await const MethodChannel(
-        'com.ssyatratv.pocket_pcr/uvc',
+        'com.kingjvr.pocket_pcr/uvc',
       ).invokeMethod<void>('stopUsbCamera');
     } catch (e) {
       debugPrint('PCR USB Camera Stop Error: $e');
