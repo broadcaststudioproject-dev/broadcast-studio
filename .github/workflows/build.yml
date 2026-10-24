@@ -130,7 +130,7 @@ jobs:
               except Exception as e:
                   pass
 
-          # 5. App Gradle Dependencies
+          # 5. App Gradle Dependencies (Reverted to compatible 2.2.2 version)
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
@@ -151,13 +151,13 @@ jobs:
               with open(filepath, "w", encoding="utf-8") as f:
                   f.write(txt)
 
-          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.RootEncoder:library:2.5.0'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
-          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.RootEncoder:library:2.5.0")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
+          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
+          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
 
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Configuration & Perfect Dependency Alignment Applied Successfully.")
+          print("Configuration Applied Successfully.")
           PYTHON
           python3 configure_android.py
 
