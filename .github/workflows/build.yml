@@ -29,13 +29,66 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Configure Android Project (Dependencies & Manifest)
+      - name: Configure Android Project (Master Fix)
         shell: bash
         run: |
           cat > configure_android.py <<'PYTHON'
           import glob
           import os
 
+          # 1. FORCE AGP 8.1.0: పాత settings ఫైల్‌ను పూర్తిగా రీప్లేస్ చేయడం
+          if os.path.exists("android/settings.gradle.kts"):
+              os.remove("android/settings.gradle.kts")
+
+          settings_path = "android/settings.gradle"
+          settings_content = """pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  file("local.properties").withInputStream { properties.load(it) }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null: "flutter.sdk not set in local.properties"
+                  return flutterSdkPath
+              }()
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+                  maven { url "https://jitpack.io" }
+              }
+          }
+
+          plugins {
+              id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+              id "com.android.application" version "8.1.0" apply false
+              id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url "https://jitpack.io" }
+              }
+          }
+
+          include ":app"
+          """
+          with open(settings_path, "w", encoding="utf-8") as f:
+              f.write(settings_content)
+
+          # 2. FORCE android.newDsl=false 
+          prop_file = "android/gradle.properties"
+          prop_content = "\nandroid.newDsl=false\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n"
+          if os.path.exists(prop_file):
+              with open(prop_file, "a", encoding="utf-8") as f:
+                  f.write(prop_content)
+          else:
+              with open(prop_file, "w", encoding="utf-8") as f:
+                  f.write(prop_content)
+
+          # 3. Manifest Permissions
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r", encoding="utf-8") as f:
@@ -51,41 +104,25 @@ jobs:
                   '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'
               ]
 
-              missing = [
-                  p for p in permissions
-                  if p.split()[1] not in content
-              ]
+              missing = [p for p in permissions if p.split()[1] not in content]
 
               if missing:
                   first_app = content.find("<application")
                   if first_app >= 0:
-                      content = (
-                          content[:first_app]
-                          + "\n    "
-                          + "\n    ".join(missing)
-                          + "\n\n    "
-                          + content[first_app:]
-                      )
+                      content = content[:first_app] + "\n    " + "\n    ".join(missing) + "\n\n    " + content[first_app:]
 
               if 'android:name="flutterEmbedding"' not in content:
-                  meta = (
-                      '<meta-data android:name="flutterEmbedding" '
-                      'android:value="2" />'
-                  )
-                  content = content.replace(
-                      "</application>",
-                      "        " + meta + "\n    </application>"
-                  )
+                  meta = '<meta-data android:name="flutterEmbedding" android:value="2" />'
+                  content = content.replace("</application>", "        " + meta + "\n    </application>")
 
               with open(manifest, "w", encoding="utf-8") as f:
                   f.write(content)
 
+          # 4. Proguard Rules
           with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
-              f.write(
-                  "\n-keep class com.serenegiant.** { *; }\n"
-                  "-keep class com.herohan.** { *; }\n"
-              )
+              f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
 
+          # 5. Gradle Repositories
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
                   with open(fpath, "r", encoding="utf-8") as f:
@@ -93,55 +130,33 @@ jobs:
 
                   if "jitpack.io" not in txt and "mavenCentral()" in txt:
                       if fpath.endswith(".kts"):
-                          txt = txt.replace(
-                              "mavenCentral()",
-                              'mavenCentral()\n'
-                              '        maven { url = uri("https://jitpack.io") }'
-                          )
+                          txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
                       else:
-                          txt = txt.replace(
-                              "mavenCentral()",
-                              "mavenCentral()\n"
-                              "        maven { url 'https://jitpack.io' }"
-                          )
+                          txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
 
                       with open(fpath, "w", encoding="utf-8") as f:
                           f.write(txt)
-
               except Exception as e:
-                  print(f"WARNING: Could not update repository in {fpath}: {e}")
+                  pass
 
+          # 6. App Gradle Dependencies
           def setup_app_gradle(filepath, deps_block):
-              if not os.path.exists(filepath):
-                  return
-
+              if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
                   txt = f.read()
-
               txt = txt.replace("flutter.minSdkVersion", "24")
-
               if "UVCAndroid" not in txt:
                   txt += "\n" + deps_block + "\n"
-
               with open(filepath, "w", encoding="utf-8") as f:
                   f.write(txt)
 
-          deps_gr = """dependencies {
-              implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'
-              implementation 'com.herohan:UVCAndroid:1.0.13'
-          }
-          """
-
-          deps_kts = """dependencies {
-              implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")
-              implementation("com.herohan:UVCAndroid:1.0.13")
-          }
-          """
+          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
+          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
 
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Android dependency, manifest configuration completed.")
+          print("Master Configuration Applied Successfully.")
           PYTHON
           python3 configure_android.py
 
@@ -150,20 +165,10 @@ jobs:
           flutter clean
           flutter pub get
 
-      # ఈ కొత్త స్టెప్ సిస్టమ్‌ను బలవంతంగా పాత వెర్షన్‌కు మార్చి ఎర్రర్‌ను చంపేస్తుంది
-      - name: Force AGP Downgrade & DSL Fix
-        run: |
-          echo "android.newDsl=false" >> android/gradle.properties
-          sed -i -E 's/id "com.android.application" version "[^"]+"/id "com.android.application" version "8.1.0"/g' android/settings.gradle || true
-          sed -i -E 's/id "org.jetbrains.kotlin.android" version "[^"]+"/id "org.jetbrains.kotlin.android" version "1.8.22"/g' android/settings.gradle || true
-
       - name: Generate App Icon
         run: flutter pub run flutter_launcher_icons || true
 
-      # ఎన్విరాన్‌మెంట్ వేరియబుల్ ద్వారా నేరుగా బిల్డ్‌కే రూల్ పంపుతున్నాం
       - name: Build APK (Release Mode)
-        env:
-          ORG_GRADLE_PROJECT_android.newDsl: "false"
         run: flutter build apk --release
 
       - name: Upload APK
