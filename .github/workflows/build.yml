@@ -36,6 +36,16 @@ jobs:
           import glob
           import os
 
+          # 1. DSL ఎర్రర్‌ను పక్కాగా ఫిక్స్ చేయడానికి Python కోడ్
+          prop_file = "android/gradle.properties"
+          if os.path.exists(prop_file):
+              with open(prop_file, "a", encoding="utf-8") as f:
+                  f.write("\n\n# Fix Flutter AGP DSL Error\nandroid.newDsl=false\n")
+          else:
+              with open(prop_file, "w", encoding="utf-8") as f:
+                  f.write("android.newDsl=false\n")
+
+          # 2. Manifest పర్మిషన్లు
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
               with open(manifest, "r", encoding="utf-8") as f:
@@ -80,12 +90,14 @@ jobs:
               with open(manifest, "w", encoding="utf-8") as f:
                   f.write(content)
 
+          # 3. Proguard రూల్స్
           with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
               f.write(
                   "\n-keep class com.serenegiant.** { *; }\n"
                   "-keep class com.herohan.** { *; }\n"
               )
 
+          # 4. Gradle రిపోజిటరీలు
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
                   with open(fpath, "r", encoding="utf-8") as f:
@@ -111,6 +123,7 @@ jobs:
               except Exception as e:
                   print(f"WARNING: Could not update repository in {fpath}: {e}")
 
+          # 5. App లైబ్రరీలు (RTMP, UVC)
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath):
                   return
@@ -141,7 +154,7 @@ jobs:
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Android dependency and manifest configuration completed.")
+          print("Android dependency, manifest, and DSL configuration completed.")
           PYTHON
           python3 configure_android.py
 
@@ -149,9 +162,6 @@ jobs:
         run: |
           flutter clean
           flutter pub get
-
-      - name: Fix AGP DSL Error
-        run: echo "android.newDsl=false" >> android/gradle.properties
 
       - name: Generate App Icon
         run: flutter pub run flutter_launcher_icons || true
