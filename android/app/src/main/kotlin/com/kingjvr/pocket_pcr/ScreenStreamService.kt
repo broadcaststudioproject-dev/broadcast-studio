@@ -1,4 +1,4 @@
-package com.kingjvr.pocket_pcr  // 🔴 ప్యాకేజీ పేరు సరిచేయబడింది
+package com.kingjvr.pocket_pcr
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -23,7 +23,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     companion object {
         const val ACTION_START = "START_STREAM"
         const val ACTION_STOP = "STOP_STREAM"
-        const val EXTRA_URL = "url"
+        const val EXTRA_URL = "rtmpUrl" // MainActivity లో పంపుతున్న పేరు ఇదే
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
     }
@@ -46,10 +46,12 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) return START_NOT_STICKY
-        val action = intent.action
+        
+        // గమనిక: MainActivity నుండి వస్తున్న action null అయితే, దాన్ని START_STREAM గానే పరిగణించాలి
+        val action = intent.action ?: ACTION_START 
 
         if (action == ACTION_START) {
-            // ఆండ్రాయిడ్ 15 కోసం సర్వీస్ స్టార్ట్ అయిన వెంటనే ఫోర్‌గ్రౌండ్ నోటిఫికేషన్ చూపించాలి
+            // సర్వీస్ స్టార్ట్ అయిన వెంటనే నోటిఫికేషన్ మొదలుపెట్టాలి
             startNotification()
 
             val url = intent.getStringExtra(EXTRA_URL) ?: ""
@@ -61,7 +63,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
             val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
             
-            // ఆండ్రాయిడ్ 13+ అనుకూలత కోసం Parcelable డేటా ఎక్స్‌ట్రాక్ట్ చేయడం
             val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
             } else {
@@ -102,7 +103,13 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             }
         } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-            stopForeground(true)
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
             stopSelf()
             showMessage("లైవ్ ఆగిపోయింది.")
         }
@@ -123,7 +130,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             .setOngoing(true)
             .build()
 
-        // ఆండ్రాయిడ్ 14 మరియు 15 కోసం సరైన ఫోర్‌గ్రౌండ్ సర్వీస్ టైప్స్ డిక్లేర్ చేయడం
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14 (API 34) & Android 15
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
