@@ -29,18 +29,12 @@ jobs:
           channel: stable
           cache: true
 
-      # గమనిక: మీ పాత ఆండ్రాయిడ్ ఫోల్డర్‌ను తొలగించి, Java ప్రాజెక్ట్‌ను 
-      # క్రియేట్ చేసే 'Clean & Recreate Android Folder' దశ ఇక్కడ నుండి తొలగించబడింది.
-
       - name: Configure Android Project (Dependencies & Manifest)
         shell: bash
         run: |
           cat > configure_android.py <<'PYTHON'
           import glob
           import os
-
-          # గమనిక: MainActivity.java సృష్టించే హానికరమైన కోడ్ ఇక్కడ నుండి పూర్తిగా తొలగించబడింది.
-          # మీ రిపోజిటరీలో ఉన్న అసలు MainActivity.kt (Kotlin) ఫైల్ మాత్రమే ఇకపై ఉపయోగించబడుతుంది.
 
           manifest = "android/app/src/main/AndroidManifest.xml"
           if os.path.exists(manifest):
@@ -156,6 +150,9 @@ jobs:
           flutter clean
           flutter pub get
 
+      - name: Fix AGP DSL Error
+        run: echo "android.newDsl=false" >> android/gradle.properties
+
       - name: Generate App Icon
         run: flutter pub run flutter_launcher_icons || true
 
@@ -167,20 +164,4 @@ jobs:
         with:
           name: pocket-pcr-studio-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: ఎర్రర్
-          - name: Install Dependencies
-        run: |
-          flutter clean
-          flutter pub get
-
-      # 👇 ఈ కొత్త స్టెప్‌ను ఇక్కడ కచ్చితంగా యాడ్ చేయండి 👇
-      - name: Fix AGP DSL Error
-        run: echo "android.newDsl=false" >> android/gradle.properties
-      # 👆 ఇక్కడి వరకు 👆
-
-      - name: Generate App Icon
-        run: flutter pub run flutter_launcher_icons || true
-
-      - name: Build APK (Release Mode)
-        run: flutter build apk --release
-
+          if-no-files-found: error
