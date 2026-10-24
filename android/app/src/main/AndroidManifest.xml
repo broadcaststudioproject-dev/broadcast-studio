@@ -19,6 +19,8 @@
     <!-- Android 14+ Foreground Service (స్క్రీన్ రికార్డింగ్ & లైవ్ కోసం తప్పనిసరి) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <!-- 🔴 కొత్తగా యాడ్ చేసిన పర్మిషన్ (దీని వల్లే ఆడియో బ్లాక్ అవుతోంది) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <application
         android:name="${applicationName}"
@@ -45,12 +47,12 @@
             </intent-filter>
         </activity>
 
-        <!-- 🔴 లైవ్ స్ట్రీమింగ్ (Screen Record) సర్వీస్ రిజిస్ట్రేషన్ -->
+        <!-- 🔴 లైవ్ స్ట్రీమింగ్ (Screen Record) సర్వీస్ రిజిస్ట్రేషన్ (microphone యాడ్ చేయబడింది) -->
         <service
             android:name=".ScreenStreamService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="mediaProjection|microphone" />
 
         <meta-data
             android:name="flutterEmbedding"
