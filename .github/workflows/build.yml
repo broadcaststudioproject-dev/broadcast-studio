@@ -29,7 +29,7 @@ jobs:
           flutter-version: '3.19.6' 
           cache: true
 
-      - name: Configure Android Project (Cleanup & Dependencies)
+      - name: Configure Android Project (Fix Duplicate Classes)
         shell: bash
         run: |
           cat > configure_android.py <<'PYTHON'
@@ -49,7 +49,7 @@ jobs:
                   def flutterSdkPath = properties.getProperty("flutter.sdk")
                   assert flutterSdkPath != null: "flutter.sdk not set in local.properties"
                   return flutterSdkPath
-              }()
+                  }()
               includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
               repositories {
                   google()
@@ -115,7 +115,7 @@ jobs:
           with open("android/app/proguard-rules.pro", "a", encoding="utf-8") as f:
               f.write("\n-keep class com.serenegiant.** { *; }\n-keep class com.herohan.** { *; }\n")
               
-          # 4. Update existing repos with jcenter()
+          # 4. Update existing repos
           for fpath in glob.glob("android/**/*.gradle*", recursive=True):
               try:
                   with open(fpath, "r", encoding="utf-8") as f:
@@ -132,13 +132,12 @@ jobs:
               except Exception as e:
                   pass
 
-          # 5. App Gradle Dependencies & Version Cleanup
+          # 5. App Gradle Dependencies & Duplicate Class Fix
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
                   txt = f.read()
               
-              # ఇక్కడే అసలు ఫిల్టర్: పాత పనిచేయని 'jiangdongguo' లైబ్రరీ ఉన్న లైన్‌ను పూర్తిగా డిలీట్ చేస్తుంది
               txt = re.sub(r"(?m)^.*jiangdongguo.*$\n?", "", txt)
               
               txt = txt.replace("flutter.minSdkVersion", "24")
@@ -152,13 +151,14 @@ jobs:
               with open(filepath, "w", encoding="utf-8") as f:
                   f.write(txt)
 
-          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
-          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
+          # ఇక్కడే అసలు ట్విస్ట్: Duplicate ఎర్రర్ రాకుండా UVCAndroid లోపల ఉన్న RootEncoder ని exclude చేస్తున్నాం
+          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2'\n    implementation ('com.herohan:UVCAndroid:1.0.13') {\n        exclude group: 'com.github.pedroSG94.RootEncoder'\n    }\n}\n"
+          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.2.2")\n    implementation("com.herohan:UVCAndroid:1.0.13") {\n        exclude(group = "com.github.pedroSG94.RootEncoder")\n    }\n}\n'
 
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
 
-          print("Configuration & Bad Dependency Cleanup Applied Successfully.")
+          print("Configuration & Duplicate Class Fix Applied Successfully.")
           PYTHON
           python3 configure_android.py
 
