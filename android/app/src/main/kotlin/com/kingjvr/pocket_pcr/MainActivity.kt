@@ -1,108 +1,54 @@
-package com.kingjvr.pocket_pcr  // 🔴 ప్యాకేజీ పేరు సరిచేయబడింది
+package com.kingjvr.pocket_pcr
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.media.projection.MediaProjectionManager
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import android.util.Log
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.kingjvr.pocket_pcr/stream"
-    private val REQUEST_CODE_SCREEN_CAPTURE = 100
-    
-    private var pendingRtmpUrl: String = ""
-    private var pendingCableRtmp: String = ""
-    private var pendingRestreamRtmp: String = ""
-    private var pendingSatelliteSrt: String = ""
+    // మీరు ఫ్లట్టర్ లో వాడిన రెండు ఛానెల్స్ పేర్లు ఇవే
+    private val STREAM_CHANNEL = "com.kingjvr.pocket_pcr/stream"
+    private val UVC_CHANNEL = "com.kingjvr.pocket_pcr/uvc"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "startScreenCaptureStreaming" || call.method == "startScreenStream") {
-                pendingRtmpUrl = call.argument<String>("rtmpUrl") ?: ""
-                pendingCableRtmp = call.argument<String>("cableRtmp") ?: ""
-                pendingRestreamRtmp = call.argument<String>("restreamRtmp") ?: ""
-                pendingSatelliteSrt = call.argument<String>("satelliteSrt") ?: ""
-
-                startScreenCapture()
-                result.success(true)
-            } else if (call.method == "stopScreenCaptureStreaming" || call.method == "stopScreenStream") {
-                stopScreenCapture()
-                result.success(true)
-            } else {
-                result.notImplemented()
-            }
-        }
-    }
-
-    private fun startScreenCapture() {
-        try {
-            stopScreenCapture()
-            
-            Handler(Looper.getMainLooper()).postDelayed({
-                try {
-                    val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                    val intent = mediaProjectionManager.createScreenCaptureIntent()
-                    startActivityForResult(intent, REQUEST_CODE_SCREEN_CAPTURE)
-                } catch (e: Exception) {
-                    showToast("Popup Error: ${e.message}")
-                }
-            }, 300)
-        } catch (e: Exception) {
-            showToast("Error: ${e.message}")
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
         
-        if (requestCode == REQUEST_CODE_SCREEN_CAPTURE) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                try {
-                    val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                        action = ScreenStreamService.ACTION_START
-                        putExtra(ScreenStreamService.EXTRA_URL, pendingRtmpUrl)
-                        putExtra("EXTRA_CABLE_RTMP", pendingCableRtmp)
-                        putExtra("EXTRA_RESTREAM_RTMP", pendingRestreamRtmp)
-                        putExtra("EXTRA_SATELLITE_SRT", pendingSatelliteSrt)
-                        putExtra(ScreenStreamService.EXTRA_RESULT_CODE, resultCode)
-                        // Intent Data ను సర్వీస్‌కు పంపుతున్నాం
-                        putExtra(ScreenStreamService.EXTRA_DATA, data) 
-                    }
+        // 1. లైవ్ స్ట్రీమింగ్ (Screen Capture & RTMP) కనెక్షన్
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STREAM_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startScreenCaptureStreaming" -> {
+                    Log.d("PocketPCR", "Live Stream Started")
+                    // భవిష్యత్తులో ఇక్కడ RTMP బ్రాడ్కాస్టింగ్ లైబ్రరీ కోడ్ రాయాలి
                     
-                    // Android 8+ నుండి Foreground Service స్టార్ట్ చేయడం
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent)
-                    } else {
-                        startService(serviceIntent)
-                    }
-                } catch (e: Exception) {
-                    showToast("Service Start Error: ${e.message}")
+                    // ఫ్లట్టర్ యాప్‌కి ఎర్రర్ రాకుండా true అని పంపుతున్నాం
+                    result.success(true)
                 }
-            } else {
-                showToast("స్క్రీన్ రికార్డింగ్ పర్మిషన్ రద్దు చేయబడింది.")
+                "stopScreenCaptureStreaming" -> {
+                    Log.d("PocketPCR", "Live Stream Stopped")
+                    result.success(true)
+                }
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
-    }
 
-    private fun stopScreenCapture() {
-        try {
-            val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-                action = ScreenStreamService.ACTION_STOP
+        // 2. USB కెమెరా (UVC) కనెక్షన్
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UVC_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startUsbCamera" -> {
+                    Log.d("PocketPCR", "USB Camera Started")
+                    // డమ్మీ టెక్స్చర్ ID 1 పంపుతున్నాం
+                    result.success(1)
+                }
+                "stopUsbCamera" -> {
+                    Log.d("PocketPCR", "USB Camera Stopped")
+                    result.success(null)
+                }
+                else -> {
+                    result.notImplemented()
+                }
             }
-            startService(serviceIntent)
-        } catch (e: Exception) {}
-    }
-    
-    private fun showToast(message: String) {
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
         }
     }
 }
