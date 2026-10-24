@@ -1368,13 +1368,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)  
                   ),  
                     
-                  Positioned(  
-                    top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,  
-                    bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,  
-                    left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,  
-                    right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,  
-                    child: visualScreenLogoWidget  
-                  ),  
+                  if (!isNewsBulletinMode && !isNetworkVideoMode)
+                    Positioned(  
+                      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,  
+                      bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,  
+                      left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,  
+                      right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,  
+                      child: visualScreenLogoWidget  
+                    ),  
 
                   if (!isDualScreenMode && !isNewsBulletinMode && !isNetworkVideoMode)  
                     Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),  
