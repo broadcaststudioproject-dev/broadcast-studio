@@ -484,7 +484,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (cameras.isEmpty) return;
     try {
       if (controller != null) { await controller!.dispose(); }
-      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: true);
+      // 🔴 Android 15 ఆడియో కాన్ఫ్లిక్ట్ నివారించడానికి enableAudio: false చేయబడింది
+      final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: false);
       controller = camController;
       await camController.initialize();
       if (!mounted) return;
@@ -789,7 +790,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     try {  
       try {  
-        // 🔴 ఆడియో మరియు స్క్రీన్ రికార్డ్ పర్మిషన్స్ చెక్ చేయడం
         var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
         if (!micStatus.isGranted) { await Permission.microphone.request().timeout(const Duration(seconds: 2)); }  
       } catch (e) {}  
@@ -1559,7 +1559,8 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
         CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => _cameras.first);
-        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: true);
+        // 🔴 enableAudio: false చేయబడింది
+        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: false);
         await _phoneCamCtrl!.initialize();
         if (mounted) setState(() {});
       }
@@ -2006,7 +2007,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         for (var cam in _cameras) {
           if (cam.lensDirection == CameraLensDirection.front) { frontCam = cam; break; }
         }
-        _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: true);
+        // 🔴 enableAudio: false చేయబడింది
+        _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: false);
         await _cameraController!.initialize();
         if (mounted) setState(() {});
       }
