@@ -66,7 +66,7 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
     ),
   );
   overlay.insert(overlayEntry);
-  Future.delayed(const Duration(milliseconds: 2000), () {
+  Future.delayed(const Duration(milliseconds: 3000), () {
     overlayEntry.remove();
   });
 }
@@ -92,12 +92,9 @@ class StreamServiceManager {
       return false;
     }
 
-    // RTMP, RTMPS, SRT URLలను సరిగ్గా ఎంచుకోవడం
     final primaryUrl = cable.isNotEmpty ? cable : (restream.isNotEmpty ? restream : satellite);
 
     try {
-      // 🔴 Android Native's MediaProjection API కి సిగ్నల్ పంపడం
-      // స్క్రీన్ + ఆడియో (Mic & Internal) క్యాప్చర్ చేయడానికి అదనపు పారామీటర్స్ సెట్ చేయబడ్డాయి.
       final result = await _streamChannel.invokeMethod<bool>(
         'startScreenCaptureStreaming',
         <String, dynamic>{
@@ -106,22 +103,22 @@ class StreamServiceManager {
           'restreamRtmp': restream,
           'satelliteSrt': satellite, 
           'url': primaryUrl,
-          'recordAudio': true,           // మైక్రోఫోన్ ఆడియో కోసం
-          'captureInternalAudio': true,  // సిస్టమ్/వీడియో ఇంటర్నల్ ఆడియో కోసం (Android 10+)
-          'videoBitrate': 3000 * 1024,   // 3 Mbps High Quality Screen Capture
-          'audioBitrate': 128 * 1024,    // 128 kbps Audio
-          'fps': 30,                     // 30 FPS Smooth Streaming
-          'resolution': '1080p'          // Full HD
+          'recordAudio': true,           
+          'captureInternalAudio': true,  
+          'videoBitrate': 3000 * 1024,   
+          'audioBitrate': 128 * 1024,    
+          'fps': 30,                     
+          'resolution': '1080p'          
         },
       );
 
       return result == true;
     } on PlatformException catch (e) {
       debugPrint('PCR Native Error: ${e.code} - ${e.message}');
-      return false;
+      throw Exception(e.message); 
     } catch (e) {
       debugPrint('PCR Live Start Error: $e');
-      return false;
+      throw Exception("స్ట్రీమ్ ప్రారంభించడంలో లోపం: $e");
     }
   }
 
@@ -138,7 +135,7 @@ class StreamServiceManager {
   }
 
   static Future<bool> pauseLiveStream() async {
-    return stopLiveStream(); // Native వైపు pause ఫీచర్ లేకుంటే stop వాడాలి
+    return stopLiveStream(); 
   }
 
   static Future<int?> startUsbCamera() async {
@@ -181,7 +178,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   VideoPlayerController? _rightAdVideoCtrl;
   VideoPlayerController? _bottomAdVideoCtrlForAds;
   VideoPlayerController? _logoVideoCtrl;
-
   VlcPlayerController? _vlcIpCamController;
 
   List<String> dualMediaList = [];
@@ -301,12 +297,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   void _setLogo(String path) {
     channelLogoPath = path;
+    if (_logoVideoCtrl != null) {
+      _logoVideoCtrl!.dispose();
+      _logoVideoCtrl = null;
+    }
     if (path.toLowerCase().endsWith('.mp4')) {
-      _logoVideoCtrl?.dispose();
       _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) {
         if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState(() {}); }
       });
-    } else { _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; }
+    }
   }
 
   Future<void> _loadSavedData() async {
@@ -370,13 +369,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     if (pos == 'left') {  
-      _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;  
+      if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }});  
     } else if (pos == 'right') {  
-      _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null;  
+      if (_rightAdVideoCtrl != null) { _rightAdVideoCtrl!.dispose(); _rightAdVideoCtrl = null; }
       if (isVideo) _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState((){}); }});  
     } else if (pos == 'bottom') {  
-      _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;  
+      if (_bottomAdVideoCtrlForAds != null) { _bottomAdVideoCtrlForAds!.dispose(); _bottomAdVideoCtrlForAds = null; }
       if (isVideo) _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }});  
     }
   }
@@ -470,7 +469,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     super.dispose();
   }
 
-  // 🔴 Microphone, Camera మరియు Notification Permission Added (For Screen Capture Service)
   Future<void> _requestPermissionsAndInitCamera() async {
     await [
       Permission.camera, 
@@ -478,7 +476,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       Permission.storage, 
       Permission.photos, 
       Permission.videos,
-      Permission.notification, // 👈 Foreground Screen Capture సర్వీస్ కోసం 
+      Permission.notification, 
     ].request();
     
     setState(() { isCameraVisible = true; });
@@ -492,7 +490,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (cameras.isEmpty) return;
     try {
       if (controller != null) { await controller!.dispose(); }
-      // 🔴 Android 15 ఆడియో కాన్ఫ్లిక్ట్ నివారించడానికి enableAudio: false చేయబడింది (స్క్రీన్ క్యాప్చర్ ఆడియోనే వాడబడుతుంది)
       final camController = CameraController(cameras[currentCameraIndex], ResolutionPreset.high, enableAudio: false);
       controller = camController;
       await camController.initialize();
@@ -798,25 +795,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     try {  
       try {  
-        var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
-        if (!micStatus.isGranted) { await Permission.microphone.request().timeout(const Duration(seconds: 2)); }  
+        var micStatus = await Permission.microphone.status;  
+        if (!micStatus.isGranted) { await Permission.microphone.request(); }  
       } catch (e) {}  
 
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);  
         
-      bool success = false;  
-      try {  
-        success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
-      } catch(e) {}  
+      bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));  
         
       if (success) {  
         setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = false; hideControls = false; isMenuOpen = false; isLandscape = true; });  
         showCustomToast(context, "లైవ్ వెళుతుంది ✔️");  
       } else {  
-        showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. కనెక్షన్ చెక్ చేయండి.", bgColor: Colors.red);  
+        showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", bgColor: Colors.red);  
       }  
+    } on TimeoutException catch (_) {
+      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.", bgColor: Colors.red);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     } catch (e) {  
-      showCustomToast(context, "Error: బ్రౌజర్‌లో ఈ ఫీచర్ పనిచేయదు.", bgColor: Colors.red);  
+      debugPrint("Live Start Error: $e");
+      showCustomToast(context, "ఎర్రర్: $e", bgColor: Colors.red);  
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
   }
 
@@ -876,8 +875,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _playNetworkBulletin(String playUrl) {
-    _bulletinVideoController?.removeListener(_videoListener);
-    _bulletinVideoController?.dispose();
+    if (_bulletinVideoController != null) {
+      _bulletinVideoController!.removeListener(_videoListener);
+      _bulletinVideoController!.dispose();
+      _bulletinVideoController = null;
+    }
 
     _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))  
       ..initialize().then((_) {   
@@ -908,8 +910,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       final XFile? videoFile = await _picker.pickVideo(source: ImageSource.gallery);
       if (videoFile != null) {
         showCustomToast(context, "గ్యాలరీ వీడియో లోడ్ అవుతోంది...", bgColor: Colors.orange);
-        _bulletinVideoController?.removeListener(_videoListener);
-        _bulletinVideoController?.dispose();
+        if (_bulletinVideoController != null) {
+          _bulletinVideoController!.removeListener(_videoListener);
+          _bulletinVideoController!.dispose();
+          _bulletinVideoController = null;
+        }
 
         _bulletinVideoController = VideoPlayerController.file(File(videoFile.path))  
           ..initialize().then((_) {  
@@ -1053,7 +1058,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _toggleDualScreenAndPickMedia() async {
     setState(() { isMenuOpen = false; });
-    if (isDualScreenMode) { setState(() { isDualScreenMode = false; dualMediaList.clear(); _bottomAdVideoController?.dispose(); _bottomAdVideoController = null; }); return; }
+    if (isDualScreenMode) { setState(() { isDualScreenMode = false; dualMediaList.clear(); if (_bottomAdVideoController != null) { _bottomAdVideoController!.dispose(); _bottomAdVideoController = null; } }); return; }
     try {
       final List<XFile> medias = await _picker.pickMultipleMedia();
       if (medias.isNotEmpty && mounted) { dualMediaList = medias.map((e) => e.path).toList(); currentDualMediaIndex = 0; setState(() { isDualScreenMode = true; isNewsBulletinMode = false; isNetworkVideoMode = false; }); _playDualMedia(dualMediaList[currentDualMediaIndex]); }
@@ -1061,7 +1066,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _playDualMedia(String path) {
-    if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) { _bottomAdVideoController?.dispose(); _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { if (mounted) { _bottomAdVideoController!.setLooping(true); _bottomAdVideoController!.setVolume(1.0); _bottomAdVideoController!.play(); setState(() {}); } }); } else { _bottomAdVideoController?.dispose(); _bottomAdVideoController = null; setState(() {}); }
+    if (_bottomAdVideoController != null) { _bottomAdVideoController!.dispose(); _bottomAdVideoController = null; }
+    if (path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov')) { _bottomAdVideoController = VideoPlayerController.file(File(path))..initialize().then((_) { if (mounted) { _bottomAdVideoController!.setLooping(true); _bottomAdVideoController!.setVolume(1.0); _bottomAdVideoController!.play(); setState(() {}); } }); } else { setState(() {}); }
   }
 
   void _prevDualMedia() { if (dualMediaList.isEmpty) return; currentDualMediaIndex = (currentDualMediaIndex - 1) < 0 ? dualMediaList.length - 1 : currentDualMediaIndex - 1; _playDualMedia(dualMediaList[currentDualMediaIndex]); }
@@ -1567,7 +1573,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
         CameraDescription? cam = _cameras.firstWhere((c) => c.lensDirection == CameraLensDirection.front, orElse: () => _cameras.first);
-        // 🔴 enableAudio: false చేయబడింది
         _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: false);
         await _phoneCamCtrl!.initialize();
         if (mounted) setState(() {});
@@ -1605,12 +1610,15 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
   void _setLogo(String path) {
     channelLogoPath = path;
+    if (_logoVideoCtrl != null) {
+      _logoVideoCtrl!.dispose();
+      _logoVideoCtrl = null;
+    }
     if (path.toLowerCase().endsWith('.mp4')) {
-      _logoVideoCtrl?.dispose();
       _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) {
         if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); }
       });
-    } else { _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; }
+    }
   }
 
   void _initAdVideo(String pos) {
@@ -1622,13 +1630,13 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     if (pos == 'left') {  
-      _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;  
+      if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }});  
     } else if (pos == 'right') {  
-      _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null;  
+      if (_rightAdVideoCtrl != null) { _rightAdVideoCtrl!.dispose(); _rightAdVideoCtrl = null; }
       if (isVideo) _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState((){}); }});  
     } else if (pos == 'bottom') {  
-      _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;  
+      if (_bottomAdVideoCtrlForAds != null) { _bottomAdVideoCtrlForAds!.dispose(); _bottomAdVideoCtrlForAds = null; }
       if (isVideo) _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }});  
     }
   }
@@ -1741,25 +1749,27 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     try {  
       try {  
-        var micStatus = await Permission.microphone.status.timeout(const Duration(seconds: 2));  
-        if (!micStatus.isGranted) await Permission.microphone.request().timeout(const Duration(seconds: 2));  
+        var micStatus = await Permission.microphone.status;  
+        if (!micStatus.isGranted) await Permission.microphone.request();  
       } catch(e){}  
         
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);  
         
-      bool success = false;  
-      try {  
-         success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 30));  
-      } catch(e) {}  
+      bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));  
         
       if (success) {  
         setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });  
         if (mounted) showCustomToast(context, "లైవ్ స్టార్ట్ అయింది! ✔️");  
       } else {  
-        if (mounted) showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. కనెక్షన్ చెక్ చేయండి.", bgColor: Colors.red);  
+        if (mounted) showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", bgColor: Colors.red);  
       }  
-    } catch(e) {  
-      if (mounted) showCustomToast(context, "Error: ఫీచర్ పనిచేయదు.", bgColor: Colors.red);  
+    } on TimeoutException catch (_) {
+      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.", bgColor: Colors.red);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    } catch (e) {  
+      debugPrint("Live Start Error: $e");
+      showCustomToast(context, "ఎర్రర్: $e", bgColor: Colors.red);  
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
   }
 
@@ -2015,7 +2025,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         for (var cam in _cameras) {
           if (cam.lensDirection == CameraLensDirection.front) { frontCam = cam; break; }
         }
-        // 🔴 enableAudio: false చేయబడింది
         _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: false);
         await _cameraController!.initialize();
         if (mounted) setState(() {});
@@ -2051,12 +2060,15 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
   void _setLogo(String path) {
     channelLogoPath = path;
+    if (_logoVideoCtrl != null) {
+      _logoVideoCtrl!.dispose();
+      _logoVideoCtrl = null;
+    }
     if (path.toLowerCase().endsWith('.mp4')) {
-      _logoVideoCtrl?.dispose();
       _logoVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) {
         if (mounted) { _logoVideoCtrl!.setLooping(true); _logoVideoCtrl!.setVolume(0); _logoVideoCtrl!.play(); setState((){}); }
       });
-    } else { _logoVideoCtrl?.dispose(); _logoVideoCtrl = null; }
+    }
   }
 
   void _initAdVideo(String pos) {
@@ -2068,13 +2080,13 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     if (pos == 'left') {  
-      _leftAdVideoCtrl?.dispose(); _leftAdVideoCtrl = null;  
+      if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) _leftAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _leftAdVideoCtrl!.setLooping(true); _leftAdVideoCtrl!.setVolume(0.0); _leftAdVideoCtrl!.play(); setState((){}); }});  
     } else if (pos == 'right') {  
-      _rightAdVideoCtrl?.dispose(); _rightAdVideoCtrl = null;  
+      if (_rightAdVideoCtrl != null) { _rightAdVideoCtrl!.dispose(); _rightAdVideoCtrl = null; }
       if (isVideo) _rightAdVideoCtrl = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _rightAdVideoCtrl!.setLooping(true); _rightAdVideoCtrl!.setVolume(0.0); _rightAdVideoCtrl!.play(); setState((){}); }});  
     } else if (pos == 'bottom') {  
-      _bottomAdVideoCtrlForAds?.dispose(); _bottomAdVideoCtrlForAds = null;  
+      if (_bottomAdVideoCtrlForAds != null) { _bottomAdVideoCtrlForAds!.dispose(); _bottomAdVideoCtrlForAds = null; }
       if (isVideo) _bottomAdVideoCtrlForAds = VideoPlayerController.file(File(path))..initialize().then((_) { if(mounted){ _bottomAdVideoCtrlForAds!.setLooping(true); _bottomAdVideoCtrlForAds!.setVolume(0.0); _bottomAdVideoCtrlForAds!.play(); setState((){}); }});  
     }
   }
@@ -2174,90 +2186,35 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     String satUrl = satelliteSrtController.text.trim();
 
     if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      if (mounted) {
-        showCustomToast(
-          context,
-          "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.",
-          bgColor: Colors.red,
-        );
-      }
+      if (mounted) { showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.", bgColor: Colors.red); }
       return;
     }
 
     try {
       try {
-        var micStatus = await Permission.microphone.status.timeout(
-          const Duration(seconds: 2),
-        );
-        if (!micStatus.isGranted) {
-          await Permission.microphone.request().timeout(
-            const Duration(seconds: 2),
-          );
-        }
+        var micStatus = await Permission.microphone.status;
+        if (!micStatus.isGranted) { await Permission.microphone.request(); }
       } catch (e) {
         debugPrint('Microphone permission warning: $e');
       }
 
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeRight,
-        DeviceOrientation.landscapeLeft,
-      ]);
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
 
-      bool success = false;
-
-      try {
-        success = await StreamServiceManager.startLiveStreamMulti(
-          cableUrl,
-          restreamUrl,
-          satUrl,
-        ).timeout(const Duration(seconds: 30));
-      } catch (e, stackTrace) {
-        debugPrint('PCR LIVE START ERROR: $e');
-        debugPrintStack(stackTrace: stackTrace);
-
-        if (mounted) {
-          showCustomToast(
-            context,
-            'లైవ్ ప్రారంభ లోపం: $e',
-            bgColor: Colors.red,
-          );
-        }
-        return;
-      }
+      bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));
 
       if (success) {
-        setState(() {
-          isLiveBroadcasting = true;
-          isLivePaused = false;
-          hideControls = false;
-        });
-
-        if (mounted) {
-          showCustomToast(
-            context,
-            "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️",
-          );
-        }
+        setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
+        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️"); }
       } else {
-        if (mounted) {
-          showCustomToast(
-            context,
-            "లైవ్ ప్రారంభం కాలేదు. కనెక్షన్ లేదా MethodChannel చెక్ చేయండి.",
-            bgColor: Colors.red,
-          );
-        }
+        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభం కాలేదు. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", bgColor: Colors.red); }
       }
-    } catch (e, stackTrace) {
+    } on TimeoutException catch (_) {
+      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.", bgColor: Colors.red);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    } catch (e) {
       debugPrint('PCR LIVE ERROR: $e');
-      debugPrintStack(stackTrace: stackTrace);
-
-      if (mounted) {
-        showCustomToast(
-          context,
-          "Error: $e",
-          bgColor: Colors.red,
-        );
-      }
+      if (mounted) { showCustomToast(context, "Error: $e", bgColor: Colors.red); }
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
   }
 
