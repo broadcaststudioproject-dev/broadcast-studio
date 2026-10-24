@@ -1,4 +1,4 @@
-name: Pocket PCR Studio - Master Build
+Name: Pocket PCR Studio - Master Build
 
 on:
   push:
@@ -54,7 +54,6 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-                  jcenter()
                   gradlePluginPortal()
               }
           }
@@ -66,11 +65,10 @@ jobs:
           }
 
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+              repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
               repositories {
                   google()
                   mavenCentral()
-                  jcenter()
                   maven { url "https://storage.googleapis.com/download.flutter.io" }
                   maven { url "https://jitpack.io" }
               }
@@ -123,22 +121,21 @@ jobs:
 
                   if "jitpack.io" not in txt and "mavenCentral()" in txt:
                       if fpath.endswith(".kts"):
-                          txt = txt.replace("mavenCentral()", 'mavenCentral()\n        jcenter()\n        maven { url = uri("https://jitpack.io") }')
+                          txt = txt.replace("mavenCentral()", 'mavenCentral()\n        maven { url = uri("https://jitpack.io") }')
                       else:
-                          txt = txt.replace("mavenCentral()", "mavenCentral()\n        jcenter()\n        maven { url 'https://jitpack.io' }")
+                          txt = txt.replace("mavenCentral()", "mavenCentral()\n        maven { url 'https://jitpack.io' }")
 
                       with open(fpath, "w", encoding="utf-8") as f:
                           f.write(txt)
               except Exception as e:
                   pass
 
-          # 5. App Gradle Dependencies: THE ULTIMATE FIX
+          # 5. App Gradle Dependencies
           def setup_app_gradle(filepath, deps_block):
               if not os.path.exists(filepath): return
               with open(filepath, "r", encoding="utf-8") as f:
                   txt = f.read()
               
-              # మీ ప్రాజెక్ట్‌లో ఉన్న పాత, పనికిరాని లైబ్రరీ లింక్స్ అన్నింటినీ ఆటోమేటిక్‌గా తొలగిస్తున్నాం
               txt = re.sub(r"(?m)^.*jiangdongguo.*$\n?", "", txt)
               txt = re.sub(r"(?m)^.*pedroSG94.*$\n?", "", txt)
               txt = re.sub(r"(?m)^.*UVCAndroid.*$\n?", "", txt)
@@ -154,9 +151,8 @@ jobs:
               with open(filepath, "w", encoding="utf-8") as f:
                   f.write(txt)
 
-          # ట్విస్ట్: పాత 2.2.2 కు బదులుగా నేరుగా కొత్త RootEncoder 2.5.0 ఇస్తున్నాం. డూప్లికేట్ ఎర్రర్ అసలు రాదు!
-          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.RootEncoder:rtplibrary:2.5.0'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
-          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.RootEncoder:rtplibrary:2.5.0")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
+          deps_gr = "dependencies {\n    implementation 'com.github.pedroSG94.RootEncoder:library:2.5.0'\n    implementation 'com.herohan:UVCAndroid:1.0.13'\n}\n"
+          deps_kts = 'dependencies {\n    implementation("com.github.pedroSG94.RootEncoder:library:2.5.0")\n    implementation("com.herohan:UVCAndroid:1.0.13")\n}\n'
 
           setup_app_gradle("android/app/build.gradle", deps_gr)
           setup_app_gradle("android/app/build.gradle.kts", deps_kts)
@@ -171,7 +167,7 @@ jobs:
           flutter pub get
 
       - name: Generate App Icon
-        run: flutter pub run flutter_launcher_icons || true
+        run: dart run flutter_launcher_icons || true
 
       - name: Build APK (Release Mode)
         run: flutter build apk --release
