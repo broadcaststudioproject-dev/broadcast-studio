@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -19,11 +21,14 @@ import com.pedro.rtmp.utils.ConnectCheckerRtmp
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
+    
+    // ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ కోసం కొత్తగా యాడ్ చేసిన వేరియబుల్
+    private var mMediaProjection: MediaProjection? = null 
 
     companion object {
         const val ACTION_START = "START_STREAM"
         const val ACTION_STOP = "STOP_STREAM"
-        const val EXTRA_URL = "rtmpUrl" // MainActivity లో పంపుతున్న పేరు ఇదే
+        const val EXTRA_URL = "rtmpUrl" 
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
     }
@@ -47,11 +52,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) return START_NOT_STICKY
         
-        // గమనిక: MainActivity నుండి వస్తున్న action null అయితే, దాన్ని START_STREAM గానే పరిగణించాలి
         val action = intent.action ?: ACTION_START 
 
         if (action == ACTION_START) {
-            // సర్వీస్ స్టార్ట్ అయిన వెంటనే నోటిఫికేషన్ మొదలుపెట్టాలి
             startNotification()
 
             val url = intent.getStringExtra(EXTRA_URL) ?: ""
@@ -73,6 +76,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
                 val display = rtmpDisplay
                 if (display != null) {
+                    
+                    // --- ANDROID 14 CRASH FIX START ---
+                    // స్ట్రీమ్ స్టార్ట్ అయ్యే ముందే సిస్టమ్‌కి Callback రిజిస్టర్ చేస్తున్నాం
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        try {
+                            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+                            mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                                override fun onStop() {
+                                    super.onStop()
+                                    try { display.stopStream() } catch (e: Exception) {}
+                                }
+                            }, Handler(Looper.getMainLooper()))
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                    // --- ANDROID 14 CRASH FIX END ---
+
                     display.setIntentResult(resultCode, data)
                     Thread {
                         try {
@@ -103,6 +125,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             }
         } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            try { mMediaProjection?.stop() } catch (e: Exception) {} // ఆండ్రాయిడ్ 14 ఫిక్స్
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -130,7 +153,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14 (API 34) & Android 15
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { 
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
@@ -144,6 +167,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onDestroy() {
         super.onDestroy()
         try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+        try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
     override fun onConnectionSuccessRtmp() {
