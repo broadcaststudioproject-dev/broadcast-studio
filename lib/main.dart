@@ -216,8 +216,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final ImagePicker _picker = ImagePicker();
 
   String channelLogoPath = "";
-  double logoWidth = 70.0;
-  double logoHeight = 70.0;
+  // 🔴 లోగో సైజు స్పష్టంగా కనిపించేలా పెంచాం
+  double logoWidth = 110.0;
+  double logoHeight = 110.0;
 
   String watermarkText = "SS YATRA TV";
   String locationText = "LIVE KOTHAKOTA";
@@ -296,8 +297,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) { debugPrint("News Fetch Error: $e"); }
   }
 
+  // 🔴 లోగో పర్మినెంట్‌గా ఉండేలా సెట్ చేసే ఫంక్షన్
   void _setLogo(String path) {
-    channelLogoPath = path;
+    setState(() {
+      channelLogoPath = path;
+    });
     if (_logoVideoCtrl != null) {
       _logoVideoCtrl!.dispose();
       _logoVideoCtrl = null;
@@ -347,8 +351,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           droneCtrls[i].text = prefs.getString('drone_$i') ?? "";  
         }  
 
+        // 🔴 గ్యాలరీలో డిలీట్ చేయకపోతే పాత లోగో ఆటోమేటిక్ గా వస్తుంది
         String savedLogo = prefs.getString('channelLogoPath') ?? "";  
-        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) { _setLogo(savedLogo); }  
+        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) { 
+          _setLogo(savedLogo); 
+        } else {
+          channelLogoPath = ""; // ఫైల్ లేకపోతే ఖాళీ
+        }
           
         leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
         rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
@@ -831,18 +840,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {  
       String finalPlayUrl = cleanUrl;  
       
-      // యూట్యూబ్ లింక్ అయితే.. డైరెక్ట్ MP4 కి కన్వర్ట్ చేస్తాం
       if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
         var ytExplode = yt.YoutubeExplode();  
-        
-        // పాత Regex తీసేసి నేరుగా వీడియో డీటెయిల్స్ లాగుతున్నాం
         var video = await ytExplode.videos.get(cleanUrl);  
           
         if (video.isLive) {  
-          // లైవ్ స్ట్రీమ్ అయితే..
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
         } else {  
-          // నార్మల్ వీడియో అయితే ఆడియో+వీడియో కలిసిన (Muxed) బెస్ట్ క్వాలిటీ తీసుకుంటున్నాం
           var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
           var muxedStreams = manifest.muxed;
           
@@ -1029,7 +1033,23 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ElevatedButton.icon(onPressed: () async { try { final XFile? media = await _picker.pickMedia(); if (media != null) { setState(() { channelLogoPath = media.path; }); SharedPreferences prefs = await SharedPreferences.getInstance(); await prefs.setString('channelLogoPath', media.path); _setLogo(media.path); setDialogState(() {}); } } catch (e) {} }, icon: const Icon(Icons.upload), label: const Text("లోగో అప్లోడ్ (MP4/GIF/JPEG)")), const Divider(color: Colors.white24, height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () async { 
+                      try { 
+                        final XFile? media = await _picker.pickMedia(); 
+                        if (media != null) { 
+                          // 🔴 లోగో ఇక్కడ సేవ్ అవుతుంది
+                          SharedPreferences prefs = await SharedPreferences.getInstance(); 
+                          await prefs.setString('channelLogoPath', media.path); 
+                          _setLogo(media.path); 
+                          setDialogState(() {}); 
+                        } 
+                      } catch (e) {} 
+                    }, 
+                    icon: const Icon(Icons.upload), 
+                    label: const Text("లోగో అప్లోడ్ (MP4/GIF/JPEG)")
+                  ), 
+                  const Divider(color: Colors.white24, height: 20),
                   TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
                   TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")), const Divider(color: Colors.white24, height: 20),
                   TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్")),
@@ -1341,6 +1361,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ]  
     );  
 
+    // 🔴 లోగో విడ్జెట్ - సైజును 100x100 కు మార్చాం
     Widget visualScreenLogoWidget = GestureDetector(  
       onTap: () { setState(() { logoPosition = (logoPosition + 1) % 4; }); },  
       child: channelLogoPath.isNotEmpty  
@@ -1351,7 +1372,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox())   
                 : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high)  
             )  
-          : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.transparent, border: Border.all(color: Colors.amber)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14))),  
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), 
+              decoration: BoxDecoration(color: Colors.red[900]?.withOpacity(0.9), borderRadius: BorderRadius.circular(8)),
+              child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))
+            ),  
     );  
 
     return Scaffold(  
@@ -1377,10 +1402,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   ),  
                     
                   Positioned(  
-                    top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null,  
-                    bottom: (logoPosition == 2 || logoPosition == 3) ? 70.0 : null,  
-                    left: (logoPosition == 0 || logoPosition == 3) ? 15.0 : null,  
-                    right: (logoPosition == 1 || logoPosition == 2) ? 15.0 : null,  
+                    top: (logoPosition == 0 || logoPosition == 1) ? 20.0 : null,  
+                    bottom: (logoPosition == 2 || logoPosition == 3) ? 80.0 : null,  
+                    left: (logoPosition == 0 || logoPosition == 3) ? 20.0 : null,  
+                    right: (logoPosition == 1 || logoPosition == 2) ? 20.0 : null,  
                     child: visualScreenLogoWidget  
                   ),  
 
@@ -1604,7 +1629,11 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";  
 
         String savedLogo = prefs.getString('channelLogoPath') ?? "";  
-        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);  
+        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
+          _setLogo(savedLogo);  
+        } else {
+          channelLogoPath = "";
+        }
 
         leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
         rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
@@ -1618,7 +1647,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   void _setLogo(String path) {
-    channelLogoPath = path;
+    setState(() {
+      channelLogoPath = path;
+    });
     if (_logoVideoCtrl != null) {
       _logoVideoCtrl!.dispose();
       _logoVideoCtrl = null;
@@ -1838,12 +1869,12 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     }  
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty  
-        ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))  
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));  
+        ? SizedBox(width: 100, height: 100, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))  
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.red[900]?.withOpacity(0.9), borderRadius: BorderRadius.circular(8)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));  
 
     Widget positionedLogoWidget = Positioned(  
-      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,  
-      left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,  
+      top: (logoPosition == 0 || logoPosition == 1) ? 20.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 75.0 : null,  
+      left: (logoPosition == 0 || logoPosition == 2) ? 20.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 20.0 : null,  
       child: channelLogoWidget,  
     );  
 
@@ -2054,7 +2085,11 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";  
 
         String savedLogo = prefs.getString('channelLogoPath') ?? "";  
-        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) _setLogo(savedLogo);  
+        if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) {
+          _setLogo(savedLogo);  
+        } else {
+          channelLogoPath = "";
+        }
 
         leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
         rightAdPaths = (prefs.getStringList('rightAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
@@ -2068,7 +2103,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   }
 
   void _setLogo(String path) {
-    channelLogoPath = path;
+    setState(() {
+      channelLogoPath = path;
+    });
     if (_logoVideoCtrl != null) {
       _logoVideoCtrl!.dispose();
       _logoVideoCtrl = null;
@@ -2283,12 +2320,12 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     }  
 
     Widget channelLogoWidget = channelLogoPath.isNotEmpty  
-        ? SizedBox(width: 70, height: 70, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))  
-        : Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), color: Colors.red[900]?.withOpacity(0.9), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));  
+        ? SizedBox(width: 100, height: 100, child: channelLogoPath.toLowerCase().endsWith('.mp4') ? (_logoVideoCtrl != null && _logoVideoCtrl!.value.isInitialized ? VideoPlayer(_logoVideoCtrl!) : const SizedBox()) : Image.file(File(channelLogoPath), fit: BoxFit.contain, filterQuality: FilterQuality.high))  
+        : Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.red[900]?.withOpacity(0.9), borderRadius: BorderRadius.circular(8)), child: const Text("SS YATRA TV", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)));  
 
     Widget positionedLogoWidget = Positioned(  
-      top: (logoPosition == 0 || logoPosition == 1) ? 15.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 65.0 : null,  
-      left: (logoPosition == 0 || logoPosition == 2) ? 15.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 15.0 : null,  
+      top: (logoPosition == 0 || logoPosition == 1) ? 20.0 : null, bottom: (logoPosition == 2 || logoPosition == 3) ? 75.0 : null,  
+      left: (logoPosition == 0 || logoPosition == 2) ? 20.0 : null, right: (logoPosition == 1 || logoPosition == 3) ? 20.0 : null,  
       child: channelLogoWidget,  
     );  
 
