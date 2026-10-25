@@ -72,7 +72,7 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = Colo
 }
 
 // ============================================================================
-// 1. STREAM SERVICE MANAGER (MediaProjection API & Multi-Protocol)
+// 1. STREAM SERVICE MANAGER 
 // ============================================================================
 class StreamServiceManager {
   static const MethodChannel _streamChannel =
@@ -111,52 +111,29 @@ class StreamServiceManager {
           'resolution': '1080p'          
         },
       );
-
       return result == true;
     } on PlatformException catch (e) {
-      debugPrint('PCR Native Error: ${e.code} - ${e.message}');
       throw Exception(e.message); 
     } catch (e) {
-      debugPrint('PCR Live Start Error: $e');
       throw Exception("స్ట్రీమ్ ప్రారంభించడంలో లోపం: $e");
     }
   }
 
   static Future<bool> stopLiveStream() async {
     try {
-      final result = await _streamChannel.invokeMethod<bool>(
-        'stopScreenCaptureStreaming',
-      );
+      final result = await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
       return result == true;
-    } catch (e) {
-      debugPrint('PCR Stop Stream Error: $e');
-      return false;
-    }
+    } catch (e) { return false; }
   }
 
-  static Future<bool> pauseLiveStream() async {
-    return stopLiveStream(); 
-  }
+  static Future<bool> pauseLiveStream() async { return stopLiveStream(); }
 
   static Future<int?> startUsbCamera() async {
-    try {
-      return await const MethodChannel(
-        'com.kingjvr.pocket_pcr/uvc',
-      ).invokeMethod<int>('startUsbCamera');
-    } catch (e) {
-      debugPrint('PCR USB Camera Start Error: $e');
-      return null;
-    }
+    try { return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); } catch (e) { return null; }
   }
 
   static Future<void> stopUsbCamera() async {
-    try {
-      await const MethodChannel(
-        'com.kingjvr.pocket_pcr/uvc',
-      ).invokeMethod<void>('stopUsbCamera');
-    } catch (e) {
-      debugPrint('PCR USB Camera Stop Error: $e');
-    }
+    try { await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); } catch (e) {}
   }
 }
 
@@ -216,7 +193,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   final ImagePicker _picker = ImagePicker();
 
   String channelLogoPath = "";
-  // 🔴 లోగో సైజు స్పష్టంగా కనిపించేలా పెంచాం
   double logoWidth = 110.0;
   double logoHeight = 110.0;
 
@@ -251,6 +227,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Timer? _newsTimer;
   Timer? _adCycleTimer;
+  
+  // 🔴 కలర్ ఫుల్ టిక్కర్ టైమర్
+  int _tickerBgColorIndex = 0;
+  Timer? _tickerColorTimer;
+  final List<Color> bgColors = [const Color(0xFF0D47A1), Colors.red.shade900, Colors.purple.shade900, Colors.teal.shade900];
 
   List<String> leftAdPaths = [];
   List<String> rightAdPaths = [];
@@ -278,6 +259,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _fetchBreakingNews();  
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { _fetchBreakingNews(); });
+    _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) { if (mounted) setState(() => _tickerBgColorIndex++); });
   }
 
   Future<void> _fetchBreakingNews() async {
@@ -294,10 +276,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           setState(() { breakingNewsText = titles.join("   ♦   "); });
         }
       }
-    } catch (e) { debugPrint("News Fetch Error: $e"); }
+    } catch (e) {}
   }
 
-  // 🔴 లోగో పర్మినెంట్‌గా ఉండేలా సెట్ చేసే ఫంక్షన్
   void _setLogo(String path) {
     setState(() {
       channelLogoPath = path;
@@ -351,12 +332,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           droneCtrls[i].text = prefs.getString('drone_$i') ?? "";  
         }  
 
-        // 🔴 గ్యాలరీలో డిలీట్ చేయకపోతే పాత లోగో ఆటోమేటిక్ గా వస్తుంది
         String savedLogo = prefs.getString('channelLogoPath') ?? "";  
         if (savedLogo.isNotEmpty && File(savedLogo).existsSync()) { 
           _setLogo(savedLogo); 
         } else {
-          channelLogoPath = ""; // ఫైల్ లేకపోతే ఖాళీ
+          channelLogoPath = ""; 
         }
           
         leftAdPaths = (prefs.getStringList('leftAdPaths') ?? []).where((p) => File(p).existsSync()).toList();  
@@ -367,7 +347,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (rightAdPaths.isNotEmpty) _initAdVideo('right');  
         if (bottomAdPaths.isNotEmpty) _initAdVideo('bottom');  
       });  
-    } catch(e) { debugPrint("Load Error: $e"); }
+    } catch(e) {}
   }
 
   void _initAdVideo(String pos) {
@@ -447,6 +427,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _newsTimer?.cancel();
     _adCycleTimer?.cancel();
+    _tickerColorTimer?.cancel();
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
@@ -508,9 +489,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _maxZoomLevel = await camController.getMaxZoomLevel();
       _currentZoomLevel = _minZoomLevel;
       setState(() { _isCameraInitialized = true; });
-    } catch (e) {
-      debugPrint("Camera Init Error: $e");
-    }
+    } catch (e) {}
   }
 
   void _switchCamera() async {
@@ -829,7 +808,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  // 🔴 YOUTUBE VIDEO PLAYER - 100% పక్కాగా పనిచేసే కోడ్
+  // 🔴 YOUTUBE VIDEO PLAYER
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
@@ -1038,7 +1017,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       try { 
                         final XFile? media = await _picker.pickMedia(); 
                         if (media != null) { 
-                          // 🔴 లోగో ఇక్కడ సేవ్ అవుతుంది
                           SharedPreferences prefs = await SharedPreferences.getInstance(); 
                           await prefs.setString('channelLogoPath', media.path); 
                           _setLogo(media.path); 
@@ -1157,7 +1135,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (isDualScreenMode && dualMediaList.isNotEmpty) {  
       return Container(  
         margin: const EdgeInsets.all(6.0),   
-        decoration: BoxDecoration(color: Colors.black, border: Border.all(color: Colors.amberAccent, width: 3.5), boxShadow: const [BoxShadow(color: Colors.redAccent, blurRadius: 10)]),  
+        decoration: BoxDecoration(color: Colors.transparent, border: Border.all(color: Colors.amberAccent, width: 3.5), boxShadow: const [BoxShadow(color: Colors.redAccent, blurRadius: 10)]),  
         child: isScreenLandscape   
           ? Row(  
               children: [   
@@ -1234,8 +1212,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         mainPlayer = actualCameraWidget;  
       }  
 
+      // 🔴 మెయిన్ డిస్‌ప్లే బ్యాక్ గ్రౌండ్ ట్రాన్స్‌పరెంట్ చేశాం
       return Container(  
-        color: Colors.black,   
+        color: Colors.transparent,   
         child: Stack(  
           children: [  
             Positioned(  
@@ -1255,6 +1234,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               ),  
             ),  
               
+            // 🔴 యాడ్స్ ఇమేజ్ లు సాగదీసినట్లు రాకుండా BoxFit.cover వాడాము
             if (isAdCurrentlyShowing)  
               Positioned(  
                 left: isLBandRight ? videoWidth : 0,  
@@ -1265,11 +1245,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   onTap: leftAdPaths.isEmpty ? () => _pickAds('left') : null,  
                   onLongPress: leftAdPaths.isNotEmpty ? () => _manageAdsDialog('left') : null,  
                   child: Container(  
-                    color: Colors.black,   
+                    color: Colors.transparent,   
                     child: leftAdPaths.isNotEmpty   
                         ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized   
                             ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))  
-                            : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill)))  
+                            : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.cover)))  
                         : const Center(child: Text("LEFT ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))  
                   )  
                 ),  
@@ -1285,11 +1265,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   onTap: bottomAdPaths.isEmpty ? () => _pickAds('bottom') : null,  
                   onLongPress: bottomAdPaths.isNotEmpty ? () => _manageAdsDialog('bottom') : null,  
                   child: Container(  
-                    color: Colors.black,   
+                    color: Colors.transparent,   
                     child: bottomAdPaths.isNotEmpty   
                         ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized   
                             ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))  
-                            : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill)))  
+                            : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.cover)))  
                         : const Center(child: Text("BOTTOM ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))  
                   )  
                 ),  
@@ -1361,7 +1341,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ]  
     );  
 
-    // 🔴 లోగో విడ్జెట్ - సైజును 100x100 కు మార్చాం
     Widget visualScreenLogoWidget = GestureDetector(  
       onTap: () { setState(() { logoPosition = (logoPosition + 1) % 4; }); },  
       child: channelLogoPath.isNotEmpty  
@@ -1380,138 +1359,147 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );  
 
     return Scaffold(  
-      backgroundColor: Colors.black,   
-      body: SafeArea(  
-        top: false, bottom: true,  
-        child: GestureDetector(  
-          behavior: HitTestBehavior.opaque,  
-          onTap: () { if (!isLiveLocked) { setState(() { isMenuOpen ? isMenuOpen = false : hideControls = !hideControls; }); } },  
-          onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); showCustomToast(context, "స్క్రీన్ అన్‌లాక్ చేయబడింది."); } },  
-          child: LayoutBuilder(  
-            builder: (context, constraints) {  
-              double screenW = constraints.maxWidth;  
-              double screenH = constraints.maxHeight;  
-              double tickerH = 55.0;   
-              double topAreaH = screenH - tickerH;   
+      // 🔴 స్టూడియో స్క్రీన్‌కి కలర్ ఫుల్ డీప్ బ్లూ న్యూస్ థీమ్ గ్రేడియంట్
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F172A), Color(0xFF3B0764), Color(0xFF1E1B4B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(  
+          top: false, bottom: true,  
+          child: GestureDetector(  
+            behavior: HitTestBehavior.opaque,  
+            onTap: () { if (!isLiveLocked) { setState(() { isMenuOpen ? isMenuOpen = false : hideControls = !hideControls; }); } },  
+            onLongPress: () { if (isLiveLocked) { setState(() { isLiveLocked = false; hideControls = false; }); showCustomToast(context, "స్క్రీన్ అన్‌లాక్ చేయబడింది."); } },  
+            child: LayoutBuilder(  
+              builder: (context, constraints) {  
+                double screenW = constraints.maxWidth;  
+                double screenH = constraints.maxHeight;  
+                double tickerH = 55.0;   
+                double topAreaH = screenH - tickerH;   
 
-              return Stack(  
-                children: [  
-                  Positioned(  
-                    top: 0, left: 0, right: 0, height: topAreaH,  
-                    child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)  
-                  ),  
-                    
-                  Positioned(  
-                    top: (logoPosition == 0 || logoPosition == 1) ? 20.0 : null,  
-                    bottom: (logoPosition == 2 || logoPosition == 3) ? 80.0 : null,  
-                    left: (logoPosition == 0 || logoPosition == 3) ? 20.0 : null,  
-                    right: (logoPosition == 1 || logoPosition == 2) ? 20.0 : null,  
-                    child: visualScreenLogoWidget  
-                  ),  
-
-                  if (!isDualScreenMode && showReporterDetails)  
-                    Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),  
-
-                  Positioned(  
-                    bottom: 0, left: 0, right: 0, height: tickerH,  
-                    child: Row(  
-                      children: [  
-                        Container(  
-                          width: 110,   
-                          color: Colors.red.shade900,   
-                          alignment: Alignment.center,   
-                          child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))  
-                        ),  
-                        Expanded(  
-                          child: Container(  
-                            color: const Color(0xFF1A1A2E),   
-                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)  
-                          )  
-                        )  
-                      ]  
-                    )  
-                  ),  
-
-                  if (!hideControls && !isLiveLocked)  
+                return Stack(  
+                  children: [  
                     Positioned(  
-                      bottom: 75, right: 20,   
+                      top: 0, left: 0, right: 0, height: topAreaH,  
+                      child: _buildMainDisplay(isScreenLandscape, screenW, topAreaH, phoneCameraWidget)  
+                    ),  
+                      
+                    Positioned(  
+                      top: (logoPosition == 0 || logoPosition == 1) ? 20.0 : null,  
+                      bottom: (logoPosition == 2 || logoPosition == 3) ? 80.0 : null,  
+                      left: (logoPosition == 0 || logoPosition == 3) ? 20.0 : null,  
+                      right: (logoPosition == 1 || logoPosition == 2) ? 20.0 : null,  
+                      child: visualScreenLogoWidget  
+                    ),  
+
+                    if (!isDualScreenMode && showReporterDetails)  
+                      Positioned(bottom: 65, left: 15, child: reporterBadgeWidget),  
+
+                    Positioned(  
+                      bottom: 0, left: 0, right: 0, height: tickerH,  
                       child: Row(  
                         children: [  
-                          if (isLiveBroadcasting) ...[  
-                            ElevatedButton.icon(  
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),   
-                              onPressed: _stopLiveStream,   
-                              icon: const Icon(Icons.stop, color: Colors.white),   
-                              label: const Text("STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))  
-                            ),  
-                            const SizedBox(width: 10),  
-                            ElevatedButton.icon(  
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),   
-                              onPressed: () async {  
-                                if (isLivePaused) {  
-                                  String cableUrl = cableRtmpController.text.trim();  
-                                  String restreamUrl = restreamRtmpController.text.trim();  
-                                  String satUrl = satelliteSrtController.text.trim();  
-                                    
-                                  bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);  
-                                  if (success) { setState(() { isLivePaused = false; }); showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); }  
-                                } else {  
-                                  bool success = await StreamServiceManager.pauseLiveStream();  
-                                  if (success) { setState(() { isLivePaused = true; }); showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", bgColor: Colors.orange); }  
-                                }  
-                              },   
-                              icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white),   
-                              label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))  
-                            ),  
-                          ] else ...[  
-                            ElevatedButton.icon(  
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),   
-                              onPressed: _showLiveControlDialog,   
-                              icon: const Icon(Icons.sensors, color: Colors.white),   
-                              label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))  
-                            ),  
-                          ],  
-                          const SizedBox(width: 10),  
-                          FloatingActionButton(  
-                            backgroundColor: Colors.blue.shade800,   
-                            onPressed: () { setState(() { isMenuOpen = !isMenuOpen; }); },   
-                            child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white)  
+                          Container(  
+                            width: 110,   
+                            color: Colors.red.shade900,   
+                            alignment: Alignment.center,   
+                            child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))  
+                          ),  
+                          Expanded(  
+                            child: Container(  
+                              color: const Color(0xFF1A1A2E),   
+                              child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)  
+                            )  
                           )  
                         ]  
                       )  
                     ),  
 
-                  if (!hideControls && isMenuOpen && !isLiveLocked)  
-                    Positioned.fill(  
-                      child: Container(  
-                        color: Colors.black87,  
-                        child: Center(  
-                          child: Wrap(  
-                            alignment: WrapAlignment.center, spacing: 30, runSpacing: 35,   
-                            children: [  
-                              _buildControlButton(Icons.dashboard_customize, "PCR Board", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }, Colors.yellowAccent),  
-                              _buildControlButton(Icons.bar_chart, "Election Results", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }, Colors.blueAccent),  
-                              _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),  
-                              _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),  
-                              _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.cyanAccent),  
-                              _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),  
-                              _buildControlButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), _toggleAdMode, Colors.redAccent),  
-                              _buildControlButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : "Shape: U-Band", _toggleAdShapeMode, Colors.orangeAccent),  
-                              _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),  
-                              _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),  
-                              _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purpleAccent),  
-                              _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),  
-                              _buildControlButton(showReporterDetails ? Icons.badge : Icons.badge_outlined, showReporterDetails ? "Reporter ON" : "Reporter OFF", _toggleReporterDetails, showReporterDetails ? Colors.greenAccent : Colors.redAccent),
-                            ]  
+                    if (!hideControls && !isLiveLocked)  
+                      Positioned(  
+                        bottom: 75, right: 20,   
+                        child: Row(  
+                          children: [  
+                            if (isLiveBroadcasting) ...[  
+                              ElevatedButton.icon(  
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),   
+                                onPressed: _stopLiveStream,   
+                                icon: const Icon(Icons.stop, color: Colors.white),   
+                                label: const Text("STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))  
+                              ),  
+                              const SizedBox(width: 10),  
+                              ElevatedButton.icon(  
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),   
+                                onPressed: () async {  
+                                  if (isLivePaused) {  
+                                    String cableUrl = cableRtmpController.text.trim();  
+                                    String restreamUrl = restreamRtmpController.text.trim();  
+                                    String satUrl = satelliteSrtController.text.trim();  
+                                      
+                                    bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);  
+                                    if (success) { setState(() { isLivePaused = false; }); showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); }  
+                                  } else {  
+                                    bool success = await StreamServiceManager.pauseLiveStream();  
+                                    if (success) { setState(() { isLivePaused = true; }); showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", bgColor: Colors.orange); }  
+                                  }  
+                                },   
+                                icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white),   
+                                label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))  
+                              ),  
+                            ] else ...[  
+                              ElevatedButton.icon(  
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),   
+                                onPressed: _showLiveControlDialog,   
+                                icon: const Icon(Icons.sensors, color: Colors.white),   
+                                label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))  
+                              ),  
+                            ],  
+                            const SizedBox(width: 10),  
+                            FloatingActionButton(  
+                              backgroundColor: Colors.blue.shade800,   
+                              onPressed: () { setState(() { isMenuOpen = !isMenuOpen; }); },   
+                              child: Icon(isMenuOpen ? Icons.close : Icons.menu, color: Colors.white)  
+                            )  
+                          ]  
+                        )  
+                      ),  
+
+                    if (!hideControls && isMenuOpen && !isLiveLocked)  
+                      Positioned.fill(  
+                        child: Container(  
+                          color: Colors.black87,  
+                          child: Center(  
+                            child: Wrap(  
+                              alignment: WrapAlignment.center, spacing: 30, runSpacing: 35,   
+                              children: [  
+                                _buildControlButton(Icons.dashboard_customize, "PCR Board", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }, Colors.yellowAccent),  
+                                _buildControlButton(Icons.bar_chart, "Election Results", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }, Colors.blueAccent),  
+                                _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),  
+                                _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),  
+                                _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.cyanAccent),  
+                                _buildControlButton(Icons.grid_on, "Dual Screen", _toggleDualScreenAndPickMedia, Colors.orangeAccent),  
+                                _buildControlButton(Icons.visibility, adDisplayMode == 0 ? "Ads OFF" : (adDisplayMode == 1 ? "Ads ON" : "Auto Ads"), _toggleAdMode, Colors.redAccent),  
+                                _buildControlButton(Icons.dashboard, adShapeMode == 0 ? "Shape: L-Band" : "Shape: U-Band", _toggleAdShapeMode, Colors.orangeAccent),  
+                                _buildControlButton(Icons.picture_in_picture_alt, "Logo Pos", _changeLogoPosition, Colors.lightGreenAccent),  
+                                _buildControlButton(Icons.swap_horiz, "L-Band L/R", _toggleLBandDirection, Colors.orange),  
+                                _buildControlButton(Icons.screen_rotation, "Rotate", _toggleRotation, Colors.purpleAccent),  
+                                _buildControlButton(Icons.settings, "Settings", _showEditDialog, Colors.blue),  
+                                _buildControlButton(showReporterDetails ? Icons.badge : Icons.badge_outlined, showReporterDetails ? "Reporter ON" : "Reporter OFF", _toggleReporterDetails, showReporterDetails ? Colors.greenAccent : Colors.redAccent),
+                              ]  
+                            ),  
                           ),  
                         ),  
                       ),  
-                    ),  
-                ],  
-              );  
-            }  
+                  ],  
+                );  
+              }  
+            ),  
           ),  
-        ),  
+        ),
       ),  
     );
   }
@@ -1879,85 +1867,95 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );  
 
     return Scaffold(  
-      backgroundColor: Colors.black,  
-      body: GestureDetector(  
-        onTap: () => setState(() => hideControls = !hideControls),  
-        child: SafeArea(  
-          child: Stack(  
-            fit: StackFit.expand,  
-            children: [  
-              AnimatedPositioned(  
-                duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,  
-                left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,  
-                child: ClipRect(  
-                  child: isLivePaused   
-                    ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))))   
-                    : Row(  
-                        children: [  
-                          Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24),   
-                          Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))  
-                        ]  
-                      )  
-                ),  
-              ),  
-                
-              positionedLogoWidget,  
-
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const SizedBox())),  
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const SizedBox())),  
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const SizedBox())),  
-
-              Positioned(  
-                bottom: 0, left: 0, right: 0, height: tickerH,  
-                child: Container(  
-                  decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
-                  child: Row(children: [  
-                    Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),  
-                    Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))  
-                  ]),  
-                ),  
-              ),  
-
-              if (!hideControls)  
-                Positioned(  
-                  top: 15, left: 15,  
-                  child: Row(  
-                    children: [  
-                      FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),  
-                      const SizedBox(width: 10),  
-                      GestureDetector(onTap: () { setState(() { layoutMode = layoutMode == 4 ? 6 : 4; }); SharedPreferences.getInstance().then((p) => p.setInt('pcr_layoutMode', layoutMode)); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(4)), child: Text("1+${layoutMode} LAYOUT", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)))),  
-                    ],  
+      // 🔴 Master PCR Board కి కలర్ ఫుల్ న్యూస్ థీమ్ గ్రేడియంట్
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F172A), Color(0xFF3B0764), Color(0xFF1E1B4B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: GestureDetector(  
+          onTap: () => setState(() => hideControls = !hideControls),  
+          child: SafeArea(  
+            child: Stack(  
+              fit: StackFit.expand,  
+              children: [  
+                AnimatedPositioned(  
+                  duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,  
+                  left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,  
+                  child: ClipRect(  
+                    child: isLivePaused   
+                      ? Container(color: Colors.transparent, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold))))   
+                      : Row(  
+                          children: [  
+                            Expanded(flex: 5, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2)), child: _buildLiveFeed(mainCameraId))), Container(width: 2, color: Colors.white24),   
+                            Expanded(flex: 6, child: Column(children: layoutMode == 4 ? [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(2)), Expanded(child: _buildHexBox(3))] ))] : [Expanded(child: Row(children: [Expanded(child: _buildHexBox(0)), Expanded(child: _buildHexBox(1)), Expanded(child: _buildHexBox(2))])), Expanded(child: Row(children: [Expanded(child: _buildHexBox(3)), Expanded(child: _buildHexBox(4)), Expanded(child: _buildHexBox(5))]))]))  
+                          ]  
+                        )  
                   ),  
                 ),  
+                  
+                positionedLogoWidget,  
 
-              if (!hideControls)  
+                // 🔴 యాడ్స్ లోపం రాకుండా BoxFit.cover వాడాము
+                AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.transparent, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.cover))) : const SizedBox())),  
+                AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.transparent, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.cover))) : const SizedBox())),  
+                AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.transparent, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.cover))) : const SizedBox())),  
+
                 Positioned(  
-                  bottom: tickerH + 5, left: 0, right: 0,  
+                  bottom: 0, left: 0, right: 0, height: tickerH,  
                   child: Container(  
-                    height: 140, color: Colors.black87.withOpacity(0.95),  
-                    child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index])),  
+                    decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
+                    child: Row(children: [  
+                      Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),  
+                      Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))  
+                    ]),  
                   ),  
                 ),  
 
-              if (!hideControls)  
-                Positioned(  
-                  bottom: 160, right: 15,  
-                  child: Row(  
-                    crossAxisAlignment: CrossAxisAlignment.end,  
-                    children: [  
-                      if (isLiveBroadcasting) ...[  
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _stopLiveStream, icon: const Icon(Icons.stop, color: Colors.white), label: const Text("LIVE STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                if (!hideControls)  
+                  Positioned(  
+                    top: 15, left: 15,  
+                    child: Row(  
+                      children: [  
+                        FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),  
                         const SizedBox(width: 10),  
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
-                      ] else ...[  
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _showLiveControlDialog, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                        GestureDetector(onTap: () { setState(() { layoutMode = layoutMode == 4 ? 6 : 4; }); SharedPreferences.getInstance().then((p) => p.setInt('pcr_layoutMode', layoutMode)); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: Colors.teal, borderRadius: BorderRadius.circular(4)), child: Text("1+${layoutMode} LAYOUT", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)))),  
                       ],  
-                    ],  
+                    ),  
                   ),  
-                ),  
-            ],  
+
+                if (!hideControls)  
+                  Positioned(  
+                    bottom: tickerH + 5, left: 0, right: 0,  
+                    child: Container(  
+                      height: 140, color: Colors.black87.withOpacity(0.95),  
+                      child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: cameraList.length, padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), itemBuilder: (context, index) => _buildCompactCameraBox(cameraList[index])),  
+                    ),  
+                  ),  
+
+                if (!hideControls)  
+                  Positioned(  
+                    bottom: 160, right: 15,  
+                    child: Row(  
+                      crossAxisAlignment: CrossAxisAlignment.end,  
+                      children: [  
+                        if (isLiveBroadcasting) ...[  
+                          ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _stopLiveStream, icon: const Icon(Icons.stop, color: Colors.white), label: const Text("LIVE STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                          const SizedBox(width: 10),  
+                          ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "RESUME" : "PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                        ] else ...[  
+                          ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _showLiveControlDialog, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                        ],  
+                      ],  
+                    ),  
+                  ),  
+              ],  
+            ),  
           ),  
-        ),  
+        ),
       ),  
     );
   }
@@ -2330,93 +2328,103 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     );  
 
     return Scaffold(  
-      backgroundColor: Colors.black,  
-      body: GestureDetector(  
-        onTap: () => setState(() => hideControls = !hideControls),  
-        child: SafeArea(  
-          child: Stack(  
-            fit: StackFit.expand,  
-            children: [  
-              AnimatedPositioned(  
-                duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,  
-                left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,  
-                child: ClipRect(  
-                  child: isLivePaused ? Container(color: Colors.black, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(  
-                    children: [  
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.black, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),  
-                      Expanded(  
-                        child: Row(  
-                          children: [  
-                            Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800), _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800), _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800), ])),  
-                            Expanded(  
-                              child: Container(  
-                                color: Colors.black,  
-                                child: Stack(  
-                                  children: [  
-                                    Positioned(left: 10, top: 10, bottom: 10, width: 140, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2), color: Colors.grey[850]), child: _cameraController != null && _cameraController!.value.isInitialized ? ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _cameraController!.value.previewSize!.height, height: _cameraController!.value.previewSize!.width, child: CameraPreview(_cameraController!)))) : const Center(child: CircularProgressIndicator(color: Colors.amber)))),  
-                                    Positioned(left: 160, right: 10, top: 20, bottom: 20, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade800, border: Border.all(color: Colors.amber, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)]), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)), SizedBox(height: 15), Text("EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), ]))),  
-                                  ],  
+      // 🔴 Election Board కి కలర్ ఫుల్ న్యూస్ థీమ్ గ్రేడియంట్
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F172A), Color(0xFF3B0764), Color(0xFF1E1B4B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: GestureDetector(  
+          onTap: () => setState(() => hideControls = !hideControls),  
+          child: SafeArea(  
+            child: Stack(  
+              fit: StackFit.expand,  
+              children: [  
+                AnimatedPositioned(  
+                  duration: const Duration(milliseconds: 600), curve: Curves.easeInOut,  
+                  left: showAds ? vLeft : 0, top: 0, width: showAds ? vW : screenW, height: showAds ? vH : topAreaH,  
+                  child: ClipRect(  
+                    child: isLivePaused ? Container(color: Colors.transparent, child: const Center(child: Text("LIVE PAUSED", style: TextStyle(color: Colors.redAccent, fontSize: 30, fontWeight: FontWeight.bold)))) : Column(  
+                      children: [  
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.transparent, child: Row(children: [ Container(padding: const EdgeInsets.all(6), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("WEST BENGAL", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("262/294", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)), ], ), ), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildPartyHeaderItem("BJP+", "▲ +78", "$bjpSeats", Colors.orange.shade800), _buildPartyHeaderItem("TMC+", "▼ -87", "$tmcSeats", Colors.green.shade800), _buildPartyHeaderItem("CONG", "▲ +5", "$congSeats", Colors.blue.shade800), _buildPartyHeaderItem("LEFT+", "▲ +2", "$leftSeats", Colors.red.shade800), _buildPartyHeaderItem("OTH", "▲ +2", "$othSeats", Colors.grey.shade700), ], )), ])),  
+                        Expanded(  
+                          child: Row(  
+                            children: [  
+                              Container(width: 170, color: Colors.black54, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("PUDUCHERRY", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("17/30", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("NRC+", "▲ +1", "11", Colors.red.shade800), _buildStateResultRow("TVK+", "▲ +4", "4", Colors.red.shade800), _buildStateResultRow("CONG+", "▼ -2", "2", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -3", "0", Colors.red.shade800), ])),  
+                              Expanded(  
+                                child: Container(  
+                                  color: Colors.transparent,  
+                                  child: Stack(  
+                                    children: [  
+                                      Positioned(left: 10, top: 10, bottom: 10, width: 140, child: Container(decoration: BoxDecoration(border: Border.all(color: Colors.amber, width: 2), color: Colors.grey[850]), child: _cameraController != null && _cameraController!.value.isInitialized ? ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _cameraController!.value.previewSize!.height, height: _cameraController!.value.previewSize!.width, child: CameraPreview(_cameraController!)))) : const Center(child: CircularProgressIndicator(color: Colors.amber)))),  
+                                      Positioned(left: 160, right: 10, top: 20, bottom: 20, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade800, border: Border.all(color: Colors.amber, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)]), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)), SizedBox(height: 15), Text("EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), ]))),  
+                                    ],  
+                                  ),  
                                 ),  
                               ),  
-                            ),  
-                            Container(width: 170, color: Colors.grey.shade900, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800), _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800), _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800), ])),  
-                          ],  
+                              Container(width: 170, color: Colors.black54, padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ const Text("ASSAM", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), const Text("96/126", style: TextStyle(color: Colors.amber, fontSize: 11)), const Divider(color: Colors.white24), _buildStateResultRow("BJP+", "▲ +18", "71", Colors.red.shade800), _buildStateResultRow("CONG", "▼ -2", "23", Colors.red.shade800), _buildStateResultRow("AIUDF+", "▼ -11", "1", Colors.red.shade800), _buildStateResultRow("OTH", "▼ -5", "1", Colors.red.shade800), ])),  
+                            ],  
+                          ),  
                         ),  
-                      ),  
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), color: Colors.black, child: Row(children: [ Container(width: 130, padding: const EdgeInsets.all(4), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)), ], )), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber), _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700), _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800), _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700), ], )), ])),  
-                    ],  
-                  ),  
-                ),  
-              ),  
-
-              positionedLogoWidget,  
-
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) : const SizedBox())),  
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.black, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) : const SizedBox())),  
-              AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.black, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) : const SizedBox())),  
-
-              Positioned(  
-                bottom: 0, left: 0, right: 0, height: tickerH,  
-                child: Container(  
-                  decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
-                  child: Row(children: [  
-                    Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),  
-                    Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))  
-                  ]),  
-                ),  
-              ),  
-
-              if (!hideControls)  
-                Positioned(  
-                  top: 15, left: 15,  
-                  child: FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),  
-                ),  
-
-              if (!hideControls)  
-                Positioned(  
-                  top: 15, right: 15,  
-                  child: ElevatedButton.icon(onPressed: _refreshData, icon: const Icon(Icons.refresh, color: Colors.white), label: const Text("Refresh", style: TextStyle(color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder())),  
-                ),  
-
-              if (!hideControls)  
-                Positioned(  
-                  bottom: 75, right: 15,  
-                  child: Row(  
-                    crossAxisAlignment: CrossAxisAlignment.end,  
-                    children: [  
-                      if (isLiveBroadcasting) ...[  
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _stopLiveStream, icon: const Icon(Icons.stop, color: Colors.white), label: const Text("LIVE STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
-                        const SizedBox(width: 10),  
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "LIVE RESUME" : "LIVE PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
-                      ] else ...[  
-                        ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _showLiveControlDialog, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), color: Colors.transparent, child: Row(children: [ Container(width: 130, padding: const EdgeInsets.all(4), color: Colors.red.shade900, child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ Text("TAMIL NADU", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), Text("142/234", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)), ], )), const SizedBox(width: 4), Expanded(child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [ _buildBottomPartyItem("DMK+", "▼ -38", "63", Colors.amber), _buildBottomPartyItem("TVK", "▲ +41", "41", Colors.brown.shade700), _buildBottomPartyItem("ADMK+", "▼ -4", "37", Colors.teal.shade800), _buildBottomPartyItem("OTH", "▲ +1", "1", Colors.grey.shade700), ], )), ])),  
                       ],  
-                    ],  
+                    ),  
                   ),  
                 ),  
-            ],  
+
+                positionedLogoWidget,  
+
+                // 🔴 యాడ్స్ లోపం రాకుండా BoxFit.cover వాడాము
+                AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: lAdW > 0 ? lAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.transparent, child: leftAdPaths.isNotEmpty ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.cover))) : const SizedBox())),  
+                AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, right: showAds && rAdW > 0 ? 0 : -screenW * 0.25, top: 0, width: rAdW > 0 ? rAdW : screenW * 0.20, height: topAreaH, child: Container(color: Colors.transparent, child: rightAdPaths.isNotEmpty ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.cover))) : const SizedBox())),  
+                AnimatedPositioned(duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, left: showAds ? vLeft : 0, top: showAds && bAdH > 0 ? vH : topAreaH + 50, width: showAds ? vW : screenW, height: bAdH > 0 ? bAdH : 50, child: Container(color: Colors.transparent, child: bottomAdPaths.isNotEmpty ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.cover))) : const SizedBox())),  
+
+                Positioned(  
+                  bottom: 0, left: 0, right: 0, height: tickerH,  
+                  child: Container(  
+                    decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
+                    child: Row(children: [  
+                      Container(width: 95, color: Colors.red.shade900, alignment: Alignment.center, child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900))),  
+                      Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10.0), child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)))  
+                    ]),  
+                  ),  
+                ),  
+
+                if (!hideControls)  
+                  Positioned(  
+                    top: 15, left: 15,  
+                    child: FloatingActionButton(mini: true, backgroundColor: Colors.blueGrey, onPressed: () => Navigator.pop(context), child: const Icon(Icons.arrow_back, color: Colors.white)),  
+                  ),  
+
+                if (!hideControls)  
+                  Positioned(  
+                    top: 15, right: 15,  
+                    child: ElevatedButton.icon(onPressed: _refreshData, icon: const Icon(Icons.refresh, color: Colors.white), label: const Text("Refresh", style: TextStyle(color: Colors.white)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder())),  
+                  ),  
+
+                if (!hideControls)  
+                  Positioned(  
+                    bottom: 75, right: 15,  
+                    child: Row(  
+                      crossAxisAlignment: CrossAxisAlignment.end,  
+                      children: [  
+                        if (isLiveBroadcasting) ...[  
+                          ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _stopLiveStream, icon: const Icon(Icons.stop, color: Colors.white), label: const Text("LIVE STOP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                          const SizedBox(width: 10),  
+                          ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _togglePauseLive, icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white), label: Text(isLivePaused ? "LIVE RESUME" : "LIVE PAUSE", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                        ] else ...[  
+                          ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade900, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: const StadiumBorder()), onPressed: _showLiveControlDialog, icon: const Icon(Icons.sensors, color: Colors.white), label: const Text("GO LIVE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),  
+                        ],  
+                      ],  
+                    ),  
+                  ),  
+              ],  
+            ),  
           ),  
-        ),  
+        ),
       ),  
     );
   }
