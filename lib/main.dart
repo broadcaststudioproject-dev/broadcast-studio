@@ -38,42 +38,43 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// 🔴 ప్రొఫెషనల్ బాటమ్ లోడింగ్ టోస్ట్ (మెరూన్ థీమ్)
-void showCustomToast(BuildContext context, String message, {Color bgColor = const Color(0xFF800000)}) {
+// 🔴 కస్టమ్ బాటమ్ లోడింగ్ టోస్ట్ - లైవ్‌లో కేవలం సన్నటి గీత మాత్రమే వస్తుంది!
+void showCustomToast(BuildContext context, String message, {Color bgColor = const Color(0xFF800000), bool isLive = false}) {
   final overlay = Overlay.of(context);
   final overlayEntry = OverlayEntry(
     builder: (context) => Positioned(
-      bottom: 55.0, // బ్రేకింగ్ న్యూస్ పైన వస్తుంది
+      bottom: isLive ? 0 : 55.0, // లైవ్‌లో ఉంటే స్క్రీన్ అట్టడుగున, లేదంటే టిక్కర్ పైన
       left: 0,
       right: 0,
       child: Material(
         color: Colors.transparent,
-        child: Container(
-          color: bgColor.withOpacity(0.95),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white, 
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 13.0, 
-                    letterSpacing: 1.0
+        child: isLive 
+          ? const LinearProgressIndicator(
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.amberAccent),
+              minHeight: 3.0,
+            )
+          : Container(
+              color: bgColor.withOpacity(0.95),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.0, letterSpacing: 1.0),
+                    ),
                   ),
-                ),
+                  const LinearProgressIndicator(
+                    backgroundColor: Colors.transparent,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.amberAccent),
+                    minHeight: 2.0,
+                  ),
+                ],
               ),
-              const LinearProgressIndicator(
-                backgroundColor: Colors.transparent,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.amberAccent),
-                minHeight: 2.0,
-              ),
-            ],
-          ),
-        ),
+            ),
       ),
     ),
   );
@@ -89,20 +90,12 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = cons
 class StreamServiceManager {
   static const MethodChannel _streamChannel = MethodChannel('com.kingjvr.pocket_pcr/stream');
 
-  static Future<bool> startLiveStreamMulti(
-    String cableUrl,
-    String restreamUrl,
-    String satUrl,
-  ) async {
+  static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
     final cable = cableUrl.trim();
     final restream = restreamUrl.trim();
     final satellite = satUrl.trim();
 
-    if (cable.isEmpty && restream.isEmpty && satellite.isEmpty) {
-      debugPrint('PCR: Stream URL ఇవ్వలేదు.');
-      return false;
-    }
-
+    if (cable.isEmpty && restream.isEmpty && satellite.isEmpty) return false;
     final primaryUrl = cable.isNotEmpty ? cable : (restream.isNotEmpty ? restream : satellite);
 
     try {
@@ -134,27 +127,19 @@ class StreamServiceManager {
     try {
       final result = await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
       return result == true;
-    } catch (e) { 
-      return false; 
-    }
+    } catch (e) { return false; }
   }
 
-  static Future<bool> pauseLiveStream() async { 
-    return stopLiveStream(); 
-  }
+  static Future<bool> pauseLiveStream() async { return stopLiveStream(); }
 
   static Future<int?> startUsbCamera() async {
-    try { 
-      return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); 
-    } catch (e) { 
-      return null; 
-    }
+    try { return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); } 
+    catch (e) { return null; }
   }
 
   static Future<void> stopUsbCamera() async {
-    try { 
-      await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); 
-    } catch (e) {}
+    try { await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); } 
+    catch (e) {}
   }
 }
 
@@ -281,12 +266,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             SizedBox(height: 15),
             Text(
               "STANDBY / NO SIGNAL", 
-              style: TextStyle(
-                color: Colors.white54, 
-                fontSize: 18, 
-                fontWeight: FontWeight.bold, 
-                letterSpacing: 3.0
-              )
+              style: TextStyle(color: Colors.white54, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 3.0)
             ),
           ],
         ),
@@ -308,14 +288,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _requestPermissionsAndInitCamera();  
     _fetchBreakingNews();  
 
-    _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { 
-      _fetchBreakingNews(); 
-    });
-    
+    _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) { _fetchBreakingNews(); });
     _tickerColorTimer = Timer.periodic(const Duration(seconds: 2), (timer) { 
-      if (mounted) {
-        setState(() => _tickerBgColorIndex++); 
-      }
+      if (mounted) setState(() => _tickerBgColorIndex++); 
     });
   }
 
@@ -429,6 +404,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     
+    // 🔴 యాడ్స్ కట్ అవ్వకుండా ఉండేందుకు BoxFit.fill వాడాము
     if (pos == 'left') {  
       if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) {
@@ -746,7 +722,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                       TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("Close", style: TextStyle(color: Colors.redAccent))),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                        onPressed: () { FocusManager.instance.primaryFocus?.unfocus(); _saveLinks(); if (mounted) showCustomToast(context, "కెమెరా లింక్స్ అన్నీ సేవ్ అయ్యాయి!"); },
+                        onPressed: () { FocusManager.instance.primaryFocus?.unfocus(); _saveLinks(); if (mounted) showCustomToast(context, "కెమెరా లింక్స్ అన్నీ సేవ్ అయ్యాయి!", isLive: isLiveBroadcasting); },
                         icon: const Icon(Icons.save, color: Colors.white, size: 18),
                         label: const Text("Save All Links", style: TextStyle(color: Colors.white))
                       )
@@ -871,7 +847,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             ),
             IconButton(
               icon: const Icon(Icons.save, color: Colors.blueAccent, size: 28),
-              onPressed: () { FocusManager.instance.primaryFocus?.unfocus(); _saveLinks(); if (mounted) { showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!"); } }
+              onPressed: () { FocusManager.instance.primaryFocus?.unfocus(); _saveLinks(); if (mounted) { showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!", isLive: isLiveBroadcasting); } }
             ),
             if (onPlay != null)
               IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.greenAccent, size: 34), onPressed: onPlay)
@@ -881,6 +857,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
@@ -888,7 +865,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     String satUrl = satelliteSrtController.text.trim();
 
     if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {   
-      showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.");  
+      showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting);  
       return;   
     }  
 
@@ -898,29 +875,30 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (!micStatus.isGranted) { await Permission.microphone.request(); }  
       } catch (e) {}  
 
-      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);  
+      setState(() { hideControls = true; isMenuOpen = false; isLandscape = true; });
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);  
+      
+      showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);  
+      
+      // 🔴 మెసేజ్ కనపడకుండా 3 సెకన్లు ఆగుతున్నాం 
+      await Future.delayed(const Duration(milliseconds: 3000));
         
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));  
         
       if (success) {  
-        setState(() { 
-          isLiveBroadcasting = true; 
-          isLivePaused = false; 
-          isLiveLocked = false; 
-          hideControls = false; 
-          isMenuOpen = false; 
-          isLandscape = true; 
-        });  
-        showCustomToast(context, "లైవ్ వెళుతుంది ✔️");  
+        setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = false; });  
+        showCustomToast(context, "లైవ్ మొదలైంది", isLive: true);  
       } else {  
-        showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. సిస్టమ్ ఫాల్స్ ఇచ్చింది.");  
+        setState(() { hideControls = false; });
+        showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", isLive: false);  
       }  
     } on TimeoutException catch (_) {
-      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.");
+      setState(() { hideControls = false; });
+      showCustomToast(context, "టైమ్ అవుట్: కనెక్ట్ అవ్వడానికి సమయం పట్టింది.", isLive: false);
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     } catch (e) {  
-      debugPrint("Live Start Error: $e");
-      showCustomToast(context, "ఎర్రర్: $e");  
+      setState(() { hideControls = false; });
+      showCustomToast(context, "ఎర్రర్: $e", isLive: false);  
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
   }
@@ -930,7 +908,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     String cleanUrl = url.trim();
 
     setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
-    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...");  
+    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
 
     try {  
       String finalPlayUrl = cleanUrl;  
@@ -963,7 +941,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       debugPrint("YouTube Extract Error: $e");
       if (mounted) {  
         setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.");  
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.", isLive: isLiveBroadcasting);  
       }  
     }
   }
@@ -995,7 +973,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         debugPrint("Video Player Error: $e");
         if (mounted) {  
           setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.");  
+          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
         }  
       });
   }
@@ -1009,7 +987,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     try {
       final XFile? videoFile = await _picker.pickVideo(source: ImageSource.gallery);
       if (videoFile != null) {
-        showCustomToast(context, "గ్యాలరీ వీడియో లోడ్ అవుతోంది...");
+        showCustomToast(context, "గ్యాలరీ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);
         if (_bulletinVideoController != null) {
           _bulletinVideoController!.removeListener(_videoListener);
           _bulletinVideoController!.dispose();
@@ -1032,7 +1010,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               
             if (!isLiveBroadcasting) { _startLiveAndLock(); }  
           }).catchError((e) {   
-            if (mounted) showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.");  
+            if (mounted) showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
           });  
       }  
     } catch (e) {}
@@ -1063,7 +1041,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (success) {
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
         setState(() { isLiveBroadcasting = false; isLiveLocked = false; isLivePaused = false; });
-        if (mounted) showCustomToast(context, "లైవ్ ఆగిపోయింది ❌");
+        if (mounted) showCustomToast(context, "లైవ్ ఆగిపోయింది ❌", isLive: false);
       }
     } catch (e) {}
   }
@@ -1190,7 +1168,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                           await prefs.setString('studioBgImagePath', img.path); 
                           setState(() => studioBgImagePath = img.path); 
                           setDialogState(() {}); 
-                          if(mounted) showCustomToast(context, "స్టూడియో బ్యాక్‌గ్రౌండ్ ఇమేజ్ సెట్ అయ్యింది!");
+                          if(mounted) showCustomToast(context, "స్టూడియో బ్యాక్‌గ్రౌండ్ ఇమేజ్ సెట్ అయ్యింది!", isLive: isLiveBroadcasting);
                         } 
                       } catch (e) {} 
                     }, 
@@ -1339,15 +1317,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       
       if (adDisplayMode == 0) {
         isAdCurrentlyShowing = false;
-        showCustomToast(context, "Ads OFF");
+        showCustomToast(context, "Ads OFF", isLive: isLiveBroadcasting);
       } else if (adDisplayMode == 1) {
         isAdCurrentlyShowing = true;
         _startPermanentCycle();
-        showCustomToast(context, "Ads ON");
+        showCustomToast(context, "Ads ON", isLive: isLiveBroadcasting);
       } else if (adDisplayMode == 2) {
         isAdCurrentlyShowing = true;
         _startAutoCycle();
-        showCustomToast(context, "Auto Ads");
+        showCustomToast(context, "Auto Ads", isLive: isLiveBroadcasting);
       }
     });
   }
@@ -1409,7 +1387,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       showReporterDetails = !showReporterDetails;
       isMenuOpen = false;
     });
-    showCustomToast(context, showReporterDetails ? "రిపోర్టర్ డీటెయిల్స్ ఆన్ చేయబడ్డాయి" : "రిపోర్టర్ డీటెయిల్స్ ఆఫ్ చేయబడ్డాయి");
+    showCustomToast(context, showReporterDetails ? "రిపోర్టర్ డీటెయిల్స్ ఆన్ చేయబడ్డాయి" : "రిపోర్టర్ డీటెయిల్స్ ఆఫ్ చేయబడ్డాయి", isLive: isLiveBroadcasting);
   }
 
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
@@ -1511,8 +1489,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double videoHeight = videoWidth * (9 / 16);   
     double bottomAdHeight = availableHeight - videoHeight;  
 
-    if (bottomAdHeight < availableHeight * 0.18) {  
-      bottomAdHeight = availableHeight * 0.18;  
+    if (bottomAdHeight < availableHeight * 0.20) {  
+      bottomAdHeight = availableHeight * 0.20;  
       videoHeight = availableHeight - bottomAdHeight;  
       videoWidth = videoHeight * (16 / 9);  
       leftAdWidth = screenWidth - videoWidth;  
@@ -1576,7 +1554,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: leftAdPaths.isNotEmpty   
                         ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized   
                             ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!)))  
-                            : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.cover)))  
+                            : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill)))  
                         : const Center(child: Text("LEFT ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))  
                   )  
                 ),  
@@ -1596,7 +1574,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                     child: bottomAdPaths.isNotEmpty   
                         ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized   
                             ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!)))  
-                            : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.cover)))  
+                            : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill)))  
                         : const Center(child: Text("BOTTOM ADS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)))  
                   )  
                 ),  
@@ -1737,6 +1715,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 )
               : null,
         ),
+        padding: const EdgeInsets.all(2.0),
         child: SafeArea(  
           top: false, bottom: true,  
           child: GestureDetector(  
@@ -1749,7 +1728,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             onLongPress: () { 
               if (isLiveLocked) { 
                 setState(() { isLiveLocked = false; hideControls = false; }); 
-                showCustomToast(context, "స్క్రీన్ అన్‌లాక్ చేయబడింది."); 
+                showCustomToast(context, "స్క్రీన్ అన్‌లాక్ చేయబడింది.", isLive: isLiveBroadcasting); 
               } 
             },  
             child: LayoutBuilder(  
@@ -1779,24 +1758,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
                     Positioned(  
                       bottom: 0, left: 0, right: 0, height: tickerH,  
-                      child: Row(  
-                        children: [  
-                          Container(  
-                            width: 120,   
-                            alignment: Alignment.center,   
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(colors: [Colors.red.shade900, Colors.redAccent.shade700], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                              boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 6, offset: Offset(2, 0))]
-                            ),
-                            child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, shadows: [Shadow(color: Colors.black87, blurRadius: 2, offset: Offset(1, 1))]))  
-                          ),  
-                          Expanded(  
-                            child: Container(  
-                              color: const Color(0xFF1A1A2E),   
-                              child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)  
+                      child: Container(
+                        height: tickerH,
+                        decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),
+                        child: Row(  
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [  
+                            Container(  
+                              width: 120,   
+                              alignment: Alignment.center,   
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(colors: [Colors.red.shade900, Colors.redAccent.shade700], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 6, offset: Offset(2, 0))]
+                              ),
+                              child: const Text("BREAKING\nNEWS", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900, shadows: [Shadow(color: Colors.black87, blurRadius: 2, offset: Offset(1, 1))]))  
+                            ),  
+                            Expanded(  
+                              child: Container(  
+                                color: const Color(0xFF1A1A2E),   
+                                child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)  
+                              )  
                             )  
-                          )  
-                        ]  
+                          ]  
+                        )
                       )  
                     ),  
 
@@ -1822,10 +1806,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     String satUrl = satelliteSrtController.text.trim();  
                                       
                                     bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);  
-                                    if (success) { setState(() { isLivePaused = false; }); showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); }  
+                                    if (success) { setState(() { isLivePaused = false; }); showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!", isLive: true); }  
                                   } else {  
                                     bool success = await StreamServiceManager.pauseLiveStream();  
-                                    if (success) { setState(() { isLivePaused = true; }); showCustomToast(context, "లైవ్ పాజ్ చేయబడింది."); }  
+                                    if (success) { setState(() { isLivePaused = true; }); showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", isLive: true); }  
                                   }  
                                 },   
                                 icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white),   
@@ -1905,7 +1889,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-// ఇక్కడకి Part-1 పూర్తయింది. దయచేసి "Part 2" అని అడగండి!
+
+// ఇక్కడకి Part-1 పూర్తయింది. దయచేసి "Part 2" అని అడగండి! 
 // ============================================================================
 // 3. MASTER PCR BOARD SCREEN
 // ============================================================================
@@ -2094,6 +2079,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     
+    // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill అప్లై చేశాం
     if (pos == 'left') {  
       if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) {
@@ -2178,6 +2164,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                           FocusManager.instance.primaryFocus?.unfocus();  
                           _saveLinks();  
                           Navigator.of(context, rootNavigator: true).pop();  
+                          // 🔴 లైవ్ స్టార్ట్ బటన్ నొక్కిన వెంటనే 3 సెకన్ల గ్యాప్ 
                           Future.delayed(const Duration(milliseconds: 300), () {  
                             _startLiveAndLock();  
                           });  
@@ -2222,7 +2209,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                 FocusManager.instance.primaryFocus?.unfocus();
                 _saveLinks();
                 if(mounted){
-                  showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!");
+                  showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!", isLive: isLiveBroadcasting);
                 }
               }
             ),
@@ -2240,7 +2227,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     String satUrl = satelliteSrtController.text.trim();
 
     if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      if (mounted) { showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి."); }
+      if (mounted) { showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting); }
       return;
     }
 
@@ -2252,22 +2239,29 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         debugPrint('Microphone permission warning: $e');
       }
 
+      setState(() { hideControls = true; isLivePaused = false; });
       await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+
+      // 🔴 నోటిఫికేషన్ కనపడకుండా 3 సెకన్లు వేచి ఉండడం
+      showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);
+      await Future.delayed(const Duration(milliseconds: 3000));
 
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));
 
       if (success) {
-        setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; });
-        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️"); }
+        setState(() { isLiveBroadcasting = true; isLivePaused = false; });
+        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️", isLive: true); }
       } else {
-        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభం కాలేదు. సిస్టమ్ ఫాల్స్ ఇచ్చింది."); }
+        setState(() { hideControls = false; });
+        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభం కాలేదు. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", isLive: false); }
       }
     } on TimeoutException catch (_) {
-      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.");
+      setState(() { hideControls = false; });
+      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.", isLive: false);
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     } catch (e) {
-      debugPrint('PCR LIVE ERROR: $e');
-      if (mounted) { showCustomToast(context, "Error: $e"); }
+      setState(() { hideControls = false; });
+      if (mounted) { showCustomToast(context, "Error: $e", isLive: false); }
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
   }
@@ -2278,7 +2272,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       if (success) {
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
         setState(() { isLiveBroadcasting = false; isLivePaused = false; });
-        if (mounted) showCustomToast(context, "లైవ్ నిలిపివేయబడింది ❌");
+        if (mounted) showCustomToast(context, "లైవ్ నిలిపివేయబడింది ❌", isLive: false);
       }
     } catch(e){}
   }
@@ -2292,13 +2286,13 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl);  
       if (success) { 
         setState(() => isLivePaused = false); 
-        if(mounted) showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); 
+        if(mounted) showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!", isLive: true); 
       }  
     } else {  
       bool success = await StreamServiceManager.pauseLiveStream();  
       if (success) { 
         setState(() => isLivePaused = true); 
-        if(mounted) showCustomToast(context, "లైవ్ పాజ్ చేయబడింది."); 
+        if(mounted) showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", isLive: true); 
       }  
     }
   }
@@ -2389,7 +2383,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     return Scaffold(  
       backgroundColor: Colors.transparent,  
       body: Container(
-        // 🔴 మొత్తం స్క్రీన్ చుట్టూ మెరూన్ బార్డర్
+        // 🔴 మొత్తం స్క్రీన్ చుట్టూ మెరూన్ బార్డర్ అప్లై చేశాం
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF800000), width: 4.0),
           image: studioBgImagePath.isNotEmpty && File(studioBgImagePath).existsSync()
@@ -2430,7 +2424,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                             Expanded(
                               flex: 5, 
                               child: Container(
-                                // 🔴 మెయిన్ ఫీడ్ చుట్టూ మెరూన్ బార్డర్
+                                // 🔴 పీసీఆర్ బోర్డులో మెయిన్ వీడియోకి మెరూన్ బార్డర్
                                 decoration: BoxDecoration(border: Border.all(color: const Color(0xFF800000), width: 3.0)), 
                                 child: _buildLiveFeed(mainCameraId)
                               )
@@ -2457,6 +2451,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   
                 positionedLogoWidget,  
 
+                // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill వాడాము
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, 
                   left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, 
@@ -2468,7 +2463,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     child: leftAdPaths.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) 
-                          : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.cover))) 
+                          : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -2484,7 +2479,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     child: rightAdPaths.isNotEmpty 
                       ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized 
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) 
-                          : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.cover))) 
+                          : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -2500,7 +2495,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                     child: bottomAdPaths.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
                           ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) 
-                          : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.cover))) 
+                          : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -2510,6 +2505,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   child: Container(  
                     decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch, // బ్రేకింగ్ న్యూస్ బాక్స్ కచ్చితంగా సెట్ అవ్వడానికి
                       children: [  
                         Container(  
                           width: 120,   
@@ -2523,7 +2519,9 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10.0), 
-                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
+                            child: Center(
+                              child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
+                            )
                           )
                         )  
                       ]
@@ -2693,7 +2691,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 }
 
 // ============================================================================
-// 4. ELECTION BOARD SCREEN (CLEANED)
+// 4. ELECTION BOARD SCREEN
 // ============================================================================
 class ElectionBoardScreen extends StatefulWidget {
   const ElectionBoardScreen({Key? key}) : super(key: key);
@@ -2769,7 +2767,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       leftSeats = 4; 
       othSeats = 2; 
     }); 
-    if (mounted) showCustomToast(context, "Election Data Refreshed!"); 
+    if (mounted) showCustomToast(context, "Election Data Refreshed!", isLive: isLiveBroadcasting); 
   }
 
   Widget _buildStandbyScreen() { 
@@ -2973,7 +2971,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
               onPressed: () { 
                 FocusManager.instance.primaryFocus?.unfocus(); 
                 _saveLinks(); 
-                if(mounted) showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!"); 
+                if(mounted) showCustomToast(context, "✔️ లింక్ సేవ్ అయ్యింది!", isLive: isLiveBroadcasting); 
               }
             )
           ]
@@ -2989,7 +2987,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     String satUrl = satelliteSrtController.text.trim();
     
     if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) { 
-      if (mounted) showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి."); 
+      if (mounted) showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting); 
       return; 
     }
     
@@ -2999,21 +2997,30 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         if (!micStatus.isGranted) { await Permission.microphone.request(); } 
       } catch (e) {}
       
+      setState(() { hideControls = true; isLivePaused = false; });
       await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
+      
+      showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);
+      
+      // 🔴 మెసేజ్ కనపడకుండా 3 సెకన్లు ఆగుతున్నాం
+      await Future.delayed(const Duration(milliseconds: 3000));
       
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));
       
       if (success) { 
         setState(() { isLiveBroadcasting = true; isLivePaused = false; hideControls = false; }); 
-        if (mounted) showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️"); 
+        if (mounted) showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️", isLive: true); 
       } else { 
-        if (mounted) showCustomToast(context, "లైవ్ ప్రారంభం కాలేదు. సిస్టమ్ ఫాల్స్ ఇచ్చింది."); 
+        setState(() { hideControls = false; });
+        if (mounted) showCustomToast(context, "లైవ్ ప్రారంభం కాలేదు. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", isLive: false); 
       }
     } on TimeoutException catch (_) { 
-      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది."); 
+      setState(() { hideControls = false; });
+      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.", isLive: false); 
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]); 
     } catch (e) { 
-      if (mounted) showCustomToast(context, "Error: $e"); 
+      setState(() { hideControls = false; });
+      if (mounted) showCustomToast(context, "Error: $e", isLive: false); 
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]); 
     }
   }
@@ -3024,7 +3031,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       if (success) { 
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]); 
         setState(() { isLiveBroadcasting = false; isLivePaused = false; }); 
-        if (mounted) showCustomToast(context, "లైవ్ నిలిపివేయబడింది ❌"); 
+        if (mounted) showCustomToast(context, "లైవ్ నిలిపివేయబడింది ❌", isLive: false); 
       } 
     } catch(e){}
   }
@@ -3038,13 +3045,13 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl); 
       if (success) { 
         setState(() => isLivePaused = false); 
-        if(mounted) showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); 
+        if(mounted) showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!", isLive: true); 
       } 
     } else { 
       bool success = await StreamServiceManager.pauseLiveStream(); 
       if (success) { 
         setState(() => isLivePaused = true); 
-        if(mounted) showCustomToast(context, "లైవ్ పాజ్ చేయబడింది."); 
+        if(mounted) showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", isLive: true); 
       } 
     }
   }
@@ -3328,6 +3335,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                   
                 positionedLogoWidget,  
 
+                // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill వాడాము
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, 
                   left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, 
@@ -3338,8 +3346,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     color: Colors.transparent, 
                     child: leftAdPaths.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
-                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) 
-                        : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.cover))) 
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) 
+                          : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -3354,8 +3362,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     color: Colors.transparent, 
                     child: rightAdPaths.isNotEmpty 
                       ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized 
-                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) 
-                        : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.cover))) 
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) 
+                          : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -3370,8 +3378,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     color: Colors.transparent, 
                     child: bottomAdPaths.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
-                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) 
-                        : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.cover))) 
+                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) 
+                          : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -3381,6 +3389,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                   child: Container(  
                     decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch, // బ్రేకింగ్ న్యూస్ బాక్స్ కచ్చితంగా సెట్ అవ్వడానికి
                       children: [  
                         Container(  
                           width: 120,   
@@ -3394,7 +3403,9 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10.0), 
-                            child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
+                            child: Center(
+                              child: Marquee(text: breakingNewsText, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold), blankSpace: 100.0, velocity: 45.0)
+                            )
                           )
                         )  
                       ]
