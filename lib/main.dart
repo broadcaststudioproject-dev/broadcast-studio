@@ -517,7 +517,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   void _switchCamera() async {
     if (isExternalIpCamMode || isUsbCamMode) {
-      showCustomToast(context, "ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.", bgColor: const Color(0xFF800000));
+      showCustomToast(context, "ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.");
       return;
     }
     if (cameras.length < 2) return;
@@ -555,7 +555,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );  
       setState(() { isExternalIpCamMode = true; isUsbCamMode = false; isCameraVisible = true; isNewsBulletinMode = false; isNetworkVideoMode = false; isDualScreenMode = false; });  
     } catch (e) {  
-      showCustomToast(context, "IP కెమెరా కనెక్ట్ కాలేదు. లింక్ చెక్ చేయండి.", bgColor: const Color(0xFF800000));  
+      showCustomToast(context, "IP కెమెరా కనెక్ట్ కాలేదు. లింక్ చెక్ చేయండి.");  
     }
   }
 
@@ -567,7 +567,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         showCustomToast(context, "USB Capture Card కనెక్ట్ అయ్యింది!");
       }
     } on PlatformException catch (e) {
-      showCustomToast(context, "USB క్యాప్చర్ కార్డ్ ఎర్రర్.", bgColor: const Color(0xFF800000));
+      showCustomToast(context, "USB క్యాప్చర్ కార్డ్ ఎర్రర్.");
     }
   }
 
@@ -801,7 +801,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     String satUrl = satelliteSrtController.text.trim();
 
     if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {   
-      showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.", bgColor: const Color(0xFF800000));  
+      showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.");  
       return;   
     }  
 
@@ -819,14 +819,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         setState(() { isLiveBroadcasting = true; isLivePaused = false; isLiveLocked = false; hideControls = false; isMenuOpen = false; isLandscape = true; });  
         showCustomToast(context, "లైవ్ వెళుతుంది ✔️");  
       } else {  
-        showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", bgColor: const Color(0xFF800000));  
+        showCustomToast(context, "బ్రాడ్ కాస్ట్ ఫెయిల్. సిస్టమ్ ఫాల్స్ ఇచ్చింది.");  
       }  
     } on TimeoutException catch (_) {
-      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.", bgColor: const Color(0xFF800000));
+      showCustomToast(context, "టైమ్ అవుట్: సర్వర్‌కి కనెక్ట్ అవ్వడానికి చాలా సమయం పట్టింది.");
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     } catch (e) {  
       debugPrint("Live Start Error: $e");
-      showCustomToast(context, "ఎర్రర్: $e", bgColor: const Color(0xFF800000));  
+      showCustomToast(context, "ఎర్రర్: $e");  
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
   }
@@ -869,7 +869,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       debugPrint("YouTube Extract Error: $e");
       if (mounted) {  
         setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.", bgColor: const Color(0xFF800000));  
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.");  
       }  
     }
   }
@@ -896,7 +896,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         debugPrint("Video Player Error: $e");
         if (mounted) {  
           setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", bgColor: const Color(0xFF800000));  
+          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.");  
         }  
       });
   }
@@ -927,7 +927,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
               
             if (!isLiveBroadcasting) { _startLiveAndLock(); }  
           }).catchError((e) {   
-            if (mounted) showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", bgColor: const Color(0xFF800000));  
+            if (mounted) showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.");  
           });  
       }  
     } catch (e) {}
@@ -956,7 +956,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (success) {
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
         setState(() { isLiveBroadcasting = false; isLiveLocked = false; isLivePaused = false; });
-        if (mounted) showCustomToast(context, "లైవ్ ఆగిపోయింది ❌", bgColor: const Color(0xFF800000));
+        if (mounted) showCustomToast(context, "లైవ్ ఆగిపోయింది ❌", bgColor: Colors.blueAccent);
       }
     } catch (e) {}
   }
@@ -1114,11 +1114,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _adCycleTimer?.cancel();
       if (adDisplayMode == 0) {
         isAdCurrentlyShowing = false;
-        showCustomToast(context, "Ads OFF", bgColor: const Color(0xFF800000));
+        showCustomToast(context, "Ads OFF");
       } else if (adDisplayMode == 1) {
         isAdCurrentlyShowing = true;
         _startPermanentCycle();
-        showCustomToast(context, "Ads ON", bgColor: const Color(0xFF800000));
+        showCustomToast(context, "Ads ON");
       } else if (adDisplayMode == 2) {
         isAdCurrentlyShowing = true;
         _startAutoCycle();
@@ -1140,8 +1140,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     });
     showCustomToast(
         context,
-        showReporterDetails ? "రిపోర్టర్ డీటెయిల్స్ ఆన్ చేయబడ్డాయి" : "రిపోర్టర్ డీటెయిల్స్ ఆఫ్ చేయబడ్డాయి",
-        bgColor: showReporterDetails ? const Color(0xFF800000) : const Color(0xFF800000));
+        showReporterDetails ? "రిపోర్టర్ డీటెయిల్స్ ఆన్ చేయబడ్డాయి" : "రిపోర్టర్ డీటెయిల్స్ ఆఫ్ చేయబడ్డాయి");
   }
 
   Widget _buildMainDisplay(bool isScreenLandscape, double screenWidth, double screenHeight, Widget phoneCameraWidget) {
@@ -1265,7 +1264,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                 children: [  
                   Center(  
                     child: Container(
-                      // 🔴 మెయిన్ వీడియో ప్లేయర్ చుట్టూ మెరూన్ బార్డర్
                       decoration: BoxDecoration(
                         border: Border.all(color: const Color(0xFF800000), width: 3.0),
                       ),
@@ -1332,7 +1330,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       );  
     }  
 
-    // 🔴 సింగిల్ స్క్రీన్ అయినప్పుడు కూడా మెరూన్ బార్డర్ ఇవ్వడం
     return Positioned.fill(
       child: Container(
         decoration: BoxDecoration(
@@ -1413,7 +1410,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     return Scaffold(  
       backgroundColor: Colors.transparent,  
       body: Container(
-        // 🔴 మొత్తం స్క్రీన్ చుట్టూ మెరూన్ బార్డర్ ఏర్పాటు
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF800000), width: 4.0),
           image: studioBgImagePath.isNotEmpty && File(studioBgImagePath).existsSync()
@@ -1509,7 +1505,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     if (success) { setState(() { isLivePaused = false; }); showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); }  
                                   } else {  
                                     bool success = await StreamServiceManager.pauseLiveStream();  
-                                    if (success) { setState(() { isLivePaused = true; }); showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", bgColor: Colors.orange); }  
+                                    if (success) { setState(() { isLivePaused = true; }); showCustomToast(context, "లైవ్ పాజ్ చేయబడింది."); }  
                                   }  
                                 },   
                                 icon: Icon(isLivePaused ? Icons.play_arrow : Icons.pause, color: Colors.white),   
@@ -1856,7 +1852,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     String satUrl = satelliteSrtController.text.trim();
 
     if (cableUrl.isEmpty && restreamUrl.isEmpty && satUrl.isEmpty) {
-      if (mounted) { showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి.", bgColor: const Color(0xFF800000)); }
+      if (mounted) { showCustomToast(context, "దయచేసి కనీసం ఒక లైవ్ లింక్ ఇవ్వండి."); }
       return;
     }
 
@@ -1909,13 +1905,13 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       if (success) { setState(() => isLivePaused = false); if(mounted) showCustomToast(context, "లైవ్ మళ్లీ మొదలైంది!"); }  
     } else {  
       bool success = await StreamServiceManager.pauseLiveStream();  
-      if (success) { setState(() => isLivePaused = true); if(mounted) showCustomToast(context, "లైవ్ పాజ్ చేయబడింది.", bgColor: Colors.orange); }  
+      if (success) { setState(() => isLivePaused = true); if(mounted) showCustomToast(context, "లైవ్ పాజ్ చేయబడింది."); }  
     }
   }
 
   @override
   void dispose() {
-    _cameraController?.dispose();
+    _phoneCamCtrl?.dispose();
     _tickerColorTimer?.cancel(); _adCycleTimer?.cancel();
     _leftAdVideoCtrl?.dispose(); _rightAdVideoCtrl?.dispose(); _bottomAdVideoCtrlForAds?.dispose(); _logoVideoCtrl?.dispose();
     super.dispose();
@@ -1956,7 +1952,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     return Scaffold(  
       backgroundColor: Colors.transparent,  
       body: Container(
-        // 🔴 మొత్తం స్క్రీన్ చుట్టూ మెరూన్ బార్డర్
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF800000), width: 4.0),
           image: studioBgImagePath.isNotEmpty && File(studioBgImagePath).existsSync()
@@ -1995,7 +1990,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                                   color: Colors.transparent,  
                                   child: Stack(  
                                     children: [  
-                                      // 🔴 మెయిన్ వీడియో ప్లేయర్ చుట్టూ మెరూన్ బార్డర్
                                       Positioned(left: 10, top: 10, bottom: 10, width: 140, child: Container(decoration: BoxDecoration(border: Border.all(color: const Color(0xFF800000), width: 3.0), color: Colors.grey[850]), child: _cameraController != null && _cameraController!.value.isInitialized ? ClipRect(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _cameraController!.value.previewSize!.height, height: _cameraController!.value.previewSize!.width, child: CameraPreview(_cameraController!)))) : _buildStandbyScreen())),  
                                       Positioned(left: 160, right: 10, top: 20, bottom: 20, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.shade800, border: Border.all(color: Colors.amber, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)]), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [ Text("BREAKING NEWS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2)), SizedBox(height: 15), Text("EARLY TRENDS: MAMATA TRAILING FROM BHABANIPUR", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), ]))),  
                                     ],  
