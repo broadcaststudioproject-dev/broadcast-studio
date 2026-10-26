@@ -903,7 +903,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  Future<void> _startYoutubeVideo(String url) async {
+    Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
 
@@ -924,6 +924,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           var muxedStreams = manifest.muxed;
           
           if (muxedStreams.isNotEmpty) {  
+            // 🔴 యూట్యూబ్ నుండి బెస్ట్ క్వాలిటీ MP4 లింక్ తీసుకునే కోడ్
             finalPlayUrl = muxedStreams.withHighestBitrate().url.toString();  
           } else {
             throw Exception("డైరెక్ట్ MP4 ఫార్మాట్ దొరకలేదు.");
@@ -953,8 +954,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bulletinVideoController = null;
     }
 
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))  
-      ..initialize().then((_) {   
+    // 🔴 యూట్యూబ్ బ్లాక్ చేయకుండా ఉండేందుకు ప్రొఫెషనల్ Browser User-Agent హెడర్‌ను జతచేశాం
+    _bulletinVideoController = VideoPlayerController.networkUrl(
+      Uri.parse(playUrl),
+      httpHeaders: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+      },
+    )..initialize().then((_) {   
         if (!mounted) return;   
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
         setState(() {   
@@ -976,11 +982,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
         }  
       });
-  }
-
-  Future<void> _startNetworkVideoMp4(String url) async {
-    if (url.isEmpty) return;
-    _startYoutubeVideo(url.trim());
   }
 
   Future<void> _playLocalGalleryVideo() async {
