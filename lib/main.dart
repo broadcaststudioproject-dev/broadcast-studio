@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';   
+import 'package:flutter/material.dart';  
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -404,7 +404,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     
-    // 🔴 యాడ్స్ కట్ అవ్వకుండా ఉండేందుకు BoxFit.fill వాడాము
     if (pos == 'left') {  
       if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) {
@@ -558,7 +557,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   void _switchCamera() async {
     if (isExternalIpCamMode || isUsbCamMode) {
-      showCustomToast(context, "ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.");
+      showCustomToast(context, "ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.", isLive: isLiveBroadcasting);
       return;
     }
     if (cameras.length < 2) return;
@@ -595,7 +594,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _startIpCamera(String url) async {
     if (url.isEmpty) return;
-    showCustomToast(context, "IP కెమెరాకు కనెక్ట్ అవుతోంది...");
+    showCustomToast(context, "IP కెమెరాకు కనెక్ట్ అవుతోంది...", isLive: isLiveBroadcasting);
     try {  
       _vlcIpCamController?.dispose();  
       _vlcIpCamController = VlcPlayerController.network(  
@@ -610,7 +609,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         isDualScreenMode = false; 
       });  
     } catch (e) {  
-      showCustomToast(context, "IP కెమెరా కనెక్ట్ కాలేదు. లింక్ చెక్ చేయండి.");  
+      showCustomToast(context, "IP కెమెరా కనెక్ట్ కాలేదు. లింక్ చెక్ చేయండి.", isLive: isLiveBroadcasting);  
     }
   }
 
@@ -626,10 +625,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isNetworkVideoMode = false; 
           _usbTextureId = textureId; 
         });
-        showCustomToast(context, "USB Capture Card కనెక్ట్ అయ్యింది!");
+        showCustomToast(context, "USB Capture Card కనెక్ట్ అయ్యింది!", isLive: isLiveBroadcasting);
       }
     } on PlatformException catch (e) {
-      showCustomToast(context, "USB క్యాప్చర్ కార్డ్ ఎర్రర్.");
+      showCustomToast(context, "USB క్యాప్చర్ కార్డ్ ఎర్రర్.", isLive: isLiveBroadcasting);
     }
   }
 
@@ -857,6 +856,91 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  Future<void> _startYoutubeVideo(String url) async {
+    if (url.isEmpty) return;
+    String cleanUrl = url.trim();
+
+    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
+    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
+
+    try {  
+      String finalPlayUrl = cleanUrl;  
+      
+      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
+        var ytExplode = yt.YoutubeExplode();  
+        
+        String videoId = cleanUrl;
+        if (cleanUrl.contains('v=')) {
+          videoId = cleanUrl.split('v=')[1].split('&')[0];
+        } else if (cleanUrl.contains('youtu.be/')) {
+          videoId = cleanUrl.split('youtu.be/')[1].split('?')[0];
+        } else if (cleanUrl.contains('shorts/')) {
+          videoId = cleanUrl.split('shorts/')[1].split('?')[0];
+        }
+        
+        var video = await ytExplode.videos.get(videoId);  
+          
+        if (video.isLive) {  
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
+        } else {  
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
+          var streamInfo = manifest.muxed.withHighestBitrate();
+          finalPlayUrl = streamInfo.url.toString();  
+        }  
+        ytExplode.close();  
+      }  
+
+      if (finalPlayUrl.isNotEmpty) {  
+        _playNetworkBulletin(finalPlayUrl);  
+      } else {  
+        throw Exception("వీడియో లింక్ జనరేట్ కాలేదు.");  
+      }  
+    } catch (e) {  
+      debugPrint("YouTube Extract Error: $e");
+      if (mounted) {  
+        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. ప్యాకేజీ ఎర్రర్.", bgColor: Colors.red, isLive: isLiveBroadcasting);  
+      }  
+    }
+  }
+
+  void _playNetworkBulletin(String playUrl) {
+    if (_bulletinVideoController != null) {
+      _bulletinVideoController!.removeListener(_videoListener);
+      _bulletinVideoController!.dispose();
+      _bulletinVideoController = null;
+    }
+
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
+      ..initialize().then((_) {   
+        if (!mounted) return;   
+        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
+        setState(() {   
+          isNewsBulletinMode = true; 
+          isNetworkVideoMode = false; 
+          isDualScreenMode = false; 
+          hideControls = false; 
+          isYoutubeLoading = false; 
+          isCameraVisible = false;  
+        });   
+        _bulletinVideoController?.play();   
+        _bulletinVideoController?.addListener(_videoListener);   
+          
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
+      }).catchError((e) {   
+        debugPrint("Video Player Error: $e");
+        if (mounted) {  
+          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red, isLive: isLiveBroadcasting);  
+        }  
+      });
+  }
+
+  Future<void> _startNetworkVideoMp4(String url) async {
+    if (url.isEmpty) return;
+    _startYoutubeVideo(url.trim());
+  }
+
   // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
@@ -901,174 +985,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       showCustomToast(context, "ఎర్రర్: $e", isLive: false);  
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     }
-  }
-
-      Future<void> _startYoutubeVideo(String url) async {
-    if (url.isEmpty) return;
-    String cleanUrl = url.trim();
-
-    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
-    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
-
-    try {  
-      String finalPlayUrl = cleanUrl;  
-      
-      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
-        var ytExplode = yt.YoutubeExplode();  
-        
-        // 🔴 లింక్ ఏదైనా సరే (Shorts, Live, Normal) పక్కాగా Video ID ని కట్ చేసే లాజిక్
-        String videoId = cleanUrl;
-        if (cleanUrl.contains('v=')) {
-          videoId = cleanUrl.split('v=')[1].split('&')[0];
-        } else if (cleanUrl.contains('youtu.be/')) {
-          videoId = cleanUrl.split('youtu.be/')[1].split('?')[0];
-        } else if (cleanUrl.contains('shorts/')) {
-          videoId = cleanUrl.split('shorts/')[1].split('?')[0];
-        }
-        
-        var video = await ytExplode.videos.get(videoId);  
-          
-        if (video.isLive) {  
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
-        } else {  
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
-          // 🔴 బెస్ట్ క్వాలిటీ MP4 (Video + Audio) తీసుకునే కోడ్
-          var streamInfo = manifest.muxed.withHighestBitrate();
-          finalPlayUrl = streamInfo.url.toString();  
-        }  
-        ytExplode.close();  
-      }  
-
-      if (finalPlayUrl.isNotEmpty) {  
-        _playNetworkBulletin(finalPlayUrl);  
-      } else {  
-        throw Exception("వీడియో లింక్ జనరేట్ కాలేదు.");  
-      }  
-    } catch (e) {  
-      debugPrint("YouTube Extract Error: $e");
-      if (mounted) {  
-        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. ప్యాకేజీ ఎర్రర్.", bgColor: Colors.red);  
-      }  
-    }
-  }
-
-  void _playNetworkBulletin(String playUrl) {
-    if (_bulletinVideoController != null) {
-      _bulletinVideoController!.removeListener(_videoListener);
-      _bulletinVideoController!.dispose();
-      _bulletinVideoController = null;
-    }
-
-    // 🔴 ఆండ్రాయిడ్ డీఫాల్ట్ వీడియో ప్లేయర్ క్రాష్ అవ్వకుండా నార్మల్ గా ప్లే అయ్యేలా సెట్ చేశాం
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
-      ..initialize().then((_) {   
-        if (!mounted) return;   
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
-        setState(() {   
-          isNewsBulletinMode = true; 
-          isNetworkVideoMode = false; 
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isYoutubeLoading = false; 
-          isCameraVisible = false;  
-        });   
-        _bulletinVideoController?.play();   
-        _bulletinVideoController?.addListener(_videoListener);   
-          
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-      }).catchError((e) {   
-        debugPrint("Video Player Error: $e");
-        if (mounted) {  
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red);  
-  Future<void> _startYoutubeVideo(String url) async {
-    if (url.isEmpty) return;
-    String cleanUrl = url.trim();
-
-    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
-    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
-
-    try {  
-      String finalPlayUrl = cleanUrl;  
-      
-      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
-        var ytExplode = yt.YoutubeExplode();  
-        
-        // 🔴 లింక్ ఏదైనా సరే (Shorts, Live, Normal) పక్కాగా Video ID ని కట్ చేసే లాజిక్
-        String videoId = cleanUrl;
-        if (cleanUrl.contains('v=')) {
-          videoId = cleanUrl.split('v=')[1].split('&')[0];
-        } else if (cleanUrl.contains('youtu.be/')) {
-          videoId = cleanUrl.split('youtu.be/')[1].split('?')[0];
-        } else if (cleanUrl.contains('shorts/')) {
-          videoId = cleanUrl.split('shorts/')[1].split('?')[0];
-        }
-        
-        var video = await ytExplode.videos.get(videoId);  
-          
-        if (video.isLive) {  
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
-        } else {  
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
-          // 🔴 బెస్ట్ క్వాలిటీ MP4 (Video + Audio) తీసుకునే కోడ్
-          var streamInfo = manifest.muxed.withHighestBitrate();
-          finalPlayUrl = streamInfo.url.toString();  
-        }  
-        ytExplode.close();  
-      }  
-
-      if (finalPlayUrl.isNotEmpty) {  
-        _playNetworkBulletin(finalPlayUrl);  
-      } else {  
-        throw Exception("వీడియో లింక్ జనరేట్ కాలేదు.");  
-      }  
-    } catch (e) {  
-      debugPrint("YouTube Extract Error: $e");
-      if (mounted) {  
-        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. ప్యాకేజీ ఎర్రర్.", bgColor: Colors.red);  
-      }  
-    }
-  }
-
-  void _playNetworkBulletin(String playUrl) {
-    if (_bulletinVideoController != null) {
-      _bulletinVideoController!.removeListener(_videoListener);
-      _bulletinVideoController!.dispose();
-      _bulletinVideoController = null;
-    }
-
-    // 🔴 ఆండ్రాయిడ్ డీఫాల్ట్ వీడియో ప్లేయర్ క్రాష్ అవ్వకుండా నార్మల్ గా ప్లే అయ్యేలా సెట్ చేశాం
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
-      ..initialize().then((_) {   
-        if (!mounted) return;   
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
-        setState(() {   
-          isNewsBulletinMode = true; 
-          isNetworkVideoMode = false; 
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isYoutubeLoading = false; 
-          isCameraVisible = false;  
-        });   
-        _bulletinVideoController?.play();   
-        _bulletinVideoController?.addListener(_videoListener);   
-          
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-      }).catchError((e) {   
-        debugPrint("Video Player Error: $e");
-        if (mounted) {  
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red);  
-        }  
-      });
-  }
-
-  // 🔴 5వ ఆప్షన్ (Network Video) కోసం ఇది ఒక్కసారే ఉండాలి (డూప్లికేట్ తీసేశాను)
-  Future<void> _startNetworkVideoMp4(String url) async {
-    if (url.isEmpty) return;
-    _startYoutubeVideo(url.trim());
   }
 
   Future<void> _playLocalGalleryVideo() async {
@@ -1577,8 +1493,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     double videoHeight = videoWidth * (9 / 16);   
     double bottomAdHeight = availableHeight - videoHeight;  
 
-    if (bottomAdHeight < availableHeight * 0.20) {  
-      bottomAdHeight = availableHeight * 0.20;  
+    if (bottomAdHeight < availableHeight * 0.18) {  
+      bottomAdHeight = availableHeight * 0.18;  
       videoHeight = availableHeight - bottomAdHeight;  
       videoWidth = videoHeight * (16 / 9);  
       leftAdWidth = screenWidth - videoWidth;  
@@ -1977,8 +1893,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 }
-
-// ఇక్కడకి Part-1 పూర్తయింది. దయచేసి "Part 2" అని అడగండి! 
 // ============================================================================
 // 3. MASTER PCR BOARD SCREEN
 // ============================================================================
@@ -2307,6 +2221,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
   
+  // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
 
@@ -2338,7 +2253,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
       if (success) {
         setState(() { isLiveBroadcasting = true; isLivePaused = false; });
-        if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభ అభ్యర్థన పంపబడింది! ✔️", isLive: true); }
+        if (mounted) { showCustomToast(context, "లైవ్ మొదలైంది", isLive: true); }
       } else {
         setState(() { hideControls = false; });
         if (mounted) { showCustomToast(context, "లైవ్ ప్రారంభం కాలేదు. సిస్టమ్ ఫాల్స్ ఇచ్చింది.", isLive: false); }
@@ -2539,7 +2454,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   
                 positionedLogoWidget,  
 
-                // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill వాడాము
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, 
                   left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, 
@@ -2593,7 +2507,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   child: Container(  
                     decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch, // బ్రేకింగ్ న్యూస్ బాక్స్ కచ్చితంగా సెట్ అవ్వడానికి
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [  
                         Container(  
                           width: 120,   
@@ -3017,6 +2931,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                           FocusManager.instance.primaryFocus?.unfocus(); 
                           _saveLinks(); 
                           Navigator.of(context, rootNavigator: true).pop(); 
+                          // 🔴 3 సెకన్ల గ్యాప్ ఇక్కడ ఇచ్చాం
                           Future.delayed(const Duration(milliseconds: 300), () { 
                             _startLiveAndLock(); 
                           }); 
@@ -3089,8 +3004,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
       await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
       
       showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);
-      
-      // 🔴 మెసేజ్ కనపడకుండా 3 సెకన్లు ఆగుతున్నాం
       await Future.delayed(const Duration(milliseconds: 3000));
       
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));
@@ -3325,7 +3238,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                                           Positioned(
                                             left: 10, top: 10, bottom: 10, width: 140, 
                                             child: Container(
-                                              // 🔴 మెయిన్ వీడియో ప్లేయర్ చుట్టూ మెరూన్ బార్డర్
+                                              // 🔴 కెమెరా ఫీడ్ చుట్టూ మెరూన్ బార్డర్
                                               decoration: BoxDecoration(border: Border.all(color: const Color(0xFF800000), width: 3.0), color: Colors.grey[850]), 
                                               child: _cameraController != null && _cameraController!.value.isInitialized 
                                                 ? ClipRect(
@@ -3423,7 +3336,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                   
                 positionedLogoWidget,  
 
-                // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill వాడాము
+                // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill అప్లై చేశాం
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, 
                   left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, 
@@ -3434,8 +3347,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     color: Colors.transparent, 
                     child: leftAdPaths.isNotEmpty 
                       ? (_leftAdVideoCtrl != null && _leftAdVideoCtrl!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) 
-                          : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) 
+                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _leftAdVideoCtrl!.value.size.width, height: _leftAdVideoCtrl!.value.size.height, child: VideoPlayer(_leftAdVideoCtrl!))) 
+                        : SizedBox.expand(child: Image.file(File(leftAdPaths[leftAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -3450,8 +3363,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     color: Colors.transparent, 
                     child: rightAdPaths.isNotEmpty 
                       ? (_rightAdVideoCtrl != null && _rightAdVideoCtrl!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) 
-                          : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) 
+                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _rightAdVideoCtrl!.value.size.width, height: _rightAdVideoCtrl!.value.size.height, child: VideoPlayer(_rightAdVideoCtrl!))) 
+                        : SizedBox.expand(child: Image.file(File(rightAdPaths[rightAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -3466,8 +3379,8 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                     color: Colors.transparent, 
                     child: bottomAdPaths.isNotEmpty 
                       ? (_bottomAdVideoCtrlForAds != null && _bottomAdVideoCtrlForAds!.value.isInitialized 
-                          ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) 
-                          : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) 
+                        ? FittedBox(fit: BoxFit.fill, child: SizedBox(width: _bottomAdVideoCtrlForAds!.value.size.width, height: _bottomAdVideoCtrlForAds!.value.size.height, child: VideoPlayer(_bottomAdVideoCtrlForAds!))) 
+                        : SizedBox.expand(child: Image.file(File(bottomAdPaths[bottomAdIndex]), fit: BoxFit.fill))) 
                       : const SizedBox()
                   )
                 ),  
@@ -3477,7 +3390,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                   child: Container(  
                     decoration: BoxDecoration(color: bgColors[_tickerBgColorIndex % bgColors.length], border: Border.all(color: Colors.amber.shade400, width: 1.5)),  
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch, // బ్రేకింగ్ న్యూస్ బాక్స్ కచ్చితంగా సెట్ అవ్వడానికి
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [  
                         Container(  
                           width: 120,   
