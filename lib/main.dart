@@ -903,7 +903,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-    Future<void> _startYoutubeVideo(String url) async {
+      Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
 
@@ -915,20 +915,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       
       if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
         var ytExplode = yt.YoutubeExplode();  
-        var video = await ytExplode.videos.get(cleanUrl);  
+        
+        // 🔴 లింక్ ఏదైనా సరే (Shorts, Live, Normal) పక్కాగా Video ID ని కట్ చేసే లాజిక్
+        String videoId = cleanUrl;
+        if (cleanUrl.contains('v=')) {
+          videoId = cleanUrl.split('v=')[1].split('&')[0];
+        } else if (cleanUrl.contains('youtu.be/')) {
+          videoId = cleanUrl.split('youtu.be/')[1].split('?')[0];
+        } else if (cleanUrl.contains('shorts/')) {
+          videoId = cleanUrl.split('shorts/')[1].split('?')[0];
+        }
+        
+        var video = await ytExplode.videos.get(videoId);  
           
         if (video.isLive) {  
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
         } else {  
           var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
-          var muxedStreams = manifest.muxed;
-          
-          if (muxedStreams.isNotEmpty) {  
-            // 🔴 యూట్యూబ్ నుండి బెస్ట్ క్వాలిటీ MP4 లింక్ తీసుకునే కోడ్
-            finalPlayUrl = muxedStreams.withHighestBitrate().url.toString();  
-          } else {
-            throw Exception("డైరెక్ట్ MP4 ఫార్మాట్ దొరకలేదు.");
-          }
+          // 🔴 బెస్ట్ క్వాలిటీ MP4 (Video + Audio) తీసుకునే కోడ్
+          var streamInfo = manifest.muxed.withHighestBitrate();
+          finalPlayUrl = streamInfo.url.toString();  
         }  
         ytExplode.close();  
       }  
@@ -936,13 +942,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       if (finalPlayUrl.isNotEmpty) {  
         _playNetworkBulletin(finalPlayUrl);  
       } else {  
-        throw Exception("వీడియో లింక్ క్రియేట్ అవ్వలేదు.");  
+        throw Exception("వీడియో లింక్ జనరేట్ కాలేదు.");  
       }  
     } catch (e) {  
       debugPrint("YouTube Extract Error: $e");
       if (mounted) {  
         setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.", isLive: isLiveBroadcasting);  
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. ప్యాకేజీ ఎర్రర్.", bgColor: Colors.red);  
       }  
     }
   }
@@ -954,13 +960,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bulletinVideoController = null;
     }
 
-    // 🔴 యూట్యూబ్ బ్లాక్ చేయకుండా ఉండేందుకు ప్రొఫెషనల్ Browser User-Agent హెడర్‌ను జతచేశాం
-    _bulletinVideoController = VideoPlayerController.networkUrl(
-      Uri.parse(playUrl),
-      httpHeaders: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-      },
-    )..initialize().then((_) {   
+    // 🔴 ఆండ్రాయిడ్ డీఫాల్ట్ వీడియో ప్లేయర్ క్రాష్ అవ్వకుండా నార్మల్ గా ప్లే అయ్యేలా సెట్ చేశాం
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
+      ..initialize().then((_) {   
         if (!mounted) return;   
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
         setState(() {   
@@ -979,10 +981,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         debugPrint("Video Player Error: $e");
         if (mounted) {  
           setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
+          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red);  
         }  
       });
   }
+
+  // 🔴 5వ ఆప్షన్ (Network Video) కోసం ఇది ఖచ్చితంగా ఉండాలి
+  Future<void> _startNetworkVideoMp4(String url) async {
+    if (url.isEmpty) return;
+    _startYoutubeVideo(url.trim());
+  }
+
     Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _startYoutubeVideo(url.trim());
