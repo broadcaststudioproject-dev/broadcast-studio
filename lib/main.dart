@@ -983,6 +983,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         }  
       });
   }
+    Future<void> _startNetworkVideoMp4(String url) async {
+    if (url.isEmpty) return;
+    _startYoutubeVideo(url.trim());
+    }
 
   Future<void> _playLocalGalleryVideo() async {
     try {
