@@ -982,20 +982,94 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (mounted) {  
           setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
           showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red);  
+  Future<void> _startYoutubeVideo(String url) async {
+    if (url.isEmpty) return;
+    String cleanUrl = url.trim();
+
+    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
+    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
+
+    try {  
+      String finalPlayUrl = cleanUrl;  
+      
+      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
+        var ytExplode = yt.YoutubeExplode();  
+        
+        // 🔴 లింక్ ఏదైనా సరే (Shorts, Live, Normal) పక్కాగా Video ID ని కట్ చేసే లాజిక్
+        String videoId = cleanUrl;
+        if (cleanUrl.contains('v=')) {
+          videoId = cleanUrl.split('v=')[1].split('&')[0];
+        } else if (cleanUrl.contains('youtu.be/')) {
+          videoId = cleanUrl.split('youtu.be/')[1].split('?')[0];
+        } else if (cleanUrl.contains('shorts/')) {
+          videoId = cleanUrl.split('shorts/')[1].split('?')[0];
+        }
+        
+        var video = await ytExplode.videos.get(videoId);  
+          
+        if (video.isLive) {  
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
+        } else {  
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
+          // 🔴 బెస్ట్ క్వాలిటీ MP4 (Video + Audio) తీసుకునే కోడ్
+          var streamInfo = manifest.muxed.withHighestBitrate();
+          finalPlayUrl = streamInfo.url.toString();  
+        }  
+        ytExplode.close();  
+      }  
+
+      if (finalPlayUrl.isNotEmpty) {  
+        _playNetworkBulletin(finalPlayUrl);  
+      } else {  
+        throw Exception("వీడియో లింక్ జనరేట్ కాలేదు.");  
+      }  
+    } catch (e) {  
+      debugPrint("YouTube Extract Error: $e");
+      if (mounted) {  
+        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. ప్యాకేజీ ఎర్రర్.", bgColor: Colors.red);  
+      }  
+    }
+  }
+
+  void _playNetworkBulletin(String playUrl) {
+    if (_bulletinVideoController != null) {
+      _bulletinVideoController!.removeListener(_videoListener);
+      _bulletinVideoController!.dispose();
+      _bulletinVideoController = null;
+    }
+
+    // 🔴 ఆండ్రాయిడ్ డీఫాల్ట్ వీడియో ప్లేయర్ క్రాష్ అవ్వకుండా నార్మల్ గా ప్లే అయ్యేలా సెట్ చేశాం
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
+      ..initialize().then((_) {   
+        if (!mounted) return;   
+        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
+        setState(() {   
+          isNewsBulletinMode = true; 
+          isNetworkVideoMode = false; 
+          isDualScreenMode = false; 
+          hideControls = false; 
+          isYoutubeLoading = false; 
+          isCameraVisible = false;  
+        });   
+        _bulletinVideoController?.play();   
+        _bulletinVideoController?.addListener(_videoListener);   
+          
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
+      }).catchError((e) {   
+        debugPrint("Video Player Error: $e");
+        if (mounted) {  
+          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red);  
         }  
       });
   }
 
-  // 🔴 5వ ఆప్షన్ (Network Video) కోసం ఇది ఖచ్చితంగా ఉండాలి
+  // 🔴 5వ ఆప్షన్ (Network Video) కోసం ఇది ఒక్కసారే ఉండాలి (డూప్లికేట్ తీసేశాను)
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _startYoutubeVideo(url.trim());
   }
-
-    Future<void> _startNetworkVideoMp4(String url) async {
-    if (url.isEmpty) return;
-    _startYoutubeVideo(url.trim());
-    }
 
   Future<void> _playLocalGalleryVideo() async {
     try {
