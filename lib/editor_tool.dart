@@ -11,7 +11,7 @@ class EditorToolScreen extends StatefulWidget {
   State<EditorToolScreen> createState() => _EditorToolScreenState();
 }
 
-class _EditorToolScreenState extends State<EditorToolScreen> with SingleTickerProviderStateStateMixin {
+class _EditorToolScreenState extends State<EditorToolScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // ===================== PRO PCR TOOLS (లైవ్ టూల్స్) =====================
