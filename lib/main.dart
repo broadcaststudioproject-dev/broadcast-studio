@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
+import 'editor_tool.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -1849,6 +1850,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               children: [  
                                 _buildControlButton(Icons.dashboard_customize, "PCR Board", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }, Colors.yellowAccent),  
                                 _buildControlButton(Icons.bar_chart, "Election Results", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }, Colors.blueAccent),  
+                                _buildControlButton(Icons.auto_awesome, "Pro Editor", () { 
+                                  setState(() => isMenuOpen = false); 
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const EditorToolScreen())); 
+                               }, Colors.pinkAccent),
                                 _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),  
                                 _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),  
                                 _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.cyanAccent),  
