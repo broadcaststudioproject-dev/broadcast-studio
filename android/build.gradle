@@ -17,3 +17,16 @@ subprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+// 🔴 కింది కోడ్ namespace ఎర్రర్‌ను పరిష్కరిస్తుంది
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                if (namespace == null) {
+                    namespace project.group
+                }
+            }
+        }
+    }
+}
