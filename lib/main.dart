@@ -1880,7 +1880,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 }, Colors.pinkAccent),
                                 _buildControlButton(Icons.smart_display, "Pro Player", () { 
                                 setState(() => isMenuOpen = false); 
-                                Navigator.push(context, MaterialPageRoute(builder: (context) => const PCRCustomPlayerScreen())); 
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const PCRCustomPlayer())); 
                                 }, Colors.tealAccent),
                                 _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),  
                                 _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),  
