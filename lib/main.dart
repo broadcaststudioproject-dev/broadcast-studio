@@ -9,7 +9,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
 import 'editor_tool.dart';
@@ -39,12 +39,12 @@ class PocketPCRApp extends StatelessWidget {
   }
 }
 
-// 🔴 కస్టమ్ బాటమ్ లోడింగ్ టోస్ట్ - లైవ్‌లో కేవలం సన్నటి గీత మాత్రమే వస్తుంది!
+// 🔴 కస్టమ్ బాటమ్ లోడింగ్ టోస్ట్
 void showCustomToast(BuildContext context, String message, {Color bgColor = const Color(0xFF800000), bool isLive = false}) {
   final overlay = Overlay.of(context);
   final overlayEntry = OverlayEntry(
     builder: (context) => Positioned(
-      bottom: isLive ? 0 : 55.0, // లైవ్‌లో ఉంటే స్క్రీన్ అట్టడుగున, లేదంటే టిక్కర్ పైన
+      bottom: isLive ? 0 : 55.0,
       left: 0,
       right: 0,
       child: Material(
@@ -157,6 +157,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   CameraController? controller;
   VideoPlayerController? _bulletinVideoController;
+  YoutubePlayerController? _ytController;
   VideoPlayerController? _bottomAdVideoController;
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _rightAdVideoCtrl;
@@ -186,6 +187,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   bool isNewsBulletinMode = false;
   bool isNetworkVideoMode = false;
+  bool isYoutubeMode = false;
   bool isBulletinMuted = false;
   bool isCameraVisible = true;
   bool isYoutubeLoading = false;
@@ -493,6 +495,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     controller?.dispose();
     _bulletinVideoController?.removeListener(_videoListener);
     _bulletinVideoController?.dispose();
+    _ytController?.dispose();
     _bottomAdVideoController?.dispose();
     _leftAdVideoCtrl?.dispose();
     _rightAdVideoCtrl?.dispose();
@@ -555,7 +558,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       setState(() { _isCameraInitialized = true; });
     } catch (e) {}
   }
-
   void _switchCamera() async {
     if (isExternalIpCamMode || isUsbCamMode) {
       showCustomToast(context, "ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.", isLive: isLiveBroadcasting);
@@ -606,6 +608,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         isUsbCamMode = false; 
         isCameraVisible = true; 
         isNewsBulletinMode = false; 
+        isYoutubeMode = false;
         isNetworkVideoMode = false; 
         isDualScreenMode = false; 
       });  
@@ -623,6 +626,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isExternalIpCamMode = false; 
           isCameraVisible = true; 
           isNewsBulletinMode = false; 
+          isYoutubeMode = false;
           isNetworkVideoMode = false; 
           _usbTextureId = textureId; 
         });
@@ -857,51 +861,41 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  Future<void> _startYoutubeVideo(String url) async {
+  // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్
+  void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
-    String cleanUrl = url.trim();
-
-    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
-    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
-
-    try {  
-      String finalPlayUrl = cleanUrl;  
+    
+    String? videoId = YoutubePlayer.convertUrlToId(url.trim());
+    
+    if (videoId != null) {
+      if (_ytController != null) {
+        _ytController!.dispose();
+      }
       
-      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
-        var ytExplode = yt.YoutubeExplode();  
-        
-        String videoId = cleanUrl;
-        if (cleanUrl.contains('v=')) {
-          videoId = cleanUrl.split('v=')[1].split('&')[0];
-        } else if (cleanUrl.contains('youtu.be/')) {
-          videoId = cleanUrl.split('youtu.be/')[1].split('?')[0];
-        } else if (cleanUrl.contains('shorts/')) {
-          videoId = cleanUrl.split('shorts/')[1].split('?')[0];
-        }
-        
-        var video = await ytExplode.videos.get(videoId);  
-          
-        if (video.isLive) {  
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
-        } else {  
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
-          var streamInfo = manifest.muxed.withHighestBitrate();
-          finalPlayUrl = streamInfo.url.toString();  
-        }  
-        ytExplode.close();  
-      }  
+      _ytController = YoutubePlayerController(
+        initialVideoId: videoId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          mute: false,
+          isLive: true, 
+          forceHD: true,
+        ),
+      );
 
-      if (finalPlayUrl.isNotEmpty) {  
-        _playNetworkBulletin(finalPlayUrl);  
-      } else {  
-        throw Exception("వీడియో లింక్ జనరేట్ కాలేదు.");  
-      }  
-    } catch (e) {  
-      debugPrint("YouTube Extract Error: $e");
-      if (mounted) {  
-        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. ప్యాకేజీ ఎర్రర్.", bgColor: Colors.red, isLive: isLiveBroadcasting);  
-      }  
+      setState(() {
+        isYoutubeMode = true;
+        isNewsBulletinMode = false;
+        isNetworkVideoMode = false;
+        isDualScreenMode = false;
+        hideControls = false;
+        isCameraVisible = false;
+      });
+
+      showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
+      
+      if (!isLiveBroadcasting) { _startLiveAndLock(); }
+    } else {
+      showCustomToast(context, "సరైన యూట్యూబ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting);
     }
   }
 
@@ -918,10 +912,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
         setState(() {   
           isNewsBulletinMode = true; 
+          isYoutubeMode = false;
           isNetworkVideoMode = false; 
           isDualScreenMode = false; 
           hideControls = false; 
-          isYoutubeLoading = false; 
           isCameraVisible = false;  
         });   
         _bulletinVideoController?.play();   
@@ -931,7 +925,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }).catchError((e) {   
         debugPrint("Video Player Error: $e");
         if (mounted) {  
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+          setState(() { isCameraVisible = true; isNewsBulletinMode = false; });  
           showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red, isLive: isLiveBroadcasting);  
         }  
       });
@@ -939,10 +933,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
-    _startYoutubeVideo(url.trim());
+    _playNetworkBulletin(url.trim());
   }
 
-  // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
@@ -965,7 +958,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       
       showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);  
       
-      // 🔴 మెసేజ్ కనపడకుండా 3 సెకన్లు ఆగుతున్నాం 
       await Future.delayed(const Duration(milliseconds: 3000));
         
       bool success = await StreamServiceManager.startLiveStreamMulti(cableUrl, restreamUrl, satUrl).timeout(const Duration(seconds: 60));  
@@ -1005,6 +997,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);  
             setState(() { 
               isNewsBulletinMode = true; 
+              isYoutubeMode = false;
               isNetworkVideoMode = false; 
               isDualScreenMode = false; 
               hideControls = false; 
@@ -1036,6 +1029,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       isBulletinMuted = !isBulletinMuted;
       if (isNewsBulletinMode && _bulletinVideoController != null) { 
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
+      }
+      if (isYoutubeMode && _ytController != null) {
+        isBulletinMuted ? _ytController!.mute() : _ytController!.unMute();
       }
     });
   }
@@ -1272,7 +1268,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         setState(() { 
           isDualScreenMode = true; 
           isNewsBulletinMode = false; 
-          isNetworkVideoMode = false; 
+          isNetworkVideoMode = false;
+          isYoutubeMode = false; 
         }); 
         _playDualMedia(dualMediaList[currentDualMediaIndex]); 
       }
@@ -1501,10 +1498,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       leftAdWidth = screenWidth - videoWidth;  
     }  
 
-    if (isNewsBulletinMode || isNetworkVideoMode || isAdCurrentlyShowing) {  
+    if (isNewsBulletinMode || isNetworkVideoMode || isAdCurrentlyShowing || isYoutubeMode) {  
         
       Widget mainPlayer;  
-      if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {  
+      if (isYoutubeMode && _ytController != null) {
+        mainPlayer = YoutubePlayer(
+          controller: _ytController!,
+          showVideoProgressIndicator: false,
+        );
+      } else if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {  
         mainPlayer = SizedBox.expand(
           child: FittedBox(
             fit: BoxFit.cover, 
@@ -1853,7 +1855,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                 _buildControlButton(Icons.auto_awesome, "Pro Editor", () { 
                                   setState(() => isMenuOpen = false); 
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const EditorToolScreen())); 
-                               }, Colors.pinkAccent),
+                                }, Colors.pinkAccent),
                                 _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),  
                                 _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),  
                                 _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.cyanAccent),  
