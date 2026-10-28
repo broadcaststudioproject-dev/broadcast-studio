@@ -861,43 +861,72 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్
+  // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్ 
+    // 🔴 అన్ని రకాల యూట్యూబ్ లింక్స్ (Live, Shorts, Normal) 100% పనిచేసే లాజిక్
   void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
-    
-    String? videoId = YoutubePlayer.convertUrlToId(url.trim());
-    
-    if (videoId != null) {
-      if (_ytController != null) {
-        _ytController!.dispose();
+    String cleanUrl = url.trim();
+    String? videoId;
+
+    try {
+      // 1. Shorts వీడియోల కోసం
+      if (cleanUrl.contains('/shorts/')) {
+        videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
+      } 
+      // 2. కొత్త Live లింక్స్ కోసం
+      else if (cleanUrl.contains('/live/')) {
+        videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
+      } 
+      // 3. షేర్ బటన్ ద్వారా వచ్చే లింక్స్ (youtu.be) కోసం
+      else if (cleanUrl.contains('youtu.be/')) {
+        videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
+      } 
+      // 4. ఎంబెడ్ లింక్స్ కోసం
+      else if (cleanUrl.contains('embed/')) {
+        videoId = cleanUrl.split('embed/')[1].split('?')[0].split('&')[0];
+      } 
+      // 5. నార్మల్ లింక్స్ (watch?v=) కోసం
+      else {
+        videoId = YoutubePlayer.convertUrlToId(cleanUrl);
       }
-      
-      _ytController = YoutubePlayerController(
-        initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
-          autoPlay: true,
-          mute: false,
-          isLive: true, 
-          forceHD: true,
-        ),
-      );
 
-      setState(() {
-        isYoutubeMode = true;
-        isNewsBulletinMode = false;
-        isNetworkVideoMode = false;
-        isDualScreenMode = false;
-        hideControls = false;
-        isCameraVisible = false;
-      });
+      // ఐడీ 11 అక్షరాలు ఉంటే కరెక్ట్ వీడియో అని అర్థం
+      if (videoId != null && videoId.length >= 11) {
+        videoId = videoId.substring(0, 11); // కచ్చితమైన 11 అక్షరాల ID మాత్రమే తీసుకుంటుంది
 
-      showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
-      
-      if (!isLiveBroadcasting) { _startLiveAndLock(); }
-    } else {
-      showCustomToast(context, "సరైన యూట్యూబ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting);
+        if (_ytController != null) {
+          _ytController!.dispose();
+        }
+
+        _ytController = YoutubePlayerController(
+          initialVideoId: videoId,
+          flags: const YoutubePlayerFlags(
+            autoPlay: true,
+            mute: false,
+            isLive: true, 
+            forceHD: true,
+          ),
+        );
+
+        setState(() {
+          isYoutubeMode = true;
+          isNewsBulletinMode = false;
+          isNetworkVideoMode = false;
+          isDualScreenMode = false;
+          hideControls = false;
+          isCameraVisible = false;
+        });
+
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
+
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }
+      } else {
+        showCustomToast(context, "సరైన యూట్యూబ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting);
+      }
+    } catch (e) {
+      showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
     }
-  }
+  } 
 
   void _playNetworkBulletin(String playUrl) {
     if (_bulletinVideoController != null) {
