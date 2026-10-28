@@ -13,6 +13,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
 import 'editor_tool.dart';
+import 'pcr_custom_player.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -1877,6 +1878,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   setState(() => isMenuOpen = false); 
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const EditorToolScreen())); 
                                 }, Colors.pinkAccent),
+                                _buildControlButton(Icons.smart_display, "Pro Player", () { 
+                                setState(() => isMenuOpen = false); 
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const PCRCustomPlayerScreen())); 
+                                }, Colors.tealAccent),
                                 _buildControlButton(Icons.flip_camera_android, "Phone Cam", _switchCamera, Colors.white),  
                                 _buildControlButton(isCameraVisible ? Icons.videocam : Icons.videocam_off, isCameraVisible ? "Cam ON" : "Cam OFF", _toggleCameraVisibility, isCameraVisible ? Colors.greenAccent : Colors.redAccent),  
                                 _buildControlButton(Icons.video_call, "Ext. Cams", _showExternalCamsDialog, Colors.cyanAccent),  
