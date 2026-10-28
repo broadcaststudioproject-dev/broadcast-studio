@@ -862,37 +862,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్ 
-    // 🔴 అన్ని రకాల యూట్యూబ్ లింక్స్ (Live, Shorts, Normal) 100% పనిచేసే లాజిక్
+  // 🔴 లోడింగ్ ప్రాబ్లెమ్ లేకుండా ఆటోమేటిక్‌గా సెట్ అయ్యే యూట్యూబ్ లాజిక్
   void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
     String? videoId;
+    bool isLiveVideo = false; // 🔴 లింక్ లైవ్ అవునో కాదో చెక్ చేయడానికి
 
     try {
-      // 1. Shorts వీడియోల కోసం
       if (cleanUrl.contains('/shorts/')) {
         videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
-      } 
-      // 2. కొత్త Live లింక్స్ కోసం
-      else if (cleanUrl.contains('/live/')) {
+      } else if (cleanUrl.contains('/live/')) {
         videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
-      } 
-      // 3. షేర్ బటన్ ద్వారా వచ్చే లింక్స్ (youtu.be) కోసం
-      else if (cleanUrl.contains('youtu.be/')) {
+        isLiveVideo = true; // 🔴 ఇది లైవ్ వీడియో అని ప్లేయర్‌కి చెప్తున్నాం
+      } else if (cleanUrl.contains('youtu.be/')) {
         videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
-      } 
-      // 4. ఎంబెడ్ లింక్స్ కోసం
-      else if (cleanUrl.contains('embed/')) {
+      } else if (cleanUrl.contains('embed/')) {
         videoId = cleanUrl.split('embed/')[1].split('?')[0].split('&')[0];
-      } 
-      // 5. నార్మల్ లింక్స్ (watch?v=) కోసం
-      else {
+      } else {
         videoId = YoutubePlayer.convertUrlToId(cleanUrl);
       }
 
-      // ఐడీ 11 అక్షరాలు ఉంటే కరెక్ట్ వీడియో అని అర్థం
       if (videoId != null && videoId.length >= 11) {
-        videoId = videoId.substring(0, 11); // కచ్చితమైన 11 అక్షరాల ID మాత్రమే తీసుకుంటుంది
+        videoId = videoId.substring(0, 11);
 
         if (_ytController != null) {
           _ytController!.dispose();
@@ -900,11 +892,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
         _ytController = YoutubePlayerController(
           initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(
+          flags: YoutubePlayerFlags(
             autoPlay: true,
             mute: false,
-            isLive: true, 
-            forceHD: true,
+            isLive: isLiveVideo, // 🔴 డైనమిక్ లైవ్ సెట్టింగ్ (లైవ్ అయితేనే లైవ్)
+            forceHD: false, // 🔴 HD బఫరింగ్ ఇష్యూ రాకుండా ఆఫ్ చేశాం
           ),
         );
 
@@ -926,7 +918,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {
       showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
     }
-  } 
+  }
 
   void _playNetworkBulletin(String playUrl) {
     if (_bulletinVideoController != null) {
