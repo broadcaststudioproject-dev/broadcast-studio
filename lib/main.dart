@@ -884,39 +884,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       showCustomToast(context, "వీడియో ప్లే చేయడంలో ఎర్రర్ వస్తోంది.", isLive: isLiveBroadcasting);
     }
   }
+    // 🔴 బఫరింగ్ లేకుండా (Live & Normal) ఆటోమేటిక్‌గా అడ్జస్ట్ అయ్యే అడ్వాన్స్‌డ్ లాజిక్
   void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
     String? videoId;
-      // 🔴 మిస్ అయిన నెట్‌వర్క్ వీడియో / బులెటిన్ ఫంక్షన్
-  void _playNetworkBulletin(String url) {
-    if (url.isEmpty) return;
-    
-    try {
-      setState(() {
-        isNewsBulletinMode = true;
-        isYoutubeMode = false;
-        isNetworkVideoMode = false;
-        isDualScreenMode = false;
-        hideControls = false;
-        isCameraVisible = false;
-      });
-
-      showCustomToast(context, "వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
-      
-      // మీ దగ్గర నెట్‌వర్క్ వీడియోలు (MP4/m3u8) ప్లే చేయడానికి 
-      // ఏదైనా పాత వీడియో కంట్రోలర్ లాజిక్ ఉంటే అది ఇక్కడ రన్ అవుతుంది.
-      
-    } catch (e) {
-      showCustomToast(context, "వీడియో ప్లే చేయడంలో ఎర్రర్ వస్తోంది.", isLive: isLiveBroadcasting);
-    }
-  }
+    bool isLiveVideo = false; // 🔴 డైనమిక్ చెకింగ్
 
     try {
       if (cleanUrl.contains('/shorts/')) {
         videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
       } else if (cleanUrl.contains('/live/')) {
         videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
+        isLiveVideo = true; // 🔴 లైవ్ లింక్ ఇస్తే ఇది ఆటోమేటిక్‌గా true అవుతుంది
       } else if (cleanUrl.contains('youtu.be/')) {
         videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
       } else if (cleanUrl.contains('embed/')) {
@@ -934,12 +914,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
         _ytController = YoutubePlayerController(
           initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(
+          flags: YoutubePlayerFlags(
             autoPlay: true,
             mute: false,
-            hideControls: false, // 🔴 యూట్యూబ్ వైపు నుండి ఎర్రర్ ఉంటే స్పష్టంగా తెలుస్తుంది
-            forceHD: false, // 🔴 HD బఫరింగ్ ఇష్యూ రాకుండా ఆఫ్ చేశాం
-            isLive: false, // 🔴 లైవ్ బఫరింగ్ లూప్‌లో పడకుండా ఆఫ్ చేశాం
+            hideControls: false,
+            forceHD: false, // 🔴 HD లోడింగ్ ఆపుతుంది కాబట్టి బఫరింగ్ ఉండదు
+            isLive: isLiveVideo, // 🔴 లైవ్ కి లైవ్, నార్మల్ కి నార్మల్ సెట్ అవుతుంది
           ),
         );
 
@@ -948,7 +928,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isNewsBulletinMode = false;
           isNetworkVideoMode = false;
           isDualScreenMode = false;
-          hideControls = false; // మన యాప్ కంట్రోల్స్ కనిపిస్తాయి
+          hideControls = false;
           isCameraVisible = false;
         });
 
@@ -961,8 +941,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {
       showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
     }
-  }
-
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
