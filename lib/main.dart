@@ -260,6 +260,24 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isUsbCamMode = false;
   int? _usbTextureId;
   @override
+    Widget _buildStandbyScreen() {
+    return Container(
+      color: Colors.black87,
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.satellite_alt, color: Colors.white24, size: 60),
+            SizedBox(height: 15),
+            Text(
+              "STANDBY / NO SIGNAL", 
+              style: TextStyle(color: Colors.white54, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 3.0)
+            ),
+          ],
+        ),
+      ),
+    );
+    }
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
