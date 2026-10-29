@@ -864,6 +864,26 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్ 
     // 🔴 లోడింగ్ ప్రాబ్లెమ్ లేకుండా ఆటోమేటిక్‌గా సెట్ అయ్యే యూట్యూబ్ లాజిక్ (అప్‌డేటెడ్)
+    // 🔴 నెట్‌వర్క్ వీడియో / బులెటిన్ ఫంక్షన్ (ఇది _StudioScreenState క్లాస్ లోపలే ఉండాలి)
+  void _playNetworkBulletin(String url) {
+    if (url.isEmpty) return;
+    
+    try {
+      setState(() {
+        isNewsBulletinMode = true;
+        isYoutubeMode = false;
+        isNetworkVideoMode = false;
+        isDualScreenMode = false;
+        hideControls = false;
+        isCameraVisible = false;
+      });
+
+      showCustomToast(context, "వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
+      
+    } catch (e) {
+      showCustomToast(context, "వీడియో ప్లే చేయడంలో ఎర్రర్ వస్తోంది.", isLive: isLiveBroadcasting);
+    }
+  }
   void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
