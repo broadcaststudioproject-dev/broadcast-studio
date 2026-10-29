@@ -945,7 +945,27 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
   }
-
+    // 🔴 మిస్ అయిన ఎలక్షన్ రిజల్ట్స్ (టిక్కర్) ఫంక్షన్
+  Widget _buildBottomPartyItem(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 2),
+          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 11)),
+        ],
+      ),
+    );
+  }
   Future<void> _startLiveAndLock() async {
     _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
