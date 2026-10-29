@@ -882,24 +882,25 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
-  void _startYoutubeVideo(String url) {
+    void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
     String? videoId;
-    bool isLiveVideo = false;
+    
+    // 🔴 లింక్ లో 'live' అనే పదం ఉంటేనే ఇది లైవ్ మోడ్ ఆన్ చేస్తుంది
+    bool isLiveVideo = cleanUrl.contains('/live/') || cleanUrl.toLowerCase().contains('live');
 
     try {
-      if (cleanUrl.contains('/shorts/')) {
-        videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
-      } else if (cleanUrl.contains('/live/')) {
-        videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
-        isLiveVideo = true; 
-      } else if (cleanUrl.contains('youtu.be/')) {
-        videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
-      } else if (cleanUrl.contains('embed/')) {
-        videoId = cleanUrl.split('embed/')[1].split('?')[0].split('&')[0];
-      } else {
-        videoId = YoutubePlayer.convertUrlToId(cleanUrl);
+      // యూట్యూబ్ ఐడీని పక్కాగా లాగే అఫీషియల్ పార్సర్
+      videoId = YoutubePlayer.convertUrlToId(cleanUrl);
+
+      // ఒకవేళ షార్ట్స్ లేదా డైరెక్ట్ లైవ్ లింక్ అయితే మాన్యువల్ చెకింగ్
+      if (videoId == null) {
+        if (cleanUrl.contains('/shorts/')) {
+          videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
+        } else if (cleanUrl.contains('/live/')) {
+          videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
+        }
       }
 
       if (videoId != null && videoId.length >= 11) {
@@ -915,8 +916,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             autoPlay: true,
             mute: false,
             hideControls: false,
-            forceHD: false, 
-            isLive: isLiveVideo, 
+            forceHD: false, // HD ఆపడం వల్ల బఫరింగ్ తగ్గుతుంది
+            enableCaption: false,
+            isLive: isLiveVideo, // పర్ఫెక్ట్ లైవ్ డిటెక్షన్
           ),
         );
 
@@ -931,15 +933,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
         showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
 
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }
       } else {
         showCustomToast(context, "సరైన యూట్యూబ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting);
       }
     } catch (e) {
       showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
     }
-  }
-
+    }
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
