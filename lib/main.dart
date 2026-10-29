@@ -48,6 +48,31 @@ Future<void> main() async {
       ),
     );
   }
+  // 🔴 స్టేట్ ఎలక్షన్ రిజల్ట్స్ డిజైన్ ఫంక్షన్
+  Widget _buildStateResultRow(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+          Row(
+            children: [
+              Text(trend, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(width: 10),
+              Text(seats, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
