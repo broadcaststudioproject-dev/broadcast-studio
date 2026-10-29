@@ -16,7 +16,7 @@ import 'editor_tool.dart';
 import 'pcr_custom_player.dart';
 import 'election_board.dart';
 
-List<CameraDescription> cameras = [];
+List<CameraDescription> cameras = []; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
