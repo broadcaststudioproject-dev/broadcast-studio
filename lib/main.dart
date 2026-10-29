@@ -14,7 +14,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
 import 'editor_tool.dart';
 import 'pcr_custom_player.dart';
-import 'election_board.dart';
 
 List<CameraDescription> cameras = []; 
 
@@ -28,76 +27,10 @@ Future<void> main() async {
   }
   runApp(const PocketPCRApp());
 }
-  // 🔴 ఎలక్షన్ రిజల్ట్స్ (టిక్కర్) ఫంక్షన్
-  Widget _buildBottomPartyItem(String partyName, String trend, String seats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white24, width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          const SizedBox(height: 2),
-          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 11)),
-        ],
-      ),
-    );
-  }
-  // 🔴 స్టేట్ ఎలక్షన్ రిజల్ట్స్ డిజైన్ ఫంక్షన్
-  Widget _buildStateResultRow(String partyName, String trend, String seats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white24, width: 1),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-          Row(
-            children: [
-              Text(trend, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              const SizedBox(width: 10),
-              Text(seats, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+
 class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
-    // 🔴 పార్టీ హెడర్ ఐటెమ్ (ఎలక్షన్ రిజల్ట్స్ మెయిన్ స్కోర్ కోసం)
-  Widget _buildPartyHeaderItem(String partyName, String trend, String seats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: Colors.white30, width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-          const SizedBox(height: 2),
-          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
-        ],
-      ),
-    );
-  }
   Widget build(BuildContext context) {
     return const MaterialApp(
       title: 'KINGJVR',
@@ -552,7 +485,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
     }
   }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -626,6 +558,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       setState(() { _isCameraInitialized = true; });
     } catch (e) {}
   }
+  
   void _switchCamera() async {
     if (isExternalIpCamMode || isUsbCamMode) {
       showCustomToast(context, "ఎక్స్‌టర్నల్ కెమెరా మోడ్‌లో ఫోన్ కెమెరా స్విచ్ పనిచేయదు.", isLive: isLiveBroadcasting);
@@ -929,9 +862,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్ 
-    // 🔴 లోడింగ్ ప్రాబ్లెమ్ లేకుండా ఆటోమేటిక్‌గా సెట్ అయ్యే యూట్యూబ్ లాజిక్ (అప్‌డేటెడ్)
-    // 🔴 నెట్‌వర్క్ వీడియో / బులెటిన్ ఫంక్షన్ (ఇది _StudioScreenState క్లాస్ లోపలే ఉండాలి)
   void _playNetworkBulletin(String url) {
     if (url.isEmpty) return;
     
@@ -951,19 +881,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       showCustomToast(context, "వీడియో ప్లే చేయడంలో ఎర్రర్ వస్తోంది.", isLive: isLiveBroadcasting);
     }
   }
-    // 🔴 బఫరింగ్ లేకుండా (Live & Normal) ఆటోమేటిక్‌గా అడ్జస్ట్ అయ్యే అడ్వాన్స్‌డ్ లాజిక్
+
   void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
     String? videoId;
-    bool isLiveVideo = false; // 🔴 డైనమిక్ చెకింగ్
+    bool isLiveVideo = false;
 
     try {
       if (cleanUrl.contains('/shorts/')) {
         videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
       } else if (cleanUrl.contains('/live/')) {
         videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
-        isLiveVideo = true; // 🔴 లైవ్ లింక్ ఇస్తే ఇది ఆటోమేటిక్‌గా true అవుతుంది
+        isLiveVideo = true; 
       } else if (cleanUrl.contains('youtu.be/')) {
         videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
       } else if (cleanUrl.contains('embed/')) {
@@ -985,8 +915,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
             autoPlay: true,
             mute: false,
             hideControls: false,
-            forceHD: false, // 🔴 HD లోడింగ్ ఆపుతుంది కాబట్టి బఫరింగ్ ఉండదు
-            isLive: isLiveVideo, // 🔴 లైవ్ కి లైవ్, నార్మల్ కి నార్మల్ సెట్ అవుతుంది
+            forceHD: false, 
+            isLive: isLiveVideo, 
           ),
         );
 
@@ -1008,31 +938,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {
       showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
     }
+  }
+
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
   }
-    // 🔴 మిస్ అయిన ఎలక్షన్ రిజల్ట్స్ (టిక్కర్) ఫంక్షన్
-  Widget _buildBottomPartyItem(String partyName, String trend, String seats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white24, width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          const SizedBox(height: 2),
-          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 11)),
-        ],
-      ),
-    );
-  }
+
   Future<void> _startLiveAndLock() async {
     _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
@@ -1948,7 +1860,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                               runSpacing: 35,   
                               children: [  
                                 _buildControlButton(Icons.dashboard_customize, "PCR Board", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const MasterPCRBoard())); }, Colors.yellowAccent),  
-                                _buildControlButton(Icons.bar_chart, "Election Results", () { setState(() => isMenuOpen = false); Navigator.push(context, MaterialPageRoute(builder: (context) => const ElectionBoardScreen())); }, Colors.blueAccent),  
                                 _buildControlButton(Icons.auto_awesome, "Pro Editor", () { 
                                   setState(() => isMenuOpen = false); 
                                   Navigator.push(context, MaterialPageRoute(builder: (context) => const EditorToolScreen())); 
@@ -2274,7 +2185,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                           FocusManager.instance.primaryFocus?.unfocus();  
                           _saveLinks();  
                           Navigator.of(context, rootNavigator: true).pop();  
-                          // 🔴 లైవ్ స్టార్ట్ బటన్ నొక్కిన వెంటనే 3 సెకన్ల గ్యాప్ 
                           Future.delayed(const Duration(milliseconds: 300), () {  
                             _startLiveAndLock();  
                           });  
@@ -2329,7 +2239,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
   
-  // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
 
@@ -2346,14 +2255,11 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       try {
         var micStatus = await Permission.microphone.status;
         if (!micStatus.isGranted) { await Permission.microphone.request(); }
-      } catch (e) {
-        debugPrint('Microphone permission warning: $e');
-      }
+      } catch (e) {}
 
       setState(() { hideControls = true; isLivePaused = false; });
       await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
 
-      // 🔴 నోటిఫికేషన్ కనపడకుండా 3 సెకన్లు వేచి ఉండడం
       showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);
       await Future.delayed(const Duration(milliseconds: 3000));
 
@@ -2494,7 +2400,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     return Scaffold(  
       backgroundColor: Colors.transparent,  
       body: Container(
-        // 🔴 మొత్తం స్క్రీన్ చుట్టూ మెరూన్ బార్డర్ అప్లై చేశాం
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF800000), width: 4.0),
           image: studioBgImagePath.isNotEmpty && File(studioBgImagePath).existsSync()
@@ -2535,7 +2440,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                             Expanded(
                               flex: 5, 
                               child: Container(
-                                // 🔴 పీసీఆర్ బోర్డులో మెయిన్ వీడియోకి మెరూన్ బార్డర్
                                 decoration: BoxDecoration(border: Border.all(color: const Color(0xFF800000), width: 3.0)), 
                                 child: _buildLiveFeed(mainCameraId)
                               )
@@ -2859,6 +2763,75 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     Colors.teal.shade900
   ];
 
+  // 🔴 ఇందాక మిస్ అయిన ఫంక్షన్స్ అన్నీ ఇక్కడ పర్ఫెక్ట్‌గా క్లాస్ లోపల చేర్చబడ్డాయి
+
+  Widget _buildPartyHeaderItem(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: Colors.white30, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomPartyItem(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 2),
+          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStateResultRow(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+          Row(
+            children: [
+              Text(trend, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              const SizedBox(width: 10),
+              Text(seats, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState(); 
@@ -3039,7 +3012,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                           FocusManager.instance.primaryFocus?.unfocus(); 
                           _saveLinks(); 
                           Navigator.of(context, rootNavigator: true).pop(); 
-                          // 🔴 3 సెకన్ల గ్యాప్ ఇక్కడ ఇచ్చాం
                           Future.delayed(const Duration(milliseconds: 300), () { 
                             _startLiveAndLock(); 
                           }); 
@@ -3256,7 +3228,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
     return Scaffold(  
       backgroundColor: Colors.transparent,  
       body: Container(
-        // 🔴 మొత్తం స్క్రీన్ చుట్టూ మెరూన్ బార్డర్
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF800000), width: 4.0),
           image: studioBgImagePath.isNotEmpty && File(studioBgImagePath).existsSync() 
@@ -3346,7 +3317,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                                           Positioned(
                                             left: 10, top: 10, bottom: 10, width: 140, 
                                             child: Container(
-                                              // 🔴 కెమెరా ఫీడ్ చుట్టూ మెరూన్ బార్డర్
                                               decoration: BoxDecoration(border: Border.all(color: const Color(0xFF800000), width: 3.0), color: Colors.grey[850]), 
                                               child: _cameraController != null && _cameraController!.value.isInitialized 
                                                 ? ClipRect(
@@ -3444,7 +3414,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
                   
                 positionedLogoWidget,  
 
-                // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill అప్లై చేశాం
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 600), curve: Curves.easeInOut, 
                   left: showAds && lAdW > 0 ? 0 : -screenW * 0.25, 
@@ -3575,73 +3544,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
           ),  
         ),
       ),  
-    );
-  }
-
-  Widget _buildPartyHeaderItem(String party, String change, String seats, Color bgColor) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2), 
-        padding: const EdgeInsets.symmetric(vertical: 4), 
-        color: bgColor, 
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center, 
-              children: [
-                Text(party, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)), 
-                const SizedBox(width: 2), 
-                Text(change, style: const TextStyle(color: Colors.white70, fontSize: 8))
-              ]
-            ), 
-            Text(seats, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))
-          ]
-        )
-      )
-    );
-  }
-
-  Widget _buildStateResultRow(String party, String change, String seats, Color bgColor) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3), 
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), 
-      color: bgColor, 
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            children: [
-              Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), 
-              Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9))
-            ]
-          ), 
-          Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))
-        ]
-      )
-    );
-  }
-
-  Widget _buildBottomPartyItem(String party, String change, String seats, Color bgColor) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2), 
-        padding: const EdgeInsets.symmetric(vertical: 4), 
-        color: bgColor, 
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center, 
-              children: [
-                Text(party, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)), 
-                const SizedBox(width: 2), 
-                Text(change, style: const TextStyle(color: Colors.white70, fontSize: 9))
-              ]
-            ), 
-            Text(seats, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))
-          ]
-        )
-      )
     );
   }
 }
