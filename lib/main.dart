@@ -149,7 +149,12 @@ class StudioScreen extends StatefulWidget {
 class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver {
 
   CameraController? controller;
-  VideoPlayerController? _bulletinVideoController;
+  
+  // 🔴 4K/8K అండ్ మల్టిపుల్ వీడియోల కోసం VLC కంట్రోలర్ యాడ్ చేశాము
+  VlcPlayerController? _vlcBulletinCtrl;
+  List<String> localVideoPlaylist = [];
+  int currentLocalVideoIndex = 0;
+
   YoutubePlayerController? _ytController;
   VideoPlayerController? _bottomAdVideoController;
   VideoPlayerController? _leftAdVideoCtrl;
@@ -269,7 +274,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ),
     );
   }
-
   @override
   void initState() {
     super.initState();
@@ -485,8 +489,11 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _tickerColorTimer?.cancel();
     
     controller?.dispose();
-    _bulletinVideoController?.removeListener(_videoListener);
-    _bulletinVideoController?.dispose();
+    
+    // VLC Dispose
+    _vlcBulletinCtrl?.removeListener(_vlcListener);
+    _vlcBulletinCtrl?.dispose();
+
     _ytController?.dispose();
     _bottomAdVideoController?.dispose();
     _leftAdVideoCtrl?.dispose();
@@ -775,7 +782,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                   }),   
                   const Divider(color: Colors.white24, height: 25),  
                     
-                  const Text("6. గ్యాలరీ వీడియో (MP4, HD)", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),   
+                  const Text("6. గ్యాలరీ వీడియో (MP4, HD, 4K)", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),   
                   const SizedBox(height: 10),  
                   SizedBox(  
                     width: double.infinity,   
@@ -786,7 +793,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                         _playLocalGalleryVideo();   
                       },   
                       icon: const Icon(Icons.video_library, color: Colors.white, size: 20),   
-                      label: const Text("గ్యాలరీ వీడియో తీసుకోండి", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))  
+                      label: const Text("గ్యాలరీ వీడియో తీసుకోండి (Multiple)", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))  
                     )  
                   ),  
                   const SizedBox(height: 30),  
@@ -880,6 +887,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           _ytController!.dispose();
         }
 
+        // ఆటో ప్లే అయ్యేలా ఫోర్స్ చేశాము
         _ytController = YoutubePlayerController(
           initialVideoId: videoId,
           flags: const YoutubePlayerFlags(
@@ -910,36 +918,35 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔴 నెట్‌వర్క్ వీడియో (m3u8, mp4) లాగ్ లేకుండా VLC తో ఆటోమేటిక్‌గా ప్లే అయ్యేలా మార్చాము
   void _playNetworkBulletin(String playUrl) {
-    if (_bulletinVideoController != null) {
-      _bulletinVideoController!.removeListener(_videoListener);
-      _bulletinVideoController!.dispose();
-      _bulletinVideoController = null;
+    if (_vlcBulletinCtrl != null) {
+      _vlcBulletinCtrl!.removeListener(_vlcListener);
+      _vlcBulletinCtrl!.dispose();
+      _vlcBulletinCtrl = null;
     }
 
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
-      ..initialize().then((_) {   
-        if (!mounted) return;   
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
-        setState(() {   
-          isNewsBulletinMode = true; 
-          isYoutubeMode = false;
-          isNetworkVideoMode = false; 
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isCameraVisible = false;  
-        });   
-        _bulletinVideoController?.play();   
-        _bulletinVideoController?.addListener(_videoListener);   
-          
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-      }).catchError((e) {   
-        debugPrint("Video Player Error: $e");
-        if (mounted) {  
-          setState(() { isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red, isLive: isLiveBroadcasting);  
-        }  
+    _vlcBulletinCtrl = VlcPlayerController.network(
+      playUrl,
+      hwAcc: HwAcc.full,
+      autoPlay: true,
+      options: VlcPlayerOptions(),
+    )..initialize().then((_) {
+      if (!mounted) return;
+      _vlcBulletinCtrl?.setVolume(isBulletinMuted ? 0 : 100);
+      setState(() {
+        isNewsBulletinMode = true;
+        isYoutubeMode = false;
+        isNetworkVideoMode = true;
+        isDualScreenMode = false;
+        hideControls = false;
+        isCameraVisible = false;
       });
+      
+      _vlcBulletinCtrl?.play(); // ప్లే ఫోర్స్ చేయబడింది
+
+      if (!isLiveBroadcasting) { _startLiveAndLock(); }
+    });
   }
 
   Future<void> _startNetworkVideoMp4(String url) async {
@@ -991,46 +998,85 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // 🔴 4K/8K మరియు మల్టిపుల్ వీడియో సెలెక్షన్ కోసం కొత్త లాజిక్
   Future<void> _playLocalGalleryVideo() async {
     try {
-      final XFile? videoFile = await _picker.pickVideo(source: ImageSource.gallery);
-      if (videoFile != null) {
-        showCustomToast(context, "గ్యాలరీ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);
-        if (_bulletinVideoController != null) {
-          _bulletinVideoController!.removeListener(_videoListener);
-          _bulletinVideoController!.dispose();
-          _bulletinVideoController = null;
+      final List<XFile> mediaFiles = await _picker.pickMultipleMedia();
+      if (mediaFiles.isNotEmpty) {
+        
+        // కేవలం వీడియోలను మాత్రమే ఫిల్టర్ చేయడం
+        List<String> videoPaths = mediaFiles.map((e) => e.path).where((path) {
+          String lower = path.toLowerCase();
+          return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.mkv') || lower.endsWith('.avi');
+        }).toList();
+
+        if (videoPaths.isEmpty) {
+          if (mounted) showCustomToast(context, "వీడియోలను మాత్రమే సెలెక్ట్ చేయండి.", isLive: isLiveBroadcasting);
+          return;
         }
 
-        _bulletinVideoController = VideoPlayerController.file(File(videoFile.path))  
-          ..initialize().then((_) {  
-            if (!mounted) return;  
-            _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);  
-            setState(() { 
-              isNewsBulletinMode = true; 
-              isYoutubeMode = false;
-              isNetworkVideoMode = false; 
-              isDualScreenMode = false; 
-              hideControls = false; 
-              isCameraVisible = false; 
-            });  
-            _bulletinVideoController?.play();  
-            _bulletinVideoController?.addListener(_videoListener);  
-              
-            if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-          }).catchError((e) {   
-            if (mounted) showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
-          });  
-      }  
-    } catch (e) {}
+        localVideoPlaylist = videoPaths;
+        currentLocalVideoIndex = 0;
+        _playNextVlcVideo();
+      }
+    } catch (e) {
+      debugPrint("Gallery Video Selection Error: $e");
+    }
   }
 
-  void _videoListener() {
-    final vController = _bulletinVideoController;
-    if (vController == null || !vController.value.isInitialized) return;
-    if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
-      vController.removeListener(_videoListener);
+  void _playNextVlcVideo() {
+    if (currentLocalVideoIndex >= localVideoPlaylist.length) {
+      // ప్లేలిస్ట్ అయిపోగానే కెమెరా ఆన్ చేయాలి
       setState(() { isNewsBulletinMode = false; isCameraVisible = true; });
+      return;
+    }
+
+    if (mounted) showCustomToast(context, "వీడియో ${currentLocalVideoIndex + 1}/${localVideoPlaylist.length} ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
+    
+    if (_vlcBulletinCtrl != null) {
+      _vlcBulletinCtrl!.removeListener(_vlcListener);
+      _vlcBulletinCtrl!.dispose();
+      _vlcBulletinCtrl = null;
+    }
+
+    _vlcBulletinCtrl = VlcPlayerController.file(
+      File(localVideoPlaylist[currentLocalVideoIndex]),
+      hwAcc: HwAcc.full, // 🔴 4K/8K స్మూత్‌గా రన్ అవ్వడానికి హార్డ్‌వేర్ యాక్సిలరేషన్
+      autoPlay: true,
+      options: VlcPlayerOptions(),
+    )..initialize().then((_) {
+        if (!mounted) return;
+        _vlcBulletinCtrl?.setVolume(isBulletinMuted ? 0 : 100);
+        setState(() {
+          isNewsBulletinMode = true;
+          isYoutubeMode = false;
+          isNetworkVideoMode = false;
+          isDualScreenMode = false;
+          hideControls = false;
+          isCameraVisible = false;
+        });
+        
+        _vlcBulletinCtrl?.play();
+        _vlcBulletinCtrl?.addListener(_vlcListener);
+
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }
+    }).catchError((e) {
+        if (mounted) {
+          showCustomToast(context, "వీడియో ప్లే కాలేదు. ఫార్మాట్ ఎర్రర్.", isLive: isLiveBroadcasting);
+          currentLocalVideoIndex++;
+          _playNextVlcVideo(); // ఎర్రర్ వస్తే స్కిప్ చేసి నెక్స్ట్ వీడియో ప్లే చేస్తుంది
+        }
+    });
+  }
+
+  // వీడియో పూర్తవగానే నెక్స్ట్ దానికి వెళ్లడానికి ఆటో లాజిక్
+  void _vlcListener() {
+    final ctrl = _vlcBulletinCtrl;
+    if (ctrl == null) return;
+    if (ctrl.value.isEnded) {
+      ctrl.removeListener(_vlcListener);
+      currentLocalVideoIndex++;
+      _playNextVlcVideo();
     }
   }
 
@@ -1038,15 +1084,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     HapticFeedback.mediumImpact();
     setState(() {
       isBulletinMuted = !isBulletinMuted;
-      if (isNewsBulletinMode && _bulletinVideoController != null) { 
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0); 
+      if (isNewsBulletinMode && _vlcBulletinCtrl != null) { 
+        _vlcBulletinCtrl?.setVolume(isBulletinMuted ? 0 : 100); 
       }
       if (isYoutubeMode && _ytController != null) {
         isBulletinMuted ? _ytController!.mute() : _ytController!.unMute();
       }
     });
   }
-
   Future<void> _stopLiveStream() async {
     try {
       bool success = await StreamServiceManager.stopLiveStream();
@@ -1517,14 +1562,19 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           controller: _ytController!,
           showVideoProgressIndicator: false,
         );
-      } else if (isNewsBulletinMode && _bulletinVideoController != null && _bulletinVideoController!.value.isInitialized) {  
+      } else if (isNewsBulletinMode && _vlcBulletinCtrl != null) {  
+        // 🔴 VLC Player UI for Gallery & Network Video Playback
         mainPlayer = SizedBox.expand(
           child: FittedBox(
             fit: BoxFit.cover, 
             child: SizedBox(
-              width: _bulletinVideoController!.value.size.width, 
-              height: _bulletinVideoController!.value.size.height, 
-              child: VideoPlayer(_bulletinVideoController!)
+              width: 1920, 
+              height: 1080, 
+              child: VlcPlayer(
+                controller: _vlcBulletinCtrl!,
+                aspectRatio: 16 / 9,
+                placeholder: const Center(child: CircularProgressIndicator(color: Colors.red)),
+              )
             )
           )
         );  
@@ -1970,7 +2020,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     Colors.teal.shade900
   ];
 
-  final List<Map<String, dynamic>> cameraList = [
+  final List> cameraList = [
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
     {"id": "DRONE_1", "name": "DJI Drone", "type": "DRONE", "active": false, "muted": true, "url": "rtsp://192.168.1.1:554/live"},
     {"id": "HDMI_1", "name": "Sony Cam 1", "type": "USB", "active": false, "muted": false, "url": ""},
@@ -2099,6 +2149,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     
+    // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill అప్లై చేశాం
     if (pos == 'left') {  
       if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) {
@@ -2183,6 +2234,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                           FocusManager.instance.primaryFocus?.unfocus();  
                           _saveLinks();  
                           Navigator.of(context, rootNavigator: true).pop();  
+                          // 🔴 లైవ్ స్టార్ట్ బటన్ నొక్కిన వెంటనే 3 సెకన్ల గ్యాప్ 
                           Future.delayed(const Duration(milliseconds: 300), () {  
                             _startLiveAndLock();  
                           });  
@@ -2237,6 +2289,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
   
+  // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
 
@@ -2260,6 +2313,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       setState(() { hideControls = true; isLivePaused = false; });
       await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
 
+      // 🔴 నోటిఫికేషన్ కనపడకుండా 3 సెకన్లు వేచి ఉండడం
       showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);
       await Future.delayed(const Duration(milliseconds: 3000));
 
