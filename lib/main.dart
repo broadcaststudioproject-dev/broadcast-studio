@@ -77,6 +77,27 @@ Future<void> main() async {
 class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
+    // 🔴 పార్టీ హెడర్ ఐటెమ్ (ఎలక్షన్ రిజల్ట్స్ మెయిన్ స్కోర్ కోసం)
+  Widget _buildPartyHeaderItem(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: Colors.white30, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 2),
+          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+        ],
+      ),
+    );
+  }
   Widget build(BuildContext context) {
     return const MaterialApp(
       title: 'KINGJVR',
