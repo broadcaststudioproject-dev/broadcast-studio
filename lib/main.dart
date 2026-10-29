@@ -868,6 +868,29 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
     String? videoId;
+      // 🔴 మిస్ అయిన నెట్‌వర్క్ వీడియో / బులెటిన్ ఫంక్షన్
+  void _playNetworkBulletin(String url) {
+    if (url.isEmpty) return;
+    
+    try {
+      setState(() {
+        isNewsBulletinMode = true;
+        isYoutubeMode = false;
+        isNetworkVideoMode = false;
+        isDualScreenMode = false;
+        hideControls = false;
+        isCameraVisible = false;
+      });
+
+      showCustomToast(context, "వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
+      
+      // మీ దగ్గర నెట్‌వర్క్ వీడియోలు (MP4/m3u8) ప్లే చేయడానికి 
+      // ఏదైనా పాత వీడియో కంట్రోలర్ లాజిక్ ఉంటే అది ఇక్కడ రన్ అవుతుంది.
+      
+    } catch (e) {
+      showCustomToast(context, "వీడియో ప్లే చేయడంలో ఎర్రర్ వస్తోంది.", isLive: isLiveBroadcasting);
+    }
+  }
 
     try {
       if (cleanUrl.contains('/shorts/')) {
