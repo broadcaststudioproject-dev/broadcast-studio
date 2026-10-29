@@ -2136,13 +2136,13 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   void _initAdVideo(String pos) {
     String path = "";
     if (pos == 'left' && leftAdPaths.isNotEmpty) {
-      path = leftAdPaths[leftAdIndex = leftAdIndex % leftAdPaths.length];
+      path = leftAdPaths[leftAdIndex = (leftAdIndex % leftAdPaths.length).toInt()];
     }
     if (pos == 'right' && rightAdPaths.isNotEmpty) {
-      path = rightAdPaths[rightAdIndex = rightAdIndex % rightAdPaths.length];
+    path = rightAdPaths[rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt()];
     }
     if (pos == 'bottom' && bottomAdPaths.isNotEmpty) {
-      path = bottomAdPaths[bottomAdIndex = bottomAdIndex % bottomAdPaths.length];
+      path = bottomAdPaths[bottomAdIndex = (bottomAdIndex % bottomAdPaths.length).toInt()];
     }
     
     if (path.isEmpty) return;
