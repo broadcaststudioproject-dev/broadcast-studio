@@ -1258,7 +1258,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   Future<void> _toggleDualScreenAndPickMedia() async {
-    setState(() { isMenuOpen = false; });
+    setState(() { isMenuOpen = false; }); 
     if (isDualScreenMode) { 
       setState(() { 
         isDualScreenMode = false; 
