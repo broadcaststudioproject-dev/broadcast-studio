@@ -2072,7 +2072,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           (c) => c.lensDirection == CameraLensDirection.front, 
           orElse: () => _cameras.first
         );
-        _phoneCamCtrl = CameraController(cam, ResolutionPreset.max, enableAudio: false);
+        _phoneCamCtrl = CameraController(cam!, ResolutionPreset.max, enableAudio: false);
         await _phoneCamCtrl!.initialize();
         if (mounted) setState(() {});
       }
