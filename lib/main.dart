@@ -2756,58 +2756,6 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
   TextEditingController cableRtmpController = TextEditingController(); 
   TextEditingController restreamRtmpController = TextEditingController(); 
   TextEditingController satelliteSrtController = TextEditingController();
-
-  final List<Color> bgColors = [
-    const Color(0xFF0D47A1), 
-    const Color(0xFF800000), 
-    Colors.purple.shade900, 
-    Colors.teal.shade900
-  ];
-
-  // 🔴 ఇందాక మిస్ అయిన ఫంక్షన్స్ అన్నీ ఇక్కడ పర్ఫెక్ట్‌గా క్లాస్ లోపల చేర్చబడ్డాయి
-
-  Widget _buildPartyHeaderItem(String partyName, String trend, String seats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: Colors.white30, width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-          const SizedBox(height: 2),
-          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomPartyItem(String partyName, String trend, String seats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white24, width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          const SizedBox(height: 2),
-          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 11)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStateResultRow(String partyName, String trend, String seats, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
