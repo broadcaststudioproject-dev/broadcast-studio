@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
-import 'package:marquee/marquee.dart';
+import 'package:marquee/marquee.dart'; 
 import 'package:http/http.dart' as http; 
 import 'package:xml/xml.dart';
 import 'dart:async';
