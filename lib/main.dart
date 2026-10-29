@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
 import 'editor_tool.dart';
 import 'pcr_custom_player.dart';
+import 'election_board.dart';
 
 List<CameraDescription> cameras = [];
 
