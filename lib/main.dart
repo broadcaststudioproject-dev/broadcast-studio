@@ -863,19 +863,17 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   // 🔴 100% పక్కాగా పనిచేసే అఫీషియల్ యూట్యూబ్ ప్లేయర్ లాజిక్ 
-  // 🔴 లోడింగ్ ప్రాబ్లెమ్ లేకుండా ఆటోమేటిక్‌గా సెట్ అయ్యే యూట్యూబ్ లాజిక్
+    // 🔴 లోడింగ్ ప్రాబ్లెమ్ లేకుండా ఆటోమేటిక్‌గా సెట్ అయ్యే యూట్యూబ్ లాజిక్ (అప్‌డేటెడ్)
   void _startYoutubeVideo(String url) {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
     String? videoId;
-    bool isLiveVideo = false; // 🔴 లింక్ లైవ్ అవునో కాదో చెక్ చేయడానికి
 
     try {
       if (cleanUrl.contains('/shorts/')) {
         videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
       } else if (cleanUrl.contains('/live/')) {
         videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
-        isLiveVideo = true; // 🔴 ఇది లైవ్ వీడియో అని ప్లేయర్‌కి చెప్తున్నాం
       } else if (cleanUrl.contains('youtu.be/')) {
         videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
       } else if (cleanUrl.contains('embed/')) {
@@ -893,11 +891,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
         _ytController = YoutubePlayerController(
           initialVideoId: videoId,
-          flags: YoutubePlayerFlags(
+          flags: const YoutubePlayerFlags(
             autoPlay: true,
             mute: false,
-            isLive: isLiveVideo, // 🔴 డైనమిక్ లైవ్ సెట్టింగ్ (లైవ్ అయితేనే లైవ్)
+            hideControls: false, // 🔴 యూట్యూబ్ వైపు నుండి ఎర్రర్ ఉంటే స్పష్టంగా తెలుస్తుంది
             forceHD: false, // 🔴 HD బఫరింగ్ ఇష్యూ రాకుండా ఆఫ్ చేశాం
+            isLive: false, // 🔴 లైవ్ బఫరింగ్ లూప్‌లో పడకుండా ఆఫ్ చేశాం
           ),
         );
 
@@ -906,7 +905,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isNewsBulletinMode = false;
           isNetworkVideoMode = false;
           isDualScreenMode = false;
-          hideControls = false;
+          hideControls = false; // మన యాప్ కంట్రోల్స్ కనిపిస్తాయి
           isCameraVisible = false;
         });
 
@@ -919,38 +918,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     } catch (e) {
       showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
     }
-  }
-
-  void _playNetworkBulletin(String playUrl) {
-    if (_bulletinVideoController != null) {
-      _bulletinVideoController!.removeListener(_videoListener);
-      _bulletinVideoController!.dispose();
-      _bulletinVideoController = null;
-    }
-
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
-      ..initialize().then((_) {   
-        if (!mounted) return;   
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
-        setState(() {   
-          isNewsBulletinMode = true; 
-          isYoutubeMode = false;
-          isNetworkVideoMode = false; 
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isCameraVisible = false;  
-        });   
-        _bulletinVideoController?.play();   
-        _bulletinVideoController?.addListener(_videoListener);   
-          
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-      }).catchError((e) {   
-        debugPrint("Video Player Error: $e");
-        if (mounted) {  
-          setState(() { isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో లోడ్ అవ్వలేదు.", bgColor: Colors.red, isLive: isLiveBroadcasting);  
-        }  
-      });
   }
 
   Future<void> _startNetworkVideoMp4(String url) async {
