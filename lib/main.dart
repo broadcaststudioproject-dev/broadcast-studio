@@ -27,7 +27,27 @@ Future<void> main() async {
   }
   runApp(const PocketPCRApp());
 }
-
+  // 🔴 ఎలక్షన్ రిజల్ట్స్ (టిక్కర్) ఫంక్షన్
+  Widget _buildBottomPartyItem(String partyName, String trend, String seats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(partyName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 2),
+          Text("$trend  $seats", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 11)),
+        ],
+      ),
+    );
+  }
 class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
