@@ -6,6 +6,7 @@ import '../models/news_item.dart';
 import '../database/news_database_helper.dart';
 import '../modules/news_gathering/rss_service.dart';
 import '../modules/ai_script_writer/ai_script_writer_screen.dart';
+import '../modules/virtual_anchor/virtual_anchor_screen.dart';
 
 class NewsDeskScreen extends StatefulWidget {
   const NewsDeskScreen({Key? key}) : super(key: key);
@@ -161,7 +162,20 @@ class _NewsDeskScreenState extends State<NewsDeskScreen> {
                                       }
                                     },
                                   ),
-                                
+
+                                // వార్తకు స్క్రిప్ట్ రెడీ అయ్యాక 'వర్చువల్ యాంకర్' బటన్ చూపిస్తుంది
+                                if (item.status == 'Ready for Production')
+                                IconButton(
+                                icon: const Icon(Icons.smart_display, color: Colors.indigo, size: 26),
+                                tooltip: 'AI వర్చువల్ యాంకర్ వీడియో క్రియేట్ చేయండి',
+                                onPressed: () async {
+                                final result = await Navigator.push(
+                                context,
+                                 MaterialPageRoute(builder: (context) => VirtualAnchorScreen(newsItem: item)),
+                                 );
+                                 _loadNews(); // స్టేటస్ అప్‌డేట్ కోసం రీఫ్రెష్
+                                 },
+                                ),
                                 // డిలీట్ బటన్
                                 IconButton(
                                   icon: const Icon(Icons.delete, color: Colors.red, size: 20),
