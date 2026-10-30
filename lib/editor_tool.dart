@@ -59,7 +59,7 @@ class _EditorToolScreenState extends State<EditorToolScreen> with SingleTickerPr
     super.dispose();
   }
 
-  // 🔴 టెలీప్రాంప్టర్ ఆటో-స్క్రోల్ ఫంక్షన్ (ఇది నిజంగా పనిచేస్తుంది)
+  // 🔴 టెలీప్రాంప్టర్ ఆటో-స్క్రోల్ ఫంక్షన్
   void _togglePrompter() {
     setState(() {
       isPrompterPlaying = !isPrompterPlaying;
@@ -90,6 +90,7 @@ class _EditorToolScreenState extends State<EditorToolScreen> with SingleTickerPr
         _editorVideoCtrl?.dispose();
         _editorVideoCtrl = VideoPlayerController.file(File(video.path))
           ..initialize().then((_) {
+            if (!mounted) return; // 🔴 ఈ సేఫ్టీ చెక్ యాడ్ చేశాను
             setState(() {});
             _editorVideoCtrl!.play();
             isEditorVideoPlaying = true;
