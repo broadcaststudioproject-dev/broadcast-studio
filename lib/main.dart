@@ -13,6 +13,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
 import 'editor_tool.dart';
+import 'news_production/ui/news_desk_screen.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -471,7 +472,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
     }
   }
-
   Future<void> _saveTextSettings() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -1917,7 +1917,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
     );
   }
-
   void _changeLogoPosition() async { 
     setState(() { logoPosition = (logoPosition + 1) % 4; isMenuOpen = false; }); 
     await _saveTextSettings(); 
@@ -2533,7 +2532,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     bool isScreenLandscape =
@@ -3062,24 +3060,21 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   },
                                   Colors.yellowAccent,
                                 ),
-                                // NOTE: ElectionBoardScreen is not defined in this file. Ensure it is imported or available in your project.
-                                /*
                                 _buildControlButton(
-                                  Icons.bar_chart,
-                                  "Election Results",
+                                  Icons.newspaper,
+                                  "News Desk",
                                   () {
                                     setState(() => isMenuOpen = false);
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            const ElectionBoardScreen(),
+                                            const NewsDeskScreen(),
                                       ),
                                     );
                                   },
-                                  Colors.blueAccent,
+                                  Colors.redAccent,
                                 ),
-                                */
                                 _buildControlButton(
                                   Icons.auto_awesome,
                                   "Pro Editor",
