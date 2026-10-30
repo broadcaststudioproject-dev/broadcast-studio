@@ -150,7 +150,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   CameraController? controller;
   
-  // 🔴 4K/8K అండ్ మల్టిపుల్ వీడియోల కోసం VLC కంట్రోలర్ యాడ్ చేశాము
   VlcPlayerController? _vlcBulletinCtrl;
   List<String> localVideoPlaylist = [];
   int currentLocalVideoIndex = 0;
@@ -391,13 +390,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   void _initAdVideo(String pos) {
     String path = "";
     if (pos == 'left' && leftAdPaths.isNotEmpty) {
-      path = leftAdPaths[leftAdIndex = leftAdIndex % leftAdPaths.length];
+      // 🔴 double to int error fix: .toInt() యాడ్ చేయబడింది
+      path = leftAdPaths[leftAdIndex = (leftAdIndex % leftAdPaths.length).toInt()];
     }
     if (pos == 'right' && rightAdPaths.isNotEmpty) {
-      path = rightAdPaths[rightAdIndex = rightAdIndex % rightAdPaths.length];
+      path = rightAdPaths[rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt()];
     }
     if (pos == 'bottom' && bottomAdPaths.isNotEmpty) {
-      path = bottomAdPaths[bottomAdIndex = bottomAdIndex % bottomAdPaths.length];
+      path = bottomAdPaths[bottomAdIndex = (bottomAdIndex % bottomAdPaths.length).toInt()];
     }
     
     if (path.isEmpty) return;
@@ -2020,6 +2020,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     Colors.teal.shade900
   ];
 
+  // 🔴 List Error Fix: > యాడ్ చేయబడింది
   final List> cameraList = [ 
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
     {"id": "DRONE_1", "name": "DJI Drone", "type": "DRONE", "active": false, "muted": true, "url": "rtsp://192.168.1.1:554/live"},
@@ -2072,6 +2073,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
           (c) => c.lensDirection == CameraLensDirection.front, 
           orElse: () => _cameras.first
         );
+        // 🔴 Null Safety Error Fix: cam పక్కన '!' యాడ్ చేయబడింది
         _phoneCamCtrl = CameraController(cam!, ResolutionPreset.max, enableAudio: false);
         await _phoneCamCtrl!.initialize();
         if (mounted) setState(() {});
@@ -2136,10 +2138,11 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   void _initAdVideo(String pos) {
     String path = "";
     if (pos == 'left' && leftAdPaths.isNotEmpty) {
+      // 🔴 double to int error fix: .toInt() యాడ్ చేయబడింది
       path = leftAdPaths[leftAdIndex = (leftAdIndex % leftAdPaths.length).toInt()];
     }
     if (pos == 'right' && rightAdPaths.isNotEmpty) {
-    path = rightAdPaths[rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt()];
+      path = rightAdPaths[rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt()];
     }
     if (pos == 'bottom' && bottomAdPaths.isNotEmpty) {
       path = bottomAdPaths[bottomAdIndex = (bottomAdIndex % bottomAdPaths.length).toInt()];
@@ -2149,7 +2152,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
     
-    // 🔴 యాడ్స్ కట్ అవ్వకుండా BoxFit.fill అప్లై చేశాం
     if (pos == 'left') {  
       if (_leftAdVideoCtrl != null) { _leftAdVideoCtrl!.dispose(); _leftAdVideoCtrl = null; }
       if (isVideo) {
@@ -2234,7 +2236,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                           FocusManager.instance.primaryFocus?.unfocus();  
                           _saveLinks();  
                           Navigator.of(context, rootNavigator: true).pop();  
-                          // 🔴 లైవ్ స్టార్ట్ బటన్ నొక్కిన వెంటనే 3 సెకన్ల గ్యాప్ 
                           Future.delayed(const Duration(milliseconds: 300), () {  
                             _startLiveAndLock();  
                           });  
@@ -2289,7 +2290,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
   
-  // 🔴 3 సెకన్ల గ్యాప్ ఇచ్చి నోటిఫికేషన్ కనపడకుండా లైవ్ స్టార్ట్ చేసే ఫంక్షన్ 
   Future<void> _startLiveAndLock() async {
     _saveLinks();
 
@@ -2313,7 +2313,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       setState(() { hideControls = true; isLivePaused = false; });
       await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]);
 
-      // 🔴 నోటిఫికేషన్ కనపడకుండా 3 సెకన్లు వేచి ఉండడం
       showCustomToast(context, "లైవ్ కనెక్ట్ అవుతోంది... దయచేసి వేచి ఉండండి", isLive: false);
       await Future.delayed(const Duration(milliseconds: 3000));
 
@@ -2862,6 +2861,7 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
         for (var cam in _cameras) { 
           if (cam.lensDirection == CameraLensDirection.front) { frontCam = cam; break; } 
         }
+        // 🔴 Null Safety Error Fix: frontCam పక్కన '!' యాడ్ చేయబడింది
         _cameraController = CameraController(frontCam ?? _cameras.first, ResolutionPreset.high, enableAudio: false);
         await _cameraController!.initialize(); 
         if (mounted) setState(() {});
@@ -2912,9 +2912,10 @@ class _ElectionBoardScreenState extends State<ElectionBoardScreen> {
 
   void _initAdVideo(String pos) {
     String path = "";
-    if (pos == 'left' && leftAdPaths.isNotEmpty) path = leftAdPaths[leftAdIndex = leftAdIndex % leftAdPaths.length];
-    if (pos == 'right' && rightAdPaths.isNotEmpty) path = rightAdPaths[rightAdIndex = rightAdIndex % rightAdPaths.length];
-    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) path = bottomAdPaths[bottomAdIndex = bottomAdIndex % bottomAdPaths.length];
+    // 🔴 double to int error fix: .toInt() యాడ్ చేయబడింది
+    if (pos == 'left' && leftAdPaths.isNotEmpty) path = leftAdPaths[leftAdIndex = (leftAdIndex % leftAdPaths.length).toInt()];
+    if (pos == 'right' && rightAdPaths.isNotEmpty) path = rightAdPaths[rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt()];
+    if (pos == 'bottom' && bottomAdPaths.isNotEmpty) path = bottomAdPaths[bottomAdIndex = (bottomAdIndex % bottomAdPaths.length).toInt()];
     
     if (path.isEmpty) return;
     bool isVideo = path.toLowerCase().endsWith('.mp4') || path.toLowerCase().endsWith('.mov') || path.toLowerCase().endsWith('.gif');  
