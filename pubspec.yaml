@@ -26,6 +26,8 @@ dependencies:
   # కింది రెండు ప్యాకేజీలను కొత్తగా చేర్చండి
   sqflite: ^2.3.0
   path: ^1.8.3
+    # మిగతా ప్యాకేజీల కింద దీన్ని కూడా చేర్చండి
+  google_generative_ai: ^0.4.6
 
 dev_dependencies:
   flutter_test:
