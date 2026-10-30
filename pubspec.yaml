@@ -23,6 +23,9 @@ dependencies:
   url_launcher: ^6.2.1
   shared_preferences: ^2.2.3
   youtube_player_flutter: ^8.1.2
+  # కింది రెండు ప్యాకేజీలను కొత్తగా చేర్చండి
+  sqflite: ^2.3.0
+  path: ^1.8.3
 
 dev_dependencies:
   flutter_test:
