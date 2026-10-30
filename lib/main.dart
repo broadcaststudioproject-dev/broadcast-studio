@@ -2021,7 +2021,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   ];
 
   // 🔴 List Error Fix: > యాడ్ చేయబడింది
-  final List> cameraList = [ 
+  ​final List> cameraList = [  
     {"id": "REPORTER_CAM", "name": "Reporter", "type": "PHONE", "active": true, "muted": false, "url": ""},
     {"id": "DRONE_1", "name": "DJI Drone", "type": "DRONE", "active": false, "muted": true, "url": "rtsp://192.168.1.1:554/live"},
     {"id": "HDMI_1", "name": "Sony Cam 1", "type": "USB", "active": false, "muted": false, "url": ""},
