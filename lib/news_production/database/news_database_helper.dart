@@ -48,10 +48,10 @@ class NewsDatabaseHelper {
     return await db.insert('news_items', item.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  // అన్ని వార్తలను చదవడం
+  // అన్ని వార్తలను చదవడం (ఇక్కడే ఎర్రర్ వచ్చింది, ఇప్పుడు పరిష్కరించబడింది)
   Future<List<NewsItem>> getNewsItems() async {
     final db = await database;
-    final List> maps = await db.query('news_items', orderBy: 'id DESC');
+    final maps = await db.query('news_items', orderBy: 'id DESC');
     
     return List.generate(maps.length, (i) {
       return NewsItem.fromMap(maps[i]);
