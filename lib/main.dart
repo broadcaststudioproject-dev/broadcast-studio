@@ -3296,7 +3296,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     Colors.teal.shade900
   ];
 
-  final List> cameraList = [
+  final List<String> cameraList = [ 
     {
       "id": "REPORTER_CAM",
       "name": "Reporter",
