@@ -2025,9 +2025,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _adCycleTimer = Timer.periodic(const Duration(seconds: 20), (timer) { 
       if (mounted && adDisplayMode == 1) { 
         setState(() { 
-          if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length; 
-          if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length; 
-          if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length; 
+          if (leftAdPaths.isNotEmpty) leftAdIndex = ((leftAdIndex + 1) % leftAdPaths.length).toInt(); 
+          if (rightAdPaths.isNotEmpty) rightAdIndex = ((rightAdIndex + 1) % rightAdPaths.length).toInt(); 
+          if (bottomAdPaths.isNotEmpty) bottomAdIndex = ((bottomAdIndex + 1) % bottomAdPaths.length).toInt(); 
           _initAdVideo('left'); 
           _initAdVideo('right'); 
           _initAdVideo('bottom'); 
@@ -2050,9 +2050,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         if (mounted && adDisplayMode == 2) { 
           setState(() { 
             isAdCurrentlyShowing = true; 
-            if (leftAdPaths.isNotEmpty) leftAdIndex = (leftAdIndex + 1) % leftAdPaths.length; 
-            if (rightAdPaths.isNotEmpty) rightAdIndex = (rightAdIndex + 1) % rightAdPaths.length; 
-            if (bottomAdPaths.isNotEmpty) bottomAdIndex = (bottomAdIndex + 1) % bottomAdPaths.length; 
+            if (leftAdPaths.isNotEmpty) leftAdIndex = ((leftAdIndex + 1) % leftAdPaths.length).toInt(); 
+            if (rightAdPaths.isNotEmpty) rightAdIndex = ((rightAdIndex + 1) % rightAdPaths.length).toInt(); 
+            if (bottomAdPaths.isNotEmpty) bottomAdIndex = ((bottomAdIndex + 1) % bottomAdPaths.length).toInt(); 
             _initAdVideo('left'); 
             _initAdVideo('right'); 
             _initAdVideo('bottom'); 
@@ -3524,17 +3524,17 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     String path = "";
 
     if (pos == 'left' && leftAdPaths.isNotEmpty) {
-      leftAdIndex = leftAdIndex % leftAdPaths.length;
+      leftAdIndex = (leftAdIndex % leftAdPaths.length).toInt();
       path = leftAdPaths[leftAdIndex];
     }
 
     if (pos == 'right' && rightAdPaths.isNotEmpty) {
-      rightAdIndex = rightAdIndex % rightAdPaths.length;
+      rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt();
       path = rightAdPaths[rightAdIndex];
     }
 
     if (pos == 'bottom' && bottomAdPaths.isNotEmpty) {
-      bottomAdIndex = bottomAdIndex % bottomAdPaths.length;
+      bottomAdIndex = (bottomAdIndex % bottomAdPaths.length).toInt();
       path = bottomAdPaths[bottomAdIndex];
     }
 
@@ -3626,8 +3626,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
 
   @override
   Widget build(BuildContext context) {
-    // Basic placeholder build method for MasterPCRBoard
-    // as it was missing from the provided code snippet
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
