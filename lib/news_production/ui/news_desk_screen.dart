@@ -139,26 +139,31 @@ class _NewsDeskScreenState extends State<NewsDeskScreen> {
                                   padding: EdgeInsets.zero,
                                 ),
                                 const Spacer(),
+                                
+                                // ఎడిట్/వెరిఫై బటన్
                                 IconButton(
                                   icon: const Icon(Icons.edit_document, color: Colors.blue, size: 20),
                                   onPressed: () => _showStatusDialog(item),
                                 ),
-                                IconButton(
-                                  // వార్త 'Verified' అయితేనే AI స్క్రిప్ట్ బటన్ చూపిస్తుంది
+                                
+                                // వార్త 'Verified' అయితేనే AI స్క్రిప్ట్ బటన్ చూపిస్తుంది
                                 if (item.status == 'Verified')
+                                  IconButton(
+                                    icon: const Icon(Icons.auto_awesome, color: Colors.purple, size: 24),
+                                    tooltip: 'AI తో స్క్రిప్ట్ రాయించండి',
+                                    onPressed: () async {
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => AiScriptWriterScreen(newsItem: item)),
+                                      );
+                                      if (result == true) {
+                                        _loadNews(); // సేవ్ చేశాక జాబితా అప్‌డేట్ అవుతుంది
+                                      }
+                                    },
+                                  ),
+                                
+                                // డిలీట్ బటన్
                                 IconButton(
-                                icon: const Icon(Icons.auto_awesome, color: Colors.purple, size: 24),
-                                tooltip: 'AI తో స్క్రిప్ట్ రాయించండి',
-                                onPressed: () async {
-                                final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => AiScriptWriterScreen(newsItem: item)),
-                                );
-                                if (result == true) {
-                                 _loadNews(); // సేవ్ చేశాక జాబితా అప్‌డేట్ అవుతుంది
-                                }
-                                },
-                                ),
                                   icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                                   onPressed: () async {
                                     if (item.id != null) {
