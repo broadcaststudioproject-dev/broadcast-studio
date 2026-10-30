@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../models/news_item.dart';
 import '../database/news_database_helper.dart';
+import '../modules/news_gathering/rss_service.dart';
 
 class NewsDeskScreen extends StatefulWidget {
   const NewsDeskScreen({Key? key}) : super(key: key);
@@ -16,6 +17,7 @@ class _NewsDeskScreenState extends State<NewsDeskScreen> {
   final NewsDatabaseHelper _dbHelper = NewsDatabaseHelper();
   List<NewsItem> _newsList = [];
   bool _isLoading = true;
+  bool _isFetchingNews = false;
 
   @override
   void initState() {
@@ -33,13 +35,34 @@ class _NewsDeskScreenState extends State<NewsDeskScreen> {
     });
   }
 
+  // ఆటోమేటిక్‌గా ఇంటర్నెట్ నుండి తాజా వార్తలను లాగడం
+  Future<void> _fetchAutoNews() async {
+    setState(() => _isFetchingNews = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('వార్తలను సేకరిస్తోంది... దయచేసి వేచి ఉండండి.'), duration: Duration(seconds: 2)),
+    );
+
+    final service = RssService();
+    int newCount = await service.fetchAndSaveNews();
+
+    setState(() => _isFetchingNews = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(newCount > 0 ? '$newCount కొత్త వార్తలు సేకరించబడ్డాయి!' : 'కొత్త వార్తలు ఏమీ లేవు.'),
+        backgroundColor: newCount > 0 ? Colors.green : Colors.orange,
+      ),
+    );
+
+    _loadNews(); // జాబితాను అప్‌డేట్ చేయడం
+  }
+
   // వార్త స్థితిని మార్చే డైలాగ్ (Verification Process)
   Future<void> _showStatusDialog(NewsItem item) async {
     String? newStatus = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
         return SimpleDialog(
-          title: const Text('వార్తను నిర్ధారించండి (Verify)'),
+          title: const Text('వార్తను నిర్ధారించండి (Verify)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           children: <Widget>[
             SimpleDialogOption(
               onPressed: () => Navigator.pop(context, 'Verified'),
@@ -60,22 +83,8 @@ class _NewsDeskScreenState extends State<NewsDeskScreen> {
 
     if (newStatus != null && item.id != null) {
       await _dbHelper.updateNewsStatus(item.id!, newStatus);
-      _loadNews(); // మార్పు తర్వాత జాబితాను అప్‌డేట్ చేయడం
+      _loadNews();
     }
-  }
-
-  // టెస్టింగ్ కోసం ఒక డెమో వార్తను జోడించడం
-  Future<void> _addDummyNews() async {
-    final newItem = NewsItem(
-      title: 'కొత్తకోటలో ఘనంగా సావిత్రిబాయి ఫూలే జయంతి వేడుకలు',
-      content: 'సత్యశోధక్ సమాజ్ ఫౌండేషన్ ఆధ్వర్యంలో ఈ కార్యక్రమం జరిగింది.',
-      source: 'SS Yatra TV Reporter',
-      category: 'Telangana News',
-      status: 'New',
-      date: DateTime.now().toString(),
-    );
-    await _dbHelper.insertNewsItem(newItem);
-    _loadNews();
   }
 
   @override
@@ -84,73 +93,83 @@ class _NewsDeskScreenState extends State<NewsDeskScreen> {
       appBar: AppBar(
         title: const Text('SS YATRA TV - News Desk'),
         backgroundColor: Colors.red[800],
+        actions: [
+          IconButton(
+            icon: _isFetchingNews 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.sync),
+            tooltip: 'తాజా వార్తలను సేకరించండి',
+            onPressed: _isFetchingNews ? null : _fetchAutoNews,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _newsList.isEmpty
-              ? const Center(child: Text('ప్రస్తుతం ఎలాంటి వార్తలు లేవు.'))
+              ? const Center(child: Text('ప్రస్తుతం డెస్క్‌లో ఎలాంటి వార్తలు లేవు.'))
               : ListView.builder(
                   itemCount: _newsList.length,
                   itemBuilder: (context, index) {
                     final item = _newsList[index];
                     return Card(
-                      margin: const EdgeInsets.all(8.0),
-                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      elevation: 2,
                       child: ListTile(
                         title: Text(
                           item.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 5),
-                            Text('వర్గం: ${item.category} | తేదీ: ${item.date.split(' ')[0]}'),
+                            Text('వర్గం: ${item.category}', style: const TextStyle(color: Colors.blueAccent, fontSize: 12)),
                             const SizedBox(height: 5),
                             Row(
                               children: [
-                                const Text('స్థితి: '),
                                 Chip(
                                   label: Text(
                                     item.status,
-                                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                   ),
                                   backgroundColor: _getStatusColor(item.status),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                const Spacer(),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_document, color: Colors.blue, size: 20),
+                                  onPressed: () => _showStatusDialog(item),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                  onPressed: () async {
+                                    if (item.id != null) {
+                                      await _dbHelper.deleteNewsItem(item.id!);
+                                      _loadNews();
+                                    }
+                                  },
                                 ),
                               ],
                             ),
                           ],
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.edit_document, color: Colors.blue),
-                          onPressed: () => _showStatusDialog(item),
-                        ),
                       ),
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addDummyNews,
-        backgroundColor: Colors.red[800],
-        child: const Icon(Icons.add),
-        tooltip: 'టెస్ట్ వార్తను జోడించండి',
-      ),
     );
   }
 
   // స్థితిని బట్టి రంగును సెట్ చేయడం
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'New':
-        return Colors.orange;
-      case 'Verified':
-        return Colors.green;
-      case 'Rejected':
-        return Colors.red;
-      case 'Ready for Production':
-        return Colors.purple;
-      default:
-        return Colors.grey;
+      case 'New': return Colors.orange;
+      case 'Verified': return Colors.green;
+      case 'Rejected': return Colors.red;
+      case 'Ready for Production': return Colors.purple;
+      default: return Colors.grey;
     }
   }
 }
