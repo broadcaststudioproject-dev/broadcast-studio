@@ -52,12 +52,13 @@ class NewsDatabaseHelper {
   Future<List<NewsItem>> getNewsItems() async {
     final db = await database;
     final List> maps = await db.query('news_items', orderBy: 'id DESC');
+    
     return List.generate(maps.length, (i) {
       return NewsItem.fromMap(maps[i]);
     });
   }
 
-  // వార్త స్థితిని (Status) అప్‌డేట్ చేయడం (ఉదా: New -> Verified)
+  // వార్త స్థితిని (Status) అప్‌డేట్ చేయడం
   Future<int> updateNewsStatus(int id, String newStatus) async {
     final db = await database;
     return await db.update(
