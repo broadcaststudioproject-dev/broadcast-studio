@@ -3529,7 +3529,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     }
 
     if (pos == 'right' && rightAdPaths.isNotEmpty) {
-      rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt();
+      rightAdIndex = (rightAdIndex % rightAdPaths.length).toInt(); 
       path = rightAdPaths[rightAdIndex];
     }
 
