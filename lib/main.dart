@@ -1322,61 +1322,85 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  void _startYoutubeVideo(String url) {
+  Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
-    String? videoId;
 
-    try {
-      if (cleanUrl.contains('/shorts/')) {
-        videoId = cleanUrl.split('/shorts/')[1].split('?')[0].split('&')[0];
-      } else if (cleanUrl.contains('/live/')) {
-        videoId = cleanUrl.split('/live/')[1].split('?')[0].split('&')[0];
-      } else if (cleanUrl.contains('youtu.be/')) {
-        videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
-      } else if (cleanUrl.contains('embed/')) {
-        videoId = cleanUrl.split('embed/')[1].split('?')[0].split('&')[0];
-      } else {
-        videoId = YoutubePlayer.convertUrlToId(cleanUrl);
-      }
+    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
+    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
 
-      if (videoId != null && videoId.length >= 11) {
-        videoId = videoId.substring(0, 11);
+    try {  
+      String finalPlayUrl = cleanUrl;  
+      
+      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
+        var ytExplode = yt.YoutubeExplode();  
+        var video = await ytExplode.videos.get(cleanUrl);  
+          
+        if (video.isLive) {  
+          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
+        } else {  
+          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
+          var muxedStreams = manifest.muxed;
+          
+          if (muxedStreams.isNotEmpty) {  
+            // 🔴 యూట్యూబ్ నుండి బెస్ట్ క్వాలిటీ MP4 లింక్ తీసుకునే కోడ్
+            finalPlayUrl = muxedStreams.withHighestBitrate().url.toString();  
+          } else {
+            throw Exception("డైరెక్ట్ MP4 ఫార్మాట్ దొరకలేదు.");
+          }
+        }  
+        ytExplode.close();  
+      }  
 
-        if (_ytController != null) {
-          _ytController!.dispose();
-        }
-
-        _ytController = YoutubePlayerController(
-          initialVideoId: videoId,
-          flags: const YoutubePlayerFlags(
-            autoPlay: true,
-            mute: false,
-            isLive: true,
-            forceHD: true,
-          ),
-        );
-
-        setState(() {
-          isYoutubeMode = true;
-          isNewsBulletinMode = false;
-          isNetworkVideoMode = false;
-          isDualScreenMode = false;
-          hideControls = false;
-          isCameraVisible = false;
-        });
-
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే అవుతోంది...", isLive: isLiveBroadcasting);
-
-        if (!isLiveBroadcasting) {
-          _startLiveAndLock();
-        }
-      } else {
-        showCustomToast(context, "సరైన యూట్యూబ్ లింక్ ఇవ్వండి.", isLive: isLiveBroadcasting);
-      }
-    } catch (e) {
-      showCustomToast(context, "లింక్‌లో లోపం ఉంది. మళ్ళీ ప్రయత్నించండి.", isLive: isLiveBroadcasting);
+      if (finalPlayUrl.isNotEmpty) {  
+        _playNetworkBulletin(finalPlayUrl);  
+      } else {  
+        throw Exception("వీడియో లింక్ క్రియేట్ అవ్వలేదు.");  
+      }  
+    } catch (e) {  
+      debugPrint("YouTube Extract Error: $e");
+      if (mounted) {  
+        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.", isLive: isLiveBroadcasting);  
+      }  
     }
+  }
+
+  void _playNetworkBulletin(String playUrl) {
+    if (_bulletinVideoController != null) {
+      _bulletinVideoController!.removeListener(_videoListener);
+      _bulletinVideoController!.dispose();
+      _bulletinVideoController = null;
+    }
+
+    // 🔴 యూట్యూబ్ బ్లాక్ చేయకుండా ఉండేందుకు ప్రొఫెషనల్ Browser User-Agent హెడర్‌ను జతచేశాం
+    _bulletinVideoController = VideoPlayerController.networkUrl(
+      Uri.parse(playUrl),
+      httpHeaders: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+      },
+    )..initialize().then((_) {   
+        if (!mounted) return;   
+        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
+        setState(() {   
+          isNewsBulletinMode = true; 
+          isNetworkVideoMode = false; 
+          isDualScreenMode = false; 
+          hideControls = false; 
+          isYoutubeLoading = false; 
+          isCameraVisible = false;  
+        });   
+        _bulletinVideoController?.play();   
+        _bulletinVideoController?.addListener(_videoListener);   
+          
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
+      }).catchError((e) {   
+        debugPrint("Video Player Error: $e");
+        if (mounted) {  
+          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
+        }  
+      });
   }
 
   void _playNetworkBulletin(String playUrl) {
