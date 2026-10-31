@@ -1378,64 +1378,41 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _playNetworkBulletin(String playUrl) {
+    void _playNetworkBulletin(String playUrl) {
     if (_bulletinVideoController != null) {
       _bulletinVideoController!.removeListener(_videoListener);
       _bulletinVideoController!.dispose();
       _bulletinVideoController = null;
     }
 
-    // 🔴 2. యూట్యూబ్ వీడియో ఆగిపోకుండా (403 Error రాకుండా) బ్రహ్మాస్త్రం లాంటి సెక్యూరిటీ హెడర్స్
     _bulletinVideoController = VideoPlayerController.networkUrl(
       Uri.parse(playUrl),
       httpHeaders: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
-        'Referer': 'https://www.youtube.com/',
-        'Origin': 'https://www.youtube.com',
       },
     )..initialize().then((_) {   
         if (!mounted) return;   
-Future<void> _startYoutubeVideo(String url) async {
-    if (url.isEmpty) return;
-    String cleanUrl = url.trim();
-
-    setState(() { isYoutubeLoading = true; isCameraVisible = false; });  
-    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
-
-    try {  
-      String finalPlayUrl = cleanUrl;  
-      
-      if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
-        var ytExplode = yt.YoutubeExplode();  
-        var video = await ytExplode.videos.get(cleanUrl);  
+        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
+        setState(() {   
+          isNewsBulletinMode = true; 
+          isNetworkVideoMode = false; 
+          isDualScreenMode = false; 
+          hideControls = false; 
+          isYoutubeLoading = false; 
+          isCameraVisible = false;  
+        });   
+        _bulletinVideoController?.play();   
+        _bulletinVideoController?.addListener(_videoListener);   
           
-        if (video.isLive) {  
-          finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
-        } else {  
-          var manifest = await ytExplode.videos.streamsClient.getManifest(video.id);  
-          var muxedStreams = manifest.muxed;
-          
-          if (muxedStreams.isNotEmpty) {  
-            finalPlayUrl = muxedStreams.withHighestBitrate().url.toString();  
-          } else {
-            throw Exception("డైరెక్ట్ MP4 ఫార్మాట్ దొరకలేదు.");
-          }
+        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
+      }).catchError((e) {   
+        debugPrint("Video Player Error: $e");
+        if (mounted) {  
+          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
+          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
         }  
-        ytExplode.close();  
-      }  
-
-      if (finalPlayUrl.isNotEmpty) {  
-        _playNetworkBulletin(finalPlayUrl);  
-      } else {  
-        throw Exception("వీడియో లింక్ క్రియేట్ అవ్వలేదు.");  
-      }  
-    } catch (e) {  
-      debugPrint("YouTube Extract Error: $e");
-      if (mounted) {  
-        setState(() { isYoutubeLoading = false; hideControls = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.", isLive: isLiveBroadcasting);  
-      }  
-    }
-  }
+      });
+    } 
 
     void _playNetworkBulletin(String playUrl) {
     if (_bulletinVideoController != null) {
