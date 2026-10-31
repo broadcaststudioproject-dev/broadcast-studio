@@ -12,10 +12,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; // 🔴 యాడ్ చేయబడింది
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; 
 import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
-import 'election_board.dart'; // 🔴 యాడ్ చేయబడింది
+import 'election_board.dart'; 
 
 List<CameraDescription> cameras = [];
 
@@ -1328,7 +1328,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-    Future<void> _startYoutubeVideo(String url) async {
+  Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
 
@@ -1340,8 +1340,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       
       if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
         var ytExplode = yt.YoutubeExplode();  
-        
-        // 🔴 1. లింక్ నుండి ఒరిజినల్ ఐడీని పక్కాగా లాగే మ్యాజిక్ కోడ్
         var videoId = yt.VideoId(cleanUrl);  
         var video = await ytExplode.videos.get(videoId);  
           
@@ -1359,7 +1357,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         }  
         ytExplode.close();  
       } else {
-        // ఒకవేళ యూట్యూబ్ లింక్ కాకపోతే డైరెక్ట్ గా తీసుకుంటుంది
         finalPlayUrl = cleanUrl;
       }
 
@@ -1378,7 +1375,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   }
 
   void _playNetworkBulletin(String playUrl) {
-    void _playNetworkBulletin(String playUrl) {
     if (_bulletinVideoController != null) {
       _bulletinVideoController!.removeListener(_videoListener);
       _bulletinVideoController!.dispose();
@@ -1412,39 +1408,15 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
         }  
       });
-    } 
+  }
 
-    void _playNetworkBulletin(String playUrl) {
-    if (_bulletinVideoController != null) {
-      _bulletinVideoController!.removeListener(_videoListener);
-      _bulletinVideoController!.dispose();
-      _bulletinVideoController = null;
+  void _videoListener() {
+    final vController = _bulletinVideoController;
+    if (vController == null || !vController.value.isInitialized) return;
+    if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
+      vController.removeListener(_videoListener);
+      setState(() { isNewsBulletinMode = false; isCameraVisible = true; });
     }
-
-    // 🔴 హెడర్స్ ఎర్రర్ రాకుండా సింపుల్ నెట్‌వర్క్ యూఆర్ఎల్ వాడాము
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
-      ..initialize().then((_) {   
-        if (!mounted) return;   
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
-        setState(() {   
-          isNewsBulletinMode = true; 
-          isNetworkVideoMode = false; 
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isYoutubeLoading = false; 
-          isCameraVisible = false;  
-        });   
-        _bulletinVideoController?.play();   
-        _bulletinVideoController?.addListener(_videoListener);   
-          
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-      }).catchError((e) {   
-        debugPrint("Video Player Error: $e");
-        if (mounted) {  
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
-        }  
-      });
   }
 
   Future<void> _startNetworkVideoMp4(String url) async {
@@ -3272,7 +3244,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ),
     );
   }
-  }
+} // StudioScreen క్లాస్ ముగింపు
+
 
 // ============================================================================
 // 3. MASTER PCR BOARD SCREEN
