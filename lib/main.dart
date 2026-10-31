@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; // 🔴 యాడ్ చేయబడింది
 import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
 
@@ -156,6 +157,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   int currentLocalVideoIndex = 0;
 
   YoutubePlayerController? _ytController;
+  VideoPlayerController? _bulletinVideoController; // 🔴 యాడ్ చేయబడింది
   VideoPlayerController? _bottomAdVideoController;
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _rightAdVideoCtrl;
@@ -552,6 +554,9 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     _vlcBulletinCtrl?.removeListener(_vlcListener);
     _vlcBulletinCtrl?.dispose();
+
+    _bulletinVideoController?.removeListener(_videoListener); // 🔴 యాడ్ చేయబడింది
+    _bulletinVideoController?.dispose(); // 🔴 యాడ్ చేయబడింది
 
     _ytController?.dispose();
     _bottomAdVideoController?.dispose();
@@ -1322,6 +1327,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
+  // 🔴 YouTube Explode Code (As provided by you)
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
@@ -1343,7 +1349,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           var muxedStreams = manifest.muxed;
           
           if (muxedStreams.isNotEmpty) {  
-            // 🔴 యూట్యూబ్ నుండి బెస్ట్ క్వాలిటీ MP4 లింక్ తీసుకునే కోడ్
             finalPlayUrl = muxedStreams.withHighestBitrate().url.toString();  
           } else {
             throw Exception("డైరెక్ట్ MP4 ఫార్మాట్ దొరకలేదు.");
@@ -1373,7 +1378,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bulletinVideoController = null;
     }
 
-    // 🔴 యూట్యూబ్ బ్లాక్ చేయకుండా ఉండేందుకు ప్రొఫెషనల్ Browser User-Agent హెడర్‌ను జతచేశాం
     _bulletinVideoController = VideoPlayerController.networkUrl(
       Uri.parse(playUrl),
       httpHeaders: {
@@ -1401,6 +1405,16 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
         }  
       });
+  }
+
+  // 🔴 Added the missing video listener here!
+  void _videoListener() {
+    final vController = _bulletinVideoController;
+    if (vController == null || !vController.value.isInitialized) return;
+    if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
+      vController.removeListener(_videoListener);
+      setState(() { isNewsBulletinMode = false; isCameraVisible = true; });
+    }
   }
 
   Future<void> _startNetworkVideoMp4(String url) async {
@@ -3081,6 +3095,22 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                     );
                                   },
                                   Colors.pinkAccent,
+                                ),
+                                // 🔴 ఎలక్షన్ బటన్ 🔴
+                                _buildControlButton(
+                                  Icons.bar_chart,
+                                  "Election Results",
+                                  () {
+                                    setState(() => isMenuOpen = false);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ElectionBoardScreen(),
+                                      ),
+                                    );
+                                  },
+                                  Colors.blueAccent,
                                 ),
                                 _buildControlButton(
                                   Icons.flip_camera_android,
