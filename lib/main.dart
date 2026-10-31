@@ -1437,14 +1437,15 @@ Future<void> _startYoutubeVideo(String url) async {
     }
   }
 
-  void _playNetworkBulletin(String playUrl) {
+    void _playNetworkBulletin(String playUrl) {
     if (_bulletinVideoController != null) {
       _bulletinVideoController!.removeListener(_videoListener);
       _bulletinVideoController!.dispose();
       _bulletinVideoController = null;
     }
 
-    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))  
+    // 🔴 హెడర్స్ ఎర్రర్ రాకుండా సింపుల్ నెట్‌వర్క్ యూఆర్ఎల్ వాడాము
+    _bulletinVideoController = VideoPlayerController.networkUrl(Uri.parse(playUrl))
       ..initialize().then((_) {   
         if (!mounted) return;   
         _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
