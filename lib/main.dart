@@ -3239,7 +3239,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-      Widget _buildControlButton(
+  Widget _buildControlButton(
     IconData icon,
     String label,
     VoidCallback onTap,
@@ -3271,6 +3271,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ],
       ),
     );
+  }
   }
 
 // ============================================================================
