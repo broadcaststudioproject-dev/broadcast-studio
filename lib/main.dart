@@ -3239,7 +3239,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildControlButton(
+    Widget _buildControlButton(
     IconData icon,
     String label,
     VoidCallback onTap,
@@ -3271,9 +3271,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         ],
       ),
     );
-  }
-} // StudioScreen క్లాస్ ముగింపు
-
+    }
 
 // ============================================================================
 // 3. MASTER PCR BOARD SCREEN
