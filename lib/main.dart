@@ -12,9 +12,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; // 🔴 యాడ్ చేయబడింది
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; // 🔴 ఇది కచ్చితంగా ఉండాలి
 import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
+import 'election_board.dart'; // 🔴 ఇది కచ్చితంగా ఉండాలి
 
 List<CameraDescription> cameras = [];
 
