@@ -12,10 +12,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_vlc_player/flutter_vlc_player.dart'; 
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; // 🔴 ఇది కచ్చితంగా ఉండాలి
+import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt; // 🔴 యాడ్ చేయబడింది
 import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
-import 'election_board.dart'; // 🔴 ఇది కచ్చితంగా ఉండాలి
+import 'election_board.dart'; // 🔴 యాడ్ చేయబడింది
 
 List<CameraDescription> cameras = [];
 
@@ -158,7 +158,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   int currentLocalVideoIndex = 0;
 
   YoutubePlayerController? _ytController;
-  VideoPlayerController? _bulletinVideoController; // 🔴 యాడ్ చేయబడింది
+  VideoPlayerController? _bulletinVideoController; 
   VideoPlayerController? _bottomAdVideoController;
   VideoPlayerController? _leftAdVideoCtrl;
   VideoPlayerController? _rightAdVideoCtrl;
@@ -556,8 +556,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _vlcBulletinCtrl?.removeListener(_vlcListener);
     _vlcBulletinCtrl?.dispose();
 
-    _bulletinVideoController?.removeListener(_videoListener); // 🔴 యాడ్ చేయబడింది
-    _bulletinVideoController?.dispose(); // 🔴 యాడ్ చేయబడింది
+    _bulletinVideoController?.removeListener(_videoListener);
+    _bulletinVideoController?.dispose();
 
     _ytController?.dispose();
     _bottomAdVideoController?.dispose();
@@ -1328,7 +1328,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  // 🔴 YouTube Explode Code (As provided by you)
   Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
@@ -1408,7 +1407,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       });
   }
 
-  // 🔴 Added the missing video listener here!
   void _videoListener() {
     final vController = _bulletinVideoController;
     if (vController == null || !vController.value.isInitialized) return;
