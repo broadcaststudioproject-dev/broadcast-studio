@@ -30,6 +30,7 @@ dependencies:
   google_generative_ai: ^0.4.6
   # 🔴 యూట్యూబ్ బఫరింగ్ లేకుండా ప్లే చేయడానికి యాడ్ చేసిన కొత్త ప్యాకేజీ
   youtube_explode_dart: ^2.2.2
+  flutter_inappwebview: ^6.0.0
 
 dev_dependencies:
   flutter_test:
