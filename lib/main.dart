@@ -1328,7 +1328,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  Future<void> _startYoutubeVideo(String url) async {
+    Future<void> _startYoutubeVideo(String url) async {
     if (url.isEmpty) return;
     String cleanUrl = url.trim();
 
@@ -1336,11 +1336,14 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
 
     try {  
-      String finalPlayUrl = cleanUrl;  
+      String finalPlayUrl = "";  
       
       if (cleanUrl.contains("youtube.com") || cleanUrl.contains("youtu.be")) {  
         var ytExplode = yt.YoutubeExplode();  
-        var video = await ytExplode.videos.get(cleanUrl);  
+        
+        // 🔴 1. లింక్ నుండి ఒరిజినల్ ఐడీని పక్కాగా లాగే మ్యాజిక్ కోడ్
+        var videoId = yt.VideoId(cleanUrl);  
+        var video = await ytExplode.videos.get(videoId);  
           
         if (video.isLive) {  
           finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(video.id);  
@@ -1355,7 +1358,10 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           }
         }  
         ytExplode.close();  
-      }  
+      } else {
+        // ఒకవేళ యూట్యూబ్ లింక్ కాకపోతే డైరెక్ట్ గా తీసుకుంటుంది
+        finalPlayUrl = cleanUrl;
+      }
 
       if (finalPlayUrl.isNotEmpty) {  
         _playNetworkBulletin(finalPlayUrl);  
@@ -1378,10 +1384,13 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       _bulletinVideoController = null;
     }
 
+    // 🔴 2. యూట్యూబ్ వీడియో ఆగిపోకుండా (403 Error రాకుండా) బ్రహ్మాస్త్రం లాంటి సెక్యూరిటీ హెడర్స్
     _bulletinVideoController = VideoPlayerController.networkUrl(
       Uri.parse(playUrl),
       httpHeaders: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+        'Referer': 'https://www.youtube.com/',
+        'Origin': 'https://www.youtube.com',
       },
     )..initialize().then((_) {   
         if (!mounted) return;   
