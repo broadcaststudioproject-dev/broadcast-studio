@@ -1403,38 +1403,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       });
   }
 
-  void _playNetworkBulletin(String playUrl) {
-    if (_vlcBulletinCtrl != null) {
-      _vlcBulletinCtrl!.removeListener(_vlcListener);
-      _vlcBulletinCtrl!.dispose();
-      _vlcBulletinCtrl = null;
-    }
-
-    _vlcBulletinCtrl = VlcPlayerController.network(
-      playUrl,
-      hwAcc: HwAcc.full,
-      autoPlay: true,
-      options: VlcPlayerOptions(),
-    )..initialize().then((_) {
-      if (!mounted) return;
-      _vlcBulletinCtrl?.setVolume(isBulletinMuted ? 0 : 100);
-      setState(() {
-        isNewsBulletinMode = true;
-        isYoutubeMode = false;
-        isNetworkVideoMode = true;
-        isDualScreenMode = false;
-        hideControls = false;
-        isCameraVisible = false;
-      });
-
-      _vlcBulletinCtrl?.play();
-
-      if (!isLiveBroadcasting) {
-        _startLiveAndLock();
-      }
-    });
-  }
-
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
