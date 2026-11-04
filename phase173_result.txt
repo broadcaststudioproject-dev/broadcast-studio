@@ -1,0 +1,68 @@
+==================================================
+ PHASE 173: GLIBC-RUNNER + BOX64 + NDK CLANG
+==================================================
+
+--- 1. TOOLS ---
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+CLANGXX=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
+
+--- 2. BOX64 VERSION THROUGH RUNNER ---
+Box64 arm64 v0.4.2 nogit with Dynarec built on Aug  5 2026 08:50:17
+RC=0
+
+--- 3. CLANG VERSION THROUGH BOX64 ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+CLANG_RC=0
+
+--- 4. CLANG++ VERSION THROUGH BOX64 ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+CLANGXX_RC=0
+
+--- 5. ANDROID TARGET TEST ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+clang: warning: /dev/null: 'linker' input unused [-Wunused-command-line-argument]
+TARGET_RC=0
+
+--- 6. SIMPLE C COMPILE ---
+./phase173.sh: line 55: /tmp/pcr_test.c: Permission denied
+clang: error: no such file or directory: '/tmp/pcr_test.c'
+clang: error: no input files
+COMPILE_RC=1
+OBJECT_CREATED=NO
+
+--- 7. SIMPLE C++ COMPILE ---
+./phase173.sh: line 79: /tmp/pcr_test.cpp: Permission denied
+clang++: error: no such file or directory: '/tmp/pcr_test.cpp'
+clang++: error: no input files
+CPP_COMPILE_RC=1
+CPP_OBJECT_CREATED=NO
+
+--- 8. CLANG RESOURCE DIRECTORY ---
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19
+
+--- 9. NDK SYSROOT ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 10. FINAL STATUS ---
+HOST=aarch64
+BOX64_STATUS=CHECKED
+CLANG_VERSION_STATUS=
+CLANGXX_VERSION_STATUS=
+TARGET_STATUS=
+C_COMPILE_STATUS=
+CPP_COMPILE_STATUS=
+
+==================================================
+ END PHASE 173
+==================================================

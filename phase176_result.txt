@@ -1,0 +1,120 @@
+==================================================
+ PHASE 176: NDK LIBUNWIND + LLD LINK ISOLATION
+==================================================
+
+--- 1. TOOLS ---
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+
+--- 2. OBJECT ---
+-rw-------. 1 u0_a255 u0_a255 1120 Aug 28 02:09 /data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.o
+/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 3. CRTBEGIN ---
+-rw-------. 1 u0_a255 u0_a255 3576 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 4. CRTEND ---
+-rw-------. 1 u0_a255 u0_a255 840 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 5. BUILTINS ---
+ls: cannot access '/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a': No such file or directory
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a: cannot open `/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a' (No such file or directory)
+
+--- 6. LIBUNWIND ---
+-rw-------. 1 u0_a255 u0_a255 91152 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a: current ar archive
+
+--- 7. LIBUNWIND ARCHIVE ---
+libunwind.cpp.o
+Unwind-EHABI.cpp.o
+Unwind-seh.cpp.o
+UnwindLevel1.c.o
+UnwindLevel1-gcc-ext.c.o
+Unwind-sjlj.c.o
+Unwind-wasm.c.o
+UnwindRegistersRestore.S.o
+UnwindRegistersSave.S.o
+
+--- 8. LLD VERSION ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+LLD_RC=0
+
+--- 9. TEST A: OBJECT ONLY ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: warning: cannot find entry symbol _start; not setting start address
+TEST_A_RC=0
+TEST_A_OUTPUT=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/link_a: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), statically linked, not stripped
+
+--- 10. TEST B: CRTBEGIN + OBJECT + CRTEND ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: error: undefined symbol: __libc_init
+>>> referenced by crtbegin.c
+>>>               /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o:(_start_main)
+
+ld.lld: error: undefined symbol: __cxa_atexit
+>>> referenced by crtbegin.c
+>>>               /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o:(atexit)
+TEST_B_RC=1
+TEST_B_OUTPUT=NO
+
+--- 11. TEST C: + BUILTINS ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a: No such file or directory
+TEST_C_RC=1
+TEST_C_OUTPUT=NO
+
+--- 12. TEST D: + LIBUNWIND ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a: No such file or directory
+TEST_D_RC=1
+TEST_D_OUTPUT=NO
+
+--- 13. TEST E: + DL + C ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a: No such file or directory
+ld.lld: error: unable to find library -ldl
+ld.lld: error: unable to find library -lc
+TEST_E_RC=1
+TEST_E_OUTPUT=NO
+
+--- 14. TEST F: EXACT CLANG DRIVER LINK ---
+*** buffer overflow detected ***: terminated
+./phase176.sh: line 223:  5010 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 "$OBJ" -o "$TESTDIR/link_f" 2>&1
+TEST_F_RC=134
+TEST_F_OUTPUT=NO
+
+--- 15. LINKER MEMORY / ARCHIVE INFO ---
+  --eh-frame-hdr          Request creation of .eh_frame_hdr section and PT_GNU_EH_FRAME segment header
+  --gc-sections           Enable garbage collection of unused sections
+  --icf=all               Enable identical code folding
+  --icf=none              Disable identical code folding (default)
+  --icf=safe              Enable safe identical code folding
+  --no-eh-frame-hdr       Do not create .eh_frame_hdr section
+  --no-gc-sections        Disable garbage collection of unused sections (default)
+  --no-print-gc-sections  Do not list removed unused sections (default)
+  --no-print-icf-sections Do not list identical folded sections (default)
+  --pack-dyn-relocs=[none,android,relr,android+relr]
+  --print-gc-sections     List removed unused sections
+  --print-icf-sections    List identical folded sections
+
+--- 16. FINAL STATUS ---
+HOST=aarch64
+LLD=WORKING
+OBJECT=WORKING
+
+TEST_A_OBJECT_ONLY=YES
+TEST_B_CRT=NO
+TEST_C_BUILTINS=NO
+TEST_D_LIBUNWIND=NO
+TEST_E_LIBC=NO
+TEST_F_CLANG_DRIVER=NO
+
+==================================================
+ END PHASE 176
+==================================================

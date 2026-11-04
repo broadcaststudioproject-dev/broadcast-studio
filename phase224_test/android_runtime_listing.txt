@@ -1,0 +1,7 @@
+-rwx--x--x.  1 u0_a255 u0_a255 8.9M Aug 25 18:45 libc++_shared.so
+-rw-------.  1 u0_a255 u0_a255  15M Aug 25 18:45 libc++_static.a
+-rw-------.  1 u0_a255 u0_a255 3.0M Aug 25 18:45 libc++abi.a
+-rw-------.  1 u0_a255 u0_a255 1.2K Aug 25 18:45 libc++experimental.a
+-rw-------.  1 u0_a255 u0_a255  13K Aug 25 18:45 libcompiler_rt-extras.a
+-rw-------.  1 u0_a255 u0_a255 6.2K Aug 25 18:45 libdl.a
+-rw-------.  1 u0_a255 u0_a255 1.8M Aug 25 18:45 libm.a

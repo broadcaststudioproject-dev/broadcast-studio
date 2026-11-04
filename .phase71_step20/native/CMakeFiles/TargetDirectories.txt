@@ -1,0 +1,2 @@
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step20/native/CMakeFiles/edit_cache.dir
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step20/native/CMakeFiles/rebuild_cache.dir

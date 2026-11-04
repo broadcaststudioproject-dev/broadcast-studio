@@ -1,0 +1,96 @@
+==================================================
+ PHASE 197: FLUTTER NATIVE BUILD CHAIN TRACE
+==================================================
+
+--- 1. PROJECT ---
+ROOT=/data/data/com.termux/files/home/pocket_pcr_studio
+PUBSPEC=YES
+
+--- 2. FLUTTER ---
+/data/data/com.termux/files/usr/opt/flutter/bin/flutter
+Flutter 3.44.2 • channel [user-branch] • unknown source
+Framework • revision c9a6c48423 (3 months ago) • 2026-06-10 15:52:41 -0700
+Engine • hash 04efd7c093d4e9281d5526ebcad6ecc60ba8badf (revision 77e2e94772) (2 months ago) • 2026-06-10 19:59:06.000Z
+
+--- 3. ANDROID PROJECT ---
+ANDROID_DIR=YES
+SETTINGS_GRADLE_KTS=YES
+APP_GRADLE_KTS=YES
+
+--- 4. NDK ---
+NDK=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358
+NDK_DIR=YES
+
+--- 5. PHASE 195 WRAPPER ---
+WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase195_test/ld-wrapper
+LD_WRAPPER=YES
+
+--- 6. CMAKE FILES ---
+
+--- 7. GRADLE CMAKE REFERENCES ---
+/data/data/com.termux/files/home/pocket_pcr_studio/android/app/build.gradle.kts:10:    ndkVersion = flutter.ndkVersion
+/data/data/com.termux/files/home/pocket_pcr_studio/android/app/build.gradle.kts:26:            abiFilters += listOf("arm64-v8a")
+
+--- 8. LINKER REFERENCES ---
+
+--- 9. CMAKE CACHE REFERENCES ---
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step14/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step18/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step19/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step20/native/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step20/android/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step21/android/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step22/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step25/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step31/cmake/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step35/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step37/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step39/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step40/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase71_step41/host-build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.cmake_termux_test/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.jni_cmake_test/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/__cmake_systeminformation/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/.phase82_android_target/build/CMakeCache.txt
+/data/data/com.termux/files/home/pocket_pcr_studio/.phase81_host_cmake/.phase82_android_target/.phase83_android_ndk/build/CMakeCache.txt
+
+--- 10. GRADLE VERSION ---
+
+------------------------------------------------------------
+Gradle 9.1.0
+------------------------------------------------------------
+
+Build time:    2025-09-18 13:05:56 UTC
+Revision:      e45a8dbf2470c2e2474ccc25be9f49331406a07e
+
+Kotlin:        2.2.0
+Groovy:        4.0.28
+Ant:           Apache Ant(TM) version 1.10.15 compiled on August 25 2024
+Launcher JVM:  21.0.12 (Termux 21.0.12)
+Daemon JVM:    /data/data/com.termux/files/usr/lib/jvm/java-21-openjdk (no JDK specified, using current Java home)
+OS:            Linux 4.19.236+ aarch64
+
+
+--- 11. FLUTTER DOCTOR ANDROID ---
+[!] Flutter (Channel [user-branch], 3.44.2, on android, locale en_US.UTF-8) [137ms]
+    ! Flutter version 3.44.2 on channel [user-branch] at /data/data/com.termux/files/usr/opt/flutter
+      If that doesn't fix the issue, reinstall Flutter by following instructions at https://flutter.dev/setup.
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.0.0) [11.4s]
+    • Android SDK at /data/data/com.termux/files/usr/opt/android-sdk
+    • Java binary at: /data/data/com.termux/files/usr/lib/jvm/java-21-openjdk/bin/java
+    • Java version OpenJDK Runtime Environment (build 21.0.12)
+
+--- 12. FINAL STATUS ---
+HOST=aarch64
+PROJECT=YES
+ANDROID=YES
+NDK=YES
+LD_WRAPPER=YES
+
+==================================================
+ PHASE 197 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase197_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase197_result.txt
+==================================================

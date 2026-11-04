@@ -1,0 +1,96 @@
+==================================================
+ PHASE 172: BOX64 + GLIBC RUNNER DIAGNOSTIC
+==================================================
+
+--- 1. HOST ---
+aarch64
+arm64-v8a
+
+--- 2. GLIBC RUNNER ---
+/data/data/com.termux/files/usr/bin/glibc-runner
+/data/data/com.termux/files/usr/bin/glibc-runner
+
+--- 3. GLIBC RUNNER FILE ---
+-rwx------. 1 u0_a255 u0_a255 135 Feb 26  2024 /data/data/com.termux/files/usr/bin/glibc-runner
+/data/data/com.termux/files/usr/bin/glibc-runner: a /data/data/com.termux/files/usr/bin/bash script, ASCII text executable
+#!/data/data/com.termux/files/usr/bin/bash
+
+# version: 2.0
+
+source /data/data/com.termux/files/usr/opt/glibc-runner/glibc-runner.sh $@
+
+--- 4. BOX64 FILE ---
+-rwx------. 1 u0_a255 u0_a255 87924736 Aug  5 14:20 /data/data/com.termux/files/usr/glibc/bin/box64
+/data/data/com.termux/files/usr/glibc/bin/box64: ELF 64-bit LSB executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1, BuildID[sha1]=b85852636d5d7ea5e1b23dca22a1a002f4e25dd7, for GNU/Linux 3.7.0, with debug_info, not stripped
+
+--- 5. BOX64 NEEDED LIBRARIES ---
+  0x0000000000000001 (NEEDED)       Shared library: [libc.so.6]
+  0x0000000000000001 (NEEDED)       Shared library: [libm.so.6]
+  0x0000000000000001 (NEEDED)       Shared library: [libresolv.so.2]
+  0x0000000000000001 (NEEDED)       Shared library: [ld-linux-aarch64.so.1]
+  0x0000000000000001 (NEEDED)       Shared library: [libgcc_s.so.1]
+
+--- 6. GLIBC libc.so ---
+-rw-------. 1 u0_a255 u0_a255     362 Aug 15 00:19 /data/data/com.termux/files/usr/glibc/lib/libc.so
+-rwx------. 1 u0_a255 u0_a255 2368240 Aug 15 00:19 /data/data/com.termux/files/usr/glibc/lib/libc.so.6
+
+--- 7. libc.so FILE TYPES ---
+/data/data/com.termux/files/usr/glibc/lib/libc.so: ASCII text
+/data/data/com.termux/files/usr/glibc/lib/libc.so.6: ELF 64-bit LSB shared object, ARM aarch64, version 1 (GNU/Linux), dynamically linked, interpreter /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1, BuildID[sha1]=f386dc8ca35a4e5e78b9640b70fdbe43ad06688b, for GNU/Linux 3.7.0, with debug_info, not stripped
+
+--- 8. libc.so HEADER ---
+/* GNU ld script
+   Use the shared library, but some functions are only in
+   the static library, so try that secondarily.  */
+OUTPUT_FORMAT(elf64-littleaarch64)
+GROUP ( /data/data/com.termux/files/usr/glibc/lib/libc.so.6 /data/data/com.termux/files/usr/glibc/lib/libc_nonshared.a  AS_NEEDED ( /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1 ) )
+
+--- 9. GLIBC LOADER ---
+-rwx------. 1 u0_a255 u0_a255 242560 Aug 15 00:19 /data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1
+/data/data/com.termux/files/usr/glibc/lib/ld-linux-aarch64.so.1: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=8dd006d1e3250709c6295970421f6007047b256e, with debug_info, not stripped
+
+--- 10. BOX64 VERSION DIRECT ---
+/data/data/com.termux/files/usr/glibc/bin/box64: error while loading shared libraries: /data/data/com.termux/files/usr/glibc/lib/libc.so: invalid ELF header
+BOX64_DIRECT_RC=127
+
+--- 11. GLIBC RUNNER + BOX64 ---
+Box64 arm64 v0.4.2 nogit with Dynarec built on Aug  5 2026 08:50:17
+RUNNER_BOX64_RC=0
+
+--- 12. BOX64 ENVIRONMENT ---
+PATH=/data/data/com.termux/files/usr/opt/flutter/bin:/data/data/com.termux/files/home/flutter/bin:/data/data/com.termux/files/home/flutter/bin:/data/data/com.termux/files/usr/opt/flutter/bin:/data/data/com.termux/files/home/.pub-cache/bin:/data/data/com.termux/files/usr/bin:/data/data/com.termux/files/usr/opt/android-sdk/platform-tools:/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin
+PREFIX=/data/data/com.termux/files/usr
+
+--- 13. X86_64 CLANG ---
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.24, stripped
+
+--- 14. GLIBC X86_64 DIRECTORY CONTENT ---
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libcrypto.so.1.1
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libgcc_s.so.1
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libmbedcrypto.so.7
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libmbedtls.so.14
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libmbedx509.so.1
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libpng12.so.0
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libssl.so.1.0.0
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libssl.so.1.1
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libstdc++.so.5
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libstdc++.so.6
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libunwind.so.8
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libmbedcrypto.so.3
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libmbedtls.so.12
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libmbedx509.so.0
+/data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libcrypto.so.1.0.0
+
+--- 15. BOX64 CONFIG ---
+
+--- 16. FINAL ---
+HOST=aarch64
+GLIBC=/data/data/com.termux/files/usr/glibc
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+CLANG=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang-19
+
+==================================================
+ END PHASE 172
+==================================================

@@ -1,0 +1,71 @@
+==================================================
+ PHASE 202: NDK HOST TAG OVERRIDE TEST
+==================================================
+
+--- 1. TOOLS ---
+NDK=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358
+CMAKE=/data/data/com.termux/files/home/../usr/opt/android-sdk/cmake/3.22.1/bin/cmake
+TOOLCHAIN=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/build/cmake/android.toolchain.cmake
+
+--- 2. SOURCE ---
+SOURCE=YES
+
+--- 3. CONFIGURE WITH EXPLICIT HOST TAG ---
+-- ANDROID_PLATFORM not set. Defaulting to minimum supported version
+21.
+-- The C compiler identification is unknown
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+-- Check for working C compiler: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang - broken
+CMake Error at /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:65 (message):
+  The C compiler
+
+    "/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase202_test/build/CMakeFiles/CMakeScratch/TryCompile-3vZ4L4'
+    
+    Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_49749
+    [1/2] /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang   -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security -o CMakeFiles/cmTC_49749.dir/testCCompiler.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase202_test/build/CMakeFiles/CMakeScratch/TryCompile-3vZ4L4/testCCompiler.c
+    FAILED: [code=2] CMakeFiles/cmTC_49749.dir/testCCompiler.c.o 
+    /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang   -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security -o CMakeFiles/cmTC_49749.dir/testCCompiler.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase202_test/build/CMakeFiles/CMakeScratch/TryCompile-3vZ4L4/testCCompiler.c
+    /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang: 1: Syntax error: ")" unexpected
+    ninja: build stopped: subcommand failed.
+    
+    
+
+
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 4. COMPILER CACHE ---
+ANDROID_HOST_TAG:UNINITIALIZED=linux-x86_64
+
+--- 5. BUILD ---
+BUILD_RC=99
+
+--- 6. OUTPUT ---
+EXECUTABLE=NOT_CREATED
+
+--- 7. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+HOST_TAG_OVERRIDE=FAILED
+
+==================================================
+ PHASE 202 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase202_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase202_result.txt
+==================================================

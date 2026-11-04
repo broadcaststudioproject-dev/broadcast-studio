@@ -1,0 +1,179 @@
+
+--- 1. TOOLS ---
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+CLANG=/data
+--- 1. TOOLS ---
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+CLANG_LIB=/data/data/com.termux/files/home/../uBox64 arm64 v0.4.2 nogit with Dynarec built on Aug  5 2026 08:50:17
+BOX64_RC=0
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOLLD 19.0.1 (compatible with GNU linkers)
+LLD_VERSION_RC=0
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-projeAndroid (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: x86_64-unknown-linux-gnu
+ThrCLANG_VERSION_RC=0
+
+--- 3. CREATE TEST SOURCE ---
+-rw-------. 1 u0_a255 u0_a255 33 Aug 28 02:20 /data/data/com.termux/files/home/pocket_pcr_studio/phase182_test/test.c
+/data/data/com.termux/files/home/pocket_pcr_studio/phase182_test/test.c: C source, ASCII text
+
+--- 4. COMPILE OBJECT ---
+COMPILE_RC=0
+OBJECT_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase182_test/test.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not str/data/
+--- 5. VERIFY CRTBEGIN ---
+CRTBEGIN=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aaCRTBEGIN=/data/data/com.termux/files/home/-rw-------. 1 u0_a255 u0_a255 3576 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/p-rw-------. 1 u0_a255 u0_a255 3576 Aug 25 18:45 /data/data/com.termux/files/home//data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-lin/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21CRTBEGIN_EXISTS=YES
+
+--- 6. VERIFY CRTEND ---
+CRTEND=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarcCRTEND=/data/data/com.termux/files/hom-rw-------. 1 u0_a255 u0_a255 840 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/pr-rw-------. 1 u0_a255 u0_a255 840 Aug 25 18:45 /data/data/com.termux/files/hom/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-lin/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linuxCRTEND_EXISTS=YES
+
+--- 7. VERIFY BUILTINS ---
+BUILTINS=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/lBUILTINS=/data/data/com.termux/files/home/../usr/optls: cannot access '/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clanls: cannot access '/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.136763/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarc/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libclang_rt.builtins-aarch64-android.a: cannot open `/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.1367635BUILTINS_EXISTS=NO
+
+--- 8. VERIFY LIBUNWIND ---
+UNWIND=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linUNWIND=/data/data/com.t-rw-------. 1 u0_a255 u0_a255 91152 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/-rw-------. 1 u0_a255 u0_a255 91152 Aug 25 18:45 /data/data/com.t/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarc/data/data/com.termux/files/home/../UNWIND_EXISTS=YES
+
+--- 9. VERIFY LIBC ---
+LIBC=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch6LIBC=/data/data/com.termux/-rwx--x--x. 1 u0_a255 u0_a255 176936 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm-rwx--x--x. 1 u0_a255 u0_a255 176936 Aug 25 18:45 /data/data/com.termux//data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-lin/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libc.so: ELF 64-bit LSB shared obLIBC_EXISTS=YES
+
+--- 10. VERIFY LIBDL ---
+LIBDL=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/pLIBC_EXISTS=YES
+
+--- 10. VERIFY LIBDL ---
+LIBDL=/data/data/com.termux/f-rwx--x--x. 1 u0_a255 u0_a255 12304 Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/-rwx--x--x. 1 u0_a255 u0_a255 12304 Aug 25 18:45 /data/data/com.termux/f/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-lin/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libdl.so: ELF 64-bit LSB shared obLIBDL_EXISTS=YES
+
+--- 11. OBJECT ONLY LINK ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOOBJECT_LINK_RC=0
+OBJECT_LINK_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase182_test/link_object_only: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (S/data/data/com.termux/files/home/pocke
+--- 12. OBJECT + BUILTINS ONLY ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676BUILTINS_LINK_RC=1
+BUILTINS_LINK_CREATED=NO
+
+--- 13. OBJECT + CRTBEGIN ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676CRTBEGIN_RC=1
+CRTBEGIN_LINK_CREATED=NO
+
+--- 14. OBJECT + CRTBEGIN + CRTEND ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676CRT_LINK_RC=1
+CRT_LINK_CREATED=NO
+
+--- 15. ADD LIBC ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676LIBC_LINK_RC=1
+LIBC_LINK_CREATED=NO
+
+--- 16. ADD LIBDL ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676LIBC_DL_RC=1
+LIBC_DL_LINK_CREATED=NO
+
+--- 17. ADD LIBUNWIND ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or dir[[31mBOld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/ld.lld: error: cannot open /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676UNWIND_RC=1
+UNWIND_LINK_CREATED=NO
+
+--- 18. EXACT NDK SEARCH DIRECTORIES ---
+=== Android API 21 ===
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-lin/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libmediandk.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crt_pad_segment.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libOpenMAXAL.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libm.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_static.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libz.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libc++.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libOpenSLES.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtend_android.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libc.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libdl.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/liblog.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libc++.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_dynamic.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtbegin_so.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libjnigraphics.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/crtend_so.o
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libandroid.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libstdc++.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libGLESv2.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libEGL.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21/libGLESv3.so
+/data/data/com.termux/files/ho
+=== Android generic ===
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-lin/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libdl.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libcompiler_rt-extras.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++experimental.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libstdc++.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++abi.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_static.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libz.a
+/data/data/com.ter
+--- 19. BUILTINS DIRECTORY ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarc/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libFuzzer.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libomp.so
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libomp.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/lldb-server
+/data/data/com.t
+--- 20. BOX64 TRACE LINK TEST ---
+TRACE_RC=0
+--- TRACE HEAD ---
+[BOX64] Dynarec for ARM64, with extension: ASIMD AES CRC32 PMULL ATOMICS SHA1 SHA2
+[BOX64] Running on Cortex-A55 with 8 cores, pagesize: 40[BOX64] Dynarec for ARM64, with extension: ASIMD AES CRC32 PMULL ATOMICS SHA1 SHA2
+[BOX64] Running on Cortex-A55 with 8 cores, pagesize: 4096
+[BOX64] Will use hardware counter measured at 13.0 MHz emulating 3.3 GHz
+[BOX64] Didn't detect 48bits of address space, considering it's 39bits
+[BOX64] Counted 51 Env var
+[BOX64] Library search path: 
+[BOX64] Binary search path: ./:bin/:/data/data/com.termux/files/usr/glibc/bin/:/data/data/com.termux/files/usr/opt/flutter/bin/:/data/data/com.termux/files/home/flutter/bin/:/data/data/com.termux/files/home/flutter/bin/:/data/data/com.termux/files/usr/opt/flutter/bin/:/data/data/com.termux/files/home/.pub-cache/bin/:/data/data/com.termux/files/usr/bin/:/data/data/com.termux/files/usr/opt/android-sdk/platform-tools/:/data/data/com.termux/files/usr/opt/android-sdk/cmdline-tools/latest/bin/
+[BOX64] Looking for /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+[BOX64] argv[1]="-m"
+[BOX64] argv[2]="aarch64linux"
+[BOX64] argv[3]="-pie"
+[BOX64] argv[4]="-e"
+[BOX64] argv[5]="main"
+[BOX64] argv[6]="/data/data/com.termux/files/home/pocket_pcr_studio/phase182_test/test.o"
+[BOX64] argv[7]="-o"
+[BOX64] argv[8]="/data/data/com.termux/files/home/pocket_pcr_studio/phase182_test/trace_link"
+[BOX64] Rename process to "lld"
+[BOX64] Using native(wrapped) libpthread.so.0
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+[BOX64] Using emulated /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/../lib/libxml2.so.2
+[BOX64] Using native(wrapped) librt.so.1
+[BOX64] Using native(wrapped) libdl.so.2
+[BOX64] Using native(wrapped) libm.so.6
+[BOX64] Using native(wrapped) libz.so.1
+[BOX64] Using emulated /data/data/com.termux/files/usr/glibc/lib/box64-x86_64-linux-gnu/libgcc_s.so.1
+[BOX64] Using native(wrapped) libc.so
+--- 21. FINAL INVENTORY ---
+box64_trace.log
+link_object_only
+test.c
+test.o
+trace_link
+
+--- 22. FINAL STATUS ---
+HOST=aarch64
+BOX64_RC=0
+LLD_VERSION_RC=0
+COMPILE_RC=0
+OBJECT_LINK_RC=0
+BUILTINS_LINK_RC=1
+CRTBEGIN_RC=1
+CRT_LINK_RC=1
+LIBC_LINK_RC=1
+LIBC_DL_RC=1
+UNWIND_RC=1
+TRACE_RC=0
+
+==================================================
+ PHASE 182 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase182_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase182_result.txt
+==================================================
+test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase182_result.txt
+==================================================

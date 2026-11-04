@@ -1,0 +1,326 @@
+             VMA              LMA     Size Align Out     In      Symbol
+             200              200      198     8 .dynsym
+             200              200      198     8         <internal>:(.dynsym)
+             398              398       22     2 .gnu.version
+             398              398       22     2         <internal>:(.gnu.version)
+             3bc              3bc       40     4 .gnu.version_r
+             3bc              3bc       40     4         <internal>:(.gnu.version_r)
+             400              400       20     8 .gnu.hash
+             400              400       20     8         <internal>:(.gnu.hash)
+             420              420       90     4 .hash
+             420              420       90     4         <internal>:(.hash)
+             4b0              4b0       cf     1 .dynstr
+             4b0              4b0       cf     1         <internal>:(.dynstr)
+             580              580      210     8 .rela.dyn
+             580              580      210     8         <internal>:(.rela.dyn)
+             790              790      150     8 .rela.plt
+             790              790      150     8         <internal>:(.rela.plt)
+             8e0              8e0      dc8     4 .rodata
+             8e0              8e0      abb     1         <internal>:(.rodata.str1.1)
+            139c             139c       60     2         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.rodata._ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE20parseFDEInstructionsERS1_RKNS2_8FDE_InfoERKNS2_8CIE_InfoEmiPNS2_10PrologInfoE)
+            139c             139c        0     1                 $d
+            13fc             13fc      124     2         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.rodata._ZN9libunwind17DwarfInstructionsINS_17LocalAddressSpaceENS_15Registers_arm64EE18evaluateExpressionEmRS1_RKS2_m)
+            13fc             13fc        0     1                 $d
+            1520             1520      188     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.rodata..Lswitch.table._ZN9libunwind15Registers_arm6415getRegisterNameEi.rel)
+            1520             1520        0     1                 $d
+            16a8             16a8      df8     8 .eh_frame
+            16a8             16a8       58     1         /data/data/com.termux/files/home/pocket_pcr_studio/phase245_native_test/test_unwind.o:(.eh_frame+0x0)
+            1700             1700      18c     1         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.eh_frame+0x14)
+            188c             188c      214     1         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.eh_frame+0x14)
+            1aa0             1aa0      9fc     1         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.eh_frame+0x14)
+           124a0            124a0     4928     4 .text
+           124a0            124a0       38     4         /data/data/com.termux/files/home/pocket_pcr_studio/phase245_native_test/test_unwind.o:(.text)
+           124a0            124a0        0     1                 $x
+           124a0            124a0       20     1                 test_real_unwind
+           124c0            124c0       18     1                 callback
+           124d8            124d8        0     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text)
+           124d8            124d8       58     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text._Unwind_Resume_or_Rethrow)
+           124d8            124d8        0     1                 $x
+           124d8            124d8       58     1                 _Unwind_Resume_or_Rethrow
+           12530            12530       44     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text.unlikely._Unwind_GetDataRelBase)
+           12530            12530        0     1                 $x
+           12530            12530       44     1                 _Unwind_GetDataRelBase
+           12574            12574       44     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text.unlikely._Unwind_GetTextRelBase)
+           12574            12574        0     1                 $x
+           12574            12574       44     1                 _Unwind_GetTextRelBase
+           125b8            125b8       68     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text._Unwind_FindEnclosingFunction)
+           125b8            125b8        0     1                 $x
+           125b8            125b8       68     1                 _Unwind_FindEnclosingFunction
+           12620            12620       88     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text._Unwind_Backtrace)
+           12620            12620        0     1                 $x
+           12620            12620       88     1                 _Unwind_Backtrace
+           126a8            126a8       78     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text._Unwind_Find_FDE)
+           126a8            126a8        0     1                 $x
+           126a8            126a8       78     1                 _Unwind_Find_FDE
+           12720            12720       30     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text._Unwind_GetCFA)
+           12720            12720        0     1                 $x
+           12720            12720       30     1                 _Unwind_GetCFA
+           12750            12750       40     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text._Unwind_GetIPInfo)
+           12750            12750        0     1                 $x
+           12750            12750       40     1                 _Unwind_GetIPInfo
+           12790            12790        8     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text.__register_frame)
+           12790            12790        0     1                 $x
+           12790            12790        8     1                 __register_frame
+           12798            12798        8     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1-gcc-ext.c.o):(.text.__deregister_frame)
+           12798            12798        0     1                 $x
+           12798            12798        8     1                 __deregister_frame
+           127a0            127a0        0     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text)
+           127a0            127a0       f8     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_RaiseException)
+           127a0            127a0        0     1                 $x
+           127a0            127a0       f8     1                 _Unwind_RaiseException
+           12898            12898      258     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text.unwind_phase2)
+           12898            12898      258     1                 unwind_phase2
+           12898            12898        0     1                 $x
+           12af0            12af0       84     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text.unlikely._Unwind_Resume)
+           12af0            12af0        0     1                 $x
+           12af0            12af0       84     1                 _Unwind_Resume
+           12b74            12b74      154     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text.unwind_phase2_forced)
+           12b74            12b74      154     1                 unwind_phase2_forced
+           12b74            12b74        0     1                 $x
+           12cc8            12cc8       64     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_ForcedUnwind)
+           12cc8            12cc8        0     1                 $x
+           12cc8            12cc8       64     1                 _Unwind_ForcedUnwind
+           12d2c            12d2c       34     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_GetLanguageSpecificData)
+           12d2c            12d2c        0     1                 $x
+           12d2c            12d2c       34     1                 _Unwind_GetLanguageSpecificData
+           12d60            12d60       34     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_GetRegionStart)
+           12d60            12d60        0     1                 $x
+           12d60            12d60       34     1                 _Unwind_GetRegionStart
+           12d94            12d94       1c     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_DeleteException)
+           12d94            12d94        0     1                 $x
+           12d94            12d94       1c     1                 _Unwind_DeleteException
+           12db0            12db0       2c     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_GetGR)
+           12db0            12db0        0     1                 $x
+           12db0            12db0       2c     1                 _Unwind_GetGR
+           12ddc            12ddc        8     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_SetGR)
+           12ddc            12ddc        0     1                 $x
+           12ddc            12ddc        8     1                 _Unwind_SetGR
+           12de4            12de4       30     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_GetIP)
+           12de4            12de4        0     1                 $x
+           12de4            12de4       30     1                 _Unwind_GetIP
+           12e14            12e14       10     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindLevel1.c.o):(.text._Unwind_SetIP)
+           12e14            12e14        0     1                 $x
+           12e14            12e14       10     1                 _Unwind_SetIP
+           12e24            12e24        0     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text)
+           12e24            12e24       10     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__libunwind_cet_get_jump_target)
+           12e24            12e24        0     1                 $x
+           12e24            12e24       10     1                 __libunwind_cet_get_jump_target
+           12e34            12e34       10     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__libunwind_cet_get_registers)
+           12e34            12e34        0     1                 $x
+           12e34            12e34       10     1                 __libunwind_cet_get_registers
+           12e44            12e44       a8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_init_local)
+           12e44            12e44        0     1                 $x
+           12e44            12e44       a8     1                 __unw_init_local
+           12e44            12e44       a8     1                 unw_init_local
+           12eec            12eec       7c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_get_reg)
+           12eec            12eec        0     1                 $x
+           12eec            12eec       7c     1                 __unw_get_reg
+           12eec            12eec       7c     1                 unw_get_reg
+           12f68            12f68       ec     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_set_reg)
+           12f68            12f68        0     1                 $x
+           12f68            12f68       ec     1                 __unw_set_reg
+           12f68            12f68       ec     1                 unw_set_reg
+           13054            13054       78     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_get_fpreg)
+           13054            13054        0     1                 $x
+           13054            13054       78     1                 __unw_get_fpreg
+           13054            13054       78     1                 unw_get_fpreg
+           130cc            130cc       78     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_set_fpreg)
+           130cc            130cc        0     1                 $x
+           130cc            130cc       78     1                 __unw_set_fpreg
+           130cc            130cc       78     1                 unw_set_fpreg
+           13144            13144       14     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_step)
+           13144            13144        0     1                 $x
+           13144            13144       14     1                 __unw_step
+           13144            13144       14     1                 unw_step
+           13158            13158       14     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_step_stage2)
+           13158            13158        0     1                 $x
+           13158            13158       14     1                 __unw_step_stage2
+           1316c            1316c       40     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_get_proc_info)
+           1316c            1316c        0     1                 $x
+           1316c            1316c       40     1                 __unw_get_proc_info
+           1316c            1316c       40     1                 unw_get_proc_info
+           131ac            131ac       28     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_resume)
+           131ac            131ac        0     1                 $x
+           131ac            131ac       28     1                 __unw_resume
+           131ac            131ac       28     1                 unw_resume
+           131d4            131d4       30     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_get_proc_name)
+           131d4            131d4        0     1                 $x
+           131d4            131d4       30     1                 __unw_get_proc_name
+           131d4            131d4       30     1                 unw_get_proc_name
+           13204            13204       28     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_is_fpreg)
+           13204            13204        0     1                 $x
+           13204            13204       28     1                 __unw_is_fpreg
+           13204            13204       28     1                 unw_is_fpreg
+           1322c            1322c       10     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_regname)
+           1322c            1322c        0     1                 $x
+           1322c            1322c       10     1                 __unw_regname
+           1322c            1322c       10     1                 unw_regname
+           1323c            1323c       28     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_is_signal_frame)
+           1323c            1323c        0     1                 $x
+           1323c            1323c       28     1                 __unw_is_signal_frame
+           1323c            1323c       28     1                 unw_is_signal_frame
+           13264            13264       70     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_iterate_dwarf_unwind_cache)
+           13264            13264        0     1                 $x
+           13264            13264       70     1                 __unw_iterate_dwarf_unwind_cache
+           13264            13264       70     1                 unw_iterate_dwarf_unwind_cache
+           132d4            132d4      100     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_add_dynamic_fde)
+           132d4            132d4        0     1                 $x
+           132d4            132d4      100     1                 __unw_add_dynamic_fde
+           133d4            133d4      198     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE9decodeFDEERS1_mPNS2_8FDE_InfoEPNS2_8CIE_InfoEb)
+           133d4            133d4        0     1                 $x
+           133d4            133d4      198     1                 libunwind::CFI_Parser<libunwind::LocalAddressSpace>::decodeFDE(libunwind::LocalAddressSpace&, unsigned long, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::FDE_Info*, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::CIE_Info*, bool)
+           1356c            1356c       90     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_remove_dynamic_fde)
+           1356c            1356c        0     1                 $x
+           1356c            1356c       90     1                 __unw_remove_dynamic_fde
+           135fc            135fc      184     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_add_dynamic_eh_frame_section)
+           135fc            135fc        0     1                 $x
+           135fc            135fc      184     1                 __unw_add_dynamic_eh_frame_section
+           13780            13780      2c8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE8parseCIEERS1_mPNS2_8CIE_InfoE)
+           13780            13780        0     1                 $x
+           13780            13780      2c8     1                 libunwind::CFI_Parser<libunwind::LocalAddressSpace>::parseCIE(libunwind::LocalAddressSpace&, unsigned long, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::CIE_Info*)
+           13a48            13a48       90     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text.__unw_remove_dynamic_eh_frame_section)
+           13a48            13a48        0     1                 $x
+           13a48            13a48       90     1                 __unw_remove_dynamic_eh_frame_section
+           13ad8            13ad8        8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind20AbstractUnwindCursorD2Ev)
+           13ad8            13ad8        0     1                 $x
+           13ad8            13ad8        8     1                 libunwind::AbstractUnwindCursor::~AbstractUnwindCursor()
+           13ae0            13ae0        8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EED0Ev)
+           13ae0            13ae0        0     1                 $x
+           13ae0            13ae0        8     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::~UnwindCursor()
+           13ae8            13ae8       44     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE8validRegEi)
+           13ae8            13ae8        0     1                 $x
+           13ae8            13ae8       44     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::validReg(int)
+           13b2c            13b2c       e8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE6getRegEi)
+           13b2c            13b2c        0     1                 $x
+           13b2c            13b2c       e8     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getReg(int)
+           13c14            13c14       d0     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE6setRegEim)
+           13c14            13c14        0     1                 $x
+           13c14            13c14       d0     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::setReg(int, unsigned long)
+           13ce4            13ce4       14     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE13validFloatRegEi)
+           13ce4            13ce4        0     1                 $x
+           13ce4            13ce4       14     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::validFloatReg(int)
+           13cf8            13cf8       10     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE11getFloatRegEi)
+           13cf8            13cf8        0     1                 $x
+           13cf8            13cf8       10     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getFloatReg(int)
+           13d08            13d08       10     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE11setFloatRegEid)
+           13d08            13d08        0     1                 $x
+           13d08            13d08       10     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::setFloatReg(int, double)
+           13d18            13d18      11c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE4stepEb)
+           13d18            13d18        0     1                 $x
+           13d18            13d18      11c     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::step(bool)
+           13e34            13e34       48     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE7getInfoEP15unw_proc_info_t)
+           13e34            13e34        0     1                 $x
+           13e34            13e34       48     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getInfo(unw_proc_info_t*)
+           13e7c            13e7c        c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE6jumptoEv)
+           13e7c            13e7c        0     1                 $x
+           13e7c            13e7c        c     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::jumpto()
+           13e88            13e88        c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE13isSignalFrameEv)
+           13e88            13e88        0     1                 $x
+           13e88            13e88        c     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::isSignalFrame()
+           13e94            13e94       2c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE15getFunctionNameEPcmPm)
+           13e94            13e94        0     1                 $x
+           13e94            13e94       2c     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getFunctionName(char*, unsigned long, unsigned long*)
+           13ec0            13ec0      244     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE24setInfoBasedOnIPRegisterEb)
+           13ec0            13ec0        0     1                 $x
+           13ec0            13ec0      244     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::setInfoBasedOnIPRegister(bool)
+           14104            14104        c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE15getRegisterNameEi)
+           14104            14104        0     1                 $x
+           14104            14104        c     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getRegisterName(int)
+           14110            14110        c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE13get_registersEv)
+           14110            14110        0     1                 $x
+           14110            14110        c     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::get_registers()
+           1411c            1411c      4b0     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind17DwarfInstructionsINS_17LocalAddressSpaceENS_15Registers_arm64EE13stepWithDwarfERS1_mmRS2_Rbb)
+           1411c            1411c        0     1                 $x
+           1411c            1411c      4b0     1                 libunwind::DwarfInstructions<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::stepWithDwarf(libunwind::LocalAddressSpace&, unsigned long, unsigned long, libunwind::Registers_arm64&, bool&, bool)
+           145cc            145cc      ad8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE20parseFDEInstructionsERS1_RKNS2_8FDE_InfoERKNS2_8CIE_InfoEmiPNS2_10PrologInfoE)
+           145cc            145cc        0     1                 $x
+           145cc            145cc      ad8     1                 libunwind::CFI_Parser<libunwind::LocalAddressSpace>::parseFDEInstructions(libunwind::LocalAddressSpace&, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::FDE_Info const&, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::CIE_Info const&, unsigned long, int, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::PrologInfo*)
+           150a4            150a4      134     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind17DwarfInstructionsINS_17LocalAddressSpaceENS_15Registers_arm64EE6getCFAERS1_RKNS_10CFI_ParserIS1_E10PrologInfoERKS2_)
+           150a4            150a4        0     1                 $x
+           150a4            150a4      134     1                 libunwind::DwarfInstructions<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getCFA(libunwind::LocalAddressSpace&, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::PrologInfo const&, libunwind::Registers_arm64 const&)
+           151d8            151d8      210     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind17DwarfInstructionsINS_17LocalAddressSpaceENS_15Registers_arm64EE16getSavedRegisterERS1_RKS2_mRKNS_10CFI_ParserIS1_E16RegisterLocationE)
+           151d8            151d8        0     1                 $x
+           151d8            151d8      210     1                 libunwind::DwarfInstructions<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getSavedRegister(libunwind::LocalAddressSpace&, libunwind::Registers_arm64 const&, unsigned long, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::RegisterLocation const&)
+           153e8            153e8      38c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind17LocalAddressSpace11getEncodedPERmmhm)
+           153e8            153e8        0     1                 $x
+           153e8            153e8      38c     1                 libunwind::LocalAddressSpace::getEncodedP(unsigned long&, unsigned long, unsigned char, unsigned long)
+           15774            15774      1c8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind17LocalAddressSpace10getULEB128ERmm)
+           15774            15774        0     1                 $x
+           15774            15774      1c8     1                 libunwind::LocalAddressSpace::getULEB128(unsigned long&, unsigned long)
+           1593c            1593c      9c4     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind17DwarfInstructionsINS_17LocalAddressSpaceENS_15Registers_arm64EE18evaluateExpressionEmRS1_RKS2_m)
+           1593c            1593c        0     1                 $x
+           1593c            1593c      9c4     1                 libunwind::DwarfInstructions<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::evaluateExpression(unsigned long, libunwind::LocalAddressSpace&, libunwind::Registers_arm64 const&, unsigned long)
+           16300            16300      2d4     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EE23getInfoFromDwarfSectionEmRKNS_18UnwindInfoSectionsEj)
+           16300            16300        0     1                 $x
+           16300            16300      2d4     1                 libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>::getInfoFromDwarfSection(unsigned long, libunwind::UnwindInfoSections const&, unsigned int)
+           165d4            165d4      13c     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwindL24findUnwindSectionsByPhdrEP12dl_phdr_infomPv)
+           165d4            165d4      13c     1                 libunwind::findUnwindSectionsByPhdr(dl_phdr_info*, unsigned long, void*)
+           165d4            165d4        0     1                 $x
+           16710            16710      120     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind14EHHeaderParserINS_17LocalAddressSpaceEE11decodeEHHdrERS1_mmRNS2_12EHHeaderInfoE)
+           16710            16710        0     1                 $x
+           16710            16710      120     1                 libunwind::EHHeaderParser<libunwind::LocalAddressSpace>::decodeEHHdr(libunwind::LocalAddressSpace&, unsigned long, unsigned long, libunwind::EHHeaderParser<libunwind::LocalAddressSpace>::EHHeaderInfo&)
+           16830            16830      1c8     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind10CFI_ParserINS_17LocalAddressSpaceEE7findFDEERS1_mmmmPNS2_8FDE_InfoEPNS2_8CIE_InfoE)
+           16830            16830        0     1                 $x
+           16830            16830      1c8     1                 libunwind::CFI_Parser<libunwind::LocalAddressSpace>::findFDE(libunwind::LocalAddressSpace&, unsigned long, unsigned long, unsigned long, unsigned long, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::FDE_Info*, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::CIE_Info*)
+           169f8            169f8      168     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind14EHHeaderParserINS_17LocalAddressSpaceEE7findFDEERS1_mmjPNS_10CFI_ParserIS1_E8FDE_InfoEPNS5_8CIE_InfoE)
+           169f8            169f8        0     1                 $x
+           169f8            169f8      168     1                 libunwind::EHHeaderParser<libunwind::LocalAddressSpace>::findFDE(libunwind::LocalAddressSpace&, unsigned long, unsigned long, unsigned int, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::FDE_Info*, libunwind::CFI_Parser<libunwind::LocalAddressSpace>::CIE_Info*)
+           16b60            16b60       fc     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind14EHHeaderParserINS_17LocalAddressSpaceEE17getTableEntrySizeEh)
+           16b60            16b60        0     1                 $x
+           16b60            16b60       fc     1                 libunwind::EHHeaderParser<libunwind::LocalAddressSpace>::getTableEntrySize(unsigned char)
+           16c5c            16c5c       30     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.text._ZN9libunwind15Registers_arm6415getRegisterNameEi)
+           16c5c            16c5c        0     1                 $x
+           16c5c            16c5c       30     1                 libunwind::Registers_arm64::getRegisterName(int)
+           16c8c            16c8c       a0     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindRegistersRestore.S.o):(.text)
+           16c8c            16c8c        0     1                 $x
+           16c8c            16c8c        0     1                 __libunwind_Registers_arm64_jumpto
+           16d28            16d28        0     1                 Lnogcs
+           16d2c            16d2c       9c     4         /data/data/com.termux/files/usr/lib/libunwind.a(UnwindRegistersSave.S.o):(.text)
+           16d2c            16d2c        0     1                 $x
+           16d2c            16d2c        0     1                 __unw_getcontext
+           16d2c            16d2c        0     1                 unw_getcontext
+           16dd0            16dd0      100    16 .plt
+           16dd0            16dd0      100    16         <internal>:(.plt)
+           26ed0            26ed0       90     8 .data.rel.ro
+           26ed0            26ed0       90     8         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.data.rel.ro._ZTVN9libunwind12UnwindCursorINS_17LocalAddressSpaceENS_15Registers_arm64EEE)
+           26ed0            26ed0        0     1                 $d
+           26ed0            26ed0       90     1                 vtable for libunwind::UnwindCursor<libunwind::LocalAddressSpace, libunwind::Registers_arm64>
+           26f60            26f60      150     8 .dynamic
+           26f60            26f60      150     8         <internal>:(.dynamic)
+           270b0            270b0       10     8 .got
+           270b0            270b0       10     8         <internal>:(.got)
+           270c0            270c0      f40     1 .relro_padding
+           270c0            270c0        0     1         <internal>:(.relro_padding)
+           370c0            370c0       20     8 .data
+           370c0            370c0        8     8         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.data.unw_local_addr_space)
+           370c0            370c0        0     1                 $d
+           370c0            370c0        8     1                 unw_local_addr_space
+           370c8            370c8        8     8         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.data._ZN9libunwind13DwarfFDECacheINS_17LocalAddressSpaceEE7_bufferE)
+           370c8            370c8        0     1                 $d
+           370c8            370c8        8     1                 libunwind::DwarfFDECache<libunwind::LocalAddressSpace>::_buffer
+           370d0            370d0        8     8         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.data._ZN9libunwind13DwarfFDECacheINS_17LocalAddressSpaceEE11_bufferUsedE)
+           370d0            370d0        0     1                 $d
+           370d0            370d0        8     1                 libunwind::DwarfFDECache<libunwind::LocalAddressSpace>::_bufferUsed
+           370d8            370d8        8     8         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.data._ZN9libunwind13DwarfFDECacheINS_17LocalAddressSpaceEE10_bufferEndE)
+           370d8            370d8        0     1                 $d
+           370d8            370d8        8     1                 libunwind::DwarfFDECache<libunwind::LocalAddressSpace>::_bufferEnd
+           370e0            370e0       88     8 .got.plt
+           370e0            370e0       88     8         <internal>:(.got.plt)
+           37168            37168      840     8 .bss
+           37168            37168        1     1         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.bss._ZN9libunwind17LocalAddressSpace17sThisAddressSpaceE)
+           37168            37168        0     1                 $d
+           37168            37168        1     1                 libunwind::LocalAddressSpace::sThisAddressSpace
+           3716c            3716c       38     4         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.bss._ZN9libunwind13DwarfFDECacheINS_17LocalAddressSpaceEE5_lockE)
+           3716c            3716c        0     1                 $d
+           3716c            3716c       38     1                 libunwind::DwarfFDECache<libunwind::LocalAddressSpace>::_lock
+           371a8            371a8      800     8         /data/data/com.termux/files/usr/lib/libunwind.a(libunwind.cpp.o):(.bss._ZN9libunwind13DwarfFDECacheINS_17LocalAddressSpaceEE14_initialBufferE)
+           371a8            371a8        0     1                 $d
+           371a8            371a8      800     1                 libunwind::DwarfFDECache<libunwind::LocalAddressSpace>::_initialBuffer
+               0                0       e1     1 .comment
+               0                0       e1     1         <internal>:(.comment)
+               0                0     14b8     8 .symtab
+               0                0     14b8     8         <internal>:(.symtab)
+               0                0       cf     1 .shstrtab
+               0                0       cf     1         <internal>:(.shstrtab)
+               0                0     13da     1 .strtab
+               0                0     13da     1         <internal>:(.strtab)

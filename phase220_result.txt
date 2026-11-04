@@ -1,0 +1,97 @@
+==================================================
+PHASE 220: CMAKE C++ LIBC++ + UNWINDLIB NONE
+==================================================
+
+--- 1. TOOLS ---
+CLANG=/data/data/com.termux/files/usr/bin/clang
+CLANGXX=/data/data/com.termux/files/usr/bin/clang++
+TARGET=aarch64-linux-android21
+SYSROOT=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+CLANG_EXECUTABLE=YES
+CLANGXX_EXECUTABLE=YES
+SYSROOT_EXISTS=YES
+
+--- 2. COMPILER VERSIONS ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android24
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+
+clang version 21.1.8
+Target: aarch64-unknown-linux-android24
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+
+--- 3. SOURCE ---
+SOURCE=YES
+
+--- 4. CMAKE CONFIGURE ---
+-- The CXX compiler identification is Clang 21.1.8
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /data/data/com.termux/files/usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (1.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build
+
+CONFIGURE_RC=0
+
+--- 5. CACHE ---
+CACHE=YES
+CMAKE_CXX_COMPILER:STRING=/data/data/com.termux/files/usr/bin/clang++
+CMAKE_CXX_COMPILER_TARGET:UNINITIALIZED=aarch64-linux-android21
+CMAKE_CXX_FLAGS:STRING=-stdlib=libc++
+CMAKE_EXE_LINKER_FLAGS:STRING=-unwindlib=none
+CMAKE_SYSROOT:UNINITIALIZED=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 6. BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v
+[1/2] /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -stdlib=libc++ -O2 -g -DNDEBUG -std=gnu++17 -MD -MT CMakeFiles/phase220_test.dir/main.cpp.o -MF CMakeFiles/phase220_test.dir/main.cpp.o.d -o CMakeFiles/phase220_test.dir/main.cpp.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/src/main.cpp
+[2/2] : && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++ -O2 -g -DNDEBUG -unwindlib=none -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase220_test.dir/link.d CMakeFiles/phase220_test.dir/main.cpp.o -o phase220_test   && :
+FAILED: [code=1] phase220_test 
+: && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++ -O2 -g -DNDEBUG -unwindlib=none -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase220_test.dir/link.d CMakeFiles/phase220_test.dir/main.cpp.o -o phase220_test   && :
+ld.lld: error: undefined symbol: _Unwind_Resume
+>>> referenced by new:0 (/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/new:0)
+>>>               CMakeFiles/phase220_test.dir/main.cpp.o:(main)
+>>> referenced by ostream:0 (/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/ostream:0)
+>>>               CMakeFiles/phase220_test.dir/main.cpp.o:(std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char>>& std::__ndk1::__put_character_sequence[abi:ne190000]<char, std::__ndk1::char_traits<char>>(std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char>>&, char const*, unsigned long))
+>>> referenced by new:0 (/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1/new:0)
+>>>               CMakeFiles/phase220_test.dir/main.cpp.o:(std::__ndk1::ostreambuf_iterator<char, std::__ndk1::char_traits<char>> std::__ndk1::__pad_and_output[abi:ne190000]<char, std::__ndk1::char_traits<char>>(std::__ndk1::ostreambuf_iterator<char, std::__ndk1::char_traits<char>>, char const*, char const*, char const*, std::__ndk1::ios_base&, char))
+clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+ninja: build stopped: subcommand failed.
+
+
+BUILD_RC=1
+
+--- 7. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 8. LIBC++ / LIBUNWIND TRACE ---
+/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build.log:4:[1/2] /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -stdlib=libc++ -O2 -g -DNDEBUG -std=gnu++17 -MD -MT CMakeFiles/phase220_test.dir/main.cpp.o -MF CMakeFiles/phase220_test.dir/main.cpp.o.d -o CMakeFiles/phase220_test.dir/main.cpp.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/src/main.cpp
+/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build.log:5:[2/2] : && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++ -O2 -g -DNDEBUG -unwindlib=none -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase220_test.dir/link.d CMakeFiles/phase220_test.dir/main.cpp.o -o phase220_test   && :
+/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build.log:7:: && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++ -O2 -g -DNDEBUG -unwindlib=none -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase220_test.dir/link.d CMakeFiles/phase220_test.dir/main.cpp.o -o phase220_test   && :
+
+--- 9. LINK COMMAND ---
+1:Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build'
+4:[1/2] /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -stdlib=libc++ -O2 -g -DNDEBUG -std=gnu++17 -MD -MT CMakeFiles/phase220_test.dir/main.cpp.o -MF CMakeFiles/phase220_test.dir/main.cpp.o.d -o CMakeFiles/phase220_test.dir/main.cpp.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/src/main.cpp
+5:[2/2] : && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++ -O2 -g -DNDEBUG -unwindlib=none -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase220_test.dir/link.d CMakeFiles/phase220_test.dir/main.cpp.o -o phase220_test   && :
+6:FAILED: [code=1] phase220_test 
+7:: && /data/data/com.termux/files/usr/bin/clang++ --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -stdlib=libc++ -O2 -g -DNDEBUG -unwindlib=none -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase220_test.dir/link.d CMakeFiles/phase220_test.dir/main.cpp.o -o phase220_test   && :
+10:>>>               CMakeFiles/phase220_test.dir/main.cpp.o:(main)
+12:>>>               CMakeFiles/phase220_test.dir/main.cpp.o:(std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char>>& std::__ndk1::__put_character_sequence[abi:ne190000]<char, std::__ndk1::char_traits<char>>(std::__ndk1::basic_ostream<char, std::__ndk1::char_traits<char>>&, char const*, unsigned long))
+14:>>>               CMakeFiles/phase220_test.dir/main.cpp.o:(std::__ndk1::ostreambuf_iterator<char, std::__ndk1::char_traits<char>> std::__ndk1::__pad_and_output[abi:ne190000]<char, std::__ndk1::char_traits<char>>(std::__ndk1::ostreambuf_iterator<char, std::__ndk1::char_traits<char>>, char const*, char const*, char const*, std::__ndk1::ios_base&, char))
+15:clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+
+--- 10. RESULT ---
+PHASE220=FAILED
+
+==================================================
+PHASE 220 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test
+CONFIGURE_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/configure.log
+BUILD_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase220_test/build.log

@@ -1,0 +1,89 @@
+==================================================
+ PHASE 212: CMAKE ABSOLUTE LIBUNWIND LINK FIX
+==================================================
+
+--- 1. VERIFY TOOLS ---
+NATIVE_CLANG=YES
+CMAKE=YES
+NINJA=YES
+
+--- 2. VERIFY NDK ---
+SYSROOT=YES
+LLD=YES
+
+--- 3. FIND LIBUNWIND ---
+LIBUNWIND=YES
+UNWIND=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+-rw-------. 1 u0_a255 u0_a255 93K Aug 25 18:45 /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+
+--- 4. SOURCE ---
+SOURCE=YES
+
+--- 5. CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - broken
+CMake Error at /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:65 (message):
+  The C compiler
+
+    "/data/data/com.termux/files/usr/bin/clang"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase212_test/build/CMakeFiles/CMakeScratch/TryCompile-FUovgO'
+    
+    Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v cmTC_99903
+    [1/2] /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21   --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot  -O2 -g -DNDEBUG -MD -MT CMakeFiles/cmTC_99903.dir/testCCompiler.c.o -MF CMakeFiles/cmTC_99903.dir/testCCompiler.c.o.d -o CMakeFiles/cmTC_99903.dir/testCCompiler.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase212_test/build/CMakeFiles/CMakeScratch/TryCompile-FUovgO/testCCompiler.c
+    [2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot  -O2 -g -DNDEBUG  CMakeFiles/cmTC_99903.dir/testCCompiler.c.o -o cmTC_99903   && :
+    FAILED: [code=1] cmTC_99903 
+    : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot  -O2 -g -DNDEBUG  CMakeFiles/cmTC_99903.dir/testCCompiler.c.o -o cmTC_99903   && :
+    ld.lld: error: unable to find library -l:libunwind.a
+    ld.lld: error: unable to find library -l:libunwind.a
+    clang: error: linker command failed with exit code 1 (use -v to see invocation)
+    ninja: build stopped: subcommand failed.
+    
+    
+
+
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:3 (project)
+
+
+-- Configuring incomplete, errors occurred!
+
+CONFIGURE_RC=1
+
+--- 6. CACHE ---
+CACHE=YES
+
+CMAKE_C_COMPILER:STRING=/data/data/com.termux/files/usr/bin/clang
+CMAKE_C_COMPILER_TARGET:UNINITIALIZED=aarch64-linux-android21
+ANDROID_NDK:UNINITIALIZED=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358
+CMAKE_ANDROID_NDK:UNINITIALIZED=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358
+
+--- 7. BUILD ---
+
+BUILD_RC=99
+
+--- 8. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 9. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+CMAKE_ABSOLUTE_LIBUNWIND=FAILED
+
+==================================================
+ PHASE 212 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase212_test
+CONFIGURE_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase212_test/configure.log
+BUILD_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase212_test/build.log
+==================================================

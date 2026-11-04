@@ -1,0 +1,15 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+PREFIX="/data/data/com.termux/files/usr"
+
+RUNNER="$PREFIX/bin/glibc-runner"
+BOX64="$PREFIX/glibc/bin/box64"
+
+NDK="$HOME/../usr/opt/android-sdk/ndk/28.2.13676358"
+X86="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+
+LLD="$X86/bin/ld.lld"
+
+UNWIND_DIR="$X86/lib/clang/19/lib/linux/aarch64"
+
+exec "$RUNNER" "$BOX64" "$LLD"     "-L$UNWIND_DIR"     "$@"

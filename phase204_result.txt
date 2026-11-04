@@ -1,0 +1,67 @@
+==================================================
+ PHASE 204: NDK HOST-PATH SHADOW WRAPPER
+==================================================
+
+--- 1. VERIFY REAL NDK ---
+REAL_CLANG=YES
+REAL_LLD=YES
+
+--- 2. CREATE SHADOW HOST ---
+SHADOW_CLANG=YES
+SHADOW_LLD=YES
+
+--- 3. PATCH TOOLCHAIN COPY ---
+TOOLCHAIN_COPY=YES
+
+--- 4. SOURCE ---
+SOURCE=YES
+
+--- 5. CMAKE CONFIGURE ---
+CMake Error at /data/data/com.termux/files/home/pocket_pcr_studio/phase204_test/android.toolchain.cmake:55 (include):
+  include could not find requested file:
+
+    /data/data/com.termux/files/home/pocket_pcr_studio/phase204_test/android-legacy.toolchain.cmake
+Call Stack (most recent call first):
+  /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineSystem.cmake:152 (include)
+  CMakeLists.txt:2 (project)
+
+
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+CMake Error at /data/data/com.termux/files/home/pocket_pcr_studio/phase204_test/android.toolchain.cmake:55 (include):
+  include could not find requested file:
+
+    /data/data/com.termux/files/home/pocket_pcr_studio/phase204_test/android-legacy.toolchain.cmake
+Call Stack (most recent call first):
+  /data/data/com.termux/files/home/pocket_pcr_studio/phase204_test/build/CMakeFiles/4.4.2/CMakeSystem.cmake:6 (include)
+  /data/data/com.termux/files/home/pocket_pcr_studio/phase204_test/build/CMakeFiles/CMakeScratch/TryCompile-eNZJNE/CMakeLists.txt:2 (project)
+
+
+CMake Error at /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:123 (try_compile):
+  Failed to configure test project build system.
+Call Stack (most recent call first):
+  /data/data/com.termux/files/usr/share/cmake-4.4/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 6. BUILD ---
+BUILD_RC=99
+
+--- 7. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 8. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+NDK_HOST_SHADOW=FAILED
+
+==================================================
+ PHASE 204 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase204_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase204_result.txt
+==================================================

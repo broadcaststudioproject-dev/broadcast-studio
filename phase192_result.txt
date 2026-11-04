@@ -1,0 +1,93 @@
+==================================================
+ PHASE 192: INJECT CORRECT AARCH64 LIBUNWIND PATH
+==================================================
+
+--- 1. PATHS ---
+HOST=aarch64
+NATIVE_CLANG=/data/data/com.termux/files/usr/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+UNWIND_DIR=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64
+UNWIND=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+
+--- 2. VERIFY LIBUNWIND ---
+UNWIND_EXISTS=YES
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a: current ar archive
+-rw-------. 1 u0_a255 u0_a255 90K Aug 25 18:45 /data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+
+--- 3. CREATE SMART LLD WRAPPER ---
+WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test/ld-wrapper
+#!/data/data/com.termux/files/usr/bin/bash
+
+PREFIX="/data/data/com.termux/files/usr"
+
+RUNNER="$PREFIX/bin/glibc-runner"
+BOX64="$PREFIX/glibc/bin/box64"
+
+NDK="$HOME/../usr/opt/android-sdk/ndk/28.2.13676358"
+X86="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+
+LLD="$X86/bin/ld.lld"
+
+UNWIND_DIR="$X86/lib/clang/19/lib/linux/aarch64"
+
+exec "$RUNNER" "$BOX64" "$LLD"     "-L$UNWIND_DIR"     "$@"
+
+--- 4. TEST WRAPPER ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+WRAPPER_RC=0
+
+--- 5. CREATE SOURCE ---
+
+--- 6. NATIVE CLANG COMPILE ---
+COMPILE_RC=0
+OBJECT=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test/main.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 7. TEST A: NORMAL NATIVE CLANG + WRAPPER ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+A_RC=0
+A_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test/a: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 8. TEST B: EXPLICIT LIBUNWIND ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+B_RC=0
+B_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test/b: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 9. TEST C: CMAKE STYLE -l:libunwind.a ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+C_RC=0
+C_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test/c: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, not stripped
+
+--- 10. TEST D: EXACT CMAKE FLAGS ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+D_RC=0
+D_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test/d: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 11. FINAL INVENTORY ---
+a=CREATED
+b=CREATED
+c=CREATED
+d=CREATED
+
+--- 12. FINAL STATUS ---
+HOST=aarch64
+WRAPPER_RC=0
+COMPILE_RC=0
+A_RC=0
+B_RC=0
+C_RC=0
+D_RC=0
+LIBUNWIND_LINK=SUCCESS
+
+==================================================
+ PHASE 192 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase192_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase192_result.txt
+==================================================

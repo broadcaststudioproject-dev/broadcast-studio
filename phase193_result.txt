@@ -1,0 +1,89 @@
+==================================================
+ PHASE 193: CMAKE + NDK LLD + LIBUNWIND INTEGRATION
+==================================================
+
+--- 1. TOOLCHAIN ---
+HOST=aarch64
+NATIVE_CLANG=/data/data/com.termux/files/usr/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+AARCH64_LIB=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64
+UNWIND=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+
+--- 2. VERIFY LIBUNWIND ---
+LIBUNWIND_EXISTS=YES
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a: current ar archive
+
+--- 3. CREATE LLD WRAPPER ---
+WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/ld-wrapper
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+WRAPPER_RC=0
+
+--- 4. CREATE CMAKE PROJECT ---
+CMAKE_PROJECT_CREATED=YES
+
+--- 5. CMAKE CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (1.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build
+CONFIGURE_RC=0
+
+--- 6. CMAKE CACHE ---
+CMAKE_C_COMPILER:STRING=/data/data/com.termux/files/usr/bin/clang
+CMAKE_C_FLAGS:STRING=
+CMAKE_EXE_LINKER_FLAGS:STRING=
+
+--- 7. CMAKE BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/cmake -E env VERBOSE=1 /data/data/com.termux/files/usr/bin/make -f Makefile
+/data/data/com.termux/files/usr/bin/cmake -S/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/src -B/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build --check-build-system CMakeFiles/Makefile.cmake 0
+/data/data/com.termux/files/usr/bin/cmake -E cmake_progress_start /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build/CMakeFiles /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build//CMakeFiles/progress.marks
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase193.dir/build.make CMakeFiles/phase193.dir/depend
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+cd /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build && /data/data/com.termux/files/usr/bin/cmake -E cmake_depends "Unix Makefiles" /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build/CMakeFiles/phase193.dir/DependInfo.cmake "--color=" phase193
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase193.dir/build.make CMakeFiles/phase193.dir/build
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+[ 50%] Building C object CMakeFiles/phase193.dir/main.c.o
+/data/data/com.termux/files/usr/bin/clang   --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O3 -DNDEBUG -MD -MT CMakeFiles/phase193.dir/main.c.o -MF CMakeFiles/phase193.dir/main.c.o.d -o CMakeFiles/phase193.dir/main.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/src/main.c
+[100%] Linking C executable phase193
+/data/data/com.termux/files/usr/bin/cmake -E cmake_link_script CMakeFiles/phase193.dir/link.txt --verbose=1
+clang: error: invalid linker name in argument '-fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/ld-wrapper;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21;-lunwind'
+/data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O3 -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/ld-wrapper;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21;-lunwind -Xlinker --dependency-file=CMakeFiles/phase193.dir/link.d CMakeFiles/phase193.dir/main.c.o -o phase193
+make[2]: *** [CMakeFiles/phase193.dir/build.make:101: phase193] Error 1
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/phase193.dir/all] Error 2
+make[1]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/build'
+make: *** [Makefile:91: all] Error 2
+
+BUILD_RC=2
+
+--- 8. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 9. LINK COMMAND ---
+/data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O3 -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test/ld-wrapper;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux;-L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21;-lunwind -Xlinker --dependency-file=CMakeFiles/phase193.dir/link.d CMakeFiles/phase193.dir/main.c.o -o phase193
+
+--- 10. FINAL STATUS ---
+HOST=aarch64
+WRAPPER_RC=0
+CONFIGURE_RC=0
+BUILD_RC=2
+CMAKE_EXECUTABLE=FAILED
+
+==================================================
+ PHASE 193 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase193_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase193_result.txt
+==================================================

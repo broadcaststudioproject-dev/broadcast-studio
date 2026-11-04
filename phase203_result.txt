@@ -1,0 +1,59 @@
+==================================================
+ PHASE 203: CMAKE NDK CLANG WRAPPER TEST
+==================================================
+
+--- 1. TOOLS ---
+NDK=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358
+CLANG=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+
+--- 2. VERIFY ---
+RUNNER=YES
+BOX64=YES
+NDK_CLANG=YES
+NDK_LLD=YES
+
+--- 3. CLANG WRAPPER ---
+CLANG_WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase203_test/clang-wrapper
+
+--- 4. LLD WRAPPER ---
+LD_WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase203_test/ld-wrapper
+
+--- 5. TEST SOURCE ---
+SOURCE=YES
+
+--- 6. CMAKE CONFIGURE ---
+-- The C compiler identification is unknown
+CMake Error at CMakeLists.txt:3 (project):
+  The CMAKE_C_COMPILER:
+
+    /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/bin/clang
+
+  is not a full path to an existing compiler tool.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CC" or the CMake cache entry CMAKE_C_COMPILER to the full path to
+  the compiler, or to the compiler name if it is in the PATH.
+
+
+-- Configuring incomplete, errors occurred!
+CONFIGURE_RC=1
+
+--- 7. BUILD ---
+BUILD_RC=99
+
+--- 8. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 9. FINAL STATUS ---
+HOST=aarch64
+CONFIGURE_RC=1
+BUILD_RC=99
+CMAKE_CLANG_WRAPPER=FAILED
+
+==================================================
+ PHASE 203 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase203_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase203_result.txt
+==================================================

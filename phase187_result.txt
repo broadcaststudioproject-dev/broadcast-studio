@@ -1,0 +1,91 @@
+==================================================
+ PHASE 187: CLANG DRIVER CRASH ISOLATION
+==================================================
+
+--- 1. PATHS ---
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+BUILTINS=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/libclang_rt.builtins-aarch64-android.a
+UNWIND=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/i386-unknown-linux-gnu/libunwind.a
+
+--- 2. CREATE SOURCE ---
+
+--- 3. COMPILE ---
+COMPILE_RC=0
+
+--- 4. TEST A: CLANG DRIVER OBJECT -> LLD ONLY ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 78:  8787 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -nostdlib -nostartfiles -Wl,-e,main "$TESTDIR/test.o" -o "$TESTDIR/a" 2>&1
+A_RC=134
+
+--- 5. TEST B: ADD CRT ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 97:  8791 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -nostdlib -nostartfiles -Wl,-e,main "$CRTBEGIN" "$TESTDIR/test.o" "$CRTEND" -o "$TESTDIR/b" 2>&1
+B_RC=134
+
+--- 6. TEST C: ADD BUILTINS ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 117:  8794 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -nostdlib -nostartfiles -Wl,-e,main "$CRTBEGIN" "$TESTDIR/test.o" "$BUILTINS" "$CRTEND" -o "$TESTDIR/c" 2>&1
+C_RC=134
+
+--- 7. TEST D: ADD LIBC ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 139:  8797 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -nostdlib -nostartfiles -Wl,-e,main "$CRTBEGIN" "$TESTDIR/test.o" "$BUILTINS" "$UNWIND" "$LIBC" "$CRTEND" -o "$TESTDIR/d" 2>&1
+D_RC=134
+
+--- 8. TEST E: ADD LIBDL ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 162:  8800 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -nostdlib -nostartfiles -Wl,-e,main "$CRTBEGIN" "$TESTDIR/test.o" "$BUILTINS" "$UNWIND" "$LIBC" "$LIBDL" "$CRTEND" -o "$TESTDIR/e" 2>&1
+E_RC=134
+
+--- 9. TEST F: NORMAL DRIVER ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 176:  8803 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld "$TESTDIR/test.o" -o "$TESTDIR/f" 2>&1
+F_RC=134
+
+--- 10. TEST G: NORMAL + EXPLICIT UNWIND ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 191:  8806 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -unwindlib=libunwind "$TESTDIR/test.o" -o "$TESTDIR/g" 2>&1
+G_RC=134
+
+--- 11. TEST H: DRIVER WITHOUT UNWIND ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 206:  8809 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -unwindlib=none "$TESTDIR/test.o" -o "$TESTDIR/h" 2>&1
+H_RC=134
+
+--- 12. TEST I: RESPONSE FILE ---
+*** buffer overflow detected ***: terminated
+./phase187.sh: line 225:  8815 Aborted                    "$RUNNER" "$BOX64" "$CLANG" @"$TESTDIR/link.rsp" 2>&1
+I_RC=134
+
+--- 13. OUTPUT FILES ---
+a=NOT_CREATED
+b=NOT_CREATED
+c=NOT_CREATED
+d=NOT_CREATED
+e=NOT_CREATED
+f=NOT_CREATED
+g=NOT_CREATED
+h=NOT_CREATED
+i=NOT_CREATED
+
+--- 14. FINAL STATUS ---
+HOST=aarch64
+COMPILE_RC=0
+A_RC=134
+B_RC=134
+C_RC=134
+D_RC=134
+E_RC=134
+F_RC=134
+G_RC=134
+H_RC=134
+I_RC=134
+
+==================================================
+ PHASE 187 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase187_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase187_result.txt
+==================================================

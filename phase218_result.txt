@@ -1,0 +1,71 @@
+==================================================
+PHASE 218: CMAKE WITH UNWINDLIB NONE
+==================================================
+
+--- 1. TOOLS ---
+CMAKE=/data/data/com.termux/files/usr/bin/cmake
+NINJA=/data/data/com.termux/files/usr/bin/ninja
+CLANG=
+CLANGXX=
+TARGET=
+SYSROOT=
+
+--- 2. SOURCE ---
+SOURCE=YES
+
+--- 3. CMAKE CONFIGURE ---
+-- The C compiler identification is unknown
+CMake Error at CMakeLists.txt:3 (project):
+  No CMAKE_C_COMPILER could be found.
+
+  Tell CMake where to find the compiler by setting either the environment
+  variable "CC" or the CMake cache entry CMAKE_C_COMPILER to the full path to
+  the compiler, or to the compiler name if it is in the PATH.
+
+
+-- Configuring incomplete, errors occurred!
+
+CONFIGURE_RC=1
+
+--- 4. CHECK CACHE ---
+CACHE=YES
+CMAKE_C_COMPILER:FILEPATH=
+CMAKE_C_COMPILER_TARGET:UNINITIALIZED=
+CMAKE_EXE_LINKER_FLAGS:STRING=-unwindlib=none
+CMAKE_EXE_LINKER_FLAGS_DEBUG:STRING=
+// CMAKE_EXE_LINKER_FLAGS.
+CMAKE_EXE_LINKER_FLAGS_INIT:UNINITIALIZED=-unwindlib=none
+CMAKE_EXE_LINKER_FLAGS_MINSIZEREL:STRING=
+CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=
+CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=
+CMAKE_SYSROOT:UNINITIALIZED=
+//ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS
+CMAKE_EXE_LINKER_FLAGS-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS_DEBUG
+CMAKE_EXE_LINKER_FLAGS_DEBUG-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS_MINSIZEREL
+CMAKE_EXE_LINKER_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS_RELEASE
+CMAKE_EXE_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO
+CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
+
+--- 5. BUILD ---
+BUILD_SKIPPED=CONFIGURE_FAILED
+
+BUILD_RC=99
+
+--- 6. EXECUTABLE ---
+EXECUTABLE=NOT_CREATED
+
+--- 7. LIBUNWIND CHECK ---
+
+--- 8. RESULT ---
+PHASE218=FAILED
+
+==================================================
+PHASE 218 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase218_test
+CONFIGURE_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase218_test/configure.log
+BUILD_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase218_test/build.log

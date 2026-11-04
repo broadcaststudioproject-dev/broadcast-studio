@@ -1,0 +1,1 @@
+/data/data/com.termux/files/usr/bin/clang -fPIC -g -shared -Wl,-z,max-page-size=16384 -Xlinker --dependency-file=CMakeFiles/jni.dir/link.d -Wl,-soname,libdartjni.so -o libdartjni.so CMakeFiles/jni.dir/dartjni.c.o CMakeFiles/jni.dir/third_party/global_jni_env.c.o CMakeFiles/jni.dir/include/dart_api_dl.c.o  -llog

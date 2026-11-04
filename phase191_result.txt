@@ -1,0 +1,130 @@
+==================================================
+ PHASE 191: FIX LLD SEARCH PATH FOR ARM64 LIBUNWIND
+==================================================
+
+--- 1. TOOLCHAIN ---
+HOST=aarch64
+CLANG=/data/data/com.termux/files/usr/bin/clang
+LLD=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+ARM64LIB=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64
+UNWIND=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a
+
+--- 2. VERIFY LIBUNWIND ---
+UNWIND_EXISTS=YES
+/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64/libunwind.a: current ar archive
+
+--- 3. CREATE CORRECTED WRAPPER ---
+WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/ld-wrapper
+#!/data/data/com.termux/files/usr/bin/bash
+
+PREFIX="/data/data/com.termux/files/usr"
+RUNNER="/data/data/com.termux/files/usr/bin/glibc-runner"
+BOX64="/data/data/com.termux/files/usr/glibc/bin/box64"
+LLD="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
+
+RESOURCE="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19"
+RESLIB="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux"
+ARM64LIB="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/19/lib/linux/aarch64"
+SYSROOT="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+LIBDIR="/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21"
+
+exec "$RUNNER" "$BOX64" "$LLD"     -L"$ARM64LIB"     -L"$RESLIB"     -L"$LIBDIR"     -L"$SYSROOT/usr/lib/aarch64-linux-android"     "$@"
+
+--- 4. TEST LLD THROUGH WRAPPER ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+WRAPPER_RC=0
+
+--- 5. CREATE SOURCE ---
+
+--- 6. NATIVE CLANG COMPILE ---
+COMPILE_RC=0
+OBJECT=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/main.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 7. DIRECT WRAPPER LINK WITH LIBUNWIND ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+DIRECT_RC=0
+DIRECT_LINK=CREATED
+/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/direct_link: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 8. NATIVE CLANG + CORRECTED WRAPPER ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+NATIVE_LINK_RC=0
+NATIVE_LINK=CREATED
+/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/native_link: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), not stripped
+
+--- 9. CMAKE TEST PROJECT ---
+
+--- 10. CMAKE CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (1.5s)
+-- Generating done (0.0s)
+CMake Warning (unused-cli):
+  Manually-specified variables were not used by the project:
+
+    CMAKE_ANDROID_ARCH_ABI
+
+
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build
+CONFIGURE_RC=0
+
+--- 11. CMAKE BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/cmake -E env VERBOSE=1 /data/data/com.termux/files/usr/bin/make -f Makefile
+/data/data/com.termux/files/usr/bin/cmake -S/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/src -B/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build --check-build-system CMakeFiles/Makefile.cmake 0
+/data/data/com.termux/files/usr/bin/cmake -E cmake_progress_start /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build/CMakeFiles /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build//CMakeFiles/progress.marks
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/Makefile2 all
+make[1]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase191.dir/build.make CMakeFiles/phase191.dir/depend
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+cd /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build && /data/data/com.termux/files/usr/bin/cmake -E cmake_depends "Unix Makefiles" /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/src /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build/CMakeFiles/phase191.dir/DependInfo.cmake "--color=" phase191
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+/data/data/com.termux/files/usr/bin/make  -f CMakeFiles/phase191.dir/build.make CMakeFiles/phase191.dir/build
+make[2]: Entering directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+[ 50%] Building C object CMakeFiles/phase191.dir/main.c.o
+/data/data/com.termux/files/usr/bin/clang   -O2 -g -DNDEBUG -O3 -DNDEBUG -MD -MT CMakeFiles/phase191.dir/main.c.o -MF CMakeFiles/phase191.dir/main.c.o.d -o CMakeFiles/phase191.dir/main.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/src/main.c
+[100%] Linking C executable phase191
+/data/data/com.termux/files/usr/bin/cmake -E cmake_link_script CMakeFiles/phase191.dir/link.txt --verbose=1
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+ld.lld: error: undefined symbol: __register_atfork
+>>> referenced by crtbegin.c
+>>>               /data/data/com.termux/files/usr/bin/../../usr/lib/crtbegin_dynamic.o:(pthread_atfork)
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+/data/data/com.termux/files/usr/bin/clang -O2 -g -DNDEBUG -fuse-ld=/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/ld-wrapper -Xlinker --dependency-file=CMakeFiles/phase191.dir/link.d CMakeFiles/phase191.dir/main.c.o -o phase191
+make[2]: *** [CMakeFiles/phase191.dir/build.make:101: phase191] Error 1
+make[2]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/phase191.dir/all] Error 2
+make[1]: Leaving directory '/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/build'
+make: *** [Makefile:91: all] Error 2
+
+BUILD_RC=2
+
+--- 12. SEARCH OUTPUT ---
+/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/direct_link
+/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test/native_link
+
+--- 13. FINAL STATUS ---
+HOST=aarch64
+WRAPPER_RC=0
+COMPILE_RC=0
+DIRECT_RC=0
+NATIVE_LINK_RC=0
+CONFIGURE_RC=0
+BUILD_RC=2
+CMAKE_EXECUTABLE=NOT_CREATED
+CMAKE_NATIVE_CLANG_NDK_LLD=FAILED
+
+==================================================
+ PHASE 191 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase191_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase191_result.txt
+==================================================

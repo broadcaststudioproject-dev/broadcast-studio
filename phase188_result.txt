@@ -1,0 +1,34 @@
+==================================================
+ PHASE 188: DIRECT LLD CMAKE LINKER WORKAROUND
+==================================================
+
+--- 1. TOOLCHAIN ---
+HOST=aarch64
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 2. VERIFY BOX64 + LLD ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+LLD_RC=0
+
+--- 3. CREATE DIRECT-LD WRAPPER ---
+WRAPPER_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase188_test/android-ld-wrapper: a /data/data/com.termux/files/usr/bin/bash script, ASCII text executable
+
+--- 4. TEST WRAPPER ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+WRAPPER_RC=0
+
+--- 5. CREATE C SOURCE ---
+
+--- 6. CLANG COMPILE ONLY ---
+COMPILE_RC=0
+OBJECT=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase188_test/test.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+./phase188.sh: line 395: unexpected EOF while looking for matching `"'

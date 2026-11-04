@@ -1,0 +1,4 @@
+call flutter create --platforms=windows .
+call dart run flutter_launcher_icons
+call flutter build windows --release
+pause

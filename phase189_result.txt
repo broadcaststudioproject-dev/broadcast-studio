@@ -1,0 +1,90 @@
+==================================================
+ PHASE 189: NATIVE TERMUX CLANG + NDK LLD
+==================================================
+
+--- 1. HOST + TOOLS ---
+HOST=aarch64
+NATIVE_CLANG=/data/data/com.termux/files/usr/bin/clang
+NDK_CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+LLD=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld
+SYSROOT=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 2. NATIVE CLANG VERSION ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android24
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+NATIVE_CLANG_RC=0
+
+--- 3. BOX64 LLD VERSION ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+LLD_RC=0
+
+--- 4. CREATE LLD WRAPPER ---
+WRAPPER=/data/data/com.termux/files/home/pocket_pcr_studio/phase189_test/ld-wrapper
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+LLD 19.0.1 (compatible with GNU linkers)
+WRAPPER_RC=0
+
+--- 5. CREATE SOURCE ---
+
+--- 6. NATIVE CLANG COMPILE ONLY ---
+COMPILE_RC=0
+OBJECT=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase189_test/test.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 7. NATIVE CLANG DRIVER + LLD WRAPPER ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+NATIVE_LINK_RC=0
+NATIVE_DRIVER_LINK=SUCCESS
+/data/data/com.termux/files/home/pocket_pcr_studio/phase189_test/native_driver_link: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, not stripped
+
+--- 8. NATIVE CLANG + DIRECT LLD PATH ---
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+DIRECT_STYLE_RC=0
+
+--- 9. COMPARE WITH NDK CLANG UNDER BOX64 ---
+*** buffer overflow detected ***: terminated
+./phase189.sh: line 164: 10226 Aborted                    "$RUNNER" "$BOX64" "$NDK_CLANG" --target=aarch64-linux-android21 --sysroot="$SYSROOT" -fuse-ld=lld -nostdlib -nostartfiles -Wl,-e,main "$TESTDIR/test.o" -o "$TESTDIR/ndk_driver_link" 2>&1
+NDK_DRIVER_RC=134
+NDK_DRIVER_LINK=FAILED
+
+--- 10. VERBOSE NATIVE LINK ---
+VERBOSE_RC=0
+
+--- 11. VERBOSE LINK HEAD ---
+clang version 21.1.8
+Target: aarch64-unknown-linux-android21
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/bin
+ "/data/data/com.termux/files/home/pocket_pcr_studio/phase189_test/ld-wrapper" --sysroot=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -EL --fix-cortex-a53-843419 -z now -z relro -z max-page-size=16384 --no-rosegment --hash-style=both -rpath=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib --eh-frame-hdr -m aarch64linux -pie -dynamic-linker /system/bin/linker64 -o /data/data/com.termux/files/home/pocket_pcr_studio/phase189_test/verbose_native -L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/21 -L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android -L/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib -L/system/lib64 -e main /data/data/com.termux/files/home/pocket_pcr_studio/phase189_test/test.o
+[[31mBOX64[0m] Error initializing native libxml2.so.2 (last dlerror is libxml2.so.16: cannot open shared object file: No such file or directory)
+
+--- 12. FINAL INVENTORY ---
+direct_style_link
+ld-wrapper
+native_driver_link
+test.c
+test.o
+verbose_native
+verbose_native.log
+
+--- 13. FINAL STATUS ---
+HOST=aarch64
+NATIVE_CLANG_RC=0
+LLD_RC=0
+WRAPPER_RC=0
+COMPILE_RC=0
+NATIVE_LINK_RC=0
+DIRECT_STYLE_RC=0
+NDK_DRIVER_RC=134
+VERBOSE_RC=0
+WORKAROUND_STATUS=SUCCESS
+
+==================================================
+ PHASE 189 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase189_test
+RESULT_FILE=/data/data/com.termux/files/home/pocket_pcr_studio/phase189_result.txt
+==================================================

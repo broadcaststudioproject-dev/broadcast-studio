@@ -1,0 +1,80 @@
+==================================================
+ PHASE 174: BOX64 + NDK CLANG FULL COMPILE/LINK
+==================================================
+
+--- 1. TOOLS ---
+RUNNER=/data/data/com.termux/files/usr/bin/glibc-runner
+BOX64=/data/data/com.termux/files/usr/glibc/bin/box64
+CLANG=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
+CLANGXX=/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
+
+--- 2. BOX64 CHECK ---
+Box64 arm64 v0.4.2 nogit with Dynarec built on Aug  5 2026 08:50:17
+BOX64_RC=0
+
+--- 3. CLANG CHECK ---
+Android (13624864, +pgo, +bolt, +lto, +mlgo, based on r530567e) clang version 19.0.1 (https://android.googlesource.com/toolchain/llvm-project 97a699bf4812a18fb657c2779f5296a4ab2694d2)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin
+CLANG_RC=0
+
+--- 4. CREATE C SOURCE ---
+-rw-------. 1 u0_a255 u0_a255 54 Aug 28 02:09 /data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.c
+/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.c: C source, ASCII text
+
+--- 5. C COMPILE ---
+C_COMPILE_RC=0
+C_OBJECT_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 6. C LINK ---
+*** buffer overflow detected ***: terminated
+./phase174.sh: line 98:  2309 Aborted                    "$RUNNER" "$BOX64" "$CLANG" --target=aarch64-linux-android21 "$TESTDIR/test.o" -o "$TESTDIR/test_c" 2>&1
+C_LINK_RC=134
+C_EXECUTABLE_CREATED=NO
+
+--- 7. CREATE C++ SOURCE ---
+-rw-------. 1 u0_a255 u0_a255 49 Aug 28 02:09 /data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.cpp
+/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test.cpp: C source, ASCII text
+
+--- 8. C++ COMPILE ---
+CPP_COMPILE_RC=0
+CPP_OBJECT_CREATED=YES
+/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test/test_cpp.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
+--- 9. C++ LINK ---
+*** buffer overflow detected ***: terminated
+./phase174.sh: line 159:  2326 Aborted                    "$RUNNER" "$BOX64" "$CLANGXX" --target=aarch64-linux-android21 "$TESTDIR/test_cpp.o" -o "$TESTDIR/test_cpp" 2>&1
+CPP_LINK_RC=134
+CPP_EXECUTABLE_CREATED=NO
+
+--- 10. NDK SYSROOT ---
+/data/data/com.termux/files/home/../usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+SYSROOT_STATUS=OK
+
+--- 11. TEST FILES ---
+test.c
+test.cpp
+test.o
+test_cpp.o
+
+--- 12. FINAL STATUS ---
+HOST=aarch64
+BOX64=WORKING
+CLANG=WORKING
+ANDROID_TARGET=WORKING
+C_COMPILE_RC=0
+C_LINK_RC=134
+CPP_COMPILE_RC=0
+CPP_LINK_RC=134
+
+==================================================
+ PHASE 174 RESULT: FURTHER DIAGNOSIS REQUIRED
+==================================================
+
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase174_test
+
+==================================================
+ END PHASE 174
+==================================================

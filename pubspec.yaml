@@ -1,0 +1,52 @@
+name: pocket_pcr
+description: A new Flutter project for Pocket PCR Studio.
+version: 1.0.0+4
+
+environment:
+  sdk: '>=2.19.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  flutter_vlc_player: ^7.3.0
+  camera: ^0.10.5+9
+  permission_handler: ^11.3.0
+  marquee: ^2.2.3
+  http: ^1.2.0
+  xml: ^6.5.0
+  video_player: ^2.8.2
+  qr_flutter: ^4.1.0
+  image_picker: ^1.0.7
+  path_provider: ^2.0.15
+  geolocator: ^12.0.0
+  url_launcher: ^6.2.1
+  shared_preferences: ^2.2.3
+  
+  # 🔴 మీ గిట్‌హబ్ ఫ్లట్టర్ వెర్షన్ (3.19.6) కి పక్కాగా సెట్ అయ్యే వర్షన్స్ ఇవే
+  youtube_player_flutter: ^8.1.2
+  flutter_inappwebview: ^5.8.0
+  youtube_explode_dart: ^2.2.2
+  
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  google_generative_ai: ^0.4.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+# ఇక్కడ flutter_icons బదులు flutter_launcher_icons అని మార్చాను, విండోస్ యాడ్ చేశాను
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "logo.png"
+  windows:
+    generate: true
+    image_path: "logo.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - logo.png

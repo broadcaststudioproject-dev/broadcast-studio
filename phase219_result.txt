@@ -1,0 +1,69 @@
+==================================================
+PHASE 219: ROBUST CMAKE ANDROID AARCH64 TEST
+==================================================
+
+--- 1. TOOLS ---
+CLANG=/data/data/com.termux/files/usr/bin/clang
+TARGET=aarch64-linux-android21
+SYSROOT=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+CLANG_EXECUTABLE=YES
+SYSROOT_EXISTS=YES
+
+--- 2. SOURCE ---
+SOURCE=YES
+
+--- 3. CMAKE CONFIGURE ---
+-- The C compiler identification is Clang 21.1.8
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /data/data/com.termux/files/usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (1.6s)
+-- Generating done (0.0s)
+-- Build files have been written to: /data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/build
+
+CONFIGURE_RC=0
+
+--- 4. CACHE ---
+CACHE=YES
+CMAKE_C_COMPILER:STRING=/data/data/com.termux/files/usr/bin/clang
+CMAKE_C_COMPILER_TARGET:UNINITIALIZED=aarch64-linux-android21
+CMAKE_EXE_LINKER_FLAGS:STRING=-unwindlib=none
+CMAKE_SYSROOT:UNINITIALIZED=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+--- 5. BUILD ---
+Change Dir: '/data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/build'
+
+Run Build Command(s): /data/data/com.termux/files/usr/bin/ninja -v
+[1/2] /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -O2 -g -DNDEBUG -MD -MT CMakeFiles/phase219_test.dir/main.c.o -MF CMakeFiles/phase219_test.dir/main.c.o.d -o CMakeFiles/phase219_test.dir/main.c.o -c /data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/src/main.c
+[2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase219_test.dir/link.d CMakeFiles/phase219_test.dir/main.c.o -o phase219_test   && :
+
+
+BUILD_RC=0
+
+--- 6. EXECUTABLE ---
+EXECUTABLE=CREATED
+/data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/build/phase219_test: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /system/bin/linker64, for Android 21, built by NDK r28c (13676358), with debug_info, not stripped
+
+  Class:                             ELF64
+  OS/ABI:                            UNIX - System V
+  Type:                              DYN (Shared object file)
+  Machine:                           AArch64
+
+--- NEEDED ---
+  0x0000000000000001 (NEEDED)     Shared library: [libdl.so]
+  0x0000000000000001 (NEEDED)     Shared library: [libc.so]
+
+--- 7. LIBUNWIND ---
+/data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/build.log:5:[2/2] : && /data/data/com.termux/files/usr/bin/clang --target=aarch64-linux-android21 --sysroot=/data/data/com.termux/files/usr/opt/android-sdk/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot -O2 -g -DNDEBUG -unwindlib=none -Xlinker --dependency-file=CMakeFiles/phase219_test.dir/link.d CMakeFiles/phase219_test.dir/main.c.o -o phase219_test   && :
+
+--- 8. RESULT ---
+PHASE219=SUCCESS
+
+==================================================
+PHASE 219 COMPLETE
+==================================================
+TESTDIR=/data/data/com.termux/files/home/pocket_pcr_studio/phase219_test
+CONFIGURE_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/configure.log
+BUILD_LOG=/data/data/com.termux/files/home/pocket_pcr_studio/phase219_test/build.log

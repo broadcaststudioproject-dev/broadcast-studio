@@ -1,0 +1,83 @@
+name: KINGJVR Dual Build (Android & Windows)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate App Logos
+        run: dart run flutter_launcher_icons
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KINGJVR-Android-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-windows:
+    name: Build Windows App
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Clean and Recreate Windows Platform
+        shell: pwsh
+        run: |
+          flutter clean
+          if (Test-Path "windows") { Remove-Item -Recurse -Force "windows" }
+          flutter create --platforms=windows --project-name=pocket_pcr .
+
+      - name: Install Dependencies
+        shell: pwsh
+        run: flutter pub get
+
+      - name: Generate App Logos for Windows
+        shell: pwsh
+        run: dart run flutter_launcher_icons
+
+      - name: Build Windows
+        shell: pwsh
+        run: flutter build windows --release
+
+      - name: Upload Windows App
+        uses: actions/upload-artifact@v4
+        with:
+          name: KINGJVR-Windows-App
+          path: build\windows\x64\runner\Release
