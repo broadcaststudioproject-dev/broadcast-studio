@@ -42,7 +42,7 @@ jobs:
 
   build-windows:
     name: Build Windows App
-    runs-on: windows-latest
+    runs-on: windows-2019
     timeout-minutes: 30
     steps:
       - name: Checkout Code
@@ -77,8 +77,6 @@ jobs:
 
       - name: Build Windows
         shell: pwsh
-        env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
         run: flutter build windows --release
 
       - name: Upload Windows App
