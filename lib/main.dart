@@ -3288,8 +3288,12 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       ),
     );
   }
-}
+} // StudioScreen క్లాస్ ముగింపు
 
+
+// ============================================================================
+// 3. MASTER PCR BOARD SCREEN (మల్టీ కెమెరా గ్రిడ్ ఫీచర్‌తో సహా పూర్తి కోడ్)
+// ============================================================================
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
 
@@ -3353,6 +3357,65 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     const Color(0xFF800000),
     Colors.purple.shade900,
     Colors.teal.shade900
+  ];
+
+  final List<dynamic> cameraList = [ 
+    {
+      "id": "REPORTER_CAM",
+      "name": "Reporter",
+      "type": "PHONE",
+      "active": true,
+      "muted": false,
+      "url": ""
+    },
+    {
+      "id": "DRONE_1",
+      "name": "DJI Drone",
+      "type": "DRONE",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.1:554/live"
+    },
+    {
+      "id": "HDMI_1",
+      "name": "Sony Cam 1",
+      "type": "USB",
+      "active": false,
+      "muted": false,
+      "url": ""
+    },
+    {
+      "id": "IP_1",
+      "name": "CCTV Left",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"
+    },
+    {
+      "id": "IP_2",
+      "name": "CCTV Right",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.100:8080/video"
+    },
+    {
+      "id": "IP_3",
+      "name": "Mobile WiFi 1",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.101:8080/video"
+    },
+    {
+      "id": "IP_4",
+      "name": "Mobile WiFi 2",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.102:8080/video"
+    },
   ];
 
   @override
@@ -3632,10 +3695,44 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         title: const Text("Master PCR Board"),
         backgroundColor: Colors.grey.shade900,
       ),
-      body: const Center(
-        child: Text(
-          "PCR Board Interface Goes Here", 
-          style: TextStyle(color: Colors.white)
+      body: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            const Text(
+              "Multi-Camera Switcher Grid",
+              style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: hexCams.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () => _swapCamera(index),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[850],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blueAccent, width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Cam ${hexCams[index]}",
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
