@@ -16,7 +16,6 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
 import 'election_board.dart'; 
-import 'streamer_mode.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -35,80 +34,10 @@ class PocketPCRApp extends StatelessWidget {
   const PocketPCRApp({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KINGJVR Dual Architecture',
+    return const MaterialApp(
+      title: 'KINGJVR',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        primaryColor: Colors.blueAccent,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-      ),
-      home: const ModeSelectionScreen(),
-    );
-  }
-}
-
-/// 🔴 మోడ్ సెలెక్షన్ స్క్రీన్ (కంట్రోల్ రూమ్ vs స్ట్రీమింగ్ అవుట్‌పుట్) 🔴
-class ModeSelectionScreen extends StatelessWidget {
-  const ModeSelectionScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pocket PCR Studio - Dual Architecture'),
-        backgroundColor: const Color(0xFF800000),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'ఆపరేటింగ్ మోడ్‌ను ఎంచుకోండి (Select Operating Mode)',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amberAccent),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                backgroundColor: Colors.blue[800],
-              ),
-              icon: const Icon(Icons.dashboard, size: 28),
-              label: const Text(
-                'మాస్టర్ కంట్రోల్ రూమ్ (Control Room / Switcher)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const StudioScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                backgroundColor: Colors.green[800],
-              ),
-              icon: const Icon(Icons.cast, size: 28),
-              label: const Text(
-                'స్ట్రీమింగ్ అవుట్‌పుట్ (Streamer Output)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const StreamerModeScreen()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+      home: StudioScreen(),
     );
   }
 }
@@ -161,6 +90,7 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = cons
 class StreamServiceManager {
   static const MethodChannel _streamChannel = MethodChannel('com.kingjvr.pocket_pcr/stream');
 
+  // 🔴 ఆండ్రాయిడ్ సర్వీస్ నుండి వచ్చే బ్రాడ్‌కాస్ట్‌ని వినడానికి కొత్త ఫంక్షన్ 🔴
   static void initializeStreamListener(BuildContext context) {
     _streamChannel.setMethodCallHandler((call) async {
       if (call.method == 'onStreamStatusUpdate') {
@@ -171,6 +101,7 @@ class StreamServiceManager {
   }
 
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
+    // 🔴 విండోస్ చెకింగ్ ఇక్కడ ఫంక్షన్ లోపల ఉండాలి 🔴
     if (Platform.isWindows) {
       debugPrint("విండోస్ లైవ్ స్ట్రీమింగ్ త్వరలో రాబోతోంది!");
       return false; 
@@ -209,7 +140,7 @@ class StreamServiceManager {
   }
 
   static Future<bool> stopLiveStream() async {
-    if (Platform.isWindows) return true;
+    if (Platform.isWindows) return true; // విండోస్‌లో క్రాష్ అవ్వకుండా ఆపుతుంది
 
     try {
       final result = await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
@@ -222,7 +153,7 @@ class StreamServiceManager {
   }
 
   static Future<int?> startUsbCamera() async {
-    if (Platform.isWindows) return null;
+    if (Platform.isWindows) return null; // విండోస్‌కి UVC సపోర్ట్ లేదు కాబట్టి
 
     try { return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); } 
     catch (e) { return null; }
@@ -381,6 +312,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       DeviceOrientation.landscapeRight
     ]);
 
+    // 🔴 initState లో లిజినర్‌ని పిలవడం ఇక్కడ జరిగింది 🔴
     StreamServiceManager.initializeStreamListener(context);
 
     _loadSavedData();   
@@ -570,7 +502,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
     }
   }
-
   Future<void> _saveTextSettings() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -1576,6 +1507,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
           isLivePaused = false;
           isLiveLocked = false;
         });
+        // 🔴 ఇక్కడ లోకల్ టోస్ట్ బదులు సర్వర్ నుండి వచ్చేదాని కోసం వెయిట్ చేస్తాం
       } else {
         setState(() {
           hideControls = false;
@@ -3214,6 +3146,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
                                   },
                                   Colors.pinkAccent,
                                 ),
+                                // 🔴 ఎలక్షన్ బటన్ 🔴
                                 _buildControlButton(
                                   Icons.bar_chart,
                                   "Election Results",
@@ -3363,7 +3296,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
 
 // ============================================================================
-// 3. MASTER PCR BOARD SCREEN (పూర్తి ఒరిజినల్ కోడ్)
+// 3. MASTER PCR BOARD SCREEN
 // ============================================================================
 class MasterPCRBoard extends StatefulWidget {
   const MasterPCRBoard({Key? key}) : super(key: key);
@@ -3428,6 +3361,65 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     const Color(0xFF800000),
     Colors.purple.shade900,
     Colors.teal.shade900
+  ];
+
+  final List<dynamic> cameraList = [ 
+    {
+      "id": "REPORTER_CAM",
+      "name": "Reporter",
+      "type": "PHONE",
+      "active": true,
+      "muted": false,
+      "url": ""
+    },
+    {
+      "id": "DRONE_1",
+      "name": "DJI Drone",
+      "type": "DRONE",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.1:554/live"
+    },
+    {
+      "id": "HDMI_1",
+      "name": "Sony Cam 1",
+      "type": "USB",
+      "active": false,
+      "muted": false,
+      "url": ""
+    },
+    {
+      "id": "IP_1",
+      "name": "CCTV Left",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"
+    },
+    {
+      "id": "IP_2",
+      "name": "CCTV Right",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.100:8080/video"
+    },
+    {
+      "id": "IP_3",
+      "name": "Mobile WiFi 1",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.101:8080/video"
+    },
+    {
+      "id": "IP_4",
+      "name": "Mobile WiFi 2",
+      "type": "IP",
+      "active": false,
+      "muted": true,
+      "url": "rtsp://192.168.1.102:8080/video"
+    },
   ];
 
   @override
