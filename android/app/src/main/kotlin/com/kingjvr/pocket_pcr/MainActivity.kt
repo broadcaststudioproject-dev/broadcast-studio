@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -28,9 +30,11 @@ class MainActivity: FlutterActivity() {
         
         val methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STREAM_CHANNEL)
         
-        // 🔴 ఫ్లట్టర్‌కి మెసేజ్ పంపే సింపుల్ లిజినర్ (ఎటువంటి ఎర్రర్స్ రావు) 🔴
+        // 🔴 క్రాష్ రాకుండా మెయిన్ లూపర్‌లో రన్ చేయడానికి హ్యాండ్లర్ జోడించబడింది 🔴
         ScreenStreamService.streamStatusListener = { message ->
-            methodChannel.invokeMethod("onStreamStatusUpdate", message)
+            Handler(Looper.getMainLooper()).post {
+                methodChannel.invokeMethod("onStreamStatusUpdate", message)
+            }
         }
         
         methodChannel.setMethodCallHandler { call, result ->
