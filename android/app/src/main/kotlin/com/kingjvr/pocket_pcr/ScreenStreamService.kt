@@ -7,19 +7,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.pedro.rtplibrary.rtmp.RtmpDisplay
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
-import com.pedro.library.rtmp.RtmpDisplay
-import com.pedro.common.ConnectChecker
-
-class ScreenStreamService : Service(), ConnectChecker {
+class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
+    
+    // ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ కోసం వేరియబుల్
+    private var mMediaProjection: MediaProjection? = null 
 
     companion object {
         const val ACTION_START = "START_STREAM"
@@ -27,11 +31,12 @@ class ScreenStreamService : Service(), ConnectChecker {
         const val EXTRA_URL = "rtmpUrl" 
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
-        
+
+        // 🔴 ఫ్లాటర్‌కు మెసేజ్ పంపడానికి లిజినర్ 🔴
         var streamStatusListener: ((String) -> Unit)? = null
     }
 
-    private fun sendStatusToFlutter(message: String) {
+    private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
             streamStatusListener?.invoke(message)
@@ -42,9 +47,9 @@ class ScreenStreamService : Service(), ConnectChecker {
         super.onCreate()
         try {
             rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-            // 🔴 ఎర్రర్‌కి కారణమైన setReTries(3) లైన్‌ను ఇక్కడి నుండి పూర్తిగా తొలగించాను 🔴
+            rtmpDisplay?.setReTries(3)
         } catch (e: Exception) {
-            sendStatusToFlutter("Library Crash: ${e.message}")
+            showMessage("Library Crash: ${e.message}")
         }
     }
 
@@ -57,59 +62,77 @@ class ScreenStreamService : Service(), ConnectChecker {
             startNotification()
 
             val url = intent.getStringExtra(EXTRA_URL) ?: ""
-            val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
-            val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
-            val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
+            val cableRtmp = intent.getStringExtra("cableRtmp") ?: ""
+            val restreamRtmp = intent.getStringExtra("restreamRtmp") ?: ""
+            val satelliteSrt = intent.getStringExtra("satelliteSrt") ?: ""
 
-            val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
+            val targetUrl = when {
+                cableRtmp.isNotEmpty() -> cableRtmp
+                restreamRtmp.isNotEmpty() -> restreamRtmp
+                satelliteSrt.isNotEmpty() -> satelliteSrt
+                else -> url
+            }
 
             val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
             
-            @Suppress("DEPRECATION")
             val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
             } else {
+                @Suppress("DEPRECATION")
                 intent.getParcelableExtra<Intent>(EXTRA_DATA)
             }
 
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
                 val display = rtmpDisplay
                 if (display != null) {
-                    try {
-                        display.setIntentResult(resultCode, data)
-                        
-                        Thread {
-                            try {
-                                val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-                                val width = if (isPortrait) 720 else 1280
-                                val height = if (isPortrait) 1280 else 720
-
-                                val fps = 30
-                                val bitrate = 2000 * 1024 
-                                val dpi = resources.displayMetrics.densityDpi
-                                
-                                val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
-                                val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
-
-                                if (videoReady && audioReady) {
-                                    sendStatusToFlutter("Live Server Connecting...")
-                                    display.startStream(targetUrl)
-                                } else {
-                                    sendStatusToFlutter("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
+                    
+                    // --- ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ ---
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        try {
+                            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+                            mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                                override fun onStop() {
+                                    super.onStop()
+                                    try { display.stopStream() } catch (e: Exception) {}
                                 }
-                            } catch (e: Exception) {
-                                sendStatusToFlutter("Stream Crash: ${e.message}")
-                            }
-                        }.start()
-                    } catch (e: Exception) {
-                        sendStatusToFlutter("Intent Crash: ${e.message}")
+                            }, Handler(Looper.getMainLooper()))
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
+
+                    display.setIntentResult(resultCode, data)
+                    Thread {
+                        try {
+                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                            val width = if (isPortrait) 720 else 1280
+                            val height = if (isPortrait) 1280 else 720
+
+                            val fps = 30
+                            val bitrate = 3000 * 1024 
+                            val dpi = resources.displayMetrics.densityDpi
+                            
+                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
+                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
+
+                            if (videoReady && audioReady) {
+                                display.startStream(targetUrl)
+                                showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
+                            } else {
+                                showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
+                            }
+                        } catch (e: Exception) {
+                            showMessage("Stream Crash: ${e.message}")
+                        }
+                    }.start()
                 }
             } else {
-                sendStatusToFlutter("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
+                showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            try { mMediaProjection?.stop() } catch (e: Exception) {}
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -118,7 +141,7 @@ class ScreenStreamService : Service(), ConnectChecker {
                 stopForeground(true)
             }
             stopSelf()
-            sendStatusToFlutter("లైవ్ ఆగిపోయింది.")
+            showMessage("లైవ్ ఆగిపోయింది.")
         }
         return START_NOT_STICKY
     }
@@ -151,27 +174,28 @@ class ScreenStreamService : Service(), ConnectChecker {
     override fun onDestroy() {
         super.onDestroy()
         try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+        try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
-    override fun onConnectionSuccess() {
-        sendStatusToFlutter("Live Connected Successfully! (Online)")
+    override fun onConnectionSuccessRtmp() {
+        showMessage("లైవ్ సక్సెస్! (Online)")
     }
     
-    override fun onConnectionFailed(reason: String) {
-        sendStatusToFlutter("Connection Failed: $reason")
+    override fun onConnectionFailedRtmp(reason: String) {
+        showMessage("కనెక్షన్ ఎర్రర్: $reason")
     }
     
-    override fun onNewBitrate(bitrate: Long) {}
+    override fun onNewBitrateRtmp(bitrate: Long) {}
     
-    override fun onDisconnect() { 
-        sendStatusToFlutter("Live Disconnected.") 
+    override fun onDisconnectRtmp() { 
+        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
     }
     
-    override fun onAuthError() { 
-        sendStatusToFlutter("Auth Error: తప్పు కీ.") 
+    override fun onAuthErrorRtmp() { 
+        showMessage("లైవ్ కీ ఎర్రర్.") 
     }
     
-    override fun onAuthSuccess() {}
+    override fun onAuthSuccessRtmp() {}
     
-    override fun onConnectionStarted(url: String) {}
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
