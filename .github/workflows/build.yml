@@ -1,4 +1,4 @@
-Name: KINGJVR Dual Build (Android & Windows)
+name: KINGJVR Dual Build (Android & Windows)
 
 on:
   push:
