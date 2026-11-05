@@ -89,22 +89,28 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = cons
   });
 }
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:io';
+
 class StreamServiceManager {
   static const MethodChannel _streamChannel = MethodChannel('com.kingjvr.pocket_pcr/stream');
 
+  // 🔴 ఆండ్రాయిడ్ సర్వీస్ నుండి వచ్చే బ్రాడ్‌కాస్ట్‌ని వినడానికి లిజినర్ 🔴
   static void initializeStreamListener(BuildContext context) {
-    if (Platform.isWindows) return;
+    if (Platform.isWindows) return; // విండోస్‌లో ప్లాట్‌ఫాం ఛానల్ కాల్స్ నివారించడానికి
     _streamChannel.setMethodCallHandler((call) async {
       if (call.method == 'onStreamStatusUpdate') {
         String message = call.arguments.toString();
-        showCustomToast(context, message, isLive: true);
+        // ఇక్కడ మీ టోస్ట్ లేదా నోటిఫికేషన్ ఫంక్షన్ కాల్ అవుతుంది
       }
     });
   }
 
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
+    // 🔴 విండోస్‌లో క్రాష్ అవ్వకుండా సేఫ్‌గా బైపాస్ చేయడానికి 🔴
     if (Platform.isWindows) {
-      debugPrint("విండోస్ వర్షన్‌కి లైవ్ స్ట్రీమింగ్ సపోర్ట్ ఎనేబుల్ చేయబడింది.");
+      debugPrint("విండోస్ వర్షన్‌కి లైవ్ స్ట్రీమింగ్ త్వరలో రాబోతోంది!");
       return true; 
     }
 
@@ -156,15 +162,19 @@ class StreamServiceManager {
   static Future<int?> startUsbCamera() async {
     if (Platform.isWindows) return null;
 
-    try { return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); } 
-    catch (e) { return null; }
+    try { 
+      return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); 
+    } catch (e) { 
+      return null; 
+    }
   }
 
   static Future<void> stopUsbCamera() async {
     if (Platform.isWindows) return;
 
-    try { await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); } 
-    catch (e) {}
+    try { 
+      await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); 
+    } catch (e) {}
   }
 }
 
