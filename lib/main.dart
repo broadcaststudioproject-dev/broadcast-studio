@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';   
+Import 'package:flutter/material.dart';   
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
