@@ -89,10 +89,6 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = cons
   });
 }
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:io';
-
 class StreamServiceManager {
   static const MethodChannel _streamChannel = MethodChannel('com.kingjvr.pocket_pcr/stream');
 
