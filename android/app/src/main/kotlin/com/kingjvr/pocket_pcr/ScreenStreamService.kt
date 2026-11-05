@@ -21,8 +21,6 @@ import com.pedro.rtmp.utils.ConnectCheckerRtmp
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
-    
-    // ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ కోసం వేరియబుల్
     private var mMediaProjection: MediaProjection? = null 
 
     companion object {
@@ -32,7 +30,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
 
-        // 🔴 ఫ్లాటర్‌కు మెసేజ్ పంపడానికి లిజినర్ 🔴
         var streamStatusListener: ((String) -> Unit)? = null
     }
 
@@ -86,7 +83,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 val display = rtmpDisplay
                 if (display != null) {
                     
-                    // --- ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ ---
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         try {
                             val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -94,7 +90,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
                                 override fun onStop() {
                                     super.onStop()
-                                    try { display.stopStream() } catch (e: Exception) {}
+                                    try { if (display.isStreaming) display.stopStream() } catch (e: Exception) {}
                                 }
                             }, Handler(Looper.getMainLooper()))
                         } catch (e: Exception) {
@@ -120,7 +116,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                                 display.startStream(targetUrl)
                                 showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
                             } else {
-                                showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
+                                showMessage("ఎన్‌కోడర్ విఫలమైంది!")
                             }
                         } catch (e: Exception) {
                             showMessage("Stream Crash: ${e.message}")
@@ -131,7 +127,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
-            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            try { if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() } catch (e: Exception) {}
             try { mMediaProjection?.stop() } catch (e: Exception) {}
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -173,10 +169,11 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     
     override fun onDestroy() {
         super.onDestroy()
-        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+        try { if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() } catch (e: Exception) {}
         try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
+    // ConnectCheckerRtmp ఇంటర్‌ఫేస్ మెథడ్స్ (ఎర్రర్స్ రాకుండా సరిచేయబడ్డాయి)
     override fun onConnectionSuccessRtmp() {
         showMessage("లైవ్ సక్సెస్! (Online)")
     }
@@ -184,8 +181,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onConnectionFailedRtmp(reason: String) {
         showMessage("కనెక్షన్ ఎర్రర్: $reason")
     }
-    
-    override fun onNewBitrateRtmp(bitrate: Long) {}
     
     override fun onDisconnectRtmp() { 
         showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
