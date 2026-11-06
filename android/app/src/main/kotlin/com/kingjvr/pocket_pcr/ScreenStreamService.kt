@@ -18,7 +18,7 @@ import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
-class ScreenStreamService : Service(), ConnectCheckerRtmp {
+class ScreenStreamService : Service() {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
     private var mMediaProjection: MediaProjection? = null 
@@ -43,7 +43,23 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onCreate() {
         super.onCreate()
         try {
-            rtmpDisplay = RtmpDisplay(applicationContext, true, this)
+            // ConnectCheckerRtmp ను ఆనానిమస్ ఆబ్జెక్ట్‌గా ఇస్తున్నాం (ఓవర్‌రైడ్ ఎర్రర్స్ రావు)
+            rtmpDisplay = RtmpDisplay(applicationContext, true, object : ConnectCheckerRtmp {
+                override fun onConnectionSuccess() {
+                    showMessage("లైవ్ సక్సెస్! (Online)")
+                }
+                override fun onConnectionFailed(reason: String) {
+                    showMessage("కనెక్షన్ ఎర్రర్: $reason")
+                }
+                override fun onDisconnect() {
+                    showMessage("లైవ్ డిస్కనెక్ట్ అయింది.")
+                }
+                override fun onAuthError() {
+                    showMessage("లైవ్ కీ ఎర్రర్.")
+                }
+                override fun onAuthSuccess() {}
+                override fun onConnectionStarted(rtmpUrl: String) {}
+            })
             rtmpDisplay?.setReTries(3)
         } catch (e: Exception) {
             showMessage("Library Crash: ${e.message}")
@@ -90,7 +106,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
                                 override fun onStop() {
                                     super.onStop()
-                                    try { display.stopStream() } catch (e: Exception) {}
+                                    try { 
+                                        if (display.isStreaming) display.stopStream() 
+                                    } catch (e: Exception) {}
                                 }
                             }, Handler(Looper.getMainLooper()))
                         } catch (e: Exception) {
@@ -127,7 +145,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
-            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            try { 
+                if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() 
+            } catch (e: Exception) {}
             try { mMediaProjection?.stop() } catch (e: Exception) {}
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -169,30 +189,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     
     override fun onDestroy() {
         super.onDestroy()
-        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+        try { 
+            if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() 
+        } catch (e: Exception) {}
         try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
-
-    // 5 రోజుల క్రితం ఉన్న పాత పద్ధతి ప్రకారమే ConnectCheckerRtmp ఓవర్‌రైడ్స్
-    override fun onConnectionSuccessRtmp() {
-        showMessage("లైవ్ సక్సెస్! (Online)")
-    }
-    
-    override fun onConnectionFailedRtmp(reason: String) {
-        showMessage("కనెక్షన్ ఎర్రర్: $reason")
-    }
-    
-    override fun onNewBitrateRtmp(bitrate: Long) {}
-    
-    override fun onDisconnectRtmp() { 
-        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
-    }
-    
-    override fun onAuthErrorRtmp() { 
-        showMessage("లైవ్ కీ ఎర్రర్.") 
-    }
-    
-    override fun onAuthSuccessRtmp() {}
-    
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
