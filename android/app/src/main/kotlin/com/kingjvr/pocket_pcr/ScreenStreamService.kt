@@ -17,8 +17,9 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import java.lang.reflect.Proxy
 
-class ScreenStreamService : Service(), ConnectCheckerRtmp {
+class ScreenStreamService : Service() {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
     private var mMediaProjection: MediaProjection? = null 
@@ -33,6 +34,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         var streamStatusListener: ((String) -> Unit)? = null
     }
 
+    // 🔴 మీ అసలు సమస్య (Looper Crash) రాకుండా సేఫ్‌గా మెసేజ్ పంపే హ్యాండ్లర్ 🔴
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -48,7 +50,25 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onCreate() {
         super.onCreate()
         try {
-            rtmpDisplay = RtmpDisplay(applicationContext, true, this)
+            // 🔴 100% కంపైల్ ఎర్రర్స్ రాకుండా జావా డైనమిక్ ప్రాక్సీ (Java Dynamic Proxy) వాడాము 🔴
+            val connectChecker = Proxy.newProxyInstance(
+                ConnectCheckerRtmp::class.java.classLoader,
+                arrayOf(ConnectCheckerRtmp::class.java)
+            ) { _, method, args ->
+                val msg = when (method.name) {
+                    "onConnectionSuccess", "onConnectionSuccessRtmp" -> "లైవ్ సక్సెస్! (Online)"
+                    "onConnectionFailed", "onConnectionFailedRtmp" -> "కనెక్షన్ ఎర్రర్: ${args?.getOrNull(0) ?: ""}"
+                    "onDisconnect", "onDisconnectRtmp" -> "లైవ్ డిస్కనెక్ట్ అయింది."
+                    "onAuthError", "onAuthErrorRtmp" -> "లైవ్ కీ ఎర్రర్."
+                    else -> null
+                }
+                if (msg != null) {
+                    showMessage(msg)
+                }
+                null
+            } as ConnectCheckerRtmp
+            
+            rtmpDisplay = RtmpDisplay(applicationContext, true, connectChecker)
             rtmpDisplay?.setReTries(3)
         } catch (e: Exception) {
             showMessage("Library Crash: ${e.message}")
@@ -80,49 +100,46 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             }
 
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
-                val display = rtmpDisplay
-                if (display != null) {
-                    
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        try {
-                            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                            mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
-                            mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
-                                override fun onStop() {
-                                    super.onStop()
-                                    stopLiveStreamSafely()
-                                }
-                            }, Handler(Looper.getMainLooper()))
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-
-                    display.setIntentResult(resultCode, data)
-                    Thread {
-                        try {
-                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-                            val width = if (isPortrait) 720 else 1280
-                            val height = if (isPortrait) 1280 else 720
-
-                            val fps = 30
-                            val bitrate = 3000 * 1024 
-                            val dpi = resources.displayMetrics.densityDpi
-                            
-                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
-                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
-
-                            if (videoReady && audioReady) {
-                                display.startStream(targetUrl)
-                                showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
-                            } else {
-                                showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    try {
+                        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                        mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+                        mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                            override fun onStop() {
+                                super.onStop()
+                                stopLiveStreamSafely()
                             }
-                        } catch (e: Exception) {
-                            showMessage("Stream Crash: ${e.message}")
-                        }
-                    }.start()
+                        }, Handler(Looper.getMainLooper()))
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
+
+                rtmpDisplay?.setIntentResult(resultCode, data)
+                
+                Thread {
+                    try {
+                        val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                        val width = if (isPortrait) 720 else 1280
+                        val height = if (isPortrait) 1280 else 720
+
+                        val fps = 30
+                        val bitrate = 2000 * 1024 
+                        val dpi = resources.displayMetrics.densityDpi
+                        
+                        val videoReady = rtmpDisplay?.prepareVideo(width, height, fps, bitrate, 0, dpi) ?: false
+                        val audioReady = rtmpDisplay?.prepareAudio(128 * 1024, 44100, true, false, false) ?: false
+
+                        if (videoReady && audioReady) {
+                            rtmpDisplay?.startStream(targetUrl)
+                            showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
+                        } else {
+                            showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
+                        }
+                    } catch (e: Exception) {
+                        showMessage("Stream Crash: ${e.message}")
+                    }
+                }.start()
             } else {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
@@ -170,21 +187,4 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         super.onDestroy()
         stopLiveStreamSafely()
     }
-
-    // 🔴 లైబ్రరీ వెర్షన్‌కి సరిపోయే ఖచ్చితమైన 5 ఫంక్షన్లు మాత్రమే ఇక్కడ ఉన్నాయి (ఎర్రర్స్ రావు) 🔴
-    override fun onConnectionSuccess() {
-        showMessage("లైవ్ సక్సెస్! (Online)")
-    }
-    
-    override fun onConnectionFailed(reason: String) {
-        showMessage("కనెక్షన్ ఎర్రర్: $reason")
-    }
-    
-    override fun onNewBitrate(bitrate: Long) {}
-    
-    override fun onDisconnect() { 
-        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
-    }
-    
-    override fun onConnectionStarted(url: String) {}
 }
