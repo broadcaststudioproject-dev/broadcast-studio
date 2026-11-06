@@ -39,6 +39,8 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
+        // ఈ కింది లైన్ కొత్తగా యాడ్ చేయండి
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
