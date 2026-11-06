@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -19,6 +21,7 @@ import com.pedro.rtmp.utils.ConnectCheckerRtmp
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
+    private var mMediaProjection: MediaProjection? = null 
 
     companion object {
         const val ACTION_START = "START_STREAM"
@@ -27,11 +30,10 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
 
-        // ఫ్లాటర్‌కు మెసేజ్ పంపడానికి లిజినర్
         var streamStatusListener: ((String) -> Unit)? = null
     }
 
-    // 🔴 మీ అసలు సమస్య (Looper Crash) రాకుండా ఈ ఒక్క మెథడ్‌లోనే మెయిన్ థ్రెడ్‌కి మార్చాము 🔴
+    // 🔴 'looper must not be null' క్రాష్ రాకుండా ఫ్లాటర్ కి మెసేజ్ పంపడానికి సేఫ్ హ్యాండ్లర్ 🔴
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -42,7 +44,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onCreate() {
         super.onCreate()
         try {
-            // మీ 5 రోజుల క్రితం ఉన్న పర్ఫెక్ట్ ఇనిషియలైజేషన్ 
             rtmpDisplay = RtmpDisplay(applicationContext, true, this)
             rtmpDisplay?.setReTries(3)
         } catch (e: Exception) {
@@ -78,9 +79,22 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 val display = rtmpDisplay
                 if (display != null) {
                     
-                    // 5 రోజుల క్రితం ఉన్న పర్ఫెక్ట్ సెటప్
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        try {
+                            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
+                            mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
+                                override fun onStop() {
+                                    super.onStop()
+                                    try { display.stopStream() } catch (e: Exception) {}
+                                }
+                            }, Handler(Looper.getMainLooper()))
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+
                     display.setIntentResult(resultCode, data)
-                    
                     Thread {
                         try {
                             val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -91,7 +105,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             val bitrate = 2000 * 1024 
                             val dpi = resources.displayMetrics.densityDpi
                             
-                            // 🔴 కంపైల్ ఎర్రర్స్ రాకుండా మీ పాత కోడ్ లో ఉన్న పరామితులు యథాతథంగా వాడాము 🔴
                             val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
                             val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
 
@@ -111,6 +124,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             }
         } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            try { mMediaProjection?.stop() } catch (e: Exception) {} 
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -152,28 +166,29 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onDestroy() {
         super.onDestroy()
         try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+        try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
-    // 🔴 'overrides nothing' కంపైల్ ఎర్రర్స్ రాకుండా ఫంక్షన్ పేర్లు కరెక్ట్ చేశాము 🔴
-    override fun onConnectionSuccess() {
+    // 🔴 'overrides nothing' ఎర్రర్స్ రాకుండా మీ పాత వర్కింగ్ మెథడ్స్ యథాతథంగా ఉంచబడ్డాయి 🔴
+    override fun onConnectionSuccessRtmp() {
         showMessage("లైవ్ సక్సెస్! (Online)")
     }
     
-    override fun onConnectionFailed(reason: String) {
+    override fun onConnectionFailedRtmp(reason: String) {
         showMessage("కనెక్షన్ ఎర్రర్: $reason")
     }
     
-    override fun onNewBitrate(bitrate: Long) {}
+    override fun onNewBitrateRtmp(bitrate: Long) {}
     
-    override fun onDisconnect() { 
+    override fun onDisconnectRtmp() { 
         showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
     }
     
-    override fun onAuthError() { 
+    override fun onAuthErrorRtmp() { 
         showMessage("లైవ్ కీ ఎర్రర్.") 
     }
     
-    override fun onAuthSuccess() {}
+    override fun onAuthSuccessRtmp() {}
     
-    override fun onConnectionStarted(rtmpUrl: String) {}
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
 }
