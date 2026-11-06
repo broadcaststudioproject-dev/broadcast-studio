@@ -1,5 +1,5 @@
 # CMake కనీస వెర్షన్
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.18) 
 
 # ప్రాజెక్ట్ పేరు
 project(pocket_pcr_native C CXX)
