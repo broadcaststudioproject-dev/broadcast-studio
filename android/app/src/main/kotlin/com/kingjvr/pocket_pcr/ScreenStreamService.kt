@@ -7,8 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
-import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -18,10 +16,9 @@ import androidx.core.app.NotificationCompat
 import com.pedro.rtplibrary.rtmp.RtmpDisplay
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
-class ScreenStreamService : Service() {
+class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
-    private var mMediaProjection: MediaProjection? = null 
 
     companion object {
         const val ACTION_START = "START_STREAM"
@@ -30,9 +27,11 @@ class ScreenStreamService : Service() {
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
 
+        // ఫ్లాటర్‌కు మెసేజ్ పంపడానికి లిజినర్
         var streamStatusListener: ((String) -> Unit)? = null
     }
 
+    // 🔴 మీ అసలు సమస్య (Looper Crash) రాకుండా ఈ ఒక్క మెథడ్‌లోనే మెయిన్ థ్రెడ్‌కి మార్చాము 🔴
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -43,22 +42,8 @@ class ScreenStreamService : Service() {
     override fun onCreate() {
         super.onCreate()
         try {
-            rtmpDisplay = RtmpDisplay(applicationContext, object : ConnectCheckerRtmp {
-                override fun onConnectionSuccess() {
-                    showMessage("లైవ్ సక్సెస్! (Online)")
-                }
-                override fun onConnectionFailed(reason: String) {
-                    showMessage("కనెక్షన్ ఎర్రర్: $reason")
-                }
-                override fun onDisconnect() {
-                    showMessage("లైవ్ డిస్కనెక్ట్ అయింది.")
-                }
-                override fun onAuthError() {
-                    showMessage("లైవ్ కీ ఎర్రర్.")
-                }
-                override fun onAuthSuccess() {}
-                override fun onConnectionStarted(rtmpUrl: String) {}
-            })
+            // మీ 5 రోజుల క్రితం ఉన్న పర్ఫెక్ట్ ఇనిషియలైజేషన్ 
+            rtmpDisplay = RtmpDisplay(applicationContext, true, this)
             rtmpDisplay?.setReTries(3)
         } catch (e: Exception) {
             showMessage("Library Crash: ${e.message}")
@@ -74,16 +59,11 @@ class ScreenStreamService : Service() {
             startNotification()
 
             val url = intent.getStringExtra(EXTRA_URL) ?: ""
-            val cableRtmp = intent.getStringExtra("cableRtmp") ?: ""
-            val restreamRtmp = intent.getStringExtra("restreamRtmp") ?: ""
-            val satelliteSrt = intent.getStringExtra("satelliteSrt") ?: ""
+            val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
+            val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
+            val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
 
-            val targetUrl = when {
-                cableRtmp.isNotEmpty() -> cableRtmp
-                restreamRtmp.isNotEmpty() -> restreamRtmp
-                satelliteSrt.isNotEmpty() -> satelliteSrt
-                else -> url
-            }
+            val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
 
             val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
             
@@ -98,23 +78,9 @@ class ScreenStreamService : Service() {
                 val display = rtmpDisplay
                 if (display != null) {
                     
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        try {
-                            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                            mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
-                            mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
-                                override fun onStop() {
-                                    super.onStop()
-                                    try { 
-                                        if (display.isStreaming) display.stopStream() 
-                                    } catch (e: Exception) {}
-                                }
-                            }, Handler(Looper.getMainLooper()))
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-
+                    // 5 రోజుల క్రితం ఉన్న పర్ఫెక్ట్ సెటప్
+                    display.setIntentResult(resultCode, data)
+                    
                     Thread {
                         try {
                             val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -122,17 +88,18 @@ class ScreenStreamService : Service() {
                             val height = if (isPortrait) 1280 else 720
 
                             val fps = 30
-                            val bitrate = 3000 * 1024 
+                            val bitrate = 2000 * 1024 
                             val dpi = resources.displayMetrics.densityDpi
                             
-                            // పాత వర్కింగ్ లైబ్రరీ మెథడ్స్ ప్రకారం సర్వీస్ స్టార్ట్ చేయడం
-                            if (!display.isStreaming) {
-                                if (display.prepareAudio() && display.prepareVideo(width, height, fps, bitrate, 2, dpi)) {
-                                    display.startStream(targetUrl, resultCode, data)
-                                    showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
-                                } else {
-                                    showMessage("ఎన్‌కోడర్ విఫలమైంది!")
-                                }
+                            // 🔴 కంపైల్ ఎర్రర్స్ రాకుండా మీ పాత కోడ్ లో ఉన్న పరామితులు యథాతథంగా వాడాము 🔴
+                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
+                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
+
+                            if (videoReady && audioReady) {
+                                display.startStream(targetUrl)
+                                showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
+                            } else {
+                                showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
                             }
                         } catch (e: Exception) {
                             showMessage("Stream Crash: ${e.message}")
@@ -143,10 +110,7 @@ class ScreenStreamService : Service() {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
-            try { 
-                if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() 
-            } catch (e: Exception) {}
-            try { mMediaProjection?.stop() } catch (e: Exception) {}
+            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -187,9 +151,29 @@ class ScreenStreamService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
-        try { 
-            if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() 
-        } catch (e: Exception) {}
-        try { mMediaProjection?.stop() } catch (e: Exception) {}
+        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
     }
+
+    // 🔴 'overrides nothing' కంపైల్ ఎర్రర్స్ రాకుండా ఫంక్షన్ పేర్లు కరెక్ట్ చేశాము 🔴
+    override fun onConnectionSuccess() {
+        showMessage("లైవ్ సక్సెస్! (Online)")
+    }
+    
+    override fun onConnectionFailed(reason: String) {
+        showMessage("కనెక్షన్ ఎర్రర్: $reason")
+    }
+    
+    override fun onNewBitrate(bitrate: Long) {}
+    
+    override fun onDisconnect() { 
+        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
+    }
+    
+    override fun onAuthError() { 
+        showMessage("లైవ్ కీ ఎర్రర్.") 
+    }
+    
+    override fun onAuthSuccess() {}
+    
+    override fun onConnectionStarted(rtmpUrl: String) {}
 }
