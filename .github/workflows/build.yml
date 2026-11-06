@@ -1,4 +1,4 @@
-name: KINGJVK Dual Build (Android & Windows)
+name: KINGJVR Dual Build (Android & Windows)
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: KINGJVK-Android-APK
+          name: KINGJVR-Android-APK
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build-windows:
@@ -47,9 +47,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -69,5 +66,5 @@ jobs:
       - name: Upload Windows App
         uses: actions/upload-artifact@v4
         with:
-          name: KINGJVK-Windows-App
+          name: KINGJVR-Windows-App
           path: build\windows\x64\runner\Release
