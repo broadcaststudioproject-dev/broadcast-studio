@@ -1,4 +1,4 @@
-name: KINGJVR Dual Build (Android & Windows)
+Name: KINGJVK Dual Build (Android & Windows)
 
 on:
   push:
@@ -22,7 +22,8 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
+          flutter-version: '3.22.2'
+          channel: 'stable'
           cache: true
 
       - name: Install Dependencies
@@ -34,12 +35,12 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: KINGJVR-Android-APK
+          name: KINGJVK-Android-APK
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build-windows:
     name: Build Windows App
-    runs-on: windows-2019
+    runs-on: windows-latest
     timeout-minutes: 30
     steps:
       - name: Checkout Code
@@ -57,13 +58,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Clean and Recreate Windows Platform
-        shell: pwsh
-        run: |
-          flutter clean
-          if (Test-Path "windows") { Remove-Item -Recurse -Force "windows" }
-          flutter create --platforms=windows --project-name=pocket_pcr .
-
       - name: Install Dependencies
         shell: pwsh
         run: flutter pub get
@@ -75,5 +69,5 @@ jobs:
       - name: Upload Windows App
         uses: actions/upload-artifact@v4
         with:
-          name: KINGJVR-Windows-App
+          name: KINGJVK-Windows-App
           path: build\windows\x64\runner\Release
