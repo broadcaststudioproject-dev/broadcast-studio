@@ -89,27 +89,10 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = cons
   });
 }
 
-class StreamServiceManager {
+Class StreamServiceManager {
   static const MethodChannel _streamChannel = MethodChannel('com.kingjvr.pocket_pcr/stream');
 
-  // 🔴 ఆండ్రాయిడ్ సర్వీస్ నుండి వచ్చే బ్రాడ్‌కాస్ట్‌ని వినడానికి లిజినర్ 🔴
-  static void initializeStreamListener(BuildContext context) {
-    if (Platform.isWindows) return; // విండోస్‌లో ప్లాట్‌ఫాం ఛానల్ కాల్స్ నివారించడానికి
-    _streamChannel.setMethodCallHandler((call) async {
-      if (call.method == 'onStreamStatusUpdate') {
-        String message = call.arguments.toString();
-        // ఇక్కడ మీ టోస్ట్ లేదా నోటిఫికేషన్ ఫంక్షన్ కాల్ అవుతుంది
-      }
-    });
-  }
-
   static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
-    // 🔴 విండోస్‌లో క్రాష్ అవ్వకుండా సేఫ్‌గా బైపాస్ చేయడానికి 🔴
-    if (Platform.isWindows) {
-      debugPrint("విండోస్ వర్షన్‌కి లైవ్ స్ట్రీమింగ్ త్వరలో రాబోతోంది!");
-      return true; 
-    }
-
     final cable = cableUrl.trim();
     final restream = restreamUrl.trim();
     final satellite = satUrl.trim();
@@ -143,34 +126,22 @@ class StreamServiceManager {
   }
 
   static Future<bool> stopLiveStream() async {
-    if (Platform.isWindows) return true;
-
     try {
       final result = await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
       return result == true;
     } catch (e) { return false; }
   }
 
-  static Future<bool> pauseLiveStream() async { 
-    return stopLiveStream(); 
-  }
+  static Future<bool> pauseLiveStream() async { return stopLiveStream(); }
 
   static Future<int?> startUsbCamera() async {
-    if (Platform.isWindows) return null;
-
-    try { 
-      return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); 
-    } catch (e) { 
-      return null; 
-    }
+    try { return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); } 
+    catch (e) { return null; }
   }
 
   static Future<void> stopUsbCamera() async {
-    if (Platform.isWindows) return;
-
-    try { 
-      await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); 
-    } catch (e) {}
+    try { await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); } 
+    catch (e) {}
   }
 }
 
