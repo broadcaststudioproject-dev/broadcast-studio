@@ -1,2 +1,5 @@
--dontwarn android.window.BackEvent
--keep class android.window.BackEvent { *; }
+-dontwarn android.window.**
+-keep class android.window.** { *; }
+-dontwarn io.flutter.view.**
+-dontwarn com.pichillilorenzo.flutter_inappwebview.**
+-ignorewarnings
