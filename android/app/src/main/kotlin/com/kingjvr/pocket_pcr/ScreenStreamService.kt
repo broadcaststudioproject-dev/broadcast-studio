@@ -43,8 +43,7 @@ class ScreenStreamService : Service() {
     override fun onCreate() {
         super.onCreate()
         try {
-            // ConnectCheckerRtmp ను ఆనానిమస్ ఆబ్జెక్ట్‌గా ఇస్తున్నాం (ఓవర్‌రైడ్ ఎర్రర్స్ రావు)
-            rtmpDisplay = RtmpDisplay(applicationContext, true, object : ConnectCheckerRtmp {
+            rtmpDisplay = RtmpDisplay(applicationContext, object : ConnectCheckerRtmp {
                 override fun onConnectionSuccess() {
                     showMessage("లైవ్ సక్సెస్! (Online)")
                 }
@@ -116,7 +115,6 @@ class ScreenStreamService : Service() {
                         }
                     }
 
-                    display.setIntentResult(resultCode, data)
                     Thread {
                         try {
                             val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -127,14 +125,14 @@ class ScreenStreamService : Service() {
                             val bitrate = 3000 * 1024 
                             val dpi = resources.displayMetrics.densityDpi
                             
-                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
-                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
-
-                            if (videoReady && audioReady) {
-                                display.startStream(targetUrl)
-                                showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
-                            } else {
-                                showMessage("ఎన్‌కోడర్ విఫలమైంది!")
+                            // పాత వర్కింగ్ లైబ్రరీ మెథడ్స్ ప్రకారం సర్వీస్ స్టార్ట్ చేయడం
+                            if (!display.isStreaming) {
+                                if (display.prepareAudio() && display.prepareVideo(width, height, fps, bitrate, 2, dpi)) {
+                                    display.startStream(targetUrl, resultCode, data)
+                                    showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
+                                } else {
+                                    showMessage("ఎన్‌కోడర్ విఫలమైంది!")
+                                }
                             }
                         } catch (e: Exception) {
                             showMessage("Stream Crash: ${e.message}")
