@@ -1,190 +1,81 @@
-package com.kingjvr.pocket_pcr
+import 'dart:io';
+import 'package:flutter/services.dart';
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
-import android.content.Context
-import android.content.Intent
-import android.content.pm.ServiceInfo
-import android.content.res.Configuration
-import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
-import android.os.Build
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
-import android.widget.Toast
-import androidx.core.app.NotificationCompat
-import com.pedro.rtplibrary.rtmp.RtmpDisplay
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
-import java.lang.reflect.Proxy
+class StreamManager {
+  // ఆండ్రాయిడ్ కోసం మనం సెట్ చేసిన MethodChannel పేరు
+  static const MethodChannel _channel = MethodChannel('com.kingjvk.pocket_pcr/stream');
+  
+  // విండోస్ లో FFmpeg ప్రాసెస్‌ని కంట్రోల్ చేయడానికి
+  static Process? _windowsFfmpegProcess;
 
-class ScreenStreamService : Service() {
-    private var rtmpDisplay: RtmpDisplay? = null
-    private val channelId = "ScreenStreamChannel"
-    private var mMediaProjection: MediaProjection? = null 
-
-    companion object {
-        const val ACTION_START = "START_STREAM"
-        const val ACTION_STOP = "STOP_STREAM"
-        const val EXTRA_URL = "rtmpUrl" 
-        const val EXTRA_RESULT_CODE = "resultCode"
-        const val EXTRA_DATA = "data"
-
-        var streamStatusListener: ((String) -> Unit)? = null
+  // 🔴 లైవ్ స్టార్ట్ చేయడానికి ఫంక్షన్
+  static Future<void> startLiveStream(String rtmpUrl) async {
+    if (Platform.isAndroid) {
+      // 1. Android అయితే: Kotlin సర్వీస్‌కి కమాండ్ పంపుతాము
+      try {
+        await _channel.invokeMethod('START_STREAM', {'rtmpUrl': rtmpUrl});
+        print("Android Live Started");
+      } on PlatformException catch (e) {
+        print("Android Error: '${e.message}'.");
+      }
+    } else if (Platform.isWindows) {
+      // 2. Windows అయితే: FFmpeg ద్వారా స్క్రీన్ రికార్డ్ చేసి లైవ్ పంపుతాము
+      _startWindowsStream(rtmpUrl);
     }
+  }
 
-    // 🔴 మీ అసలు సమస్య (Looper Crash) రాకుండా సేఫ్‌గా మెసేజ్ పంపే హ్యాండ్లర్ 🔴
-    private fun showMessage(message: String) {
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
-            streamStatusListener?.invoke(message)
-        }
+  // 🔴 లైవ్ ఆపడానికి ఫంక్షన్
+  static Future<void> stopLiveStream() async {
+    if (Platform.isAndroid) {
+      try {
+        await _channel.invokeMethod('STOP_STREAM');
+        print("Android Live Stopped");
+      } on PlatformException catch (e) {
+        print("Android Error: '${e.message}'.");
+      }
+    } else if (Platform.isWindows) {
+      _stopWindowsStream();
     }
+  }
 
-    private fun stopLiveStreamSafely() {
-        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-        try { mMediaProjection?.stop() } catch (e: Exception) {}
+  // ==========================================
+  // WINDOWS FFMPEG లాజిక్ (స్క్రీన్ కాప్చర్ & RTMP)
+  // ==========================================
+  static void _startWindowsStream(String rtmpUrl) async {
+    try {
+      // గమనిక: విండోస్ సిస్టమ్‌లో/ప్రాజెక్ట్‌లో ffmpeg.exe ఉండాలి
+      _windowsFfmpegProcess = await Process.start(
+        'ffmpeg',
+        [
+          '-f', 'gdigrab',           // విండోస్ స్క్రీన్ క్యాప్చర్ టూల్
+          '-framerate', '30',        // 30 FPS
+          '-i', 'desktop',           // మొత్తం స్క్రీన్ రికార్డ్ చేయడానికి
+          '-c:v', 'libx264',         // వీడియో ఎన్‌కోడర్
+          '-preset', 'ultrafast',    // లాగ్ (Delay) లేకుండా స్పీడ్ గా వెళ్లడానికి
+          '-tune', 'zerolatency',    // జీరో లేటెన్సీ కోసం
+          '-pix_fmt', 'yuv420p',
+          '-c:a', 'aac',             // ఆడియో ఎన్‌కోడర్ (మైక్ కనెక్ట్ చేస్తే సెట్ చేయాలి)
+          '-f', 'flv',               // RTMP కి సపోర్ట్ చేసే ఫార్మాట్
+          rtmpUrl                    // మీ యూట్యూబ్/ఫేస్బుక్ RTMP లింక్
+        ],
+      );
+      print("Windows Live Stream Started via FFmpeg");
+
+      // విండోస్ లో ఏమైనా ఎర్రర్ వస్తే చూడటానికి
+      _windowsFfmpegProcess?.stderr.listen((data) {
+        print('FFmpeg Log: ${String.fromCharCodes(data)}');
+      });
+
+    } catch (e) {
+      print("Windows Stream Error: FFmpeg ఇన్‌స్టాల్ అయిందో లేదో చెక్ చేయండి. Error: $e");
     }
+  }
 
-    override fun onCreate() {
-        super.onCreate()
-        try {
-            // 🔴 100% కంపైల్ ఎర్రర్స్ రాకుండా జావా డైనమిక్ ప్రాక్సీ (Java Dynamic Proxy) వాడాము 🔴
-            val connectChecker = Proxy.newProxyInstance(
-                ConnectCheckerRtmp::class.java.classLoader,
-                arrayOf(ConnectCheckerRtmp::class.java)
-            ) { _, method, args ->
-                val msg = when (method.name) {
-                    "onConnectionSuccess", "onConnectionSuccessRtmp" -> "లైవ్ సక్సెస్! (Online)"
-                    "onConnectionFailed", "onConnectionFailedRtmp" -> "కనెక్షన్ ఎర్రర్: ${args?.getOrNull(0) ?: ""}"
-                    "onDisconnect", "onDisconnectRtmp" -> "లైవ్ డిస్కనెక్ట్ అయింది."
-                    "onAuthError", "onAuthErrorRtmp" -> "లైవ్ కీ ఎర్రర్."
-                    else -> null
-                }
-                if (msg != null) {
-                    showMessage(msg)
-                }
-                null
-            } as ConnectCheckerRtmp
-            
-            rtmpDisplay = RtmpDisplay(applicationContext, true, connectChecker)
-            rtmpDisplay?.setReTries(3)
-        } catch (e: Exception) {
-            showMessage("Library Crash: ${e.message}")
-        }
+  static void _stopWindowsStream() {
+    if (_windowsFfmpegProcess != null) {
+      _windowsFfmpegProcess?.kill();
+      _windowsFfmpegProcess = null;
+      print("Windows Live Stream Stopped");
     }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent == null) return START_NOT_STICKY
-        
-        val action = intent.action ?: ACTION_START 
-
-        if (action == ACTION_START) {
-            startNotification()
-
-            val url = intent.getStringExtra(EXTRA_URL) ?: ""
-            val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
-            val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
-            val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
-
-            val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
-
-            val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
-            
-            val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra<Intent>(EXTRA_DATA)
-            }
-
-            if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    try {
-                        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
-                        mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
-                            override fun onStop() {
-                                super.onStop()
-                                stopLiveStreamSafely()
-                            }
-                        }, Handler(Looper.getMainLooper()))
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-
-                rtmpDisplay?.setIntentResult(resultCode, data)
-                
-                Thread {
-                    try {
-                        val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-                        val width = if (isPortrait) 720 else 1280
-                        val height = if (isPortrait) 1280 else 720
-
-                        val fps = 30
-                        val bitrate = 2000 * 1024 
-                        val dpi = resources.displayMetrics.densityDpi
-                        
-                        val videoReady = rtmpDisplay?.prepareVideo(width, height, fps, bitrate, 0, dpi) ?: false
-                        val audioReady = rtmpDisplay?.prepareAudio(128 * 1024, 44100, true, false, false) ?: false
-
-                        if (videoReady && audioReady) {
-                            rtmpDisplay?.startStream(targetUrl)
-                            showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
-                        } else {
-                            showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
-                        }
-                    } catch (e: Exception) {
-                        showMessage("Stream Crash: ${e.message}")
-                    }
-                }.start()
-            } else {
-                showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
-            }
-        } else if (action == ACTION_STOP) {
-            stopLiveStreamSafely()
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-            } else {
-                @Suppress("DEPRECATION")
-                stopForeground(true)
-            }
-            stopSelf()
-            showMessage("లైవ్ ఆగిపోయింది.")
-        }
-        return START_NOT_STICKY
-    }
-
-    private fun startNotification() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
-        }
-        
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Pocket PCR Studio")
-            .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ బ్యాక్‌గ్రౌండ్‌లో నడుస్తోంది...")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .build()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { 
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-        } else {
-            startForeground(1, notification)
-        }
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        stopLiveStreamSafely()
-    }
+  }
 }
