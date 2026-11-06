@@ -25,7 +25,7 @@ dependencies:
   
   # 🔴 మీ గిట్‌హబ్ ఫ్లట్టర్ వెర్షన్ (3.19.6) కి పక్కాగా సెట్ అయ్యే వర్షన్స్ ఇవే
   youtube_player_flutter: ^8.1.2
-  flutter_inappwebview: ^5.8.0
+  flutter_inappwebview: ^6.0.0
   youtube_explode_dart: ^2.2.2
   
   sqflite: ^2.3.0
