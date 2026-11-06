@@ -90,7 +90,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
                                 override fun onStop() {
                                     super.onStop()
-                                    try { if (display.isStreaming) display.stopStream() } catch (e: Exception) {}
+                                    try { display.stopStream() } catch (e: Exception) {}
                                 }
                             }, Handler(Looper.getMainLooper()))
                         } catch (e: Exception) {
@@ -127,7 +127,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
-            try { if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() } catch (e: Exception) {}
+            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
             try { mMediaProjection?.stop() } catch (e: Exception) {}
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -169,11 +169,11 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     
     override fun onDestroy() {
         super.onDestroy()
-        try { if (rtmpDisplay?.isStreaming == true) rtmpDisplay?.stopStream() } catch (e: Exception) {}
+        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
         try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
-    // ConnectCheckerRtmp ఇంటర్‌ఫేస్ మెథడ్స్ (ఎర్రర్స్ రాకుండా సరిచేయబడ్డాయి)
+    // 5 రోజుల క్రితం ఉన్న పాత పద్ధతి ప్రకారమే ConnectCheckerRtmp ఓవర్‌రైడ్స్
     override fun onConnectionSuccessRtmp() {
         showMessage("లైవ్ సక్సెస్! (Online)")
     }
@@ -181,6 +181,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     override fun onConnectionFailedRtmp(reason: String) {
         showMessage("కనెక్షన్ ఎర్రర్: $reason")
     }
+    
+    override fun onNewBitrateRtmp(bitrate: Long) {}
     
     override fun onDisconnectRtmp() { 
         showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
