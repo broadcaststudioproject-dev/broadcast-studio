@@ -21,6 +21,8 @@ import com.pedro.rtmp.utils.ConnectCheckerRtmp
 class ScreenStreamService : Service(), ConnectCheckerRtmp {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
+    
+    // ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ కోసం కొత్తగా యాడ్ చేసిన వేరియబుల్
     private var mMediaProjection: MediaProjection? = null 
 
     companion object {
@@ -31,7 +33,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         const val EXTRA_DATA = "data"
     }
 
-    // 🔴 క్రాష్ అవ్వకుండా కేవలం ఇక్కడ మాత్రమే హ్యాండ్లర్ పెట్టబడింది 🔴
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -76,6 +77,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 val display = rtmpDisplay
                 if (display != null) {
                     
+                    // --- ANDROID 14 CRASH FIX START ---
+                    // స్ట్రీమ్ స్టార్ట్ అయ్యే ముందే సిస్టమ్‌కి Callback రిజిస్టర్ చేస్తున్నాం
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         try {
                             val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -83,14 +86,14 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
                                 override fun onStop() {
                                     super.onStop()
-                                    // 🔴 స్కోప్ ఎర్రర్ రాకుండా rtmpDisplay వాడాము 🔴
-                                    try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+                                    try { display.stopStream() } catch (e: Exception) {}
                                 }
                             }, Handler(Looper.getMainLooper()))
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
                     }
+                    // --- ANDROID 14 CRASH FIX END ---
 
                     display.setIntentResult(resultCode, data)
                     Thread {
@@ -122,7 +125,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             }
         } else if (action == ACTION_STOP) {
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-            try { mMediaProjection?.stop() } catch (e: Exception) {}
+            try { mMediaProjection?.stop() } catch (e: Exception) {} // ఆండ్రాయిడ్ 14 ఫిక్స్
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -167,7 +170,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
-    // 🔴 మీ పాత కోడ్‌లోని ఒరిజినల్ ఫంక్షన్లు, ఎలాంటి మార్పులు లేవు 🔴
     override fun onConnectionSuccessRtmp() {
         showMessage("లైవ్ సక్సెస్! (Online)")
     }
