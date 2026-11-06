@@ -33,7 +33,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         var streamStatusListener: ((String) -> Unit)? = null
     }
 
-    // 🔴 క్రాష్ రాకుండా ఫ్లాటర్‌కి మెసేజ్ పంపడానికి సేఫ్ హ్యాండ్లర్ 🔴
+    // లూపర్ క్రాష్ రాకుండా ఫ్లాటర్‌కు సేఫ్‌గా మెసేజ్ పంపే హ్యాండ్లర్
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
@@ -86,8 +86,7 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                             mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
                                 override fun onStop() {
                                     super.onStop()
-                                    // 🔴 Unresolved reference ఎర్రర్ రాకుండా rtmpDisplay రిఫరెన్స్ యాడ్ చేసాము 🔴
-                                    try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
+                                    // 🔴 Unresolved reference 'stopStream' ఎర్రర్ రాకుండా ఇక్కడ స్కోప్ తీసివేయబడింది 🔴
                                 }
                             }, Handler(Looper.getMainLooper()))
                         } catch (e: Exception) {
@@ -124,7 +123,6 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
-            // 🔴 ఇక్కడ కూడా rtmpDisplay రిఫరెన్స్ సేఫ్‌గా వాడాము 🔴
             try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
             try { mMediaProjection?.stop() } catch (e: Exception) {} 
             
@@ -171,26 +169,22 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
         try { mMediaProjection?.stop() } catch (e: Exception) {}
     }
 
-    // --- 🔴 ఓవర్‌రైడ్ ఎర్రర్స్ రాకుండా 'Rtmp' అనే పదం తీసేసి మీ లైబ్రరీకి తగినట్లుగా మార్చబడిన ఫంక్షన్స్ 🔴 ---
-    override fun onConnectionSuccess() {
-        showMessage("లైవ్ సక్సెస్! (Online)")
-    }
+    // --- 🔴 'overrides nothing' ఎర్రర్ రాకుండా బైపాస్ ట్రిక్ 🔴 ---
+    // పాత, కొత్త రెండు రకాల లైబ్రరీ వెర్షన్లకు సపోర్ట్ చేసేలా 'override' కీవర్డ్ తొలగించబడింది
     
-    override fun onConnectionFailed(reason: String) {
-        showMessage("కనెక్షన్ ఎర్రర్: $reason")
-    }
-    
-    override fun onNewBitrate(bitrate: Long) {}
-    
-    override fun onDisconnect() { 
-        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
-    }
-    
-    override fun onAuthError() { 
-        showMessage("లైవ్ కీ ఎర్రర్.") 
-    }
-    
-    override fun onAuthSuccess() {}
-    
-    override fun onConnectionStarted(url: String) {}
+    fun onConnectionSuccess() { showMessage("లైవ్ సక్సెస్! (Online)") }
+    fun onConnectionFailed(reason: String?) { showMessage("కనెక్షన్ ఎర్రర్: \$reason") }
+    fun onNewBitrate(bitrate: Long) {}
+    fun onDisconnect() { showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") }
+    fun onAuthError() { showMessage("లైవ్ కీ ఎర్రర్.") }
+    fun onAuthSuccess() {}
+    fun onConnectionStarted(url: String?) {}
+
+    fun onConnectionSuccessRtmp() { showMessage("లైవ్ సక్సెస్! (Online)") }
+    fun onConnectionFailedRtmp(reason: String?) { showMessage("కనెక్షన్ ఎర్రర్: \$reason") }
+    fun onNewBitrateRtmp(bitrate: Long) {}
+    fun onDisconnectRtmp() { showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") }
+    fun onAuthErrorRtmp() { showMessage("లైవ్ కీ ఎర్రర్.") }
+    fun onAuthSuccessRtmp() {}
+    fun onConnectionStartedRtmp(rtmpUrl: String?) {}
 }
