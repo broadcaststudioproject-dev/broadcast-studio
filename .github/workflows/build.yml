@@ -37,10 +37,13 @@ jobs:
         with:
           name: KINGJVR-Android-APK
           path: build/app/outputs/flutter-apk/app-release.apk
-
-  build-windows:
+          
+      - name: Update Windows Project Files
+        shell: pwsh
+        run: flutter create --platforms=windows .
+build-windows:
     name: Build Windows App
-    runs-on: windows-latest
+    runs-on: windows-latest 
     timeout-minutes: 30
     steps:
       - name: Checkout Code
