@@ -3,3 +3,4 @@
 -dontwarn io.flutter.view.**
 -dontwarn com.pichillilorenzo.flutter_inappwebview.**
 -ignorewarnings
+-dontwarn android.window.BackEvent
