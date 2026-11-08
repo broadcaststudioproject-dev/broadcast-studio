@@ -55,9 +55,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Update Windows Project Files
+      - name: Recreate Windows Project Files
         shell: pwsh
-        run: flutter create --platforms=windows --project-name broadcast_studio .
+        run: |
+          if (Test-Path "windows") { Remove-Item -Recurse -Force "windows" }
+          flutter create --platforms=windows --project-name broadcast_studio .
 
       - name: Clean Build Cache and Install Dependencies
         shell: pwsh
