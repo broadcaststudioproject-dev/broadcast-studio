@@ -2,7 +2,7 @@ name: KINGJVR Dual Build (Android & Windows)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
@@ -16,20 +16,20 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: zulu
           java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.3'
-          channel: 'stable'
+          channel: stable
           cache: true
 
-     - name: Install Dependencies
-       run: |
-       flutter clean
-       flutter pub get
+      - name: Install Dependencies
+        run: |
+          flutter clean
+          flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
@@ -52,7 +52,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.3'
-          channel: 'stable'
+          channel: stable
           cache: true
 
       - name: Clean and Install Dependencies
