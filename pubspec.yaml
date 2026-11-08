@@ -25,7 +25,7 @@ dependencies:
   
   # ఇక్కడ అన్ని ప్యాకేజీలు ఒకే వరుసలో ఉండేలా సరిచేశాను
   youtube_player_flutter: ^9.0.4
-  flutter_inappwebview: ^6.0.0
+  flutter_inappwebview: ^6.1.5
   youtube_explode_dart: ^2.2.2
   
   sqflite: ^2.3.0
