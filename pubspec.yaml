@@ -37,6 +37,9 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
 
+  dependency_overrides:
+  geolocator_android: 4.6.1
+
 # ఇక్కడ flutter_icons బదులు flutter_launcher_icons అని మార్చాను, విండోస్ యాడ్ చేశాను
 flutter_launcher_icons:
   android: "launcher_icon"
