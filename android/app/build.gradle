@@ -10,13 +10,13 @@ android {
     ndkVersion "28.2.13676358"
 
     compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-}
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
-kotlinOptions {
-    jvmTarget = '17'
-}
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 
     defaultConfig {
         applicationId "com.kingjvr.pocket_pcr" // JVR నుండి JVK కి మార్చబడింది
@@ -39,8 +39,8 @@ kotlinOptions {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-        // ఈ కింది లైన్ కొత్తగా యాడ్ చేయండి
-        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // ఈ కింది లైన్ R8 ఎర్రర్ రాకుండా అడ్డుకుంటుంది
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
