@@ -40,13 +40,11 @@ jobs:
 
   build-windows:
     name: Build Windows App
-    runs-on: windows-latest
+    runs-on: windows-2019
     timeout-minutes: 30
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -55,21 +53,12 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Recreate Windows Project Files
-        shell: pwsh
+      - name: Clean and Install Dependencies
         run: |
-          if (Test-Path "windows") { Remove-Item -Recurse -Force "windows" }
-          flutter create --platforms=windows --project-name broadcast_studio .
-
-      - name: Clean Build Cache and Install Dependencies
-        shell: pwsh
-        run: |
-          if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
           flutter clean
           flutter pub get
 
       - name: Build Windows
-        shell: pwsh
         run: flutter build windows --release
 
       - name: Upload Windows App
