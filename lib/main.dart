@@ -89,16 +89,28 @@ void showCustomToast(BuildContext context, String message, {Color bgColor = cons
   });
 }
 
-Class StreamServiceManager {
-  static const MethodChannel _streamChannel = MethodChannel('com.kingjvr.pocket_pcr/stream');
+class StreamServiceManager {
+  static const MethodChannel _streamChannel =
+      MethodChannel('com.kingjvr.pocket_pcr/stream');
 
-  static Future<bool> startLiveStreamMulti(String cableUrl, String restreamUrl, String satUrl) async {
+  static void initializeStreamListener(BuildContext context) {
+    _streamChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onStreamStatusUpdate') {
+        debugPrint('Stream status: ${call.arguments}');
+      }
+      return null;
+    });
+  }
+
+  static Future<bool> startLiveStreamMulti(
+      String cableUrl, String restreamUrl, String satUrl) async {
     final cable = cableUrl.trim();
     final restream = restreamUrl.trim();
     final satellite = satUrl.trim();
 
     if (cable.isEmpty && restream.isEmpty && satellite.isEmpty) return false;
-    final primaryUrl = cable.isNotEmpty ? cable : (restream.isNotEmpty ? restream : satellite);
+    final primaryUrl =
+        cable.isNotEmpty ? cable : (restream.isNotEmpty ? restream : satellite);
 
     try {
       final result = await _streamChannel.invokeMethod<bool>(
@@ -107,19 +119,19 @@ Class StreamServiceManager {
           'rtmpUrl': primaryUrl,
           'cableRtmp': cable,
           'restreamRtmp': restream,
-          'satelliteSrt': satellite, 
+          'satelliteSrt': satellite,
           'url': primaryUrl,
-          'recordAudio': true,           
-          'captureInternalAudio': true,  
-          'videoBitrate': 3000 * 1024,   
-          'audioBitrate': 128 * 1024,    
-          'fps': 30,                     
-          'resolution': '1080p'          
+          'recordAudio': true,
+          'captureInternalAudio': true,
+          'videoBitrate': 3000 * 1024,
+          'audioBitrate': 128 * 1024,
+          'fps': 30,
+          'resolution': '1080p',
         },
       );
       return result == true;
     } on PlatformException catch (e) {
-      throw Exception(e.message); 
+      throw Exception(e.message);
     } catch (e) {
       throw Exception("స్ట్రీమ్ ప్రారంభించడంలో లోపం: $e");
     }
@@ -127,21 +139,30 @@ Class StreamServiceManager {
 
   static Future<bool> stopLiveStream() async {
     try {
-      final result = await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
+      final result =
+          await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
       return result == true;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
-  static Future<bool> pauseLiveStream() async { return stopLiveStream(); }
+  static Future<bool> pauseLiveStream() async => stopLiveStream();
 
   static Future<int?> startUsbCamera() async {
-    try { return await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<int>('startUsbCamera'); } 
-    catch (e) { return null; }
+    try {
+      return await const MethodChannel('com.kingjvr.pocket_pcr/uvc')
+          .invokeMethod<int>('startUsbCamera');
+    } catch (e) {
+      return null;
+    }
   }
 
   static Future<void> stopUsbCamera() async {
-    try { await const MethodChannel('com.kingjvr.pocket_pcr/uvc').invokeMethod<void>('stopUsbCamera'); } 
-    catch (e) {}
+    try {
+      await const MethodChannel('com.kingjvr.pocket_pcr/uvc')
+          .invokeMethod<void>('stopUsbCamera');
+    } catch (e) {}
   }
 }
 
