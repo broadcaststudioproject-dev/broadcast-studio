@@ -57,7 +57,7 @@ jobs:
 
       - name: Update Windows Project Files
         shell: pwsh
-        run: flutter create --platforms=windows .
+        run: flutter create --platforms=windows --project-name broadcast_studio .
 
       - name: Clean Build Cache and Install Dependencies
         shell: pwsh
