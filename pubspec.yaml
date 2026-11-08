@@ -4,7 +4,7 @@ version: 1.0.0+4
 
 environment:
   sdk: '>=2.19.0 <4.0.0'
- 
+
 dependencies:
   flutter:
     sdk: flutter
@@ -22,12 +22,9 @@ dependencies:
   geolocator: ^12.0.0
   url_launcher: ^6.2.1
   shared_preferences: ^2.2.3
-  
-  # ఇక్కడ అన్ని ప్యాకేజీలు ఒకే వరుసలో ఉండేలా సరిచేశాను
   youtube_player_flutter: ^9.0.4
   flutter_inappwebview: ^6.1.5
   youtube_explode_dart: ^2.2.2
-  
   sqflite: ^2.3.0
   path: ^1.8.3
   google_generative_ai: ^0.4.6
@@ -37,7 +34,7 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1
 
-  dependency_overrides:
+dependency_overrides:
   geolocator_android: 4.6.1
 
 # ఇక్కడ flutter_icons బదులు flutter_launcher_icons అని మార్చాను, విండోస్ యాడ్ చేశాను
