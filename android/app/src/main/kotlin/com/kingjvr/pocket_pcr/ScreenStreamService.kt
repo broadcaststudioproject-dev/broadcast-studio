@@ -15,20 +15,20 @@ import android.os.IBinder
 import android.os.Looper
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.pedro.rtplibrary.rtmp.RtmpDisplay
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import com.pedro.common.ConnectChecker
+import com.pedro.library.rtmp.RtmpDisplay
 
-class ScreenStreamService : Service(), ConnectCheckerRtmp {
+class ScreenStreamService : Service(), ConnectChecker {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
-    
-    // ఆండ్రాయిడ్ 14 క్రాష్ ఫిక్స్ కోసం కొత్తగా యాడ్ చేసిన వేరియబుల్
-    private var mMediaProjection: MediaProjection? = null 
+
+    // Android 14 screen-capture lifecycle handling.
+    private var mMediaProjection: MediaProjection? = null
 
     companion object {
         const val ACTION_START = "START_STREAM"
         const val ACTION_STOP = "STOP_STREAM"
-        const val EXTRA_URL = "rtmpUrl" 
+        const val EXTRA_URL = "rtmpUrl"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
     }
@@ -51,8 +51,8 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) return START_NOT_STICKY
-        
-        val action = intent.action ?: ACTION_START 
+
+        val action = intent.action ?: ACTION_START
 
         if (action == ACTION_START) {
             startNotification()
@@ -61,11 +61,9 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
             val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
             val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
-
-            val targetUrl = if (cableRtmp.isNotEmpty()) cableRtmp else if (restreamRtmp.isNotEmpty()) restreamRtmp else if (satelliteSrt.isNotEmpty()) satelliteSrt else url
+            val targetUrl = cableRtmp.ifEmpty { restreamRtmp.ifEmpty { satelliteSrt.ifEmpty { url } } }
 
             val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
-            
             val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
             } else {
@@ -76,36 +74,37 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
                 val display = rtmpDisplay
                 if (display != null) {
-                    
-                    // --- ANDROID 14 CRASH FIX START ---
-                    // స్ట్రీమ్ స్టార్ట్ అయ్యే ముందే సిస్టమ్‌కి Callback రిజిస్టర్ చేస్తున్నాం
+                    // Register the MediaProjection callback before starting capture on Android 14+.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         try {
-                            val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                            val mediaProjectionManager =
+                                getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                             mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
                             mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
                                 override fun onStop() {
                                     super.onStop()
-                                    try { display.stopStream() } catch (e: Exception) {}
+                                    try {
+                                        display.stopStream()
+                                    } catch (_: Exception) {
+                                    }
                                 }
                             }, Handler(Looper.getMainLooper()))
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
                     }
-                    // --- ANDROID 14 CRASH FIX END ---
 
                     display.setIntentResult(resultCode, data)
                     Thread {
                         try {
-                            val isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                            val isPortrait =
+                                resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
                             val width = if (isPortrait) 720 else 1280
                             val height = if (isPortrait) 1280 else 720
-
                             val fps = 30
-                            val bitrate = 2000 * 1024 
+                            val bitrate = 2000 * 1024
                             val dpi = resources.displayMetrics.densityDpi
-                            
+
                             val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
                             val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
 
@@ -124,9 +123,15 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
                 showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
             }
         } else if (action == ACTION_STOP) {
-            try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-            try { mMediaProjection?.stop() } catch (e: Exception) {} // ఆండ్రాయిడ్ 14 ఫిక్స్
-            
+            try {
+                rtmpDisplay?.stopStream()
+            } catch (_: Exception) {
+            }
+            try {
+                mMediaProjection?.stop()
+            } catch (_: Exception) {
+            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
             } else {
@@ -141,10 +146,15 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
 
     private fun startNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Screen Stream", NotificationManager.IMPORTANCE_LOW)
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+            val channel = NotificationChannel(
+                channelId,
+                "Screen Stream",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                .createNotificationChannel(channel)
         }
-        
+
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Pocket PCR Studio")
             .setContentText("లైవ్ బ్రాడ్‌కాస్ట్ బ్యాక్‌గ్రౌండ్‌లో నడుస్తోంది...")
@@ -153,8 +163,13 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { 
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                1,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
@@ -163,32 +178,38 @@ class ScreenStreamService : Service(), ConnectCheckerRtmp {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
-    
+
     override fun onDestroy() {
         super.onDestroy()
-        try { rtmpDisplay?.stopStream() } catch (e: Exception) {}
-        try { mMediaProjection?.stop() } catch (e: Exception) {}
+        try {
+            rtmpDisplay?.stopStream()
+        } catch (_: Exception) {
+        }
+        try {
+            mMediaProjection?.stop()
+        } catch (_: Exception) {
+        }
     }
 
-    override fun onConnectionSuccessRtmp() {
+    override fun onConnectionStarted(url: String) {}
+
+    override fun onConnectionSuccess() {
         showMessage("లైవ్ సక్సెస్! (Online)")
     }
-    
-    override fun onConnectionFailedRtmp(reason: String) {
+
+    override fun onConnectionFailed(reason: String) {
         showMessage("కనెక్షన్ ఎర్రర్: $reason")
     }
-    
-    override fun onNewBitrateRtmp(bitrate: Long) {}
-    
-    override fun onDisconnectRtmp() { 
-        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.") 
+
+    override fun onNewBitrate(bitrate: Long) {}
+
+    override fun onDisconnect() {
+        showMessage("లైవ్ డిస్కనెక్ట్ అయింది.")
     }
-    
-    override fun onAuthErrorRtmp() { 
-        showMessage("లైవ్ కీ ఎర్రర్.") 
+
+    override fun onAuthError() {
+        showMessage("లైవ్ కీ ఎర్రర్.")
     }
-    
-    override fun onAuthSuccessRtmp() {}
-    
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {}
+
+    override fun onAuthSuccess() {}
 }
