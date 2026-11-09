@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.media.projection.MediaProjection
-import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -22,20 +21,21 @@ class ScreenStreamService : Service(), ConnectChecker {
     private var rtmpDisplay: RtmpDisplay? = null
     private val channelId = "ScreenStreamChannel"
 
-    // Android 14 screen-capture lifecycle handling.
-    private var mMediaProjection: MediaProjection? = null
-
     companion object {
         const val ACTION_START = "START_STREAM"
         const val ACTION_STOP = "STOP_STREAM"
         const val EXTRA_URL = "rtmpUrl"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
+
+        // MainActivity uses this callback to forward stream status to Flutter.
+        var streamStatusListener: ((String) -> Unit)? = null
     }
 
     private fun showMessage(message: String) {
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+            streamStatusListener?.invoke(message)
         }
     }
 
@@ -43,7 +43,8 @@ class ScreenStreamService : Service(), ConnectChecker {
         super.onCreate()
         try {
             rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-            rtmpDisplay?.setReTries(3)
+            // RootEncoder 2.5.9 exposes retry configuration through the stream client.
+            rtmpDisplay?.streamClient?.setReTries(3)
         } catch (e: Exception) {
             showMessage("Library Crash: ${e.message}")
         }
@@ -74,25 +75,17 @@ class ScreenStreamService : Service(), ConnectChecker {
             if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
                 val display = rtmpDisplay
                 if (display != null) {
-                    // Register the MediaProjection callback before starting capture on Android 14+.
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        try {
-                            val mediaProjectionManager =
-                                getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                            mMediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data)
-                            mMediaProjection?.registerCallback(object : MediaProjection.Callback() {
-                                override fun onStop() {
-                                    super.onStop()
-                                    try {
-                                        display.stopStream()
-                                    } catch (_: Exception) {
-                                    }
-                                }
-                            }, Handler(Looper.getMainLooper()))
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                    // Let RootEncoder register the projection callback on its own MediaProjection.
+                    // This avoids obtaining the same projection token twice on Android 14+.
+                    display.setMediaProjectionCallback(object : MediaProjection.Callback() {
+                        override fun onStop() {
+                            super.onStop()
+                            try {
+                                display.stopStream()
+                            } catch (_: Exception) {
+                            }
                         }
-                    }
+                    })
 
                     display.setIntentResult(resultCode, data)
                     Thread {
@@ -125,10 +118,6 @@ class ScreenStreamService : Service(), ConnectChecker {
         } else if (action == ACTION_STOP) {
             try {
                 rtmpDisplay?.stopStream()
-            } catch (_: Exception) {
-            }
-            try {
-                mMediaProjection?.stop()
             } catch (_: Exception) {
             }
 
@@ -180,15 +169,11 @@ class ScreenStreamService : Service(), ConnectChecker {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        super.onDestroy()
         try {
             rtmpDisplay?.stopStream()
         } catch (_: Exception) {
         }
-        try {
-            mMediaProjection?.stop()
-        } catch (_: Exception) {
-        }
+        super.onDestroy()
     }
 
     override fun onConnectionStarted(url: String) {}
