@@ -7,7 +7,6 @@ plugins {
 android {
     namespace "com.kingjvr.pocket_pcr"
     compileSdk 35
-    ndkVersion "28.2.13676358"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -25,25 +24,12 @@ android {
         versionCode 1
         versionName "1.0.0"
         multiDexEnabled true
-
-        externalNativeBuild {
-            cmake {
-                cppFlags "-std=c++17"
-                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
-            }
-        }
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path "CMakeLists.txt"
         }
     }
 }
