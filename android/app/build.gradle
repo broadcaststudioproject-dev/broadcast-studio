@@ -1,12 +1,12 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin" 
+    id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
-    namespace "com.kingjvr.pocket_pcr" 
-    compileSdk 34
+    namespace "com.kingjvr.pocket_pcr"
+    compileSdk 35
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -19,18 +19,16 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.kingjvr.pocket_pcr" // JVR నుండి JVK కి మార్చబడింది
+        applicationId "com.kingjvr.pocket_pcr"
         minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0.0"
         multiDexEnabled true
 
-        // C++ కోడ్ బిల్డ్ అవ్వడానికి అవసరమైన CMake కాన్ఫిగరేషన్
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17"
-                // ఇక్కడ మీకు అవసరమైన ఆర్కిటెక్చర్ మాత్రమే బిల్డ్ అయ్యేలా సెట్ చేశాం
                 abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
             }
         }
@@ -39,15 +37,13 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // ఈ కింది లైన్ R8 ఎర్రర్ రాకుండా అడ్డుకుంటుంది
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
-    // CMakeLists.txt ఎక్కడ ఉందో దారి (path) చూపించడానికి ఈ బ్లాక్ తప్పనిసరి
     externalNativeBuild {
         cmake {
-            path "CMakeLists.txt" // మీ CMakeLists.txt ఎక్కడుందో దాన్ని బట్టి ఈ పాత్ మారుతుంది
+            path "CMakeLists.txt"
         }
     }
 }
@@ -58,7 +54,6 @@ flutter {
 
 dependencies {
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
-    
     implementation 'com.github.pedroSG94.RootEncoder:library:2.5.9'
     // implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:2.3.5'
 }
