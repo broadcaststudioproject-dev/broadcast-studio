@@ -1358,107 +1358,142 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     );
   }
 
-  Future<void> _startYoutubeVideo(String url) async {
-    if (url.isEmpty) return;
-    String cleanUrl = url.trim();
+ String? _youtubeVideoIdFromUrl(String input) {
+  final uri = Uri.tryParse(input.trim());
+  if (uri == null) return null;
 
-    setState(() { 
-      isYoutubeLoading = true; 
-      isCameraVisible = false; 
-      isNewsBulletinMode = false;
-      isNetworkVideoMode = false;
-      isYoutubeMode = false;
-    });  
-    showCustomToast(context, "యూట్యూబ్ వీడియో లోడ్ అవుతోంది...", isLive: isLiveBroadcasting);  
+  final host = uri.host.toLowerCase().replaceFirst(RegExp(r'^www\.'), '');
+  String? id;
 
-    try {  
-      String finalPlayUrl = "";  
-      var ytExplode = yt.YoutubeExplode();  
-      
-      var videoId = yt.VideoId(cleanUrl);  
-      var video = await ytExplode.videos.get(videoId);  
-        
-      if (video.isLive) {  
-        finalPlayUrl = await ytExplode.videos.streamsClient.getHttpLiveStreamUrl(videoId);  
-      } else {  
-        var manifest = await ytExplode.videos.streamsClient.getManifest(videoId);  
-        
-        var muxedStreams = manifest.muxed;
-        if (muxedStreams.isNotEmpty) {  
-          finalPlayUrl = muxedStreams.withHighestBitrate().url.toString();  
-        } else {
-          var streamInfo = manifest.videoOnly.withHighestBitrate();
-          finalPlayUrl = streamInfo.url.toString();
+  if (host == 'youtu.be') {
+    if (uri.pathSegments.isNotEmpty) {
+      id = uri.pathSegments.first;
+    }
+  } else if (host == 'youtube.com' ||
+      host == 'm.youtube.com' ||
+      host == 'music.youtube.com') {
+    id = uri.queryParameters['v'];
+
+    if (id == null || id.isEmpty) {
+      final segments = uri.pathSegments;
+      for (var i = 0; i < segments.length - 1; i++) {
+        if (segments[i] == 'live' ||
+            segments[i] == 'shorts' ||
+            segments[i] == 'embed') {
+          id = segments[i + 1];
+          break;
         }
-      }  
-      ytExplode.close();  
-
-      if (finalPlayUrl.isNotEmpty) {  
-        _playNetworkBulletin(finalPlayUrl);  
-      } else {  
-        throw Exception("వీడియో లింక్ క్రియేట్ అవ్వలేదు.");  
-      }  
-    } catch (e) {  
-      debugPrint("YouTube Extract Error: $e");
-      if (mounted) {  
-        setState(() { 
-          isYoutubeLoading = false; 
-          hideControls = false; 
-          isCameraVisible = true; 
-          isNewsBulletinMode = false; 
-        });  
-        showCustomToast(context, "యూట్యూబ్ వీడియో ప్లే కాలేదు. వేరే లింక్ ట్రై చేయండి.", isLive: isLiveBroadcasting);  
-      }  
+      }
+    }
+  } else {
+    // youtube_player_flutter గుర్తించే ఇతర YouTube URL formats.
+    try {
+      id = YoutubePlayer.convertUrlToId(input.trim());
+    } catch (_) {
+      id = null;
     }
   }
 
-  void _playNetworkBulletin(String playUrl) {
-    if (_bulletinVideoController != null) {
-      _bulletinVideoController!.removeListener(_videoListener);
-      _bulletinVideoController!.dispose();
-      _bulletinVideoController = null;
-    }
+  if (id == null || !RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(id)) {
+    return null;
+  }
+  return id;
+}
 
-    _bulletinVideoController = VideoPlayerController.networkUrl(
-      Uri.parse(playUrl),
-      httpHeaders: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://www.youtube.com/',
-        'Origin': 'https://www.youtube.com',
-      },
-    )..initialize().then((_) {   
-        if (!mounted) return;   
-        _bulletinVideoController?.setVolume(isBulletinMuted ? 0.0 : 1.0);   
-        setState(() {   
-          isNewsBulletinMode = true; 
-          isNetworkVideoMode = false; 
-          isDualScreenMode = false; 
-          hideControls = false; 
-          isYoutubeLoading = false; 
-          isCameraVisible = false;  
-        });   
-        _bulletinVideoController?.play();   
-        _bulletinVideoController?.addListener(_videoListener);   
-          
-        if (!isLiveBroadcasting) { _startLiveAndLock(); }  
-      }).catchError((e) {   
-        debugPrint("Video Player Error: $e");
-        if (mounted) {  
-          setState(() { isYoutubeLoading = false; isCameraVisible = true; isNewsBulletinMode = false; });  
-          showCustomToast(context, "వీడియో ప్లే అవ్వడం లేదు.", isLive: isLiveBroadcasting);  
-        }  
-      });
+Future<void> _startYoutubeVideo(String url) async {
+  final cleanUrl = url.trim();
+  if (cleanUrl.isEmpty || !mounted) return;
+
+  final videoId = _youtubeVideoIdFromUrl(cleanUrl);
+  if (videoId == null) {
+    showCustomToast(
+      context,
+      "సరైన YouTube వీడియో లేదా Live లింక్ ఇవ్వండి.",
+      isLive: isLiveBroadcasting,
+    );
+    return;
   }
 
-  void _videoListener() {
-    final vController = _bulletinVideoController;
-    if (vController == null || !vController.value.isInitialized) return;
-    if (vController.value.position >= vController.value.duration && vController.value.duration != Duration.zero) {
-      vController.removeListener(_videoListener);
-      setState(() { isNewsBulletinMode = false; isCameraVisible = true; });
-    }
-  }
+  setState(() {
+    isYoutubeLoading = true;
+    isCameraVisible = false;
+    isNewsBulletinMode = false;
+    isNetworkVideoMode = false;
+    isYoutubeMode = true;
+    isDualScreenMode = false;
+  });
 
+  showCustomToast(
+    context,
+    "YouTube వీడియో లోడ్ అవుతోంది...",
+    isLive: isLiveBroadcasting,
+  );
+
+  try {
+    _ytController?.dispose();
+
+    final playerController = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
+        mute: false,
+        enableCaption: false,
+      ),
+    );
+
+    _ytController = playerController;
+
+    var playerReady = false;
+    var liveStartRequested = false;
+
+    playerController.addListener(() {
+      if (!mounted || !identical(_ytController, playerController)) return;
+
+      // Player సిద్ధమైన తర్వాత మాత్రమే loading indicator తొలగించి,
+      // అవసరమైతే live stream ప్రారంభించండి.
+      if (playerController.value.isReady && !playerReady) {
+        playerReady = true;
+
+        setState(() {
+          isYoutubeLoading = false;
+          isYoutubeMode = true;
+          isNewsBulletinMode = false;
+          isNetworkVideoMode = false;
+          isCameraVisible = false;
+          hideControls = false;
+        });
+
+        if (!isLiveBroadcasting && !liveStartRequested) {
+          liveStartRequested = true;
+          _startLiveAndLock();
+        }
+      }
+    });
+
+    // YoutubePlayer విడ్జెట్ controller-ийгப் பயன்படுத்த UI-ஐ rebuild செய்யவும்.
+    setState(() {});
+  } catch (e, stackTrace) {
+    debugPrint("YouTube Player Error: $e\n$stackTrace");
+
+    _ytController?.dispose();
+    _ytController = null;
+
+    if (!mounted) return;
+    setState(() {
+      isYoutubeLoading = false;
+      isYoutubeMode = false;
+      isNewsBulletinMode = false;
+      isCameraVisible = true;
+      hideControls = false;
+    });
+
+    showCustomToast(
+      context,
+      "YouTube వీడియో ప్లే కాలేదు. లింక్ లేదా ఇంటర్నెట్‌ను తనిఖీ చేయండి.",
+      isLive: isLiveBroadcasting,
+    );
+  }
+}
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
