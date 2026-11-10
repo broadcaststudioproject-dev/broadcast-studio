@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -12,70 +13,71 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity: FlutterActivity() {
+class MainActivity : FlutterActivity() {
     private val STREAM_CHANNEL = "com.kingjvr.pocket_pcr/stream"
     private val UVC_CHANNEL = "com.kingjvr.pocket_pcr/uvc"
-
-    // అనుమతి కోసం రిక్వెస్ట్ కోడ్
     private val SCREEN_RECORD_REQUEST_CODE = 1001
-    
-    // ఫ్లట్టర్‌కు రిజల్ట్ పంపడానికి వేరియబుల్స్
+
     private var pendingResult: MethodChannel.Result? = null
     private var currentRtmpUrl: String? = null
+    private var currentCableRtmp: String = ""
+    private var currentRestreamRtmp: String = ""
+    private var currentSatelliteSrt: String = ""
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         val methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STREAM_CHANNEL)
-        
-        // 🔴 బ్యాక్‌గ్రౌండ్ సర్వీస్ నుండి వచ్చే స్టేటస్‌ని మెయిన్ థ్రెడ్‌లో హ్యాండ్ చేయడానికి 🔴
         ScreenStreamService.streamStatusListener = { message ->
             Handler(Looper.getMainLooper()).post {
                 methodChannel.invokeMethod("onStreamStatusUpdate", message)
             }
         }
-        
-        // 1. లైవ్ స్ట్రీమింగ్ (Screen Capture & RTMP) కనెక్షన్
+
         methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "startScreenCaptureStreaming" -> {
                     Log.d("PocketPCR", "Live Stream Request Received")
-                    // ఫ్లట్టర్ నుండి వచ్చే RTMP URL ను తీసుకుంటున్నాం
-                    currentRtmpUrl = call.argument<String>("rtmpUrl") ?: call.argument<String>("url")
-                    
-                    pendingResult = result
-                    startMediaProjectionRequest()
+                    currentCableRtmp = call.argument<String>("cableRtmp")?.trim().orEmpty()
+                    currentRestreamRtmp = call.argument<String>("restreamRtmp")?.trim().orEmpty()
+                    currentSatelliteSrt = call.argument<String>("satelliteSrt")?.trim().orEmpty()
+                    currentRtmpUrl = call.argument<String>("rtmpUrl")
+                        ?: call.argument<String>("url")
+
+                    if (currentCableRtmp.isBlank() && currentRestreamRtmp.isBlank() &&
+                        currentSatelliteSrt.isBlank() && currentRtmpUrl.isNullOrBlank()) {
+                        result.error("INVALID_STREAM_URL", "Provide an RTMP stream URL.", null)
+                    } else {
+                        pendingResult = result
+                        startMediaProjectionRequest()
+                    }
                 }
                 "stopScreenCaptureStreaming" -> {
                     Log.d("PocketPCR", "Live Stream Stopped")
                     val stopIntent = Intent(this, ScreenStreamService::class.java).apply {
-                        action = "STOP_STREAM"
+                        action = ScreenStreamService.ACTION_STOP
                     }
                     startService(stopIntent)
                     result.success(true)
                 }
-                else -> {
-                    result.notImplemented()
-                }
+                else -> result.notImplemented()
             }
         }
 
-        // 2. USB కెమెరా (UVC) కనెక్షన్
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UVC_CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "startUsbCamera" -> {
-                    Log.d("PocketPCR", "USB Camera Started")
-                    result.success(1)
-                }
-                "stopUsbCamera" -> {
-                    Log.d("PocketPCR", "USB Camera Stopped")
-                    result.success(null)
-                }
-                else -> {
-                    result.notImplemented()
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UVC_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "startUsbCamera" -> {
+                        Log.d("PocketPCR", "USB Camera Started")
+                        result.success(1)
+                    }
+                    "stopUsbCamera" -> {
+                        Log.d("PocketPCR", "USB Camera Stopped")
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
                 }
             }
-        }
     }
 
     override fun onDestroy() {
@@ -83,36 +85,39 @@ class MainActivity: FlutterActivity() {
         ScreenStreamService.streamStatusListener = null
     }
 
-    // యూజర్‌ను స్క్రీన్ రికార్డింగ్ అనుమతి అడగడం
     private fun startMediaProjectionRequest() {
-        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), SCREEN_RECORD_REQUEST_CODE)
+        val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        startActivityForResult(manager.createScreenCaptureIntent(), SCREEN_RECORD_REQUEST_CODE)
     }
 
-    // యూజర్ అనుమతి ఇచ్చాడా లేదా అని చెక్ చేయడం
+    @Deprecated("Deprecated in Android, retained for Flutter MediaProjection permission result")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == SCREEN_RECORD_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                Log.d("PocketPCR", "MediaProjection Permission Granted")
-                startScreenStreamService(resultCode, data)
-                pendingResult?.success(true)
-            } else {
-                Log.e("PocketPCR", "MediaProjection Permission Denied")
-                pendingResult?.error("PERMISSION_DENIED", "Screen capture permission denied", null)
-            }
-            pendingResult = null
+        if (requestCode != SCREEN_RECORD_REQUEST_CODE) return
+
+        val result = pendingResult
+        pendingResult = null
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            Log.d("PocketPCR", "MediaProjection Permission Granted")
+            startScreenStreamService(resultCode, data)
+            result?.success(true)
+        } else {
+            Log.e("PocketPCR", "MediaProjection Permission Denied")
+            result?.error("PERMISSION_DENIED", "Screen capture permission denied", null)
         }
     }
 
-    // అనుమతి వచ్చిన తర్వాత సర్వీస్‌ను స్టార్ట్ చేయడం
     private fun startScreenStreamService(resultCode: Int, data: Intent) {
         val serviceIntent = Intent(this, ScreenStreamService::class.java).apply {
-            putExtra("resultCode", resultCode)
-            putExtra("data", data)
-            putExtra("rtmpUrl", currentRtmpUrl)
+            action = ScreenStreamService.ACTION_START
+            putExtra(ScreenStreamService.EXTRA_RESULT_CODE, resultCode)
+            putExtra(ScreenStreamService.EXTRA_DATA, data)
+            putExtra(ScreenStreamService.EXTRA_URL, currentRtmpUrl)
+            putExtra("EXTRA_CABLE_RTMP", currentCableRtmp)
+            putExtra("EXTRA_RESTREAM_RTMP", currentRestreamRtmp)
+            putExtra("EXTRA_SATELLITE_SRT", currentSatelliteSrt)
         }
-        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent)
         } else {
