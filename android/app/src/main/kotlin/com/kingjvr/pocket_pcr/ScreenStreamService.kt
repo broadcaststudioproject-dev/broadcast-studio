@@ -10,6 +10,7 @@ import android.content.res.Configuration
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.os.Looper
 import android.widget.Toast
@@ -19,6 +20,7 @@ import com.pedro.library.rtmp.RtmpDisplay
 
 class ScreenStreamService : Service(), ConnectChecker {
     private var rtmpDisplay: RtmpDisplay? = null
+    private var encoderThread: HandlerThread? = null
     private val channelId = "ScreenStreamChannel"
 
     companion object {
@@ -43,7 +45,6 @@ class ScreenStreamService : Service(), ConnectChecker {
         super.onCreate()
         try {
             rtmpDisplay = RtmpDisplay(applicationContext, true, this)
-            // RootEncoder 2.5.9 exposes retry configuration through the stream client.
             rtmpDisplay?.streamClient?.setReTries(3)
         } catch (e: Exception) {
             showMessage("Library Crash: ${e.message}")
@@ -53,84 +54,116 @@ class ScreenStreamService : Service(), ConnectChecker {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) return START_NOT_STICKY
 
-        val action = intent.action ?: ACTION_START
-
-        if (action == ACTION_START) {
-            startNotification()
-
-            val url = intent.getStringExtra(EXTRA_URL) ?: ""
-            val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
-            val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
-            val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
-            val targetUrl = cableRtmp.ifEmpty { restreamRtmp.ifEmpty { satelliteSrt.ifEmpty { url } } }
-
-            val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
-            val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra<Intent>(EXTRA_DATA)
-            }
-
-            if (data != null && targetUrl.isNotEmpty() && !targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
-                val display = rtmpDisplay
-                if (display != null) {
-                    // Let RootEncoder register the projection callback on its own MediaProjection.
-                    // This avoids obtaining the same projection token twice on Android 14+.
-                    display.setMediaProjectionCallback(object : MediaProjection.Callback() {
-                        override fun onStop() {
-                            super.onStop()
-                            try {
-                                display.stopStream()
-                            } catch (_: Exception) {
-                            }
-                        }
-                    })
-
-                    display.setIntentResult(resultCode, data)
-                    Thread {
-                        try {
-                            val isPortrait =
-                                resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-                            val width = if (isPortrait) 720 else 1280
-                            val height = if (isPortrait) 1280 else 720
-                            val fps = 30
-                            val bitrate = 2000 * 1024
-                            val dpi = resources.displayMetrics.densityDpi
-
-                            val videoReady = display.prepareVideo(width, height, fps, bitrate, 0, dpi)
-                            val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
-
-                            if (videoReady && audioReady) {
-                                display.startStream(targetUrl)
-                                showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
-                            } else {
-                                showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
-                            }
-                        } catch (e: Exception) {
-                            showMessage("Stream Crash: ${e.message}")
-                        }
-                    }.start()
-                }
-            } else {
-                showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు.")
-            }
-        } else if (action == ACTION_STOP) {
-            try {
-                rtmpDisplay?.stopStream()
-            } catch (_: Exception) {
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-            } else {
-                @Suppress("DEPRECATION")
-                stopForeground(true)
-            }
-            stopSelf()
-            showMessage("లైవ్ ఆగిపోయింది.")
+        when (intent.action ?: ACTION_START) {
+            ACTION_START -> startStreaming(intent)
+            ACTION_STOP -> stopStreaming()
         }
         return START_NOT_STICKY
+    }
+
+    private fun startStreaming(intent: Intent) {
+        startNotification()
+
+        val url = intent.getStringExtra(EXTRA_URL) ?: ""
+        val cableRtmp = intent.getStringExtra("EXTRA_CABLE_RTMP") ?: ""
+        val restreamRtmp = intent.getStringExtra("EXTRA_RESTREAM_RTMP") ?: ""
+        val satelliteSrt = intent.getStringExtra("EXTRA_SATELLITE_SRT") ?: ""
+        // RootEncoder RtmpDisplay supports RTMP, not SRT. Prefer an RTMP target.
+        val targetUrl = cableRtmp.ifEmpty { restreamRtmp.ifEmpty { url } }
+
+        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
+        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<Intent>(EXTRA_DATA)
+        }
+
+        if (data == null || resultCode != android.app.Activity.RESULT_OK || targetUrl.isBlank() ||
+            targetUrl.contains("YOUR_STREAM_KEY_HERE")) {
+            showMessage("స్ట్రీమ్ లింక్ లేదా కీ సరిగ్గా లేదు. RTMP URL/కీ తనిఖీ చేయండి.")
+            stopForegroundCompat()
+            stopSelf()
+            return
+        }
+
+        val display = rtmpDisplay
+        if (display == null) {
+            showMessage("స్ట్రీమ్ ఎన్‌కోడర్ ప్రారంభం కాలేదు.")
+            stopForegroundCompat()
+            stopSelf()
+            return
+        }
+
+        try {
+            // Avoid requesting the same MediaProjection token twice on Android 14+.
+            display.setMediaProjectionCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    super.onStop()
+                    try {
+                        display.stopStream()
+                    } catch (_: Exception) {
+                    }
+                }
+            })
+            display.setIntentResult(resultCode, data)
+        } catch (e: Exception) {
+            showMessage("MediaProjection பிழை: ${e.message}")
+            stopForegroundCompat()
+            stopSelf()
+            return
+        }
+
+        // RootEncoder can use the current thread's Looper. HandlerThread guarantees one exists.
+        encoderThread?.quitSafely()
+        val thread = HandlerThread("ScreenStreamEncoder")
+        encoderThread = thread
+        thread.start()
+        Handler(thread.looper).post {
+            try {
+                val isPortrait =
+                    resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+                val width = if (isPortrait) 720 else 1280
+                val height = if (isPortrait) 1280 else 720
+                val dpi = resources.displayMetrics.densityDpi
+
+                val videoReady = display.prepareVideo(width, height, 30, 2000 * 1024, 0, dpi)
+                val audioReady = display.prepareAudio(128 * 1024, 44100, true, false, false)
+
+                if (videoReady && audioReady) {
+                    display.startStream(targetUrl)
+                    showMessage("లైవ్ సర్వర్‌కు కనెక్ట్ అవుతోంది...")
+                    if (satelliteSrt.isNotBlank()) {
+                        showMessage("గమనిక: SRT గమ్యస్థానం ఈ RTMP ఎన్‌కోడర్ ద్వారా ప్రసారం కాదు.")
+                    }
+                } else {
+                    showMessage("ఎన్‌కోడర్ విఫలమైంది! Video: $videoReady, Audio: $audioReady")
+                }
+            } catch (e: Exception) {
+                showMessage("Stream Crash: ${e.message}")
+            }
+        }
+    }
+
+    private fun stopStreaming() {
+        try {
+            rtmpDisplay?.stopStream()
+        } catch (_: Exception) {
+        }
+        encoderThread?.quitSafely()
+        encoderThread = null
+        stopForegroundCompat()
+        stopSelf()
+        showMessage("లైవ్ ఆగిపోయింది.")
+    }
+
+    private fun stopForegroundCompat() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
     }
 
     private fun startNotification() {
@@ -169,6 +202,8 @@ class ScreenStreamService : Service(), ConnectChecker {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        encoderThread?.quitSafely()
+        encoderThread = null
         try {
             rtmpDisplay?.stopStream()
         } catch (_: Exception) {
