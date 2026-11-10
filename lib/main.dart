@@ -1494,11 +1494,98 @@ Future<void> _startYoutubeVideo(String url) async {
     );
   }
 }
+    Future<void> _playNetworkBulletin(String playUrl) async {
+    final uri = Uri.tryParse(playUrl.trim());
+    if (uri == null || !uri.hasScheme) {
+      throw ArgumentError("Invalid network video URL: $playUrl");
+    }
+
+    try {
+      final previous = _bulletinVideoController;
+      if (previous != null) {
+        previous.removeListener(_videoListener);
+        await previous.dispose();
+      }
+
+      final controller = VideoPlayerController.networkUrl(
+        uri,
+        httpHeaders: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.youtube.com/',
+          'Origin': 'https://www.youtube.com',
+        },
+      );
+
+      _bulletinVideoController = controller;
+
+      await controller.initialize();
+
+      if (!mounted || _bulletinVideoController != controller) {
+        await controller.dispose();
+        return;
+      }
+
+      controller.addListener(_videoListener);
+      await controller.setVolume(isBulletinMuted ? 0.0 : 1.0);
+      await controller.play();
+
+      if (!mounted) return;
+
+      setState(() {
+        isNewsBulletinMode = true;
+        isNetworkVideoMode = true;
+        isYoutubeMode = false;
+        isCameraVisible = false;
+        hideControls = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint("Network bulletin playback error: $e\n$stackTrace");
+      if (_bulletinVideoController != null) {
+        _bulletinVideoController!.removeListener(_videoListener);
+        await _bulletinVideoController!.dispose();
+        _bulletinVideoController = null;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        isNewsBulletinMode = false;
+        isNetworkVideoMode = false;
+        isCameraVisible = true;
+      });
+
+      showCustomToast(
+        context,
+        "వీడియో ప్లే కాలేదు. లింక్/ఫార్మాట్‌ను తనిఖీ చేయండి.",
+        isLive: isLiveBroadcasting,
+      );
+    }
+  }
+
+  void _videoListener() {
+    final controller = _bulletinVideoController;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    final duration = controller.value.duration;
+    if (duration == Duration.zero) return;
+
+    if (controller.value.position >= duration) {
+      controller.removeListener(_videoListener);
+      if (mounted) {
+        setState(() {
+          isNewsBulletinMode = false;
+          isCameraVisible = true;
+        });
+      }
+    }
+  }
+
   Future<void> _startNetworkVideoMp4(String url) async {
     if (url.isEmpty) return;
     _playNetworkBulletin(url.trim());
   }
-
   Future<void> _startLiveAndLock() async {
     _saveLinks();
     String cableUrl = cableRtmpController.text.trim();
