@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Signing keys (ఎప్పుడూ GitHub కి అప్‌లోడ్ చేయకండి)
+android/key.properties
+*.jks
+*.keystore
+
+# Experimental / build test folders
+phase*/
+.phase*/
+.clang_test/
+.cmake_termux_test/
+.jni_cmake_test/
+.native_test/
+backup_*/
