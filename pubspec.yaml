@@ -1,6 +1,6 @@
 name: pocket_pcr
 description: A new Flutter project for Pocket PCR Studio.
-version: 1.1.0+5
+version: 1.2.0+6
 
 environment:
   sdk: '>=2.19.0 <4.0.0'
@@ -29,6 +29,7 @@ dependencies:
   path: ^1.8.3
   google_generative_ai: ^0.4.6
   wakelock_plus: ^1.2.8
+  flutter_tts: ^4.2.0
   sqflite_common_ffi: ^2.3.3
   sqlite3_flutter_libs: ^0.5.24
 
