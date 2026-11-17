@@ -252,6 +252,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController manualTickerCtrl = TextEditingController();
   TextEditingController mainHeadlineCtrl = TextEditingController();
   TextEditingController subHeadlineCtrl = TextEditingController();
+  TextEditingController pcIpController = TextEditingController(text: "172.22.103.41"); // PC IP అడ్రెస్ కంట్రోలర్
 
   TextEditingController ipCamUrlCtrl = TextEditingController();
   TextEditingController usbCamUrlCtrl = TextEditingController();
@@ -285,7 +286,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
   // PC లోని Flask సర్వర్‌కి వార్తలు పంపే ఫంక్షన్
   Future<void> sendNewsToPC(String newsText) async {
-    final String pcIpAddress = "172.22.103.41"; // మీ PC IP అడ్రెస్
+    final String pcIpAddress = pcIpController.text.trim(); // సెట్టింగ్స్ నుండి ఐపీ తీసుకుంటుంది
     final url = Uri.parse('http://$pcIpAddress:5000/generate');
 
     try {
@@ -403,6 +404,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
         youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
         networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
+        pcIpController.text = prefs.getString('pcIpAddress') ?? "172.22.103.41";
 
         watermarkCtrl.text = watermarkText;
         locCtrl.text = locationText;
@@ -537,6 +539,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       await prefs.setString('splitScreenMainHeadline', splitScreenMainHeadline);
       await prefs.setString('splitScreenSubHeadline', splitScreenSubHeadline);
       await prefs.setString('breakingNewsText', breakingNewsText);
+      await prefs.setString('pcIpAddress', pcIpController.text.trim());
       await prefs.setBool('noiseCancel', isNoiseCancellationEnabled);
       await prefs.setInt('adShapeMode', adShapeMode);
       await prefs.setInt('logoPosition', logoPosition);
@@ -632,6 +635,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     manualTickerCtrl.dispose();
     mainHeadlineCtrl.dispose();
     subHeadlineCtrl.dispose();
+    pcIpController.dispose();
 
     for (var c in extraIpCtrls) {
       c.dispose();
@@ -2066,33 +2070,44 @@ Future<void> _startYoutubeVideo(String url) async {
                   TextField(controller: mainHeadlineCtrl, style: const TextStyle(color: Colors.yellow), decoration: const InputDecoration(labelText: "మెయిన్ హెడ్‌లైన్ (Yellow Box)")),
                   TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")), 
                   const Divider(color: Colors.white24, height: 20),
+                  
+                  // PC IP Address టెక్స్ట్ బాక్స్ ఇక్కడ చేర్చబడింది
+                  TextField(
+                    controller: pcIpController,
+                    style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
+                    decoration: const InputDecoration(
+                      labelText: "PC IP Address (ఉదా: 172.22.103.41)",
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
                   TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్")),
                   
-                  // PC కి న్యూస్ పంపే బటన్ ఇక్కడ యాడ్ చేయబడింది
+                  // PC కి న్యూస్ పంపే బటన్
                   const SizedBox(height: 10),
-                 // PC సర్వర్‌కి వార్త పంపే బటన్
-                 ElevatedButton.icon(
-                 style: ElevatedButton.styleFrom(
-                 backgroundColor: Colors.green,
-                 ),
-                 onPressed: () {
-                 String textToSend = manualTickerCtrl.text.trim();
-                 if (textToSend.isEmpty) {
-                 textToSend = breakingNewsText;
-                 }
-                 sendNewsToPC(textToSend);
-                 },
-                 icon: const Icon(
-                 Icons.send,
-                 color: Colors.white,
-                 ),
-                 label: const Text(
-                 "PC సర్వర్‌కి వార్త పంపు (Broadcast)",
-                 style: TextStyle(
-                 color: Colors.white,
-                 ),
-                 ),
-                 ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    onPressed: () {
+                      String textToSend = manualTickerCtrl.text.trim();
+                      if (textToSend.isEmpty) {
+                        textToSend = breakingNewsText;
+                      }
+                      sendNewsToPC(textToSend);
+                    },
+                    icon: const Icon(
+                      Icons.send,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      "PC సర్వర్‌కి వార్త పంపు (Broadcast)",
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.amber), 
                     onPressed: () async { 
