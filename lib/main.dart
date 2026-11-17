@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart'; 
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert'; // సర్వర్ కమ్యూనికేషన్ కోసం ఇది అవసరం
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -281,6 +282,28 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
   int? _usbTextureId;
+
+  // PC లోని Flask సర్వర్‌కి వార్తలు పంపే ఫంక్షన్
+  Future<void> sendNewsToPC(String newsText) async {
+    final String pcIpAddress = "172.22.103.41"; // మీ PC IP అడ్రెస్
+    final url = Uri.parse('http://$pcIpAddress:5000/generate');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"text": newsText}),
+      );
+
+      if (response.statusCode == 200) {
+        if (mounted) showCustomToast(context, "సక్సెస్: PC లో వీడియో తయారవుతోంది!", isLive: isLiveBroadcasting);
+      } else {
+        if (mounted) showCustomToast(context, "ఫెయిల్ అయింది: ${response.body}", isLive: isLiveBroadcasting);
+      }
+    } catch (e) {
+      if (mounted) showCustomToast(context, "కనెక్షన్ ఎర్రర్: $e", isLive: isLiveBroadcasting);
+    }
+  }
 
   Widget _buildStandbyScreen() {
     return Container(
@@ -1386,7 +1409,6 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
       }
     }
   } else {
-    // youtube_player_flutter గుర్తించే ఇతర YouTube URL formats.
     try {
       id = YoutubePlayer.convertUrlToId(input.trim());
     } catch (_) {
@@ -1449,8 +1471,6 @@ Future<void> _startYoutubeVideo(String url) async {
     playerController.addListener(() {
       if (!mounted || !identical(_ytController, playerController)) return;
 
-      // Player సిద్ధమైన తర్వాత మాత్రమే loading indicator తొలగించి,
-      // అవసరమైతే live stream ప్రారంభించండి.
       if (playerController.value.isReady && !playerReady) {
         playerReady = true;
 
@@ -1470,7 +1490,6 @@ Future<void> _startYoutubeVideo(String url) async {
       }
     });
 
-    // YoutubePlayer విడ్జెట్ controller-ийгப் பயன்படுத்த UI-ஐ rebuild செய்யவும்.
     setState(() {});
   } catch (e, stackTrace) {
     debugPrint("YouTube Player Error: $e\n$stackTrace");
@@ -2048,6 +2067,20 @@ Future<void> _startYoutubeVideo(String url) async {
                   TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")), 
                   const Divider(color: Colors.white24, height: 20),
                   TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్")),
+                  
+                  // PC కి న్యూస్ పంపే బటన్ ఇక్కడ యాడ్ చేయబడింది
+                  const SizedBox(height: 10),
+                  ElevatedButton.styleFrom().noSpace == null ? ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    onPressed: () {
+                      String textToSend = manualTickerCtrl.text.trim();
+                      if (textToSend.isEmpty) textToSend = breakingNewsText;
+                      sendNewsToPC(textToSend); // PC సర్వర్‌కి పంపుతుంది
+                    },
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    label: const Text("PC సర్వర్‌కి వార్త పంపు (Broadcast)", style: TextStyle(color: Colors.white)),
+                  ) : Container(),
+
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.amber), 
                     onPressed: () async { 
@@ -3594,7 +3627,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
         backgroundColor: Colors.grey.shade900,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, true),
         ),
         actions: [
           IconButton(
@@ -3606,7 +3639,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
       ),
       body: Row(
         children: [
-          // ఎడమ వైపు రిపోర్టర్ కెమెరా ప్రివ్యూ (Reporter Camera / Phone Cam)
           Expanded(
             flex: 4,
             child: Container(
@@ -3620,7 +3652,6 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
                   : const Center(child: CircularProgressIndicator(color: Colors.amber)),
             ),
           ),
-          // కుడి వైపు మల్టీ-కెమెరా గ్రిడ్ స్విచ్చర్
           Expanded(
             flex: 6,
             child: Padding(
