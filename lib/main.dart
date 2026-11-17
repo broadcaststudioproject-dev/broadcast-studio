@@ -2070,17 +2070,29 @@ Future<void> _startYoutubeVideo(String url) async {
                   
                   // PC కి న్యూస్ పంపే బటన్ ఇక్కడ యాడ్ చేయబడింది
                   const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  onPressed: () {
-                  String textToSend = manualTickerCtrl.text.trim();
-                  if (textToSend.isEmpty) textToSend = breakingNewsText;
-                  sendNewsToPC(textToSend);
-                  },
-                  icon: const Icon(Icons.send, color: Colors.white),
-                  label: const Text("PC సర్వర్‌కి వార్త పంపు (Broadcast)", style: TextStyle(color: Colors.white)),
-                  )
-
+                 // PC సర్వర్‌కి వార్త పంపే బటన్
+                 ElevatedButton.icon(
+                 style: ElevatedButton.styleFrom(
+                 backgroundColor: Colors.green,
+                 ),
+                 onPressed: () {
+                 String textToSend = manualTickerCtrl.text.trim();
+                 if (textToSend.isEmpty) {
+                 textToSend = breakingNewsText;
+                 }
+                 sendNewsToPC(textToSend);
+                 },
+                 icon: const Icon(
+                 Icons.send,
+                 color: Colors.white,
+                 ),
+                 label: const Text(
+                 "PC సర్వర్‌కి వార్త పంపు (Broadcast)",
+                 style: TextStyle(
+                 color: Colors.white,
+                 ),
+                 ),
+                 ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.amber), 
                     onPressed: () async { 
