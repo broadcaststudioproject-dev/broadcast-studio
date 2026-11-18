@@ -252,7 +252,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   TextEditingController manualTickerCtrl = TextEditingController();
   TextEditingController mainHeadlineCtrl = TextEditingController();
   TextEditingController subHeadlineCtrl = TextEditingController();
-  TextEditingController pcIpController = TextEditingController(text: "172.22.103.41"); // PC IP అడ్రెస్ కంట్రోలర్
+  TextEditingController pcIpController = TextEditingController(text: "172.22.108.41"); // PC IP అడ్రెస్ కంట్రోలర్
 
   TextEditingController ipCamUrlCtrl = TextEditingController();
   TextEditingController usbCamUrlCtrl = TextEditingController();
@@ -404,7 +404,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
         satelliteSrtController.text = prefs.getString('satelliteSrt') ?? "";
         youtubeVideoUrlCtrl.text = prefs.getString('youtubeVideoUrl') ?? "";
         networkVideoUrlCtrl.text = prefs.getString('networkVideoUrl') ?? "";
-        pcIpController.text = prefs.getString('pcIpAddress') ?? "172.22.103.41";
+        pcIpController.text = prefs.getString('pcIpAddress') ?? "172.22.108.41";
 
         watermarkCtrl.text = watermarkText;
         locCtrl.text = locationText;
@@ -2076,7 +2076,7 @@ Future<void> _startYoutubeVideo(String url) async {
                     controller: pcIpController,
                     style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
                     decoration: const InputDecoration(
-                      labelText: "PC IP Address (ఉదా: 172.22.103.41)",
+                      labelText: "PC IP Address (ఉదా: 172.22.108.41)",
                       labelStyle: TextStyle(color: Colors.white70),
                     ),
                   ),
