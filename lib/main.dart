@@ -306,6 +306,67 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     }
   }
 
+  // మెనూ ద్వారా ఆటో న్యూస్ పంపే డైలాగ్ బాక్స్
+  void _showAutoNewsDialog(BuildContext context) {
+    TextEditingController newsInputCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: const Text(
+            "PC ఆటోమేటిక్ న్యూస్ బ్రాడ్‌కాస్ట్",
+            style: TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "ఇక్కడ మీ వార్త టైప్ చేసి పంపిస్తే PC సర్వర్ ఆటోమేటిక్‌గా వీడియో తయారు చేస్తుంది.",
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: newsInputCtrl,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.yellow, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: "వార్త ఇక్కడ టైప్ చేయండి...",
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  filled: true,
+                  fillColor: Colors.black26,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("రద్దు చేయి", style: TextStyle(color: Colors.redAccent)),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () {
+                String textToSend = newsInputCtrl.text.trim();
+                if (textToSend.isNotEmpty) {
+                  sendNewsToPC(textToSend);
+                  Navigator.pop(context);
+                }
+              },
+              icon: const Icon(Icons.send, color: Colors.white, size: 16),
+              label: const Text("PC కి పంపు", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildStandbyScreen() {
     return Container(
       color: Colors.black87,
@@ -2071,7 +2132,6 @@ Future<void> _startYoutubeVideo(String url) async {
                   TextField(controller: subHeadlineCtrl, style: const TextStyle(color: Colors.cyanAccent), decoration: const InputDecoration(labelText: "సబ్ హెడ్‌‌లైన్ (Blue Box)")), 
                   const Divider(color: Colors.white24, height: 20),
                   
-                  // PC IP Address టెక్స్ట్ బాక్స్ ఇక్కడ చేర్చబడింది
                   TextField(
                     controller: pcIpController,
                     style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold),
@@ -2084,30 +2144,6 @@ Future<void> _startYoutubeVideo(String url) async {
 
                   TextField(controller: manualTickerCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "మాన్యువల్ బ్రేకింగ్ టిక్కర్")),
                   
-                  // PC కి న్యూస్ పంపే బటన్
-                  const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    onPressed: () {
-                      String textToSend = manualTickerCtrl.text.trim();
-                      if (textToSend.isEmpty) {
-                        textToSend = breakingNewsText;
-                      }
-                      sendNewsToPC(textToSend);
-                    },
-                    icon: const Icon(
-                      Icons.send,
-                      color: Colors.white,
-                    ),
-                    label: const Text(
-                      "PC సర్వర్‌కి వార్త పంపు (Broadcast)",
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.amber), 
                     onPressed: () async { 
@@ -3296,6 +3332,16 @@ Future<void> _startYoutubeVideo(String url) async {
                               spacing: 30,
                               runSpacing: 35,
                               children: [
+                                // మెనూలో ఆటో న్యూస్ బ్రాడ్‌కాస్ట్ బటన్ ఇక్కడ జోడించబడింది
+                                _buildControlButton(
+                                  Icons.newspaper_rounded,
+                                  "Auto News",
+                                  () {
+                                    setState(() => isMenuOpen = false);
+                                    _showAutoNewsDialog(context);
+                                  },
+                                  Colors.greenAccent,
+                                ),
                                 _buildControlButton(
                                   Icons.dashboard_customize,
                                   "PCR Board",
