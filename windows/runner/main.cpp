@@ -27,9 +27,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
+  
+  // విండో క్రియేట్ చేసి చూపించడం కోసం ఇక్కడ మార్పు చేయబడింది
   if (!window.Create(L"KINGJVR", origin, size)) {
     return EXIT_FAILURE;
   }
+  
+  // విండో క్లోజ్ అయ్యే వరకు రన్ అయ్యేలా స్టాండర్డ్ సెటప్
   window.SetQuitOnClose(true);
 
   ::MSG msg;
