@@ -1608,7 +1608,9 @@ Future<void> _startYoutubeVideo(String url) async {
       isLive: isLiveBroadcasting,
     );
   }
- Future<void> _playNetworkBulletin(String playUrl) async {
+}
+
+Future<void> _playNetworkBulletin(String playUrl) async {
     final uri = Uri.tryParse(playUrl.trim());
     if (uri == null || !uri.hasScheme) {
       throw ArgumentError("Invalid network video URL: $playUrl");
