@@ -2777,11 +2777,8 @@ Future<void> _playNetworkBulletin(String playUrl) async {
           key: ValueKey(_windowsYoutubeVideoId),
           initialUrlRequest: URLRequest(
             url: WebUri(
-              'https://www.youtube.com/embed/$_windowsYoutubeVideoId?autoplay=1&rel=0&playsinline=1&enablejsapi=1',
+              'https://www.youtube.com/watch?v=$_windowsYoutubeVideoId',
             ),
-            headers: {
-              'Referer': 'https://www.youtube.com/',
-            },
           ),
           initialSettings: InAppWebViewSettings(
             mediaPlaybackRequiresUserGesture: false,
@@ -2791,8 +2788,63 @@ Future<void> _playNetworkBulletin(String playUrl) async {
           onWebViewCreated: (ctrl) {
             _winYtWebViewCtrl = ctrl;
           },
+          onLoadStop: (ctrl, url) async {
+            await ctrl.evaluateJavascript(source: r'''
+              (function() {
+                var css = `
+                  html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                    background: #000 !important;
+                  }
+                  ytd-masthead, #masthead-container, #secondary, #below,
+                  #related, #comments, #guide, tp-yt-app-drawer,
+                  ytd-mini-guide-renderer {
+                    display: none !important;
+                  }
+                  #movie_player {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    z-index: 999999 !important;
+                    background: #000 !important;
+                  }
+                  .html5-video-container, video.html5-main-video {
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    object-fit: cover !important;
+                  }
+                  .ytp-chrome-top, .ytp-gradient-top,
+                  .ytp-chrome-bottom, .ytp-gradient-bottom,
+                  .ytp-progress-bar-container, .ytp-watermark,
+                  .ytp-paid-content-overlay, .ytp-ce-element,
+                  .ytp-bezel {
+                    display: none !important;
+                    opacity: 0 !important;
+                  }
+                `;
+                var style = document.getElementById('kingjvr-clean-style');
+                if (!style) {
+                  style = document.createElement('style');
+                  style.id = 'kingjvr-clean-style';
+                  document.head.appendChild(style);
+                }
+                style.innerHTML = css;
+                setTimeout(function() {
+                  window.dispatchEvent(new Event('resize'));
+                  var v = document.querySelector('video');
+                  if (v && v.paused) { v.play().catch(function(){}); }
+                }, 1000);
+              })();
+            ''');
+          },
         );
-      } else if (isYoutubeMode && _ytController != null) {
+      }
         mainPlayer = YoutubePlayer(
           controller: _ytController!,
           showVideoProgressIndicator: false,
