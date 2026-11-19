@@ -17,6 +17,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
 import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
 import 'election_board.dart'; 
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -182,6 +183,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   int currentLocalVideoIndex = 0;
 
   YoutubePlayerController? _ytController;
+  InAppWebViewController? _winYtWebViewCtrl;
+  String? _windowsYoutubeVideoId;
   VideoPlayerController? _bulletinVideoController; 
   VideoPlayerController? _bottomAdVideoController;
   VideoPlayerController? _leftAdVideoCtrl;
@@ -1501,6 +1504,34 @@ Future<void> _startYoutubeVideo(String url) async {
     return;
   }
 
+  // Windows లో Error 153 మరియు MissingPluginException రాకుండా నేరుగా WebView2 లోడ్
+  if (Platform.isWindows) {
+    setState(() {
+      _windowsYoutubeVideoId = videoId;
+      isYoutubeLoading = false;
+      isCameraVisible = false;
+      isNewsBulletinMode = false;
+      isNetworkVideoMode = false;
+      isYoutubeMode = true;
+      isDualScreenMode = false;
+      hideControls = false;
+    });
+
+    if (_winYtWebViewCtrl != null) {
+      await _winYtWebViewCtrl!.loadUrl(
+        urlRequest: URLRequest(
+          url: WebUri(
+            'https://www.youtube.com/embed/$videoId?autoplay=1&rel=0&playsinline=1&enablejsapi=1',
+          ),
+          headers: {
+            'Referer': 'https://www.youtube.com/',
+          },
+        ),
+      );
+    }
+    return;
+  }
+
   setState(() {
     isYoutubeLoading = true;
     isCameraVisible = false;
@@ -1548,7 +1579,7 @@ Future<void> _startYoutubeVideo(String url) async {
           hideControls = false;
         });
 
-        if (!isLiveBroadcasting && !liveStartRequested) {
+        if (!Platform.isWindows && !isLiveBroadcasting && !liveStartRequested) {
           liveStartRequested = true;
           _startLiveAndLock();
         }
@@ -2622,11 +2653,32 @@ Future<void> _startYoutubeVideo(String url) async {
         isYoutubeMode) {
       Widget mainPlayer;
 
-      if (isYoutubeMode && _ytController != null) {
+      if (Platform.isWindows && isYoutubeMode && _windowsYoutubeVideoId != null) {
+        mainPlayer = InAppWebView(
+          key: ValueKey(_windowsYoutubeVideoId),
+          initialUrlRequest: URLRequest(
+            url: WebUri(
+              'https://www.youtube.com/embed/$_windowsYoutubeVideoId?autoplay=1&rel=0&playsinline=1&enablejsapi=1',
+            ),
+            headers: {
+              'Referer': 'https://www.youtube.com/',
+            },
+          ),
+          initialSettings: InAppWebViewSettings(
+            mediaPlaybackRequiresUserGesture: false,
+            javaScriptEnabled: true,
+            allowsInlineMediaPlayback: true,
+          ),
+          onWebViewCreated: (ctrl) {
+            _winYtWebViewCtrl = ctrl;
+          },
+        );
+      } else if (isYoutubeMode && _ytController != null) {
         mainPlayer = YoutubePlayer(
           controller: _ytController!,
           showVideoProgressIndicator: false,
         );
+      }
       } else if (isNewsBulletinMode && _vlcBulletinCtrl != null) {
         mainPlayer = SizedBox.expand(
           child: FittedBox(
