@@ -32,6 +32,15 @@ Future<void> main() async {
   } catch (e) {
     debugPrint("Camera Error: $e");
   }
+  ErrorWidget.builder = (FlutterErrorDetails details) => Material(
+    color: Colors.red.shade900,
+    child: Center(
+      child: Text(
+        details.exceptionAsString(),
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
+    ),
+  );
   runApp(const PocketPCRApp());
 }
 
@@ -523,7 +532,8 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
 
     StreamServiceManager.initializeStreamListener(context);
 
-    _loadSavedData();   
+    _loadSavedData();
+    _wmController.load();
     _requestPermissionsAndInitCamera();  
     _fetchBreakingNews();  
 
@@ -3032,7 +3042,7 @@ Future<void> _playNetworkBulletin(String playUrl) async {
       );
     }
 
-    return Positioned.fill(
+    return SizedBox.expand(
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
