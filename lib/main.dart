@@ -3709,6 +3709,15 @@ Future<void> _playNetworkBulletin(String playUrl) async {
                                       ? Colors.greenAccent
                                       : Colors.redAccent,
                                 ),
+                                _buildControlButton(
+                                  Icons.branding_watermark,
+                                  "Watermark",
+                                  () {
+                                    setState(() => isMenuOpen = false);
+                                    showWatermarkDialog(context, _wmController);
+                                  },
+                                  Colors.amber,
+                                ),
                               ],
                             ),
                           ),
@@ -3723,15 +3732,6 @@ Future<void> _playNetworkBulletin(String playUrl) async {
       ),
     );
   }
-_buildControlButton(
-  Icons.branding_watermark,
-  "Watermark",
-  () {
-    setState(() => isMenuOpen = false);
-    showWatermarkDialog(context, _wmController);
-  },
-  Colors.amber,
-),
   Widget _buildControlButton(
     IconData icon,
     String label,
