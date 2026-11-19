@@ -95,13 +95,50 @@ class StreamServiceManager {
   static const MethodChannel _streamChannel =
       MethodChannel('com.kingjvr.pocket_pcr/stream');
 
+  static Process? _winFfmpegProcess;
+
   static void initializeStreamListener(BuildContext context) {
+    if (Platform.isWindows) return;
     _streamChannel.setMethodCallHandler((call) async {
       if (call.method == 'onStreamStatusUpdate') {
         debugPrint('Stream status: ${call.arguments}');
       }
       return null;
     });
+  }
+
+  static String _findWindowsFfmpeg() {
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
+    final localFfmpeg = '$exeDir\\ffmpeg.exe';
+    if (File(localFfmpeg).existsSync()) {
+      return localFfmpeg;
+    }
+    return 'ffmpeg';
+  }
+
+  static Future<String?> _detectWindowsAudioDevice(String ffmpegPath) async {
+    try {
+      final result = await Process.run(
+        ffmpegPath,
+        ['-list_devices', 'true', '-f', 'dshow', '-i', 'dummy'],
+      );
+      final output = '${result.stderr}\n${result.stdout}';
+      final matches = RegExp(r'"([^"]+)"\s*\(audio\)').allMatches(output);
+      final devices = matches.map((m) => m.group(1)!).toList();
+      if (devices.isEmpty) return null;
+
+      for (final d in devices) {
+        final lower = d.toLowerCase();
+        if (lower.contains('stereo mix') ||
+            lower.contains('virtual') ||
+            lower.contains('cable')) {
+          return d;
+        }
+      }
+      return devices.first;
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<bool> startLiveStreamMulti(
@@ -113,6 +150,76 @@ class StreamServiceManager {
     if (cable.isEmpty && restream.isEmpty && satellite.isEmpty) return false;
     final primaryUrl =
         cable.isNotEmpty ? cable : (restream.isNotEmpty ? restream : satellite);
+
+    if (Platform.isWindows) {
+      await stopLiveStream();
+      final ffmpegPath = _findWindowsFfmpeg();
+      final audioDevice = await _detectWindowsAudioDevice(ffmpegPath);
+      final outFormat =
+          primaryUrl.toLowerCase().startsWith('srt://') ? 'mpegts' : 'flv';
+
+      final args = <String>[
+        '-y',
+        '-f', 'gdigrab',
+        '-framerate', '25',
+        '-i', 'desktop',
+        if (audioDevice != null) ...[
+          '-f', 'dshow',
+          '-i', 'audio=$audioDevice',
+        ] else ...[
+          '-f', 'lavfi',
+          '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+        ],
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-tune', 'zerolatency',
+        '-pix_fmt', 'yuv420p',
+        '-b:v', '2000k',
+        '-maxrate', '2000k',
+        '-bufsize', '4000k',
+        '-g', '50',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-ar', '44100',
+        '-f', outFormat,
+        primaryUrl,
+      ];
+
+      try {
+        final process = await Process.start(ffmpegPath, args);
+        _winFfmpegProcess = process;
+
+        bool exitedEarly = false;
+        int? earlyCode;
+
+        process.stdout.drain();
+        process.stderr
+            .transform(const Utf8Decoder(allowMalformed: true))
+            .listen((line) => debugPrint('FFmpeg: $line'));
+
+        process.exitCode.then((code) {
+          exitedEarly = true;
+          earlyCode = code;
+          if (identical(_winFfmpegProcess, process)) {
+            _winFfmpegProcess = null;
+          }
+        });
+
+        await Future.delayed(const Duration(seconds: 2));
+        if (exitedEarly) {
+          throw Exception(
+            'FFmpeg స్ట్రీమ్ ఆగిపోయింది (Code: $earlyCode). RTMP లింక్/ఇంటర్నెట్ చెక్ చేయండి.',
+          );
+        }
+        return true;
+      } on ProcessException {
+        throw Exception(
+          'పీసీలో FFmpeg లేదు. PowerShell లో winget install Gyan.FFmpeg రన్ చేయండి.',
+        );
+      } catch (e) {
+        throw Exception('Windows స్ట్రీమ్ లోపం: $e');
+      }
+    }
 
     try {
       final result = await _streamChannel.invokeMethod<bool>(
@@ -140,6 +247,13 @@ class StreamServiceManager {
   }
 
   static Future<bool> stopLiveStream() async {
+    if (Platform.isWindows) {
+      if (_winFfmpegProcess != null) {
+        _winFfmpegProcess!.kill();
+        _winFfmpegProcess = null;
+      }
+      return true;
+    }
     try {
       final result =
           await _streamChannel.invokeMethod<bool>('stopScreenCaptureStreaming');
@@ -149,6 +263,26 @@ class StreamServiceManager {
     }
   }
 
+  static Future<bool> pauseLiveStream() async => stopLiveStream();
+
+  static Future<int?> startUsbCamera() async {
+    if (Platform.isWindows) return null;
+    try {
+      return await const MethodChannel('com.kingjvr.pocket_pcr/uvc')
+          .invokeMethod<int>('startUsbCamera');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<void> stopUsbCamera() async {
+    if (Platform.isWindows) return;
+    try {
+      await const MethodChannel('com.kingjvr.pocket_pcr/uvc')
+          .invokeMethod<void>('stopUsbCamera');
+    } catch (e) {}
+  }
+}
   static Future<bool> pauseLiveStream() async => stopLiveStream();
 
   static Future<int?> startUsbCamera() async {
