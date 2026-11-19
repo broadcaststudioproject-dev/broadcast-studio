@@ -2844,8 +2844,7 @@ Future<void> _playNetworkBulletin(String playUrl) async {
             ''');
           },
         );
-      }
-        } else if (isYoutubeMode && _ytController != null) {
+      } else if (isYoutubeMode && _ytController != null) {
         mainPlayer = YoutubePlayer(
           controller: _ytController!,
           showVideoProgressIndicator: false,
