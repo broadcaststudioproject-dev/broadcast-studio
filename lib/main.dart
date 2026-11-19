@@ -2845,11 +2845,12 @@ Future<void> _playNetworkBulletin(String playUrl) async {
           },
         );
       }
+        } else if (isYoutubeMode && _ytController != null) {
         mainPlayer = YoutubePlayer(
           controller: _ytController!,
           showVideoProgressIndicator: false,
         );
-      } else if (isNewsBulletinMode && _vlcBulletinCtrl != null) {
+    } else if (isNewsBulletinMode && _vlcBulletinCtrl != null) {
         mainPlayer = SizedBox.expand(
           child: FittedBox(
             fit: BoxFit.cover,
