@@ -275,14 +275,6 @@ class StreamServiceManager {
     }
   }
 
-  static Future<void> stopUsbCamera() async {
-    if (Platform.isWindows) return;
-    try {
-      await const MethodChannel('com.kingjvr.pocket_pcr/uvc')
-          .invokeMethod<void>('stopUsbCamera');
-    } catch (e) {}
-  }
-}
   static Future<bool> pauseLiveStream() async => stopLiveStream();
 
   static Future<int?> startUsbCamera() async {
