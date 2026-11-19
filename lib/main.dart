@@ -18,6 +18,7 @@ import 'editor_tool.dart';
 import 'news_production/ui/news_desk_screen.dart';
 import 'election_board.dart'; 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'watermark_overlay.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -404,6 +405,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
   bool isExternalIpCamMode = false;
   bool isUsbCamMode = false;
   int? _usbTextureId;
+  final WatermarkController _wmController = WatermarkController();
 
   // PC లోని Flask సర్వర్‌కి వార్తలు పంపే ఫంక్షన్
   Future<void> sendNewsToPC(String newsText) async {
@@ -802,6 +804,7 @@ class _StudioScreenState extends State<StudioScreen> with WidgetsBindingObserver
     _bottomAdVideoCtrlForAds?.dispose();
     _logoVideoCtrl?.dispose();
     _vlcIpCamController?.dispose();
+    _wmController.load();
 
     restreamRtmpController.dispose();
     cableRtmpController.dispose();
@@ -3315,7 +3318,7 @@ Future<void> _playNetworkBulletin(String playUrl) async {
                           : null,
                       child: visualScreenLogoWidget,
                     ),
-
+                    ScrollingWatermarkOverlay(controller: _wmController),
                     if (!isDualScreenMode && showReporterDetails)
                       Positioned(
                         bottom: 65,
@@ -3720,7 +3723,15 @@ Future<void> _playNetworkBulletin(String playUrl) async {
       ),
     );
   }
-
+_buildControlButton(
+  Icons.branding_watermark,
+  "Watermark",
+  () {
+    setState(() => isMenuOpen = false);
+    showWatermarkDialog(context, _wmController);
+  },
+  Colors.amber,
+),
   Widget _buildControlButton(
     IconData icon,
     String label,
