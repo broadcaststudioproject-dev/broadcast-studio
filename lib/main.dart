@@ -37,9 +37,8 @@ Future<void> main() async {
   }
 
   // లైవ్ ప్రసారంలో ఎర్రర్ టెక్స్ట్ కనిపించకుండా: డీబగ్ మోడ్‌లో మాత్రమే చూపిస్తుంది.
-  ErrorWidget.builder = (FlutterErrorDetails details) {
-    if (kDebugMode) {
-      return Material(
+  // ఎర్రర్ కనిపించేలా (కారణం తెలిసాక kDebugMode చెక్ మళ్లీ పెట్టవచ్చు)
+  ErrorWidget.builder = (FlutterErrorDetails details) => Material(
         color: Colors.red.shade900,
         child: Center(
           child: Text(
@@ -48,9 +47,6 @@ Future<void> main() async {
           ),
         ),
       );
-    }
-    return const SizedBox.shrink();
-  };
   runApp(const PocketPCRApp());
 }
 
