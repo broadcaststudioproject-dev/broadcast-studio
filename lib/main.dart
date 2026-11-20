@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
@@ -31,19 +30,35 @@ Future<void> main() async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
   try {
-    cameras = await availableCameras();
+    if (!Platform.isWindows) {
+      cameras = await availableCameras();
+    }
   } catch (e) {
     debugPrint("Camera Error: $e");
   }
 
-  // లైవ్ ప్రసారంలో ఎర్రర్ టెక్స్ట్ కనిపించకుండా: డీబగ్ మోడ్‌లో మాత్రమే చూపిస్తుంది.
-  // ఎర్రర్ కనిపించేలా (కారణం తెలిసాక kDebugMode చెక్ మళ్లీ పెట్టవచ్చు)
+  // Windows లో ఏదైనా రన్‌టైమ్ ఎర్రర్ వస్తే kingjvr_error.txt లో సేవ్ అవుతుంది
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    if (Platform.isWindows) {
+      try {
+        File('kingjvr_error.txt').writeAsStringSync(
+          '${DateTime.now()}\n${details.exception}\n${details.stack}\n\n',
+          mode: FileMode.append,
+        );
+      } catch (_) {}
+    }
+  };
+
   ErrorWidget.builder = (FlutterErrorDetails details) => Material(
         color: Colors.red.shade900,
         child: Center(
-          child: Text(
-            details.exceptionAsString(),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              details.exceptionAsString(),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
           ),
         ),
       );
@@ -893,7 +908,8 @@ class _StudioScreenState extends State<StudioScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (isCameraVisible &&
+      if (!Platform.isWindows &&
+          isCameraVisible &&
           !isExternalIpCamMode &&
           !isUsbCamMode &&
           (controller == null || !controller!.value.isInitialized)) {
@@ -927,9 +943,7 @@ class _StudioScreenState extends State<StudioScreen>
     _bottomAdVideoCtrlForAds?.dispose();
     _logoVideoCtrl?.dispose();
     _vlcIpCamController?.dispose();
-    // గమనిక: ఇక్కడ ముందు _wmController.load() ఉండేది (తప్పు).
-    // WatermarkController లో dispose() ఉంటే (ChangeNotifier అయితే) ఈ లైన్ ఆన్ చేయండి:
-    // _wmController.dispose();
+    _wmController.dispose();
 
     restreamRtmpController.dispose();
     cableRtmpController.dispose();
@@ -961,16 +975,23 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   Future<void> _requestPermissionsAndInitCamera() async {
-    if (!Platform.isWindows) {
-      await [
-        Permission.camera,
-        Permission.microphone,
-        Permission.storage,
-        Permission.photos,
-        Permission.videos,
-        Permission.notification,
-      ].request();
+    if (Platform.isWindows) {
+      if (mounted) {
+        setState(() {
+          isCameraVisible = false;
+        });
+      }
+      return;
     }
+
+    await [
+      Permission.camera,
+      Permission.microphone,
+      Permission.storage,
+      Permission.photos,
+      Permission.videos,
+      Permission.notification,
+    ].request();
 
     if (!mounted) return;
 
@@ -982,6 +1003,8 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   Future<void> _initCamera() async {
+    if (Platform.isWindows) return;
+
     if (cameras.isEmpty) {
       try {
         cameras = await availableCameras();
@@ -1629,7 +1652,7 @@ class _StudioScreenState extends State<StudioScreen>
       isYoutubeLoading = false;
       isYoutubeMode = false;
       isNewsBulletinMode = false;
-      isCameraVisible = true;
+      isCameraVisible = !Platform.isWindows;
       hideControls = false;
     });
     showCustomToast(context, message, isLive: isLiveBroadcasting);
@@ -1662,7 +1685,6 @@ class _StudioScreenState extends State<StudioScreen>
         hideControls = false;
       });
 
-      // initialUrlRequest తో ఒకే URL (watch) వాడతాం; WebView ఇప్పటికే ఉంటే అదే URL లోడ్
       if (_winYtWebViewCtrl != null) {
         try {
           await _winYtWebViewCtrl!.loadUrl(
@@ -1822,7 +1844,7 @@ class _StudioScreenState extends State<StudioScreen>
       setState(() {
         isNewsBulletinMode = false;
         isNetworkVideoMode = false;
-        isCameraVisible = true;
+        isCameraVisible = !Platform.isWindows;
       });
 
       showCustomToast(
@@ -1846,7 +1868,7 @@ class _StudioScreenState extends State<StudioScreen>
         setState(() {
           isNewsBulletinMode = false;
           isNetworkVideoMode = false;
-          isCameraVisible = true;
+          isCameraVisible = !Platform.isWindows;
         });
       }
     }
@@ -1991,7 +2013,7 @@ class _StudioScreenState extends State<StudioScreen>
     if (currentLocalVideoIndex >= localVideoPlaylist.length) {
       setState(() {
         isNewsBulletinMode = false;
-        isCameraVisible = true;
+        isCameraVisible = !Platform.isWindows;
       });
       return;
     }
@@ -2057,7 +2079,7 @@ class _StudioScreenState extends State<StudioScreen>
       if (_vlcFailCount > localVideoPlaylist.length) {
         setState(() {
           isNewsBulletinMode = false;
-          isCameraVisible = true;
+          isCameraVisible = !Platform.isWindows;
         });
         return;
       }
@@ -2154,9 +2176,8 @@ class _StudioScreenState extends State<StudioScreen>
             bottomAdIndex = bottomAdPaths.length - 1;
             _saveAdPaths(pos, bottomAdPaths);
           }
-
-          _initAdVideo(pos);
         });
+        _initAdVideo(pos);
       }
     } catch (e) {
       debugPrint("Pick ads error: $e");
@@ -2164,17 +2185,18 @@ class _StudioScreenState extends State<StudioScreen>
   }
 
   void _manageAdsDialog(String pos) {
-    List<String> currentPaths = [];
-
-    if (pos == 'left') currentPaths = leftAdPaths;
-    if (pos == 'right') currentPaths = rightAdPaths;
-    if (pos == 'bottom') currentPaths = bottomAdPaths;
+    List<String> getPaths() {
+      if (pos == 'left') return leftAdPaths;
+      if (pos == 'right') return rightAdPaths;
+      return bottomAdPaths;
+    }
 
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
+            final currentPaths = getPaths();
             return AlertDialog(
               backgroundColor: Colors.grey[900],
               title: Text(
@@ -2217,26 +2239,20 @@ class _StudioScreenState extends State<StudioScreen>
                                   currentPaths.removeAt(idx);
                                   _saveAdPaths(pos, currentPaths);
 
-                                  if (pos == 'left') {
-                                    if (leftAdIndex >= leftAdPaths.length) {
-                                      leftAdIndex = 0;
-                                    }
-                                    _initAdVideo('left');
+                                  if (pos == 'left' &&
+                                      leftAdIndex >= leftAdPaths.length) {
+                                    leftAdIndex = 0;
                                   }
-                                  if (pos == 'right') {
-                                    if (rightAdIndex >= rightAdPaths.length) {
-                                      rightAdIndex = 0;
-                                    }
-                                    _initAdVideo('right');
+                                  if (pos == 'right' &&
+                                      rightAdIndex >= rightAdPaths.length) {
+                                    rightAdIndex = 0;
                                   }
-                                  if (pos == 'bottom') {
-                                    if (bottomAdIndex >= bottomAdPaths.length) {
-                                      bottomAdIndex = 0;
-                                    }
-                                    _initAdVideo('bottom');
+                                  if (pos == 'bottom' &&
+                                      bottomAdIndex >= bottomAdPaths.length) {
+                                    bottomAdIndex = 0;
                                   }
                                 });
-
+                                _initAdVideo(pos);
                                 setDialogState(() {});
                               },
                             ),
@@ -2850,20 +2866,24 @@ class _StudioScreenState extends State<StudioScreen>
     }
 
     // ---- యాడ్ లేఅవుట్: 0 = L-Band, 1 = U-Band, 2 = Bottom only ----
-    final double availableHeight = screenHeight;
+    final double safeW = screenWidth.clamp(0.0, double.infinity);
+    final double availableHeight = screenHeight.clamp(0.0, double.infinity);
     final int sideCount = adShapeMode == 0 ? 1 : (adShapeMode == 1 ? 2 : 0);
 
-    double sideAdWidth = screenWidth * 0.20;
-    double videoWidth = screenWidth - sideAdWidth * sideCount;
+    double sideAdWidth = safeW * 0.20;
+    double videoWidth = (safeW - sideAdWidth * sideCount).clamp(0.0, safeW);
     double videoHeight = videoWidth * (9 / 16);
-    double bottomAdHeight = availableHeight - videoHeight;
+    double bottomAdHeight =
+        (availableHeight - videoHeight).clamp(0.0, availableHeight);
 
     if (bottomAdHeight < availableHeight * 0.18) {
       bottomAdHeight = availableHeight * 0.18;
-      videoHeight = availableHeight - bottomAdHeight;
-      videoWidth = videoHeight * (16 / 9);
-      sideAdWidth =
-          sideCount > 0 ? (screenWidth - videoWidth) / sideCount : 0;
+      videoHeight =
+          (availableHeight - bottomAdHeight).clamp(0.0, availableHeight);
+      videoWidth = (videoHeight * (16 / 9)).clamp(0.0, safeW);
+      sideAdWidth = sideCount > 0
+          ? ((safeW - videoWidth) / sideCount).clamp(0.0, safeW)
+          : 0.0;
     }
 
     double videoLeft;
@@ -2872,7 +2892,7 @@ class _StudioScreenState extends State<StudioScreen>
     } else if (adShapeMode == 1) {
       videoLeft = sideAdWidth;
     } else {
-      videoLeft = (screenWidth - videoWidth) / 2;
+      videoLeft = ((safeW - videoWidth) / 2).clamp(0.0, safeW);
     }
 
     if (isNewsBulletinMode ||
@@ -2999,7 +3019,7 @@ class _StudioScreenState extends State<StudioScreen>
             Positioned(
               left: isAdCurrentlyShowing ? videoLeft : 0,
               top: 0,
-              width: isAdCurrentlyShowing ? videoWidth : screenWidth,
+              width: isAdCurrentlyShowing ? videoWidth : safeW,
               height: isAdCurrentlyShowing ? videoHeight : availableHeight,
               child: Center(
                 child: Container(
@@ -3108,7 +3128,7 @@ class _StudioScreenState extends State<StudioScreen>
     final double finalCamW = isScreenLandscape ? camW : camH;
     final double finalCamH = isScreenLandscape ? camH : camW;
 
-    final Widget phoneCameraWidget = (!isCameraVisible)
+    final Widget phoneCameraWidget = (!isCameraVisible || Platform.isWindows)
         ? Container(color: Colors.transparent)
         : (_isCameraInitialized &&
                 controller != null &&
@@ -3301,7 +3321,8 @@ class _StudioScreenState extends State<StudioScreen>
                 final double screenW = constraints.maxWidth;
                 final double screenH = constraints.maxHeight;
                 const double tickerH = 55.0;
-                final double topAreaH = screenH - tickerH;
+                final double topAreaH =
+                    (screenH - tickerH).clamp(0.0, double.infinity);
 
                 return Stack(
                   children: [
@@ -3755,6 +3776,7 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
   }
 
   Future<void> _initPhoneCamera() async {
+    if (Platform.isWindows) return;
     try {
       _cameras = await availableCameras();
       if (_cameras.isNotEmpty) {
@@ -3999,3 +4021,4 @@ class _MasterPCRBoardState extends State<MasterPCRBoard> {
     );
   }
 }
+
