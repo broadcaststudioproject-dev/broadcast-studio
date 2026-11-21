@@ -485,7 +485,10 @@ class _StudioScreenState extends State<StudioScreen>
   List<TextEditingController> droneCtrls =
       List.generate(2, (i) => TextEditingController());
 
-  Timer? _newsTimer;
+  TimerTimer? _remoteConfigTimer;
+  String _lastRemoteConfigBody = "";
+  static const String _remoteConfigUrl =
+    'https://raw.githubusercontent.com/broadcaststudioproject-dev/broadcast-studio/main/config.json';? _newsTimer;
   Timer? _adCycleTimer;
   Timer? _saveLinksTimer;
   Timer? _ytLoadTimer;
@@ -654,6 +657,11 @@ class _StudioScreenState extends State<StudioScreen>
     _wmController.load();
     _requestPermissionsAndInitCamera();
     _fetchBreakingNews();
+    _fetchRemoteConfig();
+    _remoteConfigTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _fetchRemoteConfig(),
+    );
 
     _newsTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _fetchBreakingNews();
@@ -689,6 +697,95 @@ class _StudioScreenState extends State<StudioScreen>
     }
   }
 
+  Future<void> _fetchRemoteConfig({bool manual = false}) async {
+  try {
+    final uri = Uri.parse(
+        '$_remoteConfigUrl?t=${DateTime.now().millisecondsSinceEpoch}');
+    final response = await http.get(
+      uri,
+      headers: {'Cache-Control': 'no-cache'},
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) return;
+    if (!manual && response.body == _lastRemoteConfigBody) return;
+    _lastRemoteConfigBody = response.body;
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    if (!mounted) return;
+
+    setState(() {
+      final news = (data['breakingNews'] ?? '').toString().trim();
+      if (news.isNotEmpty) breakingNewsText = news;
+
+      final loc = (data['location'] ?? '').toString().trim();
+      if (loc.isNotEmpty) {
+        locationText = loc;
+        locCtrl.text = loc;
+      }
+
+      final rName = (data['reporterName'] ?? '').toString().trim();
+      if (rName.isNotEmpty) {
+        reporterName = rName;
+        nameCtrl.text = rName;
+      }
+
+      final rRole = (data['reporterRole'] ?? '').toString().trim();
+      if (rRole.isNotEmpty) {
+        reporterRole = rRole;
+        roleCtrl.text = rRole;
+      }
+
+      final wm = (data['watermarkText'] ?? '').toString().trim();
+      if (wm.isNotEmpty) {
+        watermarkText = wm;
+        watermarkCtrl.text = wm;
+      }
+
+      final mHead = (data['mainHeadline'] ?? '').toString().trim();
+      if (mHead.isNotEmpty) {
+        splitScreenMainHeadline = mHead;
+        mainHeadlineCtrl.text = mHead;
+      }
+
+      final sHead = (data['subHeadline'] ?? '').toString().trim();
+      if (sHead.isNotEmpty) {
+        splitScreenSubHeadline = sHead;
+        subHeadlineCtrl.text = sHead;
+      }
+
+      final ytUrl = (data['youtubeUrl'] ?? '').toString().trim();
+      if (ytUrl.isNotEmpty) youtubeVideoUrlCtrl.text = ytUrl;
+
+      final cable = (data['cableRtmp'] ?? '').toString().trim();
+      if (cable.isNotEmpty) cableRtmpController.text = cable;
+
+      final restream = (data['restreamRtmp'] ?? '').toString().trim();
+      if (restream.isNotEmpty) restreamRtmpController.text = restream;
+
+      final adMode = data['adMode'];
+      if (adMode is int && adMode >= 0 && adMode <= 2 && adMode != adDisplayMode) {
+        adDisplayMode = adMode;
+        _adCycleTimer?.cancel();
+        if (adMode == 0) {
+          isAdCurrentlyShowing = false;
+        } else if (adMode == 1) {
+          isAdCurrentlyShowing = true;
+          _startPermanentCycle();
+        } else if (adMode == 2) {
+          isAdCurrentlyShowing = true;
+          _startAutoCycle();
+        }
+      }
+    });
+
+    if (manual) {
+      showCustomToast(context, "రిమోట్ సెట్టింగ్స్ అప్‌డేట్ అయ్యాయి!",
+          isLive: isLiveBroadcasting);
+    }
+  } catch (e) {
+    debugPrint("Remote config error: $e");
+  }
+}
   void _setLogo(String path) {
     channelLogoPath = path;
     final old = _logoVideoCtrl;
@@ -923,6 +1020,7 @@ class _StudioScreenState extends State<StudioScreen>
     WidgetsBinding.instance.removeObserver(this);
 
     _newsTimer?.cancel();
+    _remoteConfigTimer?.cancel();
     _adCycleTimer?.cancel();
     _tickerColorTimer?.cancel();
     _saveLinksTimer?.cancel();
