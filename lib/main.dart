@@ -485,10 +485,11 @@ class _StudioScreenState extends State<StudioScreen>
   List<TextEditingController> droneCtrls =
       List.generate(2, (i) => TextEditingController());
 
-  TimerTimer? _remoteConfigTimer;
+  Timer? _newsTimer;
+  Timer? _remoteConfigTimer;
   String _lastRemoteConfigBody = "";
   static const String _remoteConfigUrl =
-    'https://raw.githubusercontent.com/broadcaststudioproject-dev/broadcast-studio/main/config.json';? _newsTimer;
+      'https://raw.githubusercontent.com/broadcaststudioproject-dev/broadcast-studio/main/config.json';
   Timer? _adCycleTimer;
   Timer? _saveLinksTimer;
   Timer? _ytLoadTimer;
