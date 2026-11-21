@@ -3325,6 +3325,7 @@ class _StudioScreenState extends State<StudioScreen>
                     (screenH - tickerH).clamp(0.0, double.infinity);
 
                 return Stack(
+                  fit: StackFit.expand,
                   children: [
                     Positioned(
                       top: 0,
@@ -3348,7 +3349,9 @@ class _StudioScreenState extends State<StudioScreen>
                           (logoPosition == 1 || logoPosition == 2) ? 10.0 : null,
                       child: visualScreenLogoWidget,
                     ),
-                    ScrollingWatermarkOverlay(controller: _wmController),
+                    Positioned.fill(
+                      child: ScrollingWatermarkOverlay(controller: _wmController),
+                    ),
                     if (!isDualScreenMode && showReporterDetails)
                       Positioned(
                         bottom: 65,
